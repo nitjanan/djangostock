@@ -1,0 +1,394 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block css %}
+<style>
+    @media print {
+    .hidden-print {
+      display: none;
+    }
+  }
+  input[type=checkbox] {
+  display: none;
+  }
+  
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+        <div class="col-md-12">
+        <div class="invoice-title">
+          <description>
+              <h4>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h4>
+               57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
+              <br>โทร 099-6813306 0842658115  
+              <br>เลขที่ผู้เสียภาษี 0845507000045
+          </description>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-md-6">
+            <address>
+            <strong>ผู้จำหน่าย: {{po.distributor.id_express}}</strong><br>
+              {{po.distributor}}<br>
+              {{po.distributor.address}}<br>
+              โทร : {{po.distributor.tel}}<br>
+              แฟ๊กซ์ : {{po.distributor.fax}}
+            </address>
+          </div>
+          <div class="col-md-6 text-right">
+            <address>
+              <strong>ใบสั่งซื้อ</strong><br>
+              เลขที่ใบสั่งซื้อ : {{po.ref_no}}<br>
+              วันที่ : {{po.created}}<br>
+              เครดิต : {{po.credit}}<br>
+              ขนส่งโดย : {{po.shipping}}
+            </address>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="w-25">รหัสสินค้า/รายละเอียด</th>
+                        <th scope="col">จำนวน</th>
+                        <th scope="col" class="w-25">หน่วย</th>
+                        <th scope="col">หน่วยละ</th>
+                        <th scope="col">จำนวนเงิน</th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+            <form class="form-horizontal" method="POST" action="">
+                {% csrf_token %}
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <div class="row form-row spacer my-2" id="div-{% if form.id.value %}{{form.id.value}}{% else %}None{% endif %}">
+                <div class="col">
+                    <div class="input-group">
+                        {{form.id}} 
+                        {{form.item}}
+                        <input id="express-{{forloop.counter0}}" name="express-{{forloop.counter0}}" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
+                        <datalist id="idExpressList">
+                          {% for results in itemList %}
+                            <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}" >เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
+                          {% endfor %}
+                        </datalist>
+                        {{form.quantity }} {{form.unit| add_class:"form-control"}} {{form.unit_price}} {{form.price}} {{ form.DELETE}}
+                        {% if form.id.value %}
+                          <div class="input-group-append text-right">
+                            <button type="button" class="btn btn-danger hidden-print" onclick="hideDiv('{{form.id.value}}')">-</button>
+                         </div>
+                        {% else %}
+                          <div class="input-group-append text-right">
+                              <button class="btn btn-success add-form-row hidden-print">+</button>
+                          </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <hr>
+            <div class="row">
+              <div class="col-7">
+                <p>หมายเหตุ</p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">รวมเป็นเงิน</p>
+              </div>
+              <div class="col-2">
+                {{price_form.total_price | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">หักส่วนลด</p>
+              </div>
+              <div class="col-2">
+                {{price_form.discount | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
+              </div>
+              <div class="col-2">
+                {{price_form.total_after_discount | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
+                <p id="vat-type" hidden>{{po.vat_type.id}}</p>
+              </div>
+              <div class="col-2">
+                {{price_form.vat | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-7">
+                <p id="total-spell"></p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
+              </div>
+              <div class="col-2">
+                {{price_form.amount | add_class:"text-right" }}
+              </div>
+            </div>
+            <hr>
+            <div class="row spacer my-3">
+                <div class="col">
+                    <button id="submit" type="submit" class="btn btn-primary hidden-print"><i class="fas fa-save"></i>
+                      บันทึก
+                    </button>
+                </div>
+                <div>
+                  <h6>FM-PU-003 Rev.00</h6>
+                  <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="window.print();">
+                      <i class="fas fa-print"></i>
+                      ปริ้นใบสั่งซื้อ
+                  </button>
+                </div>
+            </div>
+            </form> 
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock%}
+{% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
+<script type="text/javascript">
+//แสดงครั้งแรกเมื่อเปิด page
+$(function() {
+    //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
+		var thaibath = ArabicNumberToText($("#id_amount").val());
+    document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+
+    //get datalist to set input
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val()){
+          var val = $(inputs[i]).val();
+          var id = $('#idExpressList option[data-id='+val+']').val();
+
+          //set value to form.item
+          $("#express-"+i+"").val(id);
+        }
+    }
+
+});
+
+$('form').submit(function() {
+  var inputId = $("#div-None div.col div.input-group input").attr("id").match(/\d+/);
+  var data = $('#id_purchaseorderitem_set-'+inputId+'-item').val();
+  if(data == "")
+     $("#div-None" ).remove();
+});
+
+function updateElementIndex(el, prefix, ndx) {
+    var id_regex = new RegExp('(' + prefix + '-\\d+)');
+    var replacement = prefix + '-' + ndx;
+    if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
+    if (el.id) el.id = el.id.replace(id_regex, replacement);
+    if (el.name) el.name = el.name.replace(id_regex, replacement);
+}
+function cloneMore(selector, prefix) {
+    var newElement = $(selector).clone(true);
+    var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+    newElement.find(':input:not([type=button]):not([type=submit]):not([type=reset])').each(function() {
+        var name = $(this).attr('name')
+        if(name) {
+            name = name.replace('-' + (total-1) + '-', '-' + total + '-');
+            var id = 'id_' + name;
+            $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
+        }
+    });
+    newElement.find('label').each(function() {
+        var forValue = $(this).attr('for');
+        if (forValue) {
+          forValue = forValue.replace('-' + (total-1) + '-', '-' + total + '-');
+          $(this).attr({'for': forValue});
+        }
+    });
+    total++;
+    $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+    $(selector).after(newElement);
+    var conditionRow = $('.form-row:not(:last)');
+    conditionRow.find('.btn.add-form-row')
+    .removeClass('btn-success').addClass('btn-danger')
+    .removeClass('add-form-row').addClass('remove-form-row')
+    .html('-');
+    return false;
+}
+function deleteForm(prefix, btn) {
+    var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+    if (total > 1){
+        btn.closest('.form-row').remove();
+        var forms = $('.form-row');
+        $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
+        for (var i=0, formCount=forms.length; i<formCount; i++) {
+            $(forms.get(i)).find(':input').each(function() {
+                updateElementIndex(this, prefix, i);
+            });
+        }
+    }
+    return false;
+}
+$(document).on('click', '.add-form-row', function(e){
+    e.preventDefault();
+    cloneMore('.form-row:last', 'purchaseorderitem_set');
+    return false;
+});
+$(document).on('click', '.remove-form-row', function(e){
+    e.preventDefault();
+    deleteForm('purchaseorderitem_set', $(this));
+    //คำนวน รวมเป็นเงิน
+    calculateAll();
+    return false;
+});
+
+//jQuery ดึงค่าจาก 2 class
+$(".unit-price, .quantity")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    var suffix = $(this).attr('id').match(/\d+/);
+    var quantity = $('#id_purchaseorderitem_set-' + suffix + '-quantity').val();
+    var unitPrice = $('#id_purchaseorderitem_set-' + suffix + '-unit_price').val();
+
+    price = parseFloat(quantity) * parseFloat(unitPrice);
+    $('#id_purchaseorderitem_set-' + suffix + '-price').val(price);
+    
+    // format ทศนิยม 2 และ 0 ตำแหน่ง
+    $('#id_purchaseorderitem_set-' + suffix + '-unit_price').val(parseFloat($('#id_purchaseorderitem_set-' + suffix + '-unit_price').val()).toFixed(2));
+    $('#id_purchaseorderitem_set-' + suffix + '-quantity').val(parseFloat($('#id_purchaseorderitem_set-' + suffix + '-quantity').val()).toFixed());
+
+    //คำนวนค่าทั้งหมด
+    calculateAll();
+});
+
+$(".price" )
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+    //คำนวน รวมเป็นเงิน
+    calculateAll();
+  });
+
+$("#id_discount")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_total_price")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_total_price, #id_discount").change(function() {
+  var price =  $("#id_total_price").val();
+  var discount =  $("#id_discount").val();
+  var totalAfterDiscount = parseFloat(price) - parseFloat(discount);
+  $("#id_total_after_discount").val(totalAfterDiscount);
+  $("#id_total_after_discount").val(parseFloat($("#id_total_after_discount").val()).toFixed(2));
+  //คำนวน vat
+  var vat = calculateVat(totalAfterDiscount);
+  $("#id_vat").val(vat.toFixed(2));
+  //คำนวน amount
+  var amount = calculateAmount(vat, totalAfterDiscount);
+  $("#id_amount").val(amount.toFixed(2));
+  //แสดงจำนวนเงินตัวสะกด
+  var thaibath = ArabicNumberToText(amount);
+  document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+});
+
+function calculateAll(){
+    var inputs = $(".price" );
+    var total = 0.0;
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val() != 0.00 && !$(inputs[i]).hasClass("hiden-delete")){
+          total += parseFloat($(inputs[i]).val());
+        }
+    }
+    
+    var totalAfterDiscount = calculateTotalAfterDiscount(total);
+    var vat = calculateVat(totalAfterDiscount);
+    var amount =  calculateAmount(vat, totalAfterDiscount);
+    //แสดง จำนวนเงินหลังหักส่วนลด
+    $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
+    //แสดง รวมเป็นเงิน 
+    $("#id_total_price").val(total.toFixed(2));
+    //แสดง จำนวนภาษีมูลค่าเพิ่ม
+    $("#id_vat").val(vat.toFixed(2));
+    //แสดง จำนวนเงินรวมทั้งสิ้น
+    $("#id_amount").val(amount.toFixed(2));
+    //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
+		var thaibath = ArabicNumberToText(amount);
+    document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+}
+
+function calculateTotalAfterDiscount(totalPrice){
+  var discount =  parseFloat($("#id_discount").val());
+  return totalPrice - discount;
+}
+function calculateVat(totalAfterDiscount){
+  var vatType = document.getElementById("vat-type").innerHTML;
+  var vat = 0.00;
+  if(vatType == "1") //vat ใน
+    vat = (totalAfterDiscount*7)/107;
+  else if(vatType == "2") //vat นอก
+    vat = (totalAfterDiscount*7)/100;
+  return vat;
+}
+
+function calculateAmount(vat, totalAfterDiscount){
+  return totalAfterDiscount + vat;
+}
+
+function hideDiv(id){
+    var inputId = $("#div-"+id+" div.col div.input-group input[value='"+id+"']").attr("id").match(/\d+/);
+    $("#id_purchaseorderitem_set-"+inputId+"-DELETE").prop('checked', true);
+    //เพิ่ม class hiden-delete ไว้บอกว่าไม่ต้องคำนวน ราคารวม
+    $("#id_purchaseorderitem_set-"+inputId+"-price").addClass("hiden-delete");
+    //คำนวน รวมเป็นเงิน
+    calculateAll();
+    $("#div-"+id).hide();
+}
+$(".express" ).change(function() {
+    // get data id ของ option data list
+    var suffix = $(this).attr('id').match(/\d+/);
+    var val = $("#express-"+suffix+"").val();
+    var id = $('#idExpressList option[value='+val+']').attr('data-id');
+    var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
+    var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
+    //set value to form.item
+    $("#id_purchaseorderitem_set-"+suffix+"-item").val(id);
+    $("#id_purchaseorderitem_set-"+suffix+"-quantity").val(quantity);
+    $("#id_purchaseorderitem_set-"+suffix+"-unit").val(unit);
+  });
+</script>
+{% endblock%}

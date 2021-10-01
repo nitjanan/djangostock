@@ -1,0 +1,354 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container">
+    <h3 align="center">ใบเปรียบเทียบราคา</h3>
+    <div class="card my-2 div-shadow border-primary" id="card">
+        <form method="post" >
+            {% csrf_token %}
+            <div class="card-header text-primary">
+                    <div class="row spacer">
+                        <div class="col-5">
+                            <div class="input-group">
+                                <label>{{bookform.distributor.label}}</label>&ensp;
+                                {{bookform.cp}}
+                                {{bookform.distributor | add_class:"form-control"}}
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="input-group">
+                                <label>{{bookform.credit.label}}</label>&ensp;
+                                {{bookform.credit | add_class:"form-control"}}
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="input-group">
+                                <label>{{bookform.vat_type.label}}</label>&ensp;
+                                {{bookform.vat_type | add_class:"form-control"}}
+                            </div>
+                        </div>
+                        <div class="col-1"></div>
+                    </div>
+            </div>
+            <div class="card-body">
+                <div class="row form-row spacer">
+                    <div class="col">สินค้า</div>
+                    <div class="col">จำนวน</div>
+                    <div class="col">หน่วย</div>
+                    <div class="col">เกรด/ยี่ห้อ</div>
+                    <div class="col">ราคาหน่วยละ</div>
+                    <div class="col text-center">รวม</div>
+                </div>
+                {{ formset.management_form }}
+                {% for form in formset %}
+                <div class="row form-row spacer my-2" id="div-{% if form.id.value %}{{form.id.value}}{% else %}None{% endif %}">
+                    <div class="col">
+                        <div class="input-group">
+                            {{form.id}} 
+                            {{form.item | add_class:"item"}}
+                            <input id="express-{{forloop.counter0}}" name="express-{{forloop.counter0}}" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
+                            <datalist id="idExpressList">
+                              {% for results in itemList %}
+                                <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}">เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
+                              {% endfor %}
+                            </datalist>
+                            {{form.quantity | add_class:"form-control quantity"}}
+                            {{form.unit | add_class:"form-control"}}
+                            {{form.brand | add_class:"form-control"}}
+                            {{form.unit_price | add_class:"form-control unit-price"}}
+                            {{form.price | add_class:"form-control text-right price"}}
+                            {{ form.DELETE | add_class:"d-none"}}
+                            {% if form.id.value %}
+                                <div class="input-group-append text-right">
+                                <button type="button" class="btn btn-danger hidden-print" onclick="hideDiv('{{form.id.value}}')">-</button>
+                            </div>
+                            {% else %}
+                                <div class="input-group-append text-right">
+                                    <button class="btn btn-success add-form-row hidden-print">+</button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="row spacer">
+                    <div class="col-10">
+                        <label class="float-right">{{bookform.total_price.label}}</label>
+                    </div>
+                    <div class="col-2">
+                        <div class="input-group float-right">
+                            {{bookform.total_price | add_class:"form-control text-right"}}
+                        </div>
+                    </div>
+                </div>
+                <div class="row spacer my-2">
+                    <div class="col-10">
+                        <label class="float-right">{{bookform.discount.label}}</label>
+                    </div>
+                    <div class="col-2">
+                        <div class="input-group float-right">
+                            {{bookform.discount  | add_class:"form-control text-right"}}
+                        </div>
+                    </div>
+                </div>
+                <div class="row spacer my-2">
+                    <div class="col-10">
+                        <label class="float-right">{{bookform.total_after_discount.label}}</label>
+                    </div>
+                    <div class="col-2">
+                        <div class="input-group float-right">
+                            {{bookform.total_after_discount | add_class:"form-control text-right"}}
+                        </div>
+                    </div>
+                </div>
+                <div class="row spacer my-2">
+                    <div class="col-10">
+                        <label class="float-right">{{bookform.vat.label}}</label>
+                    </div>
+                    <div class="col-2">
+                        <div class="input-group float-right">
+                            {{bookform.vat | add_class:"form-control text-right"}}
+                        </div>
+                    </div>
+                </div>
+                <div class="row spacer my-2">
+                    <div class="col-10">
+                        <label class="float-right">{{bookform.amount.label}}</label>
+                    </div>
+                    <div class="col-2">
+                        <div class="input-group float-right">
+                            {{bookform.amount | add_class:"form-control text-right"}}
+                        </div>
+                    </div>
+                </div>
+                <div class="row spacer my-2">
+                    <div class="col-3">
+                        <button type="submit" class="btn btn-block btn-primary"><i class="fas fa-plus-circle"></i> เพิ่ม</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="row my-4">
+        <div class="col">
+            <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn btn-outline-secondary float-right"><i class="fas fa-pen"></i> perview print</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script type="text/javascript">
+
+//แสดงครั้งแรกเมื่อเปิด page
+$(function() {
+    //get datalist to set input
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val()){
+          var val = $(inputs[i]).val();
+          var id = $('#idExpressList option[data-id='+val+']').val();
+          var quantity = $('#idExpressList option[data-id='+val+']').attr('data-quantity');
+          var unit = $('#idExpressList option[data-id='+val+']').attr('data-unit');
+          //set value to form.item
+          $("#express-"+i+"").val(id);
+          $("#id_comparisonpriceitem_set-"+i+"-quantity").val(quantity);
+          $("#id_comparisonpriceitem_set-"+i+"-unit").val(unit);
+          
+        }
+    }
+
+});
+
+function updateElementIndex(el, prefix, ndx) {
+    var id_regex = new RegExp('(' + prefix + '-\\d+)');
+    var replacement = prefix + '-' + ndx;
+    if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
+    if (el.id) el.id = el.id.replace(id_regex, replacement);
+    if (el.name) el.name = el.name.replace(id_regex, replacement);
+}
+function cloneMore(selector, prefix) {
+    var newElement = $(selector).clone(true);
+    var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+    newElement.find(':input:not([type=button]):not([type=submit]):not([type=reset])').each(function() {
+        var name = $(this).attr('name')
+        if(name) {
+            name = name.replace('-' + (total-1) + '-', '-' + total + '-');
+            var id = 'id_' + name;
+            $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
+        }
+    });
+    newElement.find('label').each(function() {
+        var forValue = $(this).attr('for');
+        if (forValue) {
+          forValue = forValue.replace('-' + (total-1) + '-', '-' + total + '-');
+          $(this).attr({'for': forValue});
+        }
+    });
+    total++;
+    $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+    $(selector).after(newElement);
+    var conditionRow = $('.form-row:not(:last)');
+    conditionRow.find('.btn.add-form-row')
+    .removeClass('btn-success').addClass('btn-danger')
+    .removeClass('add-form-row').addClass('remove-form-row')
+    .html('-');
+    return false;
+}
+function deleteForm(prefix, btn) {
+    var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+    if (total > 1){
+        btn.closest('.form-row').remove();
+        var forms = $('.form-row');
+        $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
+        for (var i=0, formCount=forms.length; i<formCount; i++) {
+            $(forms.get(i)).find(':input').each(function() {
+                updateElementIndex(this, prefix, i);
+            });
+        }
+    }
+    return false;
+}
+$(document).on('click', '.add-form-row', function(e){
+    e.preventDefault();
+    cloneMore('.form-row:last', 'comparisonpriceitem_set');
+    return false;
+});
+$(document).on('click', '.remove-form-row', function(e){
+    e.preventDefault();
+    deleteForm('comparisonpriceitem_set', $(this));
+    calculateAll();
+    return false;
+});
+
+/*คำนวนค่าต่างๆ*/
+//jQuery ดึงค่าจาก 2 class
+$(".unit-price, .quantity")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    var suffix = $(this).attr('id').match(/\d+/);
+    var quantity = $('#id_comparisonpriceitem_set-' + suffix + '-quantity').val();
+    var unitPrice = $('#id_comparisonpriceitem_set-' + suffix + '-unit_price').val();
+
+    price = parseFloat(quantity) * parseFloat(unitPrice);
+    $('#id_comparisonpriceitem_set-' + suffix + '-price').val(price);
+    
+    // format ทศนิยม 2 และ 0 ตำแหน่ง
+    $('#id_comparisonpriceitem_set-' + suffix + '-unit_price').val(parseFloat($('#id_comparisonpriceitem_set-' + suffix + '-unit_price').val()).toFixed(2));
+    $('#id_comparisonpriceitem_set-' + suffix + '-quantity').val(parseFloat($('#id_comparisonpriceitem_set-' + suffix + '-quantity').val()).toFixed());
+    //คำนวนค่าทั้งหมด
+    calculateAll();
+});
+
+$(".price" )
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+    //คำนวนค่าทั้งหมด
+    calculateAll();
+  });
+
+$("#id_discount")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_total_price")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_vat_type" ).change(function() {
+    var totalAfterDiscount = $("#id_total_after_discount").val();
+    var vat = calculateVat(totalAfterDiscount);
+    $("#id_vat").val(vat.toFixed(2));
+});
+
+$("#id_total_price, #id_discount").change(function() {
+  var price =  $("#id_total_price").val();
+  var discount =  $("#id_discount").val();
+  var totalAfterDiscount = parseFloat(price) - parseFloat(discount);
+  $("#id_total_after_discount").val(totalAfterDiscount);
+  $("#id_total_after_discount").val(parseFloat($("#id_total_after_discount").val()).toFixed(2));
+  //คำนวน vat
+  var vat = calculateVat(totalAfterDiscount);
+  $("#id_vat").val(vat.toFixed(2));
+  //คำนวน amount
+  var amount = calculateAmount(vat, totalAfterDiscount);
+  $("#id_amount").val(amount.toFixed(2));
+});
+
+  function calculateAll(){
+    //คำนวน รวมเป็นเงิน
+    var inputs = $(".price" );
+      var total = 0.0;
+      for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val() != 0.00 && !$(inputs[i]).hasClass("hiden-delete")){
+            total += parseFloat($(inputs[i]).val());
+          }
+      }
+    var totalAfterDiscount = calculateTotalAfterDiscount(total);
+    var vat = calculateVat(totalAfterDiscount);
+    var amount =  calculateAmount(vat, totalAfterDiscount);
+    //แสดง จำนวนเงินหลังหักส่วนลด
+    $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
+    //แสดง รวมเป็นเงิน 
+    $("#id_total_price").val(total.toFixed(2));
+    //แสดง จำนวนภาษีมูลค่าเพิ่ม
+    $("#id_vat").val(vat.toFixed(2));
+    //แสดง จำนวนเงินรวมทั้งสิ้น
+    $("#id_amount").val(amount.toFixed(2));
+}
+
+function calculateTotalAfterDiscount(totalPrice){
+  var discount =  parseFloat($("#id_discount").val());
+  return totalPrice - discount;
+}
+
+function calculateVat(total){
+  var vatType = $("#id_vat_type").val();
+  var vat = 0.00;
+  if(vatType == "1") //vat ใน
+    vat = (total*7)/107;
+  else if(vatType == "2") //vat นอก
+    vat = (total*7)/100;
+  return vat;
+}
+
+function calculateAmount(vat, total){
+  return total + vat;
+}
+
+function hideDiv(id){
+    var inputId = $("#div-"+id+" div.col div.input-group input[value='"+id+"']").attr("id").match(/\d+/);
+    $("#id_comparisonpriceitem_set-"+inputId+"-DELETE").prop('checked', true);
+    //เพิ่ม class hiden-delete ไว้บอกว่าไม่ต้องคำนวน ราคารวม
+    $("#id_comparisonpriceitem_set-"+inputId+"-price").addClass("hiden-delete");
+    //คำนวน รวมเป็นเงิน
+    calculateAll();
+    $("#div-"+id).hide();
+}
+
+$(".express" ).change(function() {
+    // get data id ของ option data list
+    var suffix = $(this).attr('id').match(/\d+/);
+    var val = $("#express-"+suffix+"").val();
+    var id = $('#idExpressList option[value='+val+']').attr('data-id');
+    var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
+    var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
+    //set value to form.item
+    $("#id_comparisonpriceitem_set-"+suffix+"-item").val(id);
+    $("#id_comparisonpriceitem_set-"+suffix+"-quantity").val(quantity);
+    $("#id_comparisonpriceitem_set-"+suffix+"-unit").val(unit);
+  });
+
+</script>
+{% endblock %}

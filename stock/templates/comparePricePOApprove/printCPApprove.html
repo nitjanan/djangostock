@@ -1,0 +1,279 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
+{% block css %}
+<style>
+    @media print {
+    .hidden-print {
+      display: none;
+    }
+    @page {
+    margin: 1.5cm;
+    size: A4 landscape;
+    }
+    body {
+        font-size: 9pt;
+        font-family: serif;
+        color: black;
+        float: right;
+    }
+  }
+
+  b.dblUnderlined { border-bottom: 3px double; }
+  u.dotted {
+  border-bottom: 1px dashed #999;
+  text-decoration: none;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-2 offset-2">
+            <img src="/media/company/STG_logo.png" class="rounded float-right" width="90" height="60"/>
+        </div>
+        <div class="col-4">
+           <h6 align="center">ใบเปรียบเทียบราคา</h6>
+           <h6 align="center">บริษัท ศิลาชัยสุราษฎร์ จำกัด</h6>
+           <p class="text-center" style="font-size:12px">57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180</p>
+        </div>        
+        <div class="col-2">
+            <img src="/media/company/logo.jpg" class="rounded float-left" width="60" height="60"/>
+        </div>
+        <div class="col-2 text-center">
+            <p style="font-size:13px">รหัส {{cp.ref_no}}</p>
+            <p style="font-size:13px">วันที่&emsp;{{cp.created | date:"d/m/Y"}}</p>
+        </div>
+
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+        <thead class="text-center">
+            <tr>
+                <td scope="col" rowspan="4">ลำดับ</td>
+                <td scope="col" rowspan="4">รายการ</td>
+                <td scope="col" rowspan="4">จำนวน</td>
+                <td scope="col" rowspan="4">หน่วย</td>
+                {% for bd in bidder %}
+                    <td scope="col" colspan="3">{{bd.distributor.name}}</td>
+                {% endfor %}
+                <td scope="col" rowspan="4">
+                    <ul class="list-unstyled my-3 text-left">
+                        {% for bst in baseSparesType %}
+                            <li>
+                                {% if bst == cp.base_spares_type%}
+                                <i class="fas fa-square"></i>
+                                {% else %}
+                                <i class="far fa-square"></i>
+                                {% endif %}
+                                 {{bst.name}}
+                            </li>
+                        {% endfor %}                        
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                {% for bd in bidder %}
+                    <td scope="col" colspan="3">โทร. {{bd.distributor.tel}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for bd in bidder %}
+                    <td scope="col">เกรด</td>
+                    <td scope="col" colspan="2">เครดิต {{bd.credit}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for bd in bidder %}
+                    <td scope="col">ยี่ห้อ</td>
+                    <td scope="col">ราคา/หน่วย</td>
+                    <td scope="col">รวม</td>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for oldest in items_oldest %}
+                <tr>
+                    <th scope="row" class="text-center">{{forloop.counter}}</th>
+                    <td>{{oldest.item}}</td>
+                    <td class="text-right">{{oldest.quantity}}</td>
+                    <td class="text-center">{{oldest.unit}}</td>
+                        {% for it in itemName %}
+                            {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
+                            <td>{{it.brand}}</td>
+                            <td class="text-right">{{it.unit_price}}</td>
+                            <td class="text-right">{{it.price}}</td>
+                            {% endif %}
+                        {% endfor %}
+                    <td><!-- * --></td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="2" class="text-right">รวม</td>
+                <td rowspan="5"></td>
+                <td rowspan="5"></td>
+                {% for bd in bidder %}
+                    <td rowspan="5"></td>
+                    <td rowspan="5"></td>
+                    <td class="text-right">{{bd.total_price}}</td>
+                {% endfor %}
+                <td rowspan="5"><u>หมายเหตุ</u><br>{{cp.note}}</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">หักส่วนลด</td>
+                {% for bd in bidder %}
+                    <td class="text-right">{{bd.discount}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
+                {% for bd in bidder %}
+                    <td class="text-right">{{bd.total_after_discount}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td>
+                {% for bd in bidder %}
+                    <td class="text-right"><u>{{bd.vat}}</u></td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">รวมเป็นเงินทั้งสิ้น</td>
+                {% for bd in bidder %}
+                    <td class="text-right"><b class="dblUnderlined">{{bd.amount}}</b></td>
+                {% endfor %}
+            </tr>           
+        </tbody>
+        </table>
+    </div>
+    {% if cp.select_bidder %}
+    <div class="row">
+        <div class="col">
+            <b id="txtLess"></b>
+        </div>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="col-6">
+            <b id="txtSelectBidder"></b>
+        </div>
+        <div class="col-2">
+            <b id="txtSelectBidderPrice"></b>
+        </div>
+        <div class="col-4">
+            <b id="txtSelectBidderSpell"></b>
+        </div>
+    </div>    
+    <hr>
+    {% endif %}           
+    <form action="{% url 'printCPApprove' cp.id %}" method="post">
+        {% csrf_token %}
+        <div class="row my-2">
+            <div class="card-group col">
+                    <div class="card" style="max-width: 15rem;">
+                        <div class="card-body text-center">
+                        ผู้จัดทำ <u class="dotted">{{cp.organizer}}</u><br>
+                        ( {{cp.organizer}} )<br>
+                        {{cp.organizer.userprofile.position}}
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            ผู้ตรวจสอบ
+                            {% if cp.examiner_status.id == 3 %}
+                                <br>{{cp.examiner_status.name}}
+                            {% else %}
+                                {% if cp.examiner_user %}
+                                    <u class="dotted">{{cp.examiner_user}}</u><br>
+                                    ( {{cp.examiner_user}} )<br>
+                                    {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
+                                {% endif %}
+                                {% for permiss in permission %}
+                                    <br>
+                                    {% if cp.examiner_status.id == 1 and permiss.base_permission.codename == 'CAECP'%}
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                                    {% endif %}
+                                {% endfor %}                            
+                            {% endif %}
+
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            ผู้อนุมัติ
+                            {% if cp.approver_status.id == 3 %}
+                                <br>{{cp.approver_status.name}}
+                            {% else %}
+                                {% if cp.approver_user %}
+                                    <u class="dotted">{{cp.approver_user}}</u><br>
+                                    ( {{cp.approver_user}} )<br>
+                                    {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
+                                {% endif %}
+                                {% for permiss in permission %}
+                                    <br>
+                                    {% if cp.approver_status.id == 1 and permiss.base_permission.codename == 'CAACP' and cp.examiner_status.id == 2 %}
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                                    {% endif %}
+                                {% endfor %}                            
+                            {% endif %}
+
+                        </div>
+                    </div>
+                
+            </div>        
+        </div>
+    </form>
+    <div class="row">
+        <div class="col text-right">FM-PU-002 ; Rev 00</div>
+    </div>
+    <div class="row my-2">
+        <div class="col-6 offset-6 text-right">
+          <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+            <i class="fas fa-print"></i>
+            ปริ้นใบเปรียบเทียบราคา
+          </button>
+        </div>
+      </div>
+</div>
+{% endblock%}
+{% block javascript %}
+<script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
+<script>
+    $(function() {
+    var priceSelect = 0;
+    var index = 0;
+    var amount = 0;
+    //get datalist to set input
+    var bidderName = "{{cp.select_bidder}}";
+    "{% for bd in bidder%}"
+        "{% if cp.select_bidder == bd.distributor%}"
+            priceSelect = "{{bd.total_price}}";
+            index = "{{forloop.counter}}";
+            amount = "{{bd.amount}}";
+        "{% endif %}"
+    "{% endfor %}"
+    
+    document.getElementById("txtSelectBidder").innerHTML = "ขออนุมัติจัดซื้อจาก "+ bidderName + " เป็นเงินทั้งสิ้น";
+    document.getElementById("txtSelectBidderPrice").innerHTML = amount + " บาท";
+
+    var thaibath = ArabicNumberToText(amount);
+    document.getElementById("txtSelectBidderSpell").innerHTML = "(" + thaibath + ")";
+
+    calculateDiffPrice(priceSelect, index);
+    
+
+}); 
+
+  function calculateDiffPrice(priceSelect, index){
+    var priceFirst = parseFloat("{{ bidder.0.total_price}}");
+    var diff = priceSelect - priceFirst;
+    var diffPercent = (diff/priceFirst)*100;
+    document.getElementById("txtLess").innerHTML = "รายการที่ 1 ถูกกว่ารายการที่ "+ index +" (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ diff.toFixed(2) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+diffPercent.toFixed(2)+"%";
+  }
+</script>
+{% endblock %}

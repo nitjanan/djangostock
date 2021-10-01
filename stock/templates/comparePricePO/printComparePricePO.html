@@ -1,0 +1,236 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
+{% block css %}
+<style>
+    @media print {
+    .hidden-print {
+      display: none;
+    }
+    @page {
+    margin: 1.5cm;
+    size: A4 landscape;
+    }
+    body {
+        font-size: 9pt;
+        font-family: serif;
+        color: black;
+        float: right;
+    }
+  }
+
+  b.dblUnderlined { border-bottom: 3px double; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-2 offset-2">
+            <img src="/media/company/STG_logo.jpg" class="rounded float-right" width="90" height="60"/>
+        </div>
+        <div class="col-4">
+           <h6 align="center">ใบเปรียบเทียบราคา</h6>
+           <h6 align="center">บริษัท ศิลาชัยสุราษฎร์ จำกัด</h6>
+           <p class="text-center" style="font-size:12px">57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180</p>
+        </div>        
+        <div class="col-2">
+            <img src="/media/company/logo.jpg" class="rounded float-left" width="60" height="60"/>
+        </div>
+        <div class="col-2 text-center">
+            <p style="font-size:13px">รหัส {{cp.ref_no}}</p>
+            <p style="font-size:13px">วันที่&emsp;{{cp.created | date:"d/m/Y"}}</p>
+        </div>
+
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+        <thead class="text-center">
+            <tr>
+                <td scope="col" rowspan="4">ลำดับ</td>
+                <td scope="col" rowspan="4">รายการ</td>
+                <td scope="col" rowspan="4">จำนวน</td>
+                <td scope="col" rowspan="4">หน่วย</td>
+                {% for bd in bidder %}
+                    <td scope="col" colspan="3">{{bd.distributor.name}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for bd in bidder %}
+                    <td scope="col" colspan="3">โทร. {{bd.distributor.tel}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for bd in bidder %}
+                    <td scope="col">เกรด</td>
+                    <td scope="col" colspan="2">เครดิต {{bd.credit}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for bd in bidder %}
+                    <td scope="col">ยี่ห้อ</td>
+                    <td scope="col">ราคา/หน่วย</td>
+                    <td scope="col">รวม</td>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for oldest in items_oldest %}
+                <tr>
+                    <th scope="row" class="text-center">{{forloop.counter}}</th>
+                    <td>{{oldest.item}}</td>
+                    <td class="text-right">{{oldest.quantity}}</td>
+                    <td class="text-center">{{oldest.unit}}</td>
+                        {% for it in itemName %}
+                            {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
+                            <td>{{it.brand}}</td>
+                            <td class="text-right">{{it.unit_price}}</td>
+                            <td class="text-right">{{it.price}}</td>
+                            {% endif %}
+                        {% endfor %}
+                </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="2" class="text-right">รวม</td>
+                <td rowspan="5"></td>
+                <td rowspan="5"></td>
+                {% for bd in bidder %}
+                    <td rowspan="5"></td>
+                    <td rowspan="5"></td>
+                    <td class="text-right">{{bd.total_price}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">หักส่วนลด</td>
+                {% for bd in bidder %}
+                    <td class="text-right">{{bd.discount}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
+                {% for bd in bidder %}
+                    <td class="text-right">{{bd.total_after_discount}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td>
+                {% for bd in bidder %}
+                    <td class="text-right"><u>{{bd.vat}}</u></td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">รวมเป็นเงินทั้งสิ้น</td>
+                {% for bd in bidder %}
+                    <td class="text-right"><b class="dblUnderlined">{{bd.amount}}</b></td>
+                {% endfor %}
+            </tr>           
+        </tbody>
+        </table>
+    </div>
+    {% if bidder|length > 1 %}
+    <div class="row">
+        <div class="col">
+            <b id="txtLess"></b>
+        </div>
+    </div>
+    {% endif %}
+    <form method="post">
+    <div class="row my-3">
+        <div class="col-2">
+            {{form.select_bidder.label}} :
+        </div>
+        <div class="col-10">
+                {{form.select_bidder | add_class:"select-bidder"}}
+                <input id="express" name="express" type="text" list="idExpressList" class="express form-control" Placeholder="เลือกจากร้าน ..." class="form-control" autocomplete="off">
+                <datalist id="idExpressList">
+                  {% for results in bidder %}
+                    <option data-id="{{results.distributor.id}}" data-value="{{results.total_price}}" data-index="{{forloop.counter}}" value="{{results.distributor.name}}"></option>
+                  {% endfor %}
+                </datalist>
+            {% csrf_token %}
+        </div>
+    </div>
+    <div class="row my-2">
+        <div class="col-2">
+            {{form.note.label}} :
+        </div>
+        <div class="col-10">
+            {{form.note | add_class:"form-control"}}
+        </div>
+    </div>
+    <div class="row my-2">
+        <div class="col-2">
+            {{form.base_spares_type.label}} :
+        </div>
+        <div class="col-10">
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    {{form.base_spares_type}}
+                </div>
+            </div>            
+        </div>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="col text-right">FM-PU-002 ; Rev 00</div>
+    </div>
+    <div class="row my-2">
+        <div class="col-6">
+            <button type="submit" class="btn btn-primary hidden-print">
+                <i class="fas fa-save"></i>
+                บันทึก
+            </button>
+        </div>
+        <div class="col-6 text-right">
+          <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+            <i class="fas fa-print"></i>
+            ปริ้นใบเปรียบเทียบราคา
+          </button>
+        </div>
+      </div>
+    </form>
+</div>
+{% endblock%}
+{% block javascript %}
+<script>
+    $(function() {
+    //get datalist to set input
+    var inputs = $(".select-bidder");
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val()){
+          var val = $(inputs[i]).val();
+          var id = $('#idExpressList option[data-id='+val+']').val();
+          var priceSelect = $('#idExpressList option[data-id='+val+']').attr('data-value');
+          var index = $('#idExpressList option[data-id='+val+']').attr('data-index');
+          //set value to form.item
+          $("#express").val(id);
+        }
+    }
+    calculateDiffPrice(priceSelect, index);
+
+}); 
+ $(".express" ).change(function() {
+    // get data id ของ option data list
+    var val = $("#express").val();
+    var id = $("#idExpressList option[value='"+val+"']").attr('data-id');
+    var priceSelect = $("#idExpressList option[value='"+val+"']").attr('data-value');
+    var index = $("#idExpressList option[value='"+val+"']").attr('data-index');
+
+    //set value to form.item
+    $("#id_select_bidder").val(id);
+    //คำนวนราคาที่แตกต่าง
+    calculateDiffPrice(priceSelect, index);
+  });
+
+  function calculateDiffPrice(priceSelect, index){
+    var priceFirst = parseFloat("{{bidder.0.total_price}}");
+    var diff = priceSelect - priceFirst;
+    var diffPercent = (diff/priceFirst)*100;
+    if (typeof index !== "undefined") {
+        document.getElementById("txtLess").innerHTML = "รายการที่ 1 ถูกกว่ารายการที่ "+ index +" (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ diff.toFixed(2) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+diffPercent.toFixed(2)+"%";
+    }
+  }
+</script>
+{% endblock %}

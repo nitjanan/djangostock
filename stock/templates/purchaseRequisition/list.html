@@ -1,0 +1,7 @@
+<ul>
+    {% for item in items %}
+        {% if requisition.id == item.requisition %}
+            <li>{{item.product_name}}</li>
+        {% endif %}
+    {% endfor %}
+</ul>

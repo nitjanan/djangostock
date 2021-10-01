@@ -1,0 +1,114 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+      <div class="col-md-12">
+      <div class="invoice-title text-right">
+          <h3>รหัสใบขอเบิก # {{requisition.ref_no}}</h3>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-4">
+          <address>
+          <strong>ขอตั้งเบิก: </strong>{{requisition.name}}
+          <br>
+          <br>
+          </address>
+        </div>
+        <div class="col-md-4 text-center">
+            <address>
+              <strong>แผนก: </strong>{{requisition.section}}<br>
+              <br>
+            </address>
+          </div>
+        <div class="col-md-4 text-right">
+          <address>
+            <strong>วันที่ขอเบิก: </strong>{{requisition.created | date:"d M Y"}}<br>
+            <br>
+          </address>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                  <strong>รายการใบขอเบิก</strong>
+                  <button type="button" style="float: right;" class="btn btn-success" data-toggle="modal" data-target="#exampleModalCenter">
+                    <i class="fas fa-plus-circle"></i> เพิ่มรายการ
+                  </button>
+                </h3>
+            </div>
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table id="itemTable" class="table table-condensed">
+              <thead>
+                <tr>
+                    <td><strong>สินค้า</strong></td>
+                    <td class="text-center"><strong>รายละเอียดเหตุผล</strong></td>
+                    <td class="text-center"><strong>จำนวน</strong></td>
+                    <td class="text-center"><strong>ระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
+                    <td class="text-right"><strong>Action</strong></td>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                <tr id="item-{{item.id}}">
+                  <td class=" itemProductName itemData" name="product-name" >{{item.product_name}}</td>
+                  <td class="text-center itemDescription itemData" name="description">{{item.description}}</td>
+                  <td class="text-center itemQuantity itemData" name="quantity">{{item.quantity}}</td>
+                  <td class="text-center itemMachine itemData" name="machine">{{item.machine}}</td>
+                  <td class="text-center itemDesiredDate itemData" name="desired-date">{{item.desired_date | date:"d M Y"}}</td>
+                  <td class="text-right">
+                    <a href="{% url 'editRequisitionItem' item.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i></a>
+                    <a href="{% url 'removeRequisitionItem' item.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i></a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <button class="btn btn-secondary pull-right" onclick="window.print();">
+              <i class="fas fa-print"></i>
+              ปริ้นใบขอเบิก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+<!-- Modal -->
+<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLongTitle">รายการสินค้าใบขอเบิก</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form method="post">
+            <div class="modal-body">
+                <p>{{ form | crispy}}</p>
+                {% csrf_token %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <input autocomplete="off" type="submit" class="btn btn-primary" value="Save">
+              </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock%}
+
+
+
+

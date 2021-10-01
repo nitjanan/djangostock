@@ -1,0 +1,135 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+
+{% block content %}
+<div class="container my-3">
+<h3 align="center">อนุมัติใบขอซื้อ/ขอซ่อม</h3>
+<div class="card my-3 bg-light div-shadow">
+  <div class="card-body">
+    <form method="get">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group col-md-1 mb-0">
+            {{ filter.form.ref_no|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-1 mb-0">
+            {{filter.form.credit|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.shipping|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.start_created|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.end_created|as_crispy_field}}
+          </div>
+        <div class="form-group col-md-1 mb-0">
+          <div>
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped my-3">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">รหัสใบสั่งซื้อ</th>
+                <th scope="col">ชื่อผู้จำหน่าย</th>
+                <th scope="col">เครดิต</th>
+                <th scope="col">ขนส่งโดย</th>
+                <th scope="col">วันที่สั่งซื้อ</th>
+                <th scope="col">ผู้อนุมัติ</th>
+                <th scope="col">ดำเนินการ</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for po in pos %}
+          <tr>
+            <th scope="row">{{po.ref_no}}</th>
+            <td>{{po.distributor}}</td>
+            <td>{{po.credit}}</td>
+            <td>{{po.shipping}}</td>
+            <td>{{po.created |date:"d/m/Y"}}</td>
+            <td>
+              <button type="button"
+              class="btn btn-block
+              {% if po.approver_status.id == 1 %}
+                btn-outline-warning
+              {% elif po.approver_status.id == 2 %}
+                btn-outline-success
+              {% elif po.approver_status.id == 3 %}
+                btn-outline-danger
+              {% endif %}"
+              >{{po.approver_status}}</button>
+            </td>
+            <td><a href="{%url 'editPOApprove' po.id %}" class="btn btn-primary btn-block">ทำการอนุมัติ</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+      <br/>
+      <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if pos.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="{% my_url pos.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if pos.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="{% my_url pos.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in pos.paginator.page_range %}
+            {% if pos.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > pos.number|add:'-5' and i < pos.number|add:'5' %}
+                 <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if pos.paginator.num_pages > pos.number|add:'4' %}
+           <li class="page-item"><a class="page-link" href="{% my_url pos.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% if pos.has_next %}
+            <li class="page-item">
+            <a class="page-link"  href="{% my_url pos.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}

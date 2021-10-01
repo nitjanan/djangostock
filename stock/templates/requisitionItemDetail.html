@@ -1,0 +1,131 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block css %}
+<style>
+  @media print {
+  .hidden-print {
+    display: none;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+      <div class="col-md-12">
+      <div class="invoice-title text-right">
+          <h3>รหัสใบขอเบิก # {{requisition.ref_no}}</h3>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-4">
+          <address>
+          <strong>ขอตั้งเบิก: </strong>{{requisition.name}}
+          <br>
+          <br>
+          </address>
+        </div>
+        <div class="col-md-4 text-center">
+            <address>
+              <strong>แผนก: </strong>{{requisition.section}}<br>
+              <br>
+            </address>
+          </div>
+        <div class="col-md-4 text-right">
+          <address>
+            <strong>วันที่ขอเบิก: </strong>{{requisition.created | date:"d M Y"}}<br>
+            <br>
+          </address>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                  <strong>รายการใบขอเบิก</strong>
+                </h3>
+            </div>
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table id="userTable" class="table table-condensed">
+              <thead>
+                <tr>
+                    <td><strong>สินค้า</strong></td>
+                    <td class="text-center"><strong>รายละเอียดเหตุผล</strong></td>
+                    <td class="text-center"><strong>จำนวน</strong></td>
+                    <td class="text-center"><strong>ระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr id="user-{{user.id}}">
+                    <td class="text-center userName userData" name="name">{{user.product_name}}</td>
+                    <td class="text-center userAddress userData" name="address">{{user.description}}</td>
+                    <td class="text-center userAge userData" name="age">{{user.quantity}}</td>
+                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
+                    <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d-m-Y"}}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center ">
+                    <div class="alert alert-warning" role="alert">
+                      ไม่มีสินค้า
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <button class="btn btn-secondary pull-right hidden-print" onclick="window.print();">
+              <i class="fas fa-print"></i>
+              ปริ้นใบขอเบิก
+            </button>
+          </div>
+          <hr>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row my-2">
+    <div class="col-md-12">
+        <div class="invoice-title text-right">
+            <h5>หัวหน้างาน #{{requisition.chief_approve_status}}</h5>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="invoice-title text-right">
+            <h5> {{chief_approve_name}}</h5>
+        </div>
+    </div>
+    <div class="col-md-12 my-2">
+        <div class="invoice-title text-right">
+            <h5>เจ้าหน้าที่พัสดุ #{{requisition.supplies_approve_status}}</h5>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="invoice-title text-right">
+            <h5>{{supplies_approve_name}}</h5>
+        </div>
+    </div>
+   </div>
+   <hr>
+  <div class="row my-4 d-flex justify-content-center">
+    <form action="{% url 'crudRequisitionItemView' requisition.id %}" method="post">
+        {% csrf_token %}
+        <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print " onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
+        <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger hidden-print " onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');" >
+    </form>
+  </div>
+  </div>
+{% endblock%}
+
+
+
+

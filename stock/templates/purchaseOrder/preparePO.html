@@ -1,0 +1,18 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h2 align="center">สร้างใบสั่งซื้อ</h2>
+    <div class="card bg-info text-white text-center p-3 my-4">
+        <blockquote class="blockquote mb-0">
+            <a class="btn btn-info btn-block btn-lg" href="{%url 'createPO' %}" role="button"><i class="fas fa-plus-circle"></i> ใบสั่งซื้อใหม่</a>
+        </blockquote>
+    </div>
+    <div class="card bg-success text-white text-center p-3 my-4">
+        <blockquote class="blockquote mb-0">
+            <a class="btn btn-success btn-block btn-lg" href="{%url 'createPOFromComparisonPrice' %}" role="button"><i class="fas fa-plus-circle"></i> ใบสั่งซื้อจากใบเปรียบเทียบราคา</a>
+        </blockquote>
+    </div>
+</div>
+{% endblock%}

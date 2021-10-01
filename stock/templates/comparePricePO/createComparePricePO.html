@@ -1,0 +1,22 @@
+{% extends 'layouts.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<div class="container my-3">
+    <h2 align="center">ใบสั่งซื้อ</h2>
+    <div class="card bg-light">
+        <div class="card-body">
+            <form method="post">
+                <p>{{ form | crispy}}</p>
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary hidden-print">
+                    <i class="fas fa-save"></i>
+                    บันทึก
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock%}

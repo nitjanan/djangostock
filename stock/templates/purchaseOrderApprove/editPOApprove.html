@@ -1,0 +1,180 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block css %}
+<style>
+    @media print {
+    .hidden-print {
+      display: none;
+    }
+  }
+  u.dotted {
+  border-bottom: 1px dashed #999;
+  text-decoration: none;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+        <div class="col-md-12">
+        <div class="invoice-title">
+          <description>
+              <h4>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h4>
+               57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
+              <br>โทร 099-6813306 0842658115  
+              <br>เลขที่ผู้เสียภาษี 0845507000045
+          </description>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col">
+            <address>
+            <strong>ผู้จำหน่าย: {{po.distributor.id_express}}</strong><br>
+              {{po.distributor}}<br>
+              {{po.distributor.address}}<br>
+              โทร : {{po.distributor.tel}}<br>
+              แฟ๊กซ์ : {{po.distributor.fax}}
+            </address>
+          </div>
+          <div class="col text-right">
+            <address>
+              <strong>ใบสั่งซื้อ</strong><br>
+              เลขที่ใบสั่งซื้อ : {{po.ref_no}}<br>
+              วันที่ : {{po.created}}<br>
+              เครดิต : {{po.credit}}<br>
+              ขนส่งโดย : {{po.shipping}}
+            </address>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="text-center">No.</th>
+                        <th scope="col" class="text-center">รหัสสินค้า/รายละเอียด</th>
+                        <th scope="col" class="text-center">จำนวน</th>
+                        <th scope="col" class="text-center">หน่วยละ</th>
+                        <th scope="col" class="text-center">จำนวนเงิน</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td class="text-center">{{ item.item.product.id_express }} {{ item.item }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-center">{{ item.unit_price }}</td>
+                            <td class="text-center">{{ item.price }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <hr>
+            <div class="row">
+              <div class="col-7">
+                <p>หมายเหตุ</p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">รวมเป็นเงิน</p>
+              </div>
+              <div class="col-2">
+                <p class="text-right">{{po.total_price}}&ensp;บาท</p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">หักส่วนลด</p>
+              </div>
+              <div class="col-2">
+                <p class="text-right">{{po.discount}}&ensp;บาท</p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
+              </div>
+              <div class="col-2">
+                <p class="text-right">{{po.total_after_discount}}&ensp;บาท</p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
+              </div>
+              <div class="col-2">
+                <p class="text-right">{{po.vat}}&ensp;บาท</p>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-7">
+                <p id="total-spell"></p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
+              </div>
+              <div class="col-2">
+                <p class="text-right">{{po.amount}}&ensp;บาท</p>
+              </div>
+            </div>
+            <hr>
+            <div class="row spacer my-3">
+                <div class="col">
+                  <p><u class="dotted">{{po.stockman_user}}</u></p>
+                  <p>ผู้สั่งสินค้า</p>
+                </div>
+                <div class="col">
+                <!-- form Apporve -->
+                <form action="{% url 'editPOApprove' po.id %}" method="post">
+                    {% csrf_token %}
+                    <p>ในนาม บริษัท ศิลาชัยสุราษฎร์ จำกัด</p>
+                    <p>ผู้รับมอบอำนาจ
+                      <u class="dotted">{% if po.approver_user %}{{po.approver_user}}{% endif %}</u>
+                    </p>
+                    {% for permiss in permission %}
+                      {% if po.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPO'%}
+                      <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
+                      <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                      {% endif %}
+                    {% endfor %}
+                </form>
+                </div>
+                <div class="float-right">
+                  <h6>FM-PU-003 Rev.00</h6>
+                  <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="window.print();">
+                      <i class="fas fa-print"></i>
+                      ปริ้นใบสั่งซื้อ
+                  </button>
+                </div>
+            </div>
+            <hr>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
+<script type="text/javascript">
+$(function() {
+    //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
+    var amount = "{{po.amount}}";
+		var thaibath = ArabicNumberToText(amount);
+    document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,54 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-2">
+  <h3 align="center">สร้างใบขอซื้อ</h3>
+    {% for requisition in requisitions%}
+    <div class="card my-3">
+        <h5 class="card-header">ใบขอเบิก #{{requisition.ref_no}}</h5>
+        <div class="card-body">
+          <h6 class="card-title">วันที่ตั้งเบิก {{requisition.created |date:"d/m/Y"}}</h6>
+          <ul>
+            {% for item in items %}
+                {% if requisition.id == item.requisition_id %}
+                    <li>{{item.product_name}}</li>
+                {% endif %}
+            {% endfor %}
+          </ul>
+          <p class="card-text">ขอเบิกโดย {{requisition.name}} แผนก {{requisition.section}}</p>
+          <a href="{%url 'createPR' requisition.id %}" class="btn btn-primary"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อ</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-warning my-3" role="alert">
+      ไม่มีใบขอเบิก
+    </div>
+    {% endfor %}
+       <!--Pagination-->
+       <nav aria-label="pagination">
+        {% if requisitions.has_other_pages %}
+        <ul class="pagination">
+          {% if requisitions.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ requisitions.previous_page_number }}">&laquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><a class="page-link"><span>&laquo;</span></a></li>
+          {% endif %}
+          {% for i in requisitions.paginator.page_range %}
+            {% if requisitions.number == i %}
+              <li class="page-item active"><a class="page-link">{{ i }}<span class="sr-only">(current)</span></a></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% if requisitions.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ requisitions.next_page_number }}">&raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><a class="page-link"><span>&raquo;</span></a></li>
+          {% endif %}
+        </ul>
+      {% endif %}
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}

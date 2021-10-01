@@ -1,0 +1,68 @@
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color: #EBF5FB;">
+  <div class="container-fluid">
+      <button type="button" id="sidebarCollapse" class="btn btn-info float-left">
+          <i class="fas fa-align-left"></i>
+      </button>
+      <button class="btn btn-dark d-inline-block d-lg-none ml-auto" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="fas fa-align-justify"></i>
+      </button>
+      <form class="form-inline ml-3" action="{% url 'search'%}", method="GET">
+        <div class="input-group w-20">
+          <input type="text" name="title" class="form-control" placeholder="Search">
+          <div class="input-group-append">
+            <button type="submit" class="btn btn-warning"><i class="fas fa-search"></i></button>
+          </div>
+        </div>
+      </form>    
+      <div class="collapse navbar-collapse float-right" id="navbarSupportedContent">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item dropdown"><a class="nav-link text-uppercase font-weight-bold px-3"
+            href="" data-toggle="dropdown">Category <i class="fas fa-caret-down"></i></a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="{% url 'home' %}">สินค้าทั้งหมด</a>
+              {% for catagory in links %}
+              <a class="dropdown-item" href="{{catagory.get_url}}">{{catagory.name}}</a>
+              {% endfor %}
+            </div>
+          </li>
+            <li class="nav-item dropdown">
+              
+              {% if request.user.is_authenticated and request.user.first_name %}
+              <a class="nav-link text-uppercase font-weight-bold px-3" data-toggle="dropdown">
+              <i class="fas fa-user circle"></i> {{request.user.first_name}} <i class="fas fa-caret-down"></i>
+              </a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="{% url 'orderHistory' %}">ประวัติการสั่งซื้อ</a>
+              </div>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'signOut' %}">
+                Sign Out <i class="fas fa-sign-out-alt"></i>
+              </a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'signUp' %}">
+                Sign Up <i class="fas fa-user-plus"></i>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'signIn' %}">
+                Sign In <i class="fas fa-sign-in-alt"></i>
+              </a>
+            </li>
+            {% endif %}
+          <li class="nav-item">
+            <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'cartdetail'%}">
+              <i class="fas fa-shopping-cart"></i>
+              {% if item_count > 0%}
+                {{item_count}}
+              {% else %}
+                0
+              {% endif %}
+          </a>
+        </li>
+      </ul>  
+      </div>
+  </div>
+</nav>

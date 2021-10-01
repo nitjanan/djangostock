@@ -1,0 +1,241 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block css %}
+<style>
+  @media print {
+  .hidden-print {
+    display: none;
+  }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+    <div class="row my-2">
+      <div class="col col-md-2">
+        <img src="/media/company/logo.jpg" class="rounded float-left" width="120" height="120"/>
+      </div>
+      <div class="text-left col">
+          <description>
+            <strong>SILACHAI SURAT CO.,LTD</strong>
+            <br>บริษัท ศิลาชัยสุราษฎร์ จำกัด
+            <br>57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
+            <br>โทร 099-6813306 0842658115 เลขที่ผู้เสียภาษี 0845507000045 สาขา00001
+          </description>
+      </div>
+      <div class="text-center col col-md-3">
+        <div role="alert"  
+        class="alert
+        {% if requisition.urgency.id == 1 %}
+          alert-danger
+        {% elif requisition.urgency.id == 2 %}
+          alert-warning
+        {% elif requisition.urgency.id == 3 %}
+          alert alert-success
+        {% elif requisition.urgency.id == 4 %}
+          alert-info
+        {% endif %}">
+         {% if requisition.urgency %} 
+          <b>ระดับความเร่งด่วน: {{requisition.urgency.name}}</b>
+         {% endif %}
+        </div>
+      </div>
+    </div>
+    <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
+    <div class="row">
+      <div class="col invoice-title text-left">
+        <h5>รหัสใบขอซื้อ # {{pr.ref_no}}</h5>
+      </div>
+      <div class="col invoice-title text-right">
+        <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+      </div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-md-12">
+      <div class="row">
+        <div class="col-md-4">
+          <description>
+          <strong>ผู้ขอซื้อ/ขอซ่อม: </strong>{{pr.purchase_user}}
+          <br>
+          <br>
+          </description>
+        </div>
+        <div class="col-md-4 text-center">
+            <description>
+              <strong>แผนก: </strong>{{requisition.section}}<br>
+              <br>
+            </description>
+          </div>
+        <div class="col-md-4 text-right">
+          <description>
+            <strong>วันที่ขอซื้อ: </strong>{{pr.created | date:"d/m/Y"}}<br>
+            <br>
+          </description>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                  <strong>รายการใบขอซื้อ</strong>
+                </h3>
+            </div>
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table id="userTable" class="table table-condensed">
+              <thead>
+                <tr>
+                    <td class="text-center"><strong>ลำดับที่</strong></td>
+                    <td class="text-center"><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
+                    <td class="text-center"><strong>รายการ</strong></td>
+                    <td class="text-center"><strong>วัตุประสงค์/เหตุผล</strong></td>
+                    <td class="text-center"><strong>จำนวน</strong></td>
+                    <td class="text-center"><strong>หน่วย</strong></td>
+                    <td class="text-center"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
+                    <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="text-center" >{{item.product.id_express}}</td>
+                    <td class="text-center" name="name">{{item.product_name}}</td>
+                    <td class="text-center" name="description">{{item.description}}</td>
+                    <td class="text-center" name="quantity">{{item.quantity}}</td>
+                    <td class="text-center" name="unit">{{item.unit}}</td>
+                    <td class="text-center" name="machine">{{item.machine}}</td>
+                    <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
+                    <td class="text-center" name="urgency">
+                      {% for bu in baseUrgency %}
+                        {% if item.urgency == bu.id %}
+                          {{bu.name}}
+                        {% endif %}
+                      {% endfor %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9" class="text-center">
+                    <div class="alert alert-warning" role="alert">
+                      ไม่มีสินค้า
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+                <tr>
+                  <td colspan="3" class="text-right">รวมรายการขอซื้อ</td>
+                  <td class="text-center">{{quantityTotal}}</td>
+                  <td class="text-center">รายการ</td>
+                  <td colspan="4" class="text-center"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <strong>หมายเหตุ</strong><br>
+          <input type="text" class="form-control" value="{{pr.note}}">
+          <!-- form Apporve -->
+          <form action="{% url 'editPRApprove' pr.id %}" method="post">
+            {% csrf_token %}
+            <div class="row my-3">
+              <div class="col-sm-6">
+                <div class="card">
+                  <div class="card-body">
+                    <h5 class="card-title">ระดับความเร่งด่วน</h5>
+                    <p class="card-text">A = ภายใน 48 ชม.&emsp;B = 3-5 วัน</p>
+                    <p class="card-text">C = 7 วัน&emsp;&emsp;&emsp;&emsp;&emsp;D = 15 วัน</p>
+                  </div>
+                </div>
+              </div>              
+              <div class="col-sm-6">
+                <div class="card">
+                  <div class="card-body">
+                    <h5 class="card-title">เจ้าหน้าที่พัสดุ
+                    </h5>
+                    <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
+                    <div class="row">
+                      <div class="col-sm-8">
+                        <p class="card-text">วันที่ {{pr.stockman_update | date:"d/m/Y"}}</p>
+                      </div>
+                    </div>  
+                  </div>
+                </div>
+              </div>                           
+              <div class="col-sm-6 my-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
+                        #{{pr.purchase_status}}
+                    </h5>
+                    <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
+                    <div class="row">
+                      <div class="col-sm-8">
+                        <p class="card-text">วันที่ {{pr.purchase_update | date:"d/m/Y"}}</p>
+                      </div>
+                      <div class="col float-right">
+                        {% if pr.purchase_status.id == 1 and request.user == pr.purchase_user %}
+                          <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
+                          <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                        {% endif %}
+                      </div>
+                    </div>  
+                  </div>
+                </div>
+              </div>
+              <div class="col-sm-6 my-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h5 class="card-title">ผู้อนุมัติ
+                        #{{pr.approver_status}}
+                    </h5>
+                    <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
+                    <div class="row">
+                      <div class="col-sm-8">
+                        <p class="card-text">วันที่ {{pr.approver_update | date:"d/m/Y"}}</p>
+                      </div>
+                      <div class="col float-right">
+                        {% for permiss in permission %}
+                          {% if pr.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPR'%}
+                            {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
+                              <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
+                              <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                            {% endif %}
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>  
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+          <div class="invoice-title text-right">
+            <h6>FM-ST-001 Rev.01</h6>
+          </div>
+          <div class="row my-2">
+            <div class="col">
+              <!-- save button -->
+            </div>
+            <div class="col-6 col-md-2 text-right">
+              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+                <i class="fas fa-print"></i>
+                ปริ้นใบขอซื้อ
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+{% endblock %}

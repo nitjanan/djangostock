@@ -1,0 +1,105 @@
+<nav class="hidden-print" id="sidebar">
+    <div class="sidebar-header">
+        <h3><a href="/">Silachai Stock</a></h3>
+        <strong><a href="/">SS</a></strong>
+    </div>
+
+    <ul class="list-unstyled components" id="myTab">
+        <li class="">
+            <a href="#requestSubmenu" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <i class="fas fa-file-alt"></i> 
+                Request
+            </a>
+            <ul class="collapse list-unstyled {{requisitions_show}} {{pr_show}} {{po_show}} {{cp_show}}" id="requestSubmenu">
+                <li>
+                    <a class="{{requisitions_page}}" href="{% url 'requisition' %}">ใบขอเบิก</a>
+                </li>
+                <li>
+                    <a class="{{pr_page}}" href="{% url 'viewPR' %}">ใบขอซื้อ</a>
+                </li>                
+                <li>
+                    <a class="{{cp_page}}" href="{% url 'viewComparePricePO' %}">ใบเปรียบเทียบราคา</a>
+                </li>
+                <li>
+                    <a class="{{po_page}}" href="{% url 'viewPO' %}">ใบสั่งซื้อ</a>
+                </li>
+
+            </ul>
+        </li>
+        <li class="">
+            <a href="#approveSubmenu" data-toggle="collapse" aria-expanded="{% if ap_pr_page or ap_po_page or ap_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <i class="fas fa-check-circle"></i> Approve  
+                {% if ap_all > 0%}
+                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{ap_all}}</span>
+                {% endif %}
+            </a>
+            <ul class="collapse list-unstyled {{ap_pr_show}} {{ap_po_show}} {{ap_cp_show}}" id="approveSubmenu">
+                <li>
+                    <a class="{{ap_pr_page}}" href="{% url 'viewPRApprove' %}">ใบขอซื้อ
+                        {% if all_pr_ap > 0%}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_pr_ap}}</span>
+                        {% endif %}
+                    </a>
+                    <a class="{{ap_po_page}}" href="{% url 'viewPOApprove' %}">ใบสั่งซื้อ
+                        {% if all_po_ap > 0%}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_po_ap}}</span>
+                        {% endif %}
+                    </a>
+                    <a class="{{ap_cp_page}}" href="{% url 'viewCPApprove' %}">ใบเปรียบเทียบราคา
+                        {% if all_cp_ap > 0%}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_cp_ap}}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            </ul>
+        </li>
+        <li>
+            <a href="/">
+                <i class="fas fa-briefcase"></i>
+                About
+            </a>
+            <a href="#pageSubmenu" data-toggle="    " aria-expanded="false" class="dropdown-toggle">
+                <i class="fas fa-copy"></i>
+                Pages
+            </a>
+            <ul class="collapse list-unstyled" id="pageSubmenu">
+                <li>
+                    <a href="#">Page 1</a>
+                </li>
+                <li>
+                    <a href="#">Page 2</a>
+                </li>
+                <li>
+                    <a href="#">Page 3</a>
+                </li>
+            </ul>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-image"></i>
+                Portfolio
+            </a>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-question"></i>
+                FAQ
+            </a>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-paper-plane"></i>
+                Contact
+            </a>
+        </li>
+    </ul>
+
+    <ul class="list-unstyled CTAs">
+        <li>
+            <a href="https://bootstrapious.com/tutorial/files/sidebar.zip" class="download">Download source</a>
+        </li>
+        <li>
+            <a href="https://bootstrapious.com/p/bootstrap-sidebar" class="article">Back to article</a>
+        </li>
+    </ul>
+</nav>

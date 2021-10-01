@@ -1,0 +1,67 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+<h3 align="center" class="my-3">ใบขอเบิก</h3>
+<div class="card my-3">
+  <div class="card-body">
+    <form class="form-inline" method="get" action="">
+      {{filter.form | crispy}}
+      <button class="btn btn-info" type="submit">Search</button>
+    </form>
+  </div>
+</div>
+<table class="table table-striped my-3">
+    <thead class="thead-dark">
+      <tr>
+        <th scope="col">รหัสใบขอเบิก</th>
+        <th scope="col">ชื่อผู้ตั้งเบิก</th>
+        <th scope="col">แผนก</th>
+        <th scope="col">วันที่ตั้งเบิก</th>
+        <th scope="col">หัวหน้างาน</th>
+        <th scope="col">พัสดุ</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for requisition in requisitions %}
+      <tr>
+        <th scope="row">{{requisition.id}}</th>
+        <td>{{requisition.name}}</td>
+        <td>{{requisition.section}}</td>
+        <td>{{requisition.created |date:"d M Y" }}</td>
+        
+        <td><a {% if perms.auth.change_user %}
+                  href="{% url 'crudRequisitionItemView' requisition.id %}"
+                {% else %}
+                  href=""
+                {% endif %}
+                class="btn btn-block
+                {% if requisition.chief_approve_status == 'รออนุมัติ' %}
+                  btn-outline-secondary
+                {% elif requisition.chief_approve_status == 'อนุมัติ' %}
+                  btn-outline-success
+                {% elif requisition.chief_approve_status == 'ไม่อนุมัติ' %}
+                  btn-outline-danger
+                {% endif %}
+          ">{{requisition.chief_approve_status}}</a></td>
+          <td><a {% if perms.auth.add_user %}
+                    href="{% url 'crudRequisitionItemView' requisition.id %}"
+                  {% else %}
+                    href=""
+                  {% endif %}
+                  class="btn btn-block
+                  {% if requisition.supplies_approve_status == 'รออนุมัติ' %}
+                    btn-outline-secondary
+                  {% elif requisition.supplies_approve_status == 'อนุมัติ' %}
+                    btn-outline-success
+                  {% elif requisition.supplies_approve_status == 'ไม่อนุมัติ' %}
+                    btn-outline-danger
+                  {% endif %}">{{requisition.supplies_approve_status}}</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock%}
