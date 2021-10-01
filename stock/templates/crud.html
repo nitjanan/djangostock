@@ -1,0 +1,558 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block css %}
+<style>
+@media print {
+    .hidden-print {
+    display: none;
+    }
+    
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+      <div class="col col-md-2">
+        <img src="/media/company/logo.jpg" class="rounded float-left" width="50" height="50"/>
+      </div>
+      <div class="text-left col">
+        <h3>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h3>
+      </div>
+      <div class="text-center col col-md-3">
+        <div role="alert"  
+        class="alert
+        {% if requisition.urgency.id == 1 %}
+          alert-danger
+        {% elif requisition.urgency.id == 2 %}
+          alert-warning
+        {% elif requisition.urgency.id == 3 %}
+          alert alert-success
+        {% elif requisition.urgency.id == 4 %}
+          alert-info
+        {% endif %}">
+         {% if requisition.urgency %} 
+          <b>ระดับความเร่งด่วน: {{requisition.urgency.name}}</b>
+         {% endif %}
+        </div>
+      </div>
+    </div>
+    <hr>
+    <!--
+    <h4 align="center">ใบขอเบิก</h4>
+    -->
+    <div class="row my-2">
+      <div class="col-md-12">
+      <div class="invoice-title text-right">
+          <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-4">
+          <description>
+          <strong>ขอตั้งเบิก: </strong>{{requisition.name}}
+          <br>
+          <br>
+          </description>
+        </div>
+        <div class="col-md-4 text-center">
+            <description>
+              <strong>แผนก: </strong>{{requisition.section}}<br>
+              <br>
+            </description>
+          </div>
+        <div class="col-md-4 text-right">
+          <description>
+            <strong>วันที่ขอเบิก: </strong>{{requisition.created | date:"d/m/Y"}}<br>
+            <br>
+          </description>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                  <div class="row">
+                    <div class="col-3">
+                     <strong>รายการใบขอเบิก</strong> 
+                    </div>
+                    <div class="col-3 offset-4 hidden-print">
+                      <form class="form-inline ml-3" id="search" method="GET">
+                        <div class="input-group w-20">
+                          <input type="text" name="searchItem" class="form-control" placeholder="ค้นหาสินค้าใน stock">
+                          <div class="input-group-append">
+                            <button type="submit" class="btn bg-info" class="open-modal" data-target="#myEdit" data-toggle="modal"><i class="fab fa-searchengin"></i></button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                    <div class="col-2">
+                      {% if not requisition.purchase_requisition_id %}
+                      <button type="button" style="float: right;" class="btn btn-success hidden-print" data-toggle="modal" data-target="#myModal-create">
+                        <i class="fas fa-plus-circle"></i> เพิ่มรายการ
+                      </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </h3>
+            </div>
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table id="userTable" class="table table-condensed">
+              <thead>
+                <tr>
+                    <td class="text-center"><strong>ลำดับที่</strong></td>
+                    <td class="text-center"><strong>สินค้า</strong></td>
+                    <td class="text-center"><strong>รายละเอียดเหตุผล</strong></td>
+                    <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
+                    <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
+                    <td class="text-center"><strong>หน่วย</strong></td>
+                    <td class="text-center"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
+                    <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
+                    {% if not requisition.purchase_requisition_id %}
+                    <td class="text-right hidden-print" colspan="2"><strong>Action</strong></td>
+                    {% endif %}                      
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr id="user-{{user.id}}">
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="text-center userName userData" name="name">{{user.product_name}}</td>
+                    <td class="text-center userDescription userData" name="description">{{user.description}}</td>
+                    <td class="text-center userQuantity userData" name="quantity">{{user.quantity}}</td>
+                    <td class="text-center userQuantityTake userData" name="quantityTake">{{user.quantity_take}}</td>
+                    <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
+                      {% for unit in baseUnit %}
+                        {% if user.unit == unit.id %}
+                          {{unit.name}}
+                        {% endif %}
+                      {% endfor %}
+                    </td>
+                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
+                    <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
+                    <td class="text-center userUrgency userData" name="urgency" data-val="{{user.urgency}}">
+                      {% for bu in baseUrgency %}
+                        {% if user.urgency == bu.id %}
+                          {{bu.name}}
+                        {% endif %}
+                      {% endfor %}
+                    </td>
+                    {% if not requisition.purchase_requisition_id %}
+                    <td align="center" class="hidden-print">
+                      <button class="btn btn-secondary form-control" onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" ><i class="fas fa-pen"></i></button>
+                    </td>
+                    <td align="center" class="hidden-print">
+                      <button class="btn btn-danger form-control" onClick="deleteUser('{{user.id}}')"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="10" class="text-center ">
+                    <div class="alert alert-warning" role="alert">
+                      ไม่มีสินค้า
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-md-4">
+      <description>
+      <strong>หัวหน้างาน: </strong>{{requisition.chief_approve_user_name}}
+      </description>
+    </div>
+    <div class="col-md-4 text-center">
+        <description>
+          <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
+        </description>
+      </div>
+    <div class="col-md-4 text-right">
+      <description>
+        <strong>รหัสใบขอซื้อ/ขอซ่อม: #</strong>{{pr.ref_no}}
+      </description>
+    </div>
+  </div>
+  <hr>
+   <div class="invoice-title text-right my-2">
+    <h6>FM-ST-002 Rev.01</h6>
+    <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+      <i class="fas fa-print"></i>
+      ปริ้นใบขอเบิก
+    </button>
+  </div>
+  
+  </div>
+  <!-- Modal Add-->
+  <div class="modal fade" id="myModal-create" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header text-white" style="background-color:#82E0AA;">
+          <h4 class="modal-title" id="myModalLabel">เพิ่มรายการสินค้า</h4>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <form id="addUser" action="">
+          {% csrf_token %}
+          <div class="modal-body">
+            <label for="name">สินค้า</label>
+            <input class="form-control" type="text" name="name" required>
+            <label for="name">รายละเอียดเหตุผล</label>
+            <input class="form-control" type="text" name="description" required>
+            <label for="name">จำนวนที่ขอเบิก</label>
+            <input class="form-control" type="number" name="quantity" min="1" required>
+            <label for="name">จำนวนที่จ่ายไป</label>
+            <input class="form-control" type="number" name="quantityTake" min="1" required>
+            <label for="name">หน่วย</label>
+            <select id="sel-unit" name="unit" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for unit in baseUnit %}
+              <option value="{{unit.id}}">{{unit.name}}</option>
+              {% endfor %}
+            </select>
+            <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
+            <input class="form-control" type="text" name="machine" >
+            <label for="name">วันที่ต้องการ</label>
+            <input class="form-control dateinput form-control" type="date" name="desireddate"  placeholder="Select a date" onchange="selectedUrgency(this.name, 'sel-urgency');">
+            <label for="name">ระดับความเร่งด่วน</label>
+            <select id="sel-urgency" name="urgency" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for op in baseUrgency %}
+              <option value="{{op.id}}">{{op.name}} {{op.description}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary" >บันทึก</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">ปิด</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Edit-->
+  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header text-white" style="background-color:#B2BABB;" >
+          <h4 class="modal-title" id="myModalLabel">แก้ไขรายการสินค้า</h4>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <form id="updateUser" action="">
+          {% csrf_token %}
+        <div class="modal-body">
+            <input class="form-control" id="form-id" type="hidden" name="formId"/>
+            <label for="name">สินค้า</label>
+            <input class="form-control" id="form-name" type="text" name="formName"/>
+            <label for="description">รายละเอียดเหตุผล</label>
+            <input class="form-control" id="form-description" type="text" name="formDescription"/>
+            <label for="quantity">จำนวนที่ขอเบิก</label>
+            <input class="form-control" id="form-quantity" type="number" name="formQuantity" min=1 />
+            <label for="quantityTake">จำนวนที่จ่ายไป</label>
+            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min=1 />
+            <label for="name">หน่วย</label>
+            <select id="form-unit" name="formUnit" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for unit in baseUnit %}
+              <option value="{{unit.id}}">{{unit.name}}</option>
+              {% endfor %}
+            </select>
+            <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
+            <input class="form-control" type="text" id="form-machine" name="formMachine">
+            <label for="name">วันที่ต้องการ</label>
+            <input class="form-control dateinput form-control" type="date" id="form-desireddate" name="formDesiredDate"  placeholder="Select a date" onchange="selectedUrgency(this.name, 'form-urgency');">
+            <label for="name">ระดับความเร่งด่วน</label>
+            <select id="form-urgency" name="formUrgency" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for op in baseUrgency %}
+              <option value="{{op.id}}">{{op.name}} {{op.description}}</option>
+              {% endfor %}
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button type="submit" class="btn btn-primary" >บันทึก</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">ปิด</button>
+        </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Search-->
+  <div class="modal fade" id="myEdit" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">รายการสินค้าใน Express</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="pShowSearch"></p>
+          </div>
+        </div>
+    </div>
+  </div>
+{% endblock%}
+{% block javascript %}
+<script>
+$(function(){
+$(document).on('submit','form#search',function(){
+    var titleInput = $('input[name="searchItem"]').val();
+    if (titleInput) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "searchItemExpress" %}',
+            data: {
+                'title': titleInput,
+            },
+            dataType: 'json',
+            success: function (data) {
+              if (data.instance) {
+                openModal(data.instance);
+                e.preventDefault();
+              }else{
+                $("#pShowSearch").html('ไม่พบสินค้าที่ค้นหา');
+              }
+            }
+        });
+    } else {
+      
+    }
+    return false;
+  });
+});
+
+function openModal(instance) {
+  $("#pShowSearch").html(instance);
+  $('#myEdit').modal('show');
+}
+
+// Create Django Ajax Call
+$(function(){
+$(document).on('submit','form#addUser',function(){
+    var nameInput = $('input[name="name"]').val().trim();
+    var descriptionInput = $('input[name="description"]').val().trim();
+    var quantityInput = $('input[name="quantity"]').val().trim();
+    var quantityTakeInput = $('input[name="quantityTake"]').val().trim();
+    var machineInput = $('input[name="machine"]').val().trim();
+    var desireddateInput = $('input[name="desireddate"]').val();
+    var unitInput = $('#sel-unit').val();
+    var urgencyInput = $('#sel-urgency').val();
+
+    if (desireddateInput == '')
+      desireddateInput = null;
+    if (nameInput && descriptionInput && quantityInput && quantityTakeInput) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "crud_ajax_create" requisition.id %}',
+            data: {
+                'name': nameInput,
+                'description': descriptionInput,
+                'quantity': quantityInput,
+                'quantity_take': quantityTakeInput,
+                'machine': machineInput,
+                'desired_date': desireddateInput,
+                'unit': unitInput,
+                'urgency':urgencyInput,
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.user) {
+                  e.preventDefault();
+                  appendToUsrTable(data.user);
+                }
+            }
+        });
+
+    } else {
+        alert("All fields must have a valid value.");
+    }
+    $('form#addUser').trigger("reset");
+    $('#myModal-create').modal('hide');
+    return false;
+  });
+});
+
+
+// Delete Django Ajax Call
+function deleteUser(id) {
+  var action = confirm("คุณต้องการลบสินค้านี้หรือไม่?");
+  if (action != false) {
+    $.ajax({
+        url: '{% url "crud_ajax_delete" %}',
+        data: {
+            'id': id,
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.deleted) {
+              $("#userTable #user-" + id).remove();
+            }
+        }
+    });
+  }
+}
+
+
+// Create Django Ajax Call
+$(function(){
+$(document).on('submit','form#updateUser',function(){
+    var idInput = $('input[name="formId"]').val().trim();
+    var nameInput = $('input[name="formName"]').val().trim();
+    var descriptionInput = $('input[name="formDescription"]').val().trim();
+    var quantityInput = $('input[name="formQuantity"]').val().trim();
+    var quantityTakeInput = $('input[name="formQuantityTake"]').val().trim();
+    var machineInput = $('input[name="formMachine"]').val().trim();
+    var desireddateInput = $('input[name="formDesiredDate"]').val();
+    var unitInput = $('#form-unit').val();
+    var urgencyInput = $('#form-urgency').val();
+    if (nameInput && descriptionInput && quantityInput) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "crud_ajax_update" requisition.id %}',
+            data: {
+                'id': idInput,
+                'name': nameInput,
+                'description': descriptionInput,
+                'quantity': quantityInput,
+                'quantity_take': quantityTakeInput,
+                'machine': machineInput,
+                'desired_date': desireddateInput,
+                'unit': unitInput,
+                'urgency':urgencyInput
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.user) {
+                  e.preventDefault();
+                  updateToUserTabel(data.user);
+                }
+            }
+        });
+
+    } else {
+        alert("All fields must have a valid value.");
+    }
+    $('form#updateUser').trigger("reset");
+    $('#myModal').modal('hide');
+    return false;
+  });
+});
+
+
+// Update Django Ajax Call
+function editUser(id) {
+  if (id) {
+    tr_id = "#user-" + id;
+    name = $(tr_id).find(".userName").text();
+    description = $(tr_id).find(".userDescription").text();
+    quantity = $(tr_id).find(".userQuantity").text();
+    quantityTake = $(tr_id).find(".userQuantityTake").text();
+    machine = $(tr_id).find(".userMachine").text();
+    desireddate_str = $(tr_id).find(".userDesiredDate").text();
+    desireddateObject = desireddate_str.split("/").reverse().join("-");
+    unit = $(tr_id).find(".userUnit").data('val');
+    urgency = $(tr_id).find(".userUrgency").data('val');
+    $('#form-id').val(id);
+    $('#form-name').val(name);
+    $('#form-description').val(description);
+    $('#form-quantity').val(quantity);
+    $('#form-quantitytake').val(quantityTake);
+    $('#form-machine').val(machine);
+    $('#form-desireddate').val(desireddateObject);
+    $('#form-unit').val(unit);
+    $('#form-urgency').val(urgency);
+  }
+}
+
+function appendToUsrTable(user) {
+  $("#userTable > tbody:last-child").append(`
+        <tr id="user-${user.id}">
+            <td class="text-center userName" name="name">${user.name}</td>
+            '<td class="text-center userDescription" name="description">${user.description}</td>
+            '<td class="text-center userQuantity" name="quantity">${user.quantity}</td>
+            '<td class="text-center userQuantityTake" name="quantityTake">${user.quantity_take}</td>
+            '<td class="text-center userUnit" name="unit">${user.unit}</td>
+            '<td class="text-center userMachine" name="machine">${user.machine}</td>
+            '<td class="text-center userDesiredDate" name="desireddate">${user.desired_date}</td>
+            '<td class="text-center userUrgency" name="urgency">${user.urgency}</td>
+            '<td align="center" class="hidden-print">
+                <button class="btn btn-secondary form-control" onClick="editUser(${user.id})" data-toggle="modal" data-target="#myModal")"><i class="fas fa-pen"></i></button>
+            </td>
+            <td align="center" class="hidden-print">
+                <button class="btn btn-danger form-control" onClick="deleteUser(${user.id})"><i class="fas fa-trash-alt"></i></button>
+            </td>
+        </tr>
+    `);
+}
+
+function updateToUserTabel(user){
+    $("#userTable #user-" + user.id).children(".userData").each(function() {
+        var attr = $(this).attr("name");
+        if (attr == "name") {
+          $(this).text(user.name);
+        } else if (attr == "description") {
+          $(this).text(user.description);
+        } else if (attr == "quantity"){
+          $(this).text(user.quantity);
+        } else if (attr == "quantityTake"){
+          $(this).text(user.quantity_take);
+        } else if (attr == "machine"){
+          $(this).text(user.machine);
+        } else if (attr == "desireddate"){
+          $(this).text(user.desired_date);
+        } else if (attr == "unit"){
+          $(this).text(user.unit);
+        }else if (attr == "urgency"){
+          $(this).text(user.urgency);
+        }
+      });
+}
+function parseDate(str) {
+    var mdy = str.split('-');
+    return new Date(mdy[0], mdy[1]-1, mdy[2]);
+}
+
+function datediff(first, second) {
+    // Take the difference between the dates and divide by milliseconds per day.
+    // Round to nearest whole number to deal with DST.
+    return Math.round((second-first)/(1000*60*60*24));
+}
+
+function showDayDiff(name){
+  var dateNow = new Date();
+  var desireddateInput = $('input[name="'+name+'"]').val();
+  var daydiff = datediff(dateNow, parseDate(desireddateInput));
+  return daydiff;
+}
+
+function selectedUrgency(name, id){
+  var day = showDayDiff(name);
+  if(day == 0 | day == 1){
+    document.getElementById(id).selectedIndex = 1;
+  }else if(day > 1 & day < 5){
+    document.getElementById(id).selectedIndex = 2;
+  }else if(day > 4 & day < 7){
+    document.getElementById(id).selectedIndex = 3;
+  }else if(day > 6 & day < 15){
+    document.getElementById(id).selectedIndex = 4;
+  }else{
+    
+  }
+}
+</script> 
+{% endblock %}
