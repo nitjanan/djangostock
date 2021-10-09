@@ -51,8 +51,8 @@
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
-                  <th scope="col">ผู้อนุมัติ</th>
                   <th scope="col">ผู้ตรวจสอบ</th>
+                  <th scope="col">ผู้อนุมัติ</th>
                   <th scope="col">ดำเนินการ</th>
                 </tr>
               </thead>
@@ -68,22 +68,9 @@
                         {% endif %}
                       {% endfor %}                          
                       </ul>
-
                   </td>
                   <td>{{cp.organizer}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
-                  <td>
-                    <button type="button"
-                    class="btn btn-block
-                    {% if cp.approver_status.id == 1 %}
-                      btn-outline-warning
-                    {% elif cp.approver_status.id == 2 %}
-                      btn-outline-success
-                    {% elif cp.approver_status.id == 3 %}
-                      btn-outline-danger
-                    {% endif %}"
-                    >{{cp.approver_status}}</button>
-                  </td>
                   <td>
                     <button type="button"
                     class="btn btn-block
@@ -95,6 +82,18 @@
                       btn-outline-danger
                     {% endif %}"
                     >{{cp.examiner_status}}</button>
+                  </td>
+                  <td>
+                    <button type="button"
+                    class="btn btn-block
+                    {% if cp.approver_status.id == 1 %}
+                      btn-outline-warning
+                    {% elif cp.approver_status.id == 2 %}
+                      btn-outline-success
+                    {% elif cp.approver_status.id == 3 %}
+                      btn-outline-danger
+                    {% endif %}"
+                    >{{cp.approver_status}}</button>
                   </td>
                   <td>
                     <a href="{% url 'printCPApprove' cp.id %}" class="btn btn-primary"> ทำการอนุมัติ</a>

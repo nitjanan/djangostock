@@ -1,6 +1,7 @@
 {% extends 'layouts.html' %}
 {% load static %}
 {% load widget_tweaks %}
+{% load crispy_forms_tags %}
 
 {% block content %}
 <div class="container">
@@ -182,15 +183,27 @@
                 </div>
                 <div class="row spacer my-2">
                     <div class="col-3">
-                        <button type="submit" class="btn btn-block btn-warning"><i class="fas fa-edit"></i> แก้ไข</button>
+                        <button type="submit" class="btn btn-block btn-warning"><i class="fas fa-edit"></i> แก้ไขร้านค้า</button>
                     </div>
                 </div>
             </div>
         </form>
     </div>
+    <div class="card bg-light my-2">
+        <div class="card-body">
+            <form method="post">
+                <p>{{ form | crispy}}</p>
+                {% csrf_token %}
+                <button type="submit" class="btn btn-info hidden-print">
+                    <i class="fas fa-save"></i>
+                    บันทึกการแก้ไข
+                </button>
+            </form>
+        </div>
+    </div>
     <div class="row my-4">
         <div class="col">
-            <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn btn-outline-secondary float-right"><i class="fas fa-pen"></i> perview print</a>
+            <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn btn-outline-secondary float-right"><i class="fas fa-pen"></i> preview print</a>
         </div>
     </div>
 </div>

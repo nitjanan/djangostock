@@ -160,5 +160,3 @@ SECRET_KEY='sk_test_51IzdMHKiE6HamVX71KKMhE2F0ZLINGFBuZkMYnGyUL3adyL5JFUEVkqE0Bx
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-

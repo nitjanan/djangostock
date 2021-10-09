@@ -60,7 +60,7 @@
               <tbody>
               {% for po in pos %}
                 <tr>
-                  <th scope="row">{{po.ref_no}}</th>
+                  <th scope="row"><a href="{%url 'showPO' po.id %}">{{po.ref_no}}</a></th>
                   <td>{{po.distributor}}</td>
                   <td>{{po.credit}}</td>
                   <td>{{po.shipping}}</td>

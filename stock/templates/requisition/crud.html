@@ -192,12 +192,18 @@
   <hr>
    <div class="invoice-title text-right my-2">
     <h6>FM-ST-002 Rev.01</h6>
-    <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
-      <i class="fas fa-print"></i>
-      ปริ้นใบขอเบิก
-    </button>
   </div>
-  
+  <div class="row">
+    <div class="col">
+      <a class="btn btn-primary hidden-print" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
+    </div>
+    <div class="col text-right">
+      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+        <i class="fas fa-print"></i>
+        ปริ้นใบขอเบิก
+      </button>
+    </div>
+  </div>
   </div>
   <!-- Modal Add-->
   <div class="modal fade" id="myModal-create" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -217,7 +223,7 @@
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="1" required>
             <label for="name">จำนวนที่จ่ายไป</label>
-            <input class="form-control" type="number" name="quantityTake" min="1" required>
+            <input class="form-control" type="number" name="quantityTake" min="0" required>
             <label for="name">หน่วย</label>
             <select id="sel-unit" name="unit" class="select form-control" required>
               <option value="" selected="">---------</option>
@@ -264,7 +270,7 @@
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min=1 />
             <label for="quantityTake">จำนวนที่จ่ายไป</label>
-            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min=1 />
+            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min=0 />
             <label for="name">หน่วย</label>
             <select id="form-unit" name="formUnit" class="select form-control" required>
               <option value="" selected="">---------</option>

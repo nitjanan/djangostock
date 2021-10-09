@@ -16,9 +16,6 @@
 
 {% block content %}
 <div class="container my-3">
-  <form method="post">
-    <!-- {% crispy form %} -->
-    {% csrf_token %}
     <div class="row my-2">
       <div class="col col-md-2">
         <img src="/media/company/logo.jpg" class="rounded float-left" width="120" height="120"/>
@@ -119,15 +116,7 @@
                 {% for item in items %}
                 <tr>
                     <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center">
-                      <input type='hidden' value='{{item.id}}' name='id'>
-                      <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" style="width:190px;" autocomplete="off" value="{{item.product.id_express}}">
-                      <datalist id="idExpresslist">
-                      {% for results in baseProduct %}
-                        <option value="{{results.id_express}}">{{results.name}}</option>
-                      {% endfor %}
-                      </datalist>
-                    </td>
+                    <td class="text-center"></td>
                     <td class="text-center" name="name">{{item.product_name}}</td>
                     <td class="text-center" name="description">{{item.description}}</td>
                     <td class="text-center" name="quantity">{{item.quantity_pr}}</td>
@@ -167,7 +156,9 @@
             </table>
           </div>
           <strong>หมายเหตุ</strong><br>
-          {{ form.note }}
+          <div class="card my-2">
+            {{ pr.note }}              
+          </div>
           <div class="invoice-title text-right my-2">
             <h6>FM-ST-001 Rev.01</h6>
           </div>
@@ -226,28 +217,17 @@
               </div>
             </div>
           </div>
-            <div class="row my-2">
-              <div class="col">
-                <button type="submit" class="btn btn-primary hidden-print">
-                  <i class="fas fa-save"></i>
-                  {% if create_mode %}
-                    บันทึก
-                  {% else %}
-                    บันทึกการแก้ไข
-                  {% endif %}
-                </button>
-              </div>
-              <div class="col-6 col-md-2 text-right">
-                <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
-                  <i class="fas fa-print"></i>
-                  ปริ้นใบขอซื้อ
-                </button>
-              </div>
+          <div class="row my-2">
+            <div class="col-6 offset-6 text-right">
+              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+                <i class="fas fa-print"></i>
+                ปริ้นใบขอซื้อ
+              </button>
             </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-  </form>
   </div>
 {% endblock %}

@@ -37,16 +37,16 @@
       </div>
     <div class="card div-shadow">
         <div class="card-body">
-            <a class="btn btn-primary btn-block" href="{%url 'createComparePricePO' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบเปรียบเทียบราคา</a>
+            <a class="btn btn-primary btn-block" href="{%url 'prepareComparePricePO' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบเปรียบเทียบราคา</a>
           <div class="table-responsive">
             <table class="table table-striped my-3">
               <thead class="thead-dark">
                 <tr>
-                  <th scope="col">รหัสใบสั่งซื้อ</th>
+                  <th scope="col">รหัสใบเปรียบเทียบราคา</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
-                  <th scope="col">วันที่สั่งซื้อ</th>
-                  <th scope="col">รายการสั่งซื้อ</th>
+                  <th scope="col">วันที่สร้าง</th>
+                  <th scope="col">รายการเปรียบเทียบ</th>
                   <th scope="col">Action</th>
                   <th scope="col">Print</th>
                 </tr>
@@ -54,7 +54,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row">{{cp.ref_no}}</th>
+                  <th scope="row"><a href="{%url 'showComparePricePO' cp.id %}">{{cp.ref_no}}</a></th>
                   <td>
                       <ul style="list-style: none;">
                       {% for bd in bidder %}
@@ -67,9 +67,9 @@
                   </td>
                   <td>{{cp.organizer}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
-                  <td><a href="{%url 'createComparePricePOItem' cp.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a></td>
+                  <td><a href="{%url 'createComparePricePOItem' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a></td>
                   <td>
-                      <a href="{% url 'editComparePricePO' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
+                      <!-- a href="{% url 'editComparePricePO' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a -->
                       <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removeComparePricePO' cp.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
                   </td>
                   <td>

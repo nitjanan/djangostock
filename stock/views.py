@@ -343,7 +343,7 @@ def requisition(request):
             'requisitions_show': "show",
     }
 
-    return render(request,'requisition.html', context)
+    return render(request,'requisition/viewRequisition.html', context)
 
 def createRequisition(request):
     form = RequisitionForm(request.POST or None, initial={'supplies_approve_user_name': request.user.id})
@@ -356,7 +356,7 @@ def createRequisition(request):
         'requisitions_page': "tab-active",
         'requisitions_show': "show",
     }
-    return render(request, "createRequisition.html", context)
+    return render(request, "requisition/createRequisition.html", context)
 
 def removeRequisition(request, id):
     requisition = Requisition.objects.get(id = id)
@@ -375,9 +375,12 @@ def editRequisition(request, id):
         form = RequisitionForm(request.POST, instance=requisition)
         if form.is_valid():
             new_contact = form.save()
-            pr = PurchaseRequisition.objects.get(requisition = new_contact.pk)
-            pr.purchase_user_id = requisition.chief_approve_user_name
-            pr.save()
+            try :
+                obj = PurchaseRequisition.objects.get(requisition = new_contact.pk)
+                obj.purchase_user_id = requisition.chief_approve_user_name
+                obj.save()
+            except PurchaseRequisition.DoesNotExist :
+                pass
             return redirect('requisition')
 
     context = {
@@ -385,7 +388,7 @@ def editRequisition(request, id):
         'requisitions_page': "tab-active",
         'requisitions_show': "show",
     }
-    return render(request, "createRequisition.html", context)
+    return render(request, "requisition/createRequisition.html", context)
 
 def createRequisitionItem(request, requisition_id):
     #ดึงใบเบิกของ
@@ -426,7 +429,7 @@ def editRequisitionItem(request, item_id):
 #    permission_required = 'stock.cruduser.change_cruduser'
 
 class CrudView(TemplateView):
-    template_name = 'crud.html'
+    template_name = 'requisition/crud.html'
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(*args,**kwargs)
         context['users'] = RequisitionItem.objects.filter(requisition_id = self.kwargs['requisition_id'])
@@ -537,6 +540,68 @@ class DeleteCrudUser(View):
         }
         return JsonResponse(data)
 
+def editAllRequisition(request, requisition_id):
+    users = RequisitionItem.objects.filter(requisition_id = requisition_id)
+    requisition = Requisition.objects.get(id=requisition_id)
+    try:
+        pr = PurchaseRequisition.objects.get(id = requisition.purchase_requisition_id)
+    except:
+        pr = ""
+            
+    baseUrgency = BaseUrgency.objects.all()
+    baseUnit = BaseUnit.objects.all()
+
+    #form save
+    form = RequisitionForm(instance=requisition)
+
+    if request.method == 'POST':
+        form = RequisitionForm(request.POST, instance=requisition)
+        if form.is_valid():
+            new_contact =  form.save()
+            try :
+                obj = PurchaseRequisition.objects.get(requisition = new_contact.pk)
+                obj.purchase_user_id = requisition.chief_approve_user_name
+                obj.save()
+            except PurchaseRequisition.DoesNotExist :
+                pass
+            return redirect('editAllRequisition', requisition_id = requisition.id)
+
+    context = {
+        'form':form,
+        'users': users,
+        'requisition': requisition,
+        'pr': pr,
+        'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
+        'requisitions_page':"tab-active",
+        'requisitions_show':"show",
+    }
+
+    return render(request, "requisition/editAllRequisition.html", context)
+
+def showRequisition(request, requisition_id):
+    items = RequisitionItem.objects.filter(requisition_id = requisition_id)
+    requisition = Requisition.objects.get(id=requisition_id)
+    try:
+        pr = PurchaseRequisition.objects.get(id = requisition.purchase_requisition_id)
+    except:
+        pr = ""
+            
+    baseUrgency = BaseUrgency.objects.all()
+    baseUnit = BaseUnit.objects.all()
+
+    context = {
+        'items': items,
+        'requisition': requisition,
+        'pr': pr,
+        'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
+        'requisitions_page':"tab-active",
+        'requisitions_show':"show",
+    }
+    return render(request, "requisition/showRequisition.html", context)
+
+
 @login_required(login_url='signIn')
 def viewPR(request):
 
@@ -604,6 +669,7 @@ def createPR(request, requisition_id):
     items= RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=requisition_id)
     baseUrgency = BaseUrgency.objects.all() #ระดับความเร่งด่วน
+    baseUnit = BaseUnit.objects.all()
     #หา id express
     baseProduct = Product.objects.all()
 
@@ -620,7 +686,7 @@ def createPR(request, requisition_id):
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
     for item in items:
-        quantityTotal += item.quantity
+        quantityTotal += item.quantity_pr
     #form
     form = PurchaseRequisitionForm(request.POST or None)
     if form.is_valid():
@@ -662,10 +728,12 @@ def createPR(request, requisition_id):
         'requisition':requisition,
         'quantityTotal': quantityTotal,
         'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
         'form':form,
         'baseProduct':baseProduct,
         'isPurchasing':isPurchasing,
         'pr_page': "tab-active",
+        'create_mode': True,
         'pr_show': "show",
     }
     return render(request,'purchaseRequisition/createPR.html', context)
@@ -676,13 +744,14 @@ def createCMorPO(request, pr_id):
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=pr.requisition.id)
     baseUrgency = BaseUrgency.objects.all()
+    baseUnit = BaseUnit.objects.all()
     #หา id express
     baseProduct = Product.objects.all()
 
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
     for item in items:
-        quantityTotal += item.quantity
+        quantityTotal += item.quantity_pr
     
     listItem = request.POST.getlist('choices')
     if request.method=='POST' and 'btnformCM' in request.POST:
@@ -731,12 +800,13 @@ def createCMorPO(request, pr_id):
         'requisition':requisition,
         'quantityTotal': quantityTotal,
         'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
         'baseProduct':baseProduct,        
         'pr': pr,
         'pr_page': "tab-active",
         'pr_show': "show",
     }
-    return render(request,'purchaseRequisition/createCMorPo.html',context)
+    return render(request,'purchaseRequisition/createCMorPO.html',context)
 
 def removePR(request, pr_id):
     pr = PurchaseRequisition.objects.get(id = pr_id)
@@ -753,13 +823,14 @@ def editPR(request, pr_id):
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=pr.requisition.id)
     baseUrgency = BaseUrgency.objects.all()
+    baseUnit = BaseUnit.objects.all()
     #หา id express
     baseProduct = Product.objects.all()
 
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
     for item in items:
-        quantityTotal += item.quantity
+        quantityTotal += item.quantity_pr
 
     if request.method == 'POST':
         form = PurchaseRequisitionForm(request.POST, instance=pr)
@@ -775,13 +846,44 @@ def editPR(request, pr_id):
         'requisition':requisition,
         'quantityTotal': quantityTotal,
         'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
         'form':form,
-        'baseProduct':baseProduct,        
+        'baseProduct':baseProduct,
         'pr': pr,
+        'create_mode': False,
         'pr_page': "tab-active",
         'pr_show': "show",
     }
     return render(request, "purchaseRequisition/createPR.html", context)
+
+def showPR(request, pr_id):
+    pr = PurchaseRequisition.objects.get(id=pr_id)
+
+    items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
+    requisition = Requisition.objects.get(id=pr.requisition.id)
+    baseUrgency = BaseUrgency.objects.all()
+    baseUnit = BaseUnit.objects.all()
+    #หา id express
+    baseProduct = Product.objects.all()
+
+    #หาจำนวนสินค้าทั้งหมด
+    quantityTotal = 0
+    for item in items:
+        quantityTotal += item.quantity_pr
+
+    context = {
+        'items':items,
+        'requisition':requisition,
+        'quantityTotal': quantityTotal,
+        'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
+        'baseProduct':baseProduct,
+        'pr': pr,
+        'create_mode': False,
+        'pr_page': "tab-active",
+        'pr_show': "show",
+    }
+    return render(request, "purchaseRequisition/showPR.html", context)
 
 @require_http_methods(["POST"])
 def saveIdExpressPR(request):
@@ -840,7 +942,7 @@ def editPRApprove(request, pr_id):
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
     for item in items:
-        quantityTotal += item.quantity
+        quantityTotal += item.quantity_pr
 
     #get permission with position login
     try:
@@ -977,6 +1079,18 @@ def removePO(request, po_id):
     #ลบ PurchaseOrder ทีหลัง
     po.delete()
     return redirect('viewPO')
+
+def showPO(request, po_id):
+    po = PurchaseOrder.objects.get(id = po_id)
+    items = PurchaseOrderItem.objects.filter(po = po)
+
+    context = {
+                'po':po,
+                'items':items,
+                'po_page': "tab-active",
+                'po_show': "show",
+    }
+    return render(request, 'purchaseOrder/showPO.html',context)
 
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
@@ -1177,7 +1291,20 @@ def removeComparePricePO(request, cp_id):
     cp.delete()
     return redirect('viewComparePricePO')
 
+def prepareComparePricePO(request):
+    cp = ComparisonPrice.objects.create(
+        organizer = request.user,
+        approver_status_id = 1,
+        examiner_status_id = 1,
+    )
+    cp.save()
+    return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id,)))
+
 def createComparePricePOItem(request, cp_id):
+
+    cp = ComparisonPrice.objects.get(id=cp_id)
+    form = ComparisonPriceForm(instance=cp)
+
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
 
@@ -1193,16 +1320,20 @@ def createComparePricePOItem(request, cp_id):
     elif request.method == 'POST':
         bookform = CPDModelForm(request.POST or None, initial={'cp': cp_id})
         formset = CPitemFormset(request.POST)
+        form = ComparisonPriceForm(request.POST, instance=cp)
         if bookform.is_valid() and formset.is_valid():
             # first save this book, as its reference will be used in `Author`
             book = bookform.save()
             for form in formset:
                 # so that `book` instance can be attached.
                 if form.cleaned_data.get('item'):
-                    author = form.save(commit=False)
-                    author.bidder = book 
-                    author.cp = cp_id
-                    author.save()
+                    bd = form.save(commit=False)
+                    bd.bidder = book 
+                    bd.cp = cp_id
+                    bd.save()
+            return redirect('createComparePricePOItem', cp_id = cp_id)
+        elif form.is_valid():
+            form.save()
             return redirect('createComparePricePOItem', cp_id = cp_id)
 
     cpd = ComparisonPriceDistributor.objects.filter(cp = cp_id)
@@ -1216,12 +1347,16 @@ def createComparePricePOItem(request, cp_id):
         'itemList': itemList,
         'bookform': bookform,
         'formset': formset,
+        'form': form,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
     return render(request, 'comparePricePOItem/createComparePricePOItem.html',context)
 
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
+    cp = ComparisonPrice.objects.get(id=cp_id)
+    form = ComparisonPriceForm(instance=cp)
+
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
 
@@ -1229,6 +1364,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
         bookform = CPDModelForm(request.POST, instance=data)
+        form = ComparisonPriceForm(request.POST, instance=cp)
 
         if formset.is_valid() and bookform.is_valid():
             # save ราคาใบ po
@@ -1242,7 +1378,10 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
-            return redirect('createComparePricePOItem',cp_id = cp_id)     
+            return redirect('createComparePricePOItem',cp_id = cp_id)  
+        elif form.is_valid():
+            form.save()
+            return redirect('createComparePricePOItem', cp_id = cp_id)   
     else:
         bookform = CPDModelForm(instance=data)
         formset = CPitemInlineFormset(instance=data)
@@ -1258,12 +1397,16 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
+        'form': form,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
     return render(request, 'comparePricePOItem/editComparePricePOItemFromPR.html',context)
 
 def editComparePricePOItem(request, cp_id , cpd_id):
+    cp = ComparisonPrice.objects.get(id=cp_id)
+    form = ComparisonPriceForm(instance=cp)
+
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
 
@@ -1271,6 +1414,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
         bookform = CPDModelForm(request.POST, instance=data)
+        form = ComparisonPriceForm(request.POST, instance=cp)
 
         if formset.is_valid() and bookform.is_valid():
             # save ราคาใบ po
@@ -1284,7 +1428,10 @@ def editComparePricePOItem(request, cp_id , cpd_id):
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
-            return redirect('editComparePricePOItem',cp_id = cp_id, cpd_id = cpd_id)     
+            return redirect('editComparePricePOItem',cp_id = cp_id, cpd_id = cpd_id)  
+        elif form.is_valid():
+            form.save()
+            return redirect('editComparePricePOItem', cp_id = cp_id)   
     else:
         bookform = CPDModelForm(instance=data)
         formset = CPitemInlineFormset(instance=data)
@@ -1300,6 +1447,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
+        'form': form,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
@@ -1321,6 +1469,18 @@ def printComparePricePO(request, cp_id):
     except (ComparisonPriceDistributor.DoesNotExist, ComparisonPriceItem.DoesNotExist, AttributeError):
         items_oldest = None
 
+    pr_ref_no = ""
+    if items_oldest:
+        new_pr_id = dict()
+        for obj in items_oldest:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+        for id in new_pr_id:
+            pr = PurchaseRequisition.objects.get(id = id)
+            pr_ref_no += pr.ref_no + ", "
+
+
     cp = ComparisonPrice.objects.get(id=cp_id)
     form = CPSelectBidderForm(instance=cp)
     if request.method == 'POST':
@@ -1331,16 +1491,55 @@ def printComparePricePO(request, cp_id):
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
     itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount')
+    baseSparesType = BaseSparesType.objects.all()
     context = {
         'cp':cp,
         'bidder' : bidder,
         'items_oldest' : items_oldest,
         'itemName':itemName,
+        'pr_ref_no': pr_ref_no,
         'form':form,
+        'baseSparesType' : baseSparesType,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
     return render(request, 'comparePricePO/printComparePricePO.html',context)
+
+def showComparePricePO(request, cp_id):
+    try:
+        bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
+        items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
+    except (ComparisonPriceDistributor.DoesNotExist, ComparisonPriceItem.DoesNotExist, AttributeError):
+        items_oldest = None
+
+    cp = ComparisonPrice.objects.get(id=cp_id)
+    baseSparesType = BaseSparesType.objects.all()
+
+    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
+    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount')
+
+    pr_ref_no = ""
+    if items_oldest:
+        new_pr_id = dict()
+        for obj in items_oldest:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+        for id in new_pr_id:
+            pr = PurchaseRequisition.objects.get(id = id)
+            pr_ref_no += pr.ref_no + ", "
+
+    context = {
+        'cp':cp,
+        'bidder' : bidder,
+        'items_oldest' : items_oldest,
+        'itemName':itemName,
+        'baseSparesType':baseSparesType,
+        'pr_ref_no': pr_ref_no,
+        'cp_page': "tab-active",
+        'cp_show': "show",
+    }
+    return render(request, 'comparePricePO/showComparePricePO.html',context)
 
 def createPOFromComparisonPrice(request):
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
@@ -1453,6 +1652,17 @@ def printCPApprove(request, cp_id):
     except:
         permission = None
 
+    pr_ref_no = ""
+    if items_oldest:
+        new_pr_id = dict()
+        for obj in items_oldest:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+        for id in new_pr_id:
+            pr = PurchaseRequisition.objects.get(id = id)
+            pr_ref_no += pr.ref_no + ", "
+
     if request.method == 'POST':
         post_status = request.POST['status'] or None
         status = BaseApproveStatus.objects.get(name = post_status)
@@ -1478,6 +1688,7 @@ def printCPApprove(request, cp_id):
         'itemName':itemName,
         'baseSparesType':baseSparesType,
         'permission':permission,
+        'pr_ref_no': pr_ref_no,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",
     }

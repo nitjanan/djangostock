@@ -1,0 +1,178 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block css %}
+<style>
+@media print {
+    .hidden-print {
+    display: none;
+    }
+    
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+      <div class="col col-md-2">
+        <img src="/media/company/logo.jpg" class="rounded float-left" width="50" height="50"/>
+      </div>
+      <div class="text-left col">
+        <h3>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h3>
+      </div>
+      <div class="text-center col col-md-3">
+        <div role="alert"  
+        class="alert
+        {% if requisition.urgency.id == 1 %}
+          alert-danger
+        {% elif requisition.urgency.id == 2 %}
+          alert-warning
+        {% elif requisition.urgency.id == 3 %}
+          alert alert-success
+        {% elif requisition.urgency.id == 4 %}
+          alert-info
+        {% endif %}">
+         {% if requisition.urgency %} 
+          <b>ระดับความเร่งด่วน: {{requisition.urgency.name}}</b>
+         {% endif %}
+        </div>
+      </div>
+    </div>
+    <hr>
+    <!--
+    <h4 align="center">ใบขอเบิก</h4>
+    -->
+    <div class="row my-2">
+      <div class="col-md-12">
+      <div class="invoice-title text-right">
+          <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-4">
+          <description>
+          <strong>ขอตั้งเบิก: </strong>{{requisition.name}}
+          <br>
+          <br>
+          </description>
+        </div>
+        <div class="col-md-4 text-center">
+            <description>
+              <strong>แผนก: </strong>{{requisition.section}}<br>
+              <br>
+            </description>
+          </div>
+        <div class="col-md-4 text-right">
+          <description>
+            <strong>วันที่ขอเบิก: </strong>{{requisition.created | date:"d/m/Y"}}<br>
+            <br>
+          </description>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                  <div class="row">
+                    <div class="col">
+                     <strong>รายการใบขอเบิก</strong> 
+                    </div>
+                  </div>
+                </h3>
+            </div>
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table id="userTable" class="table table-condensed">
+              <thead>
+                <tr>
+                    <td class="text-center"><strong>ลำดับที่</strong></td>
+                    <td class="text-center"><strong>สินค้า</strong></td>
+                    <td class="text-center"><strong>รายละเอียดเหตุผล</strong></td>
+                    <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
+                    <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
+                    <td class="text-center"><strong>หน่วย</strong></td>
+                    <td class="text-center"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
+                    <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>                   
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in items %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="text-center userName userData" name="name">{{item.product_name}}</td>
+                    <td class="text-center userDescription userData" name="description">{{item.description}}</td>
+                    <td class="text-center userQuantity userData" name="quantity">{{item.quantity}}</td>
+                    <td class="text-center userQuantityTake userData" name="quantityTake">{{item.quantity_take}}</td>
+                    <td class="text-center userUnit userData" name="unit" data-val="{{item.unit}}">
+                      {% for unit in baseUnit %}
+                        {% if item.unit == unit.id %}
+                          {{item.name}}
+                        {% endif %}
+                      {% endfor %}
+                    </td>
+                    <td class="text-center userMachine userData" name="machine">{{item.machine}}</td>
+                    <td class="text-center userDesiredDate userData" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
+                    <td class="text-center userUrgency userData" name="urgency" data-val="{{item.urgency}}">
+                      {% for bu in baseUrgency %}
+                        {% if item.urgency == bu.id %}
+                          {{bu.name}}
+                        {% endif %}
+                      {% endfor %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="10" class="text-center ">
+                    <div class="alert alert-warning" role="alert">
+                      ไม่มีสินค้า
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-md-4">
+      <description>
+      <strong>หัวหน้างาน: </strong>{{requisition.chief_approve_user_name}}
+      </description>
+    </div>
+    <div class="col-md-4 text-center">
+        <description>
+          <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
+        </description>
+      </div>
+    <div class="col-md-4 text-right">
+      <description>
+        <strong>รหัสใบขอซื้อ/ขอซ่อม: #</strong>{{pr.ref_no}}
+      </description>
+    </div>
+  </div>
+  <hr>
+   <div class="invoice-title text-right my-2">
+    <h6>FM-ST-002 Rev.01</h6>
+  </div>
+  <div class="row">
+    <div class="col text-right">
+      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+        <i class="fas fa-print"></i>
+        ปริ้นใบขอเบิก
+      </button>
+    </div>
+  </div>
+  </div>
+{% endblock%}
+

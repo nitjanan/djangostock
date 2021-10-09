@@ -237,6 +237,8 @@ class BaseApproveStatus(models.Model):
     class Meta:
         db_table = 'BaseApproveStatus'
         ordering=('id',)
+        verbose_name = 'สถานะการอนุมัติ'
+        verbose_name_plural = 'ข้อมูลสถานะการอนุมัติ'
 
     def __str__(self):
         return str(self.name)
@@ -388,8 +390,8 @@ class Position(models.Model):
     class Meta:
         db_table = 'Position'
         ordering=('id',)
-        verbose_name = 'ตำแหน่งงาน'
-        verbose_name_plural = 'ข้อมูลตำแหน่งงาน'
+        verbose_name = 'ประเภทตำแหน่งงาน'
+        verbose_name_plural = 'ข้อมูลประเภทตำแหน่งงาน'
     
     def __str__(self):
         return str(self.name)
@@ -435,6 +437,10 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     position = models.ForeignKey(Position,on_delete=models.CASCADE)
 
+    class Meta:
+        verbose_name = 'ผู้ใช้และตำแหน่งงาน'
+        verbose_name_plural = 'ข้อมูลผู้ใช้และตำแหน่งงาน'
+
     def __str__(self):
         return self.user.username
 
@@ -460,6 +466,8 @@ class BaseVatType(models.Model):
     class Meta:
         db_table = 'BaseVatType'
         ordering=('id',)
+        verbose_name = 'ประเภทภาษี'
+        verbose_name_plural = 'ข้อมูลประเภทภาษี'
 
     def __str__(self):
         return str(self.name)
