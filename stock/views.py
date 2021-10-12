@@ -599,6 +599,7 @@ def showRequisition(request, requisition_id):
         'requisitions_page':"tab-active",
         'requisitions_show':"show",
     }
+
     return render(request, "requisition/showRequisition.html", context)
 
 
@@ -856,7 +857,7 @@ def editPR(request, pr_id):
     }
     return render(request, "purchaseRequisition/createPR.html", context)
 
-def showPR(request, pr_id):
+def showPR(request, pr_id, isAP):
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
@@ -871,18 +872,33 @@ def showPR(request, pr_id):
     for item in items:
         quantityTotal += item.quantity_pr
 
-    context = {
-        'items':items,
-        'requisition':requisition,
-        'quantityTotal': quantityTotal,
-        'baseUrgency': baseUrgency,
-        'baseUnit': baseUnit,
-        'baseProduct':baseProduct,
-        'pr': pr,
-        'create_mode': False,
-        'pr_page': "tab-active",
-        'pr_show': "show",
-    }
+    if isAP == 'True':
+        context = {
+            'items':items,
+            'requisition':requisition,
+            'quantityTotal': quantityTotal,
+            'baseUrgency': baseUrgency,
+            'baseUnit': baseUnit,
+            'baseProduct':baseProduct,
+            'pr': pr,
+            'create_mode': False,
+            'ap_pr_page': "tab-active",
+            'ap_pr_show': "show",
+        }
+    else:
+        context = {
+            'items':items,
+            'requisition':requisition,
+            'quantityTotal': quantityTotal,
+            'baseUrgency': baseUrgency,
+            'baseUnit': baseUnit,
+            'baseProduct':baseProduct,
+            'pr': pr,
+            'create_mode': False,
+            'pr_page': "tab-active",
+            'pr_show': "show",
+        }
+
     return render(request, "purchaseRequisition/showPR.html", context)
 
 @require_http_methods(["POST"])
@@ -982,6 +998,7 @@ def editPRApprove(request, pr_id):
 
     return render(request, "purchaseRequisitionApprove/editPRApprove.html", context)
 
+@login_required(login_url='signIn')
 def viewPO(request):
     data = PurchaseOrder.objects.all()
 
@@ -1080,16 +1097,24 @@ def removePO(request, po_id):
     po.delete()
     return redirect('viewPO')
 
-def showPO(request, po_id):
+def showPO(request, po_id, isAP):
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
 
-    context = {
-                'po':po,
-                'items':items,
-                'po_page': "tab-active",
-                'po_show': "show",
-    }
+    if isAP == 'True':
+        context = {
+            'po':po,
+            'items':items,
+            'ap_po_page': "tab-active",
+            'ap_po_show': "show",
+        }
+    else:
+        context = {
+            'po':po,
+            'items':items,
+            'po_page': "tab-active",
+            'po_show': "show",
+        }
     return render(request, 'purchaseOrder/showPO.html',context)
 
 def createPOItem(request, po_id):
@@ -1137,9 +1162,11 @@ def editPOItem(request, po_id):
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
 
     po_data = PurchaseOrder.objects.get(id = po_id)
+    form = PurchaseOrderForm(instance=po_data)
     if request.method == "POST":
         formset = PurchaseOrderItemInlineFormset(request.POST, request.FILES, instance=po_data)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
+        form = PurchaseOrderForm(request.POST, instance=po_data)
         if formset.is_valid() and price_form.is_valid():
             # save ราคาใบ po
             price_form.save()
@@ -1150,10 +1177,14 @@ def editPOItem(request, po_id):
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
-            return redirect('viewPO')     
+            return redirect('viewPO')
+        elif form.is_valid():
+            form.save()
+            return redirect('editPOItem', po_id = po_id) 
     else:
         formset = PurchaseOrderItemInlineFormset(instance=po_data)
         price_form = PurchaseOrderPriceForm(instance=po_data)
+        form = PurchaseOrderForm(instance=po_data)
 
     po = PurchaseOrder.objects.get(id = po_id)
     context = {
@@ -1162,6 +1193,7 @@ def editPOItem(request, po_id):
         'po_show': "show",
         'formset': formset,
         'price_form':price_form,
+        'form': form,
         'itemList':itemList,
         'heading': heading_message,
     }
@@ -1223,6 +1255,7 @@ def editPOApprove(request, po_id):
     }
     return render(request, 'purchaseOrderApprove/editPOApprove.html',context)
 
+@login_required(login_url='signIn')
 def viewComparePricePO(request):
     data = ComparisonPrice.objects.all()
 
@@ -1480,7 +1513,6 @@ def printComparePricePO(request, cp_id):
             pr = PurchaseRequisition.objects.get(id = id)
             pr_ref_no += pr.ref_no + ", "
 
-
     cp = ComparisonPrice.objects.get(id=cp_id)
     form = CPSelectBidderForm(instance=cp)
     if request.method == 'POST':
@@ -1505,7 +1537,7 @@ def printComparePricePO(request, cp_id):
     }
     return render(request, 'comparePricePO/printComparePricePO.html',context)
 
-def showComparePricePO(request, cp_id):
+def showComparePricePO(request, cp_id, isAP):
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -1529,16 +1561,28 @@ def showComparePricePO(request, cp_id):
             pr = PurchaseRequisition.objects.get(id = id)
             pr_ref_no += pr.ref_no + ", "
 
-    context = {
-        'cp':cp,
-        'bidder' : bidder,
-        'items_oldest' : items_oldest,
-        'itemName':itemName,
-        'baseSparesType':baseSparesType,
-        'pr_ref_no': pr_ref_no,
-        'cp_page': "tab-active",
-        'cp_show': "show",
-    }
+    if isAP == 'True':
+        context = {
+            'cp':cp,
+            'bidder' : bidder,
+            'items_oldest' : items_oldest,
+            'itemName':itemName,
+            'baseSparesType':baseSparesType,
+            'pr_ref_no': pr_ref_no,
+            'ap_cp_page': "tab-active",
+            'ap_cp_show': "show",
+        }
+    else:
+        context = {
+            'cp':cp,
+            'bidder' : bidder,
+            'items_oldest' : items_oldest,
+            'itemName':itemName,
+            'baseSparesType':baseSparesType,
+            'pr_ref_no': pr_ref_no,
+            'cp_page': "tab-active",
+            'cp_show': "show",
+        }
     return render(request, 'comparePricePO/showComparePricePO.html',context)
 
 def createPOFromComparisonPrice(request):
@@ -1610,6 +1654,7 @@ def createPOItemFromComparisonPrice(request, po_id):
     }
     return render(request, template_name, context)
 
+@login_required(login_url='signIn')
 def viewCPApprove(request):
     data = ComparisonPrice.objects.all()
 

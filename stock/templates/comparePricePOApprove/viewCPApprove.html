@@ -59,7 +59,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row">{{cp.ref_no}}</th>
+                  <th scope="row"><a href="{%url 'showComparePricePO' cp.id True %}">{{cp.ref_no}}</a></th>
                   <td>
                       <ul style="list-style: none;">
                       {% for bd in bidder %}

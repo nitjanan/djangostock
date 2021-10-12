@@ -60,18 +60,20 @@
               <tbody>
               {% for po in pos %}
                 <tr>
-                  <th scope="row"><a href="{%url 'showPO' po.id %}">{{po.ref_no}}</a></th>
+                  <th scope="row"><a href="{%url 'showPO' po.id False %}">{{po.ref_no}}</a></th>
                   <td>{{po.distributor}}</td>
                   <td>{{po.credit}}</td>
                   <td>{{po.shipping}}</td>
                   <td>{{po.created |date:"d/m/Y"}}</td>
-                  <td><a href="{%url 'editPOItem' po.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a></td>
+                  <td><a href="{%url 'editPOItem' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a></td>
                   <td>
+                      <!--
                       {% if po.cp %}
                         <a href="{% url 'editPOFromComparison' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
                       {% else %}
                         <a href="{% url 'editPO' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
-                      {% endif %}
+                      {% endif %}                        
+                      -->
                       <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
                     </td>
                 </tr>

@@ -1,6 +1,7 @@
 {% extends 'layouts.html' %}
 {% load static %}
 {% load widget_tweaks %}
+{% load crispy_forms_tags %}
 
 {% block css %}
 <style>
@@ -152,6 +153,11 @@
               </div>
             </div>
             <hr>
+            <div class="row">
+              <div class="col text-right">
+                <h6>FM-PU-003 Rev.00</h6>
+              </div>
+            </div>
             <div class="row spacer my-3">
                 <div class="col">
                     <button id="submit" type="submit" class="btn btn-primary hidden-print"><i class="fas fa-save"></i>
@@ -159,14 +165,25 @@
                     </button>
                 </div>
                 <div>
-                  <h6>FM-PU-003 Rev.00</h6>
                   <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="window.print();">
                       <i class="fas fa-print"></i>
                       ปริ้นใบสั่งซื้อ
                   </button>
                 </div>
             </div>
-            </form> 
+            </form>
+            <div class="card bg-light hidden-print">
+              <div class="card-body">
+                  <form method="post">
+                      <p>{{ form | crispy}}</p>
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-warning hidden-print">
+                          <i class="fas fa-save"></i>
+                          บันทึกการแก้ไข
+                      </button>
+                  </form>
+              </div>
+            </div>
           </div>
         </div>
       </div>

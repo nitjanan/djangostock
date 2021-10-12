@@ -71,7 +71,7 @@
         <tbody>
         {% for pr in prs %}
           <tr>
-            <th scope="row">{{pr.ref_no}}</th>
+            <th scope="row"><a href="{% url 'showPR' pr.id True %}">{{pr.ref_no}}</a></th>
             <td>{{pr.requisition.ref_no}}</td>
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>
