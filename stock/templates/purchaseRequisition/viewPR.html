@@ -48,8 +48,10 @@
 </div>
 <div class="card div-shadow">
   <div class="card-body">
-    {% if not isPurchasing %}
-      <a class="btn btn-primary btn-block" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
+    {% if isPurchasing %}
+      * แสดงเฉพาะใบขอซื้อที่ได้รับการอนุมัติแล้ว
+    {% else %}
+    <a class="btn btn-primary btn-block" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
     {% endif %}
     <div class="table-responsive">
       <table class="table table-striped my-3">

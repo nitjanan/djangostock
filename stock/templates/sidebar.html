@@ -6,7 +6,7 @@
 
     <ul class="list-unstyled components" id="myTab">
         <li class="">
-            <a href="#requestSubmenu" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+            <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                 <i class="fas fa-file-alt"></i> 
                 Request
             </a>
@@ -27,8 +27,8 @@
             </ul>
         </li>
         <li class="">
-            <a href="#approveSubmenu" data-toggle="collapse" aria-expanded="{% if ap_pr_page or ap_po_page or ap_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
-                <i class="fas fa-check-circle"></i> Approve  
+            <a href="{% if request.user.is_authenticated %}#approveSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ap_pr_page or ap_po_page or ap_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <i class="fas fa-check-circle"></i> Approve
                 {% if ap_all > 0%}
                     <span class="float-right badge badge-pill badge-warning notification mr-5">{{ap_all}}</span>
                 {% endif %}

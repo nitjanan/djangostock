@@ -43,9 +43,9 @@
             <img src="/media/company/logo.jpg" class="rounded float-left" width="60" height="60"/>
         </div>
         <div class="col-3 text-center">
-            <p style="font-size:13px">รหัส {{cp.ref_no}}</p>
-            <p style="font-size:13px">รหัสใบขอซื้อ {{pr_ref_no}}</p>
-            <p style="font-size:13px">วันที่&emsp;{{cp.created | date:"d/m/Y"}}</p>
+            <p style="font-size:6pt">รหัส {{cp.ref_no}}</p>
+            <p style="font-size:6pt">รหัสใบขอซื้อ {{pr_ref_no}}</p>
+            <p style="font-size:6pt">วันที่&emsp;{{cp.created | date:"d/m/Y"}}</p>
         </div>
     </div>
     <div class="table-responsive">
@@ -110,6 +110,7 @@
                     <td><!-- * --></td>
                 </tr>
             {% endfor %}
+            <tr style="visibility:hidden;"><td colspan="100%">.</td></tr>
             <tr>
                 <td colspan="2" class="text-right">รวม</td>
                 <td rowspan="5"></td>
@@ -149,13 +150,13 @@
         </table>
     </div>
     {% if cp.select_bidder %}
-    <div class="row">
+    <div class="row mx-auto pd-3" style="height: 4px;">
         <div class="col">
             <b id="txtLess"></b>
         </div>
     </div>
     <hr>
-    <div class="row">
+    <div class="row mx-auto pd-3" style="height: 4px;">
         <div class="col-6">
             <b id="txtSelectBidder"></b>
         </div>
@@ -173,14 +174,14 @@
         <div class="row my-2">
             <div class="card-group col">
                     <div class="card" style="max-width: 15rem;">
-                        <div class="card-body text-center">
+                        <div class="card-body text-center pt-1 pb-1">
                         ผู้จัดทำ <u class="dotted">{{cp.organizer}}</u><br>
                         ( {{cp.organizer}} )<br>
                         {{cp.organizer.userprofile.position}}
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-body text-center">
+                        <div class="card-body text-center pt-1 pb-1">
                             ผู้ตรวจสอบ
                             {% if cp.examiner_status.id == 3 %}
                                 <br>{{cp.examiner_status.name}}
@@ -195,7 +196,7 @@
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-body text-center">
+                        <div class="card-body text-center pt-1 pb-1">
                             ผู้อนุมัติ
                             {% if cp.approver_status.id == 3 %}
                                 <br>{{cp.approver_status.name}}
@@ -227,6 +228,8 @@
 {% block javascript %}
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script>
+    var numColspan = 2 + 3;
+
     $(function() {
     var priceSelect = 0;
     var index = 0;

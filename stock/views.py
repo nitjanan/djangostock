@@ -26,6 +26,7 @@ import stripe, logging, datetime
 
 
 # Create your views here.
+@login_required(login_url='signIn')
 def index(request, category_slug = None):
     products = None
     categories_page = None
@@ -1061,7 +1062,7 @@ def editPOFromPR(request, po_id):
         form = PurchaseOrderForm(request.POST, instance=po)
         if form.is_valid():
             form.save()
-            return redirect('editPOItem', po_id = po_id)
+            return redirect('editPOItem', po_id = po_id, isFromPR = 'True')
 
     context = {
         'form':form,
@@ -1155,7 +1156,7 @@ def createPOItem(request, po_id):
     }
     return render(request, template_name, context)
 
-def editPOItem(request, po_id):
+def editPOItem(request, po_id, isFromPR):
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
@@ -1180,7 +1181,7 @@ def editPOItem(request, po_id):
             return redirect('viewPO')
         elif form.is_valid():
             form.save()
-            return redirect('editPOItem', po_id = po_id) 
+            return redirect('editPOItem', po_id = po_id , isFromPR = isFromPR) 
     else:
         formset = PurchaseOrderItemInlineFormset(instance=po_data)
         price_form = PurchaseOrderPriceForm(instance=po_data)
@@ -1194,6 +1195,7 @@ def editPOItem(request, po_id):
         'formset': formset,
         'price_form':price_form,
         'form': form,
+        'isFromPR':isFromPR,
         'itemList':itemList,
         'heading': heading_message,
     }

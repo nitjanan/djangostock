@@ -44,7 +44,7 @@ def approvePendingCounter(request):
             if(permiss.base_permission.codename == 'CAAPR'):
                 try:
                     #ดึงข้อมูล PurchaseRequisition
-                    pr_item = PurchaseRequisition.objects.all().filter(approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+                    pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
                     #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
                     pending_count = len(pr_item)
                 except PurchaseRequisition.DoesNotExist:
@@ -144,7 +144,7 @@ def approveCPAllCounter(request):
             if(permiss.base_permission.codename == 'CAACP'):
                 try:
                     #ดึงข้อมูล PurchaseOrder
-                    a_item = ComparisonPrice.objects.all().filter(approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+                    a_item = ComparisonPrice.objects.all().filter(examiner_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
                     #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
                     acm_count = len(a_item)
                 except PurchaseOrder.DoesNotExist:

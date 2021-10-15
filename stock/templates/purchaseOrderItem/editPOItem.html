@@ -172,6 +172,7 @@
                 </div>
             </div>
             </form>
+            {% if isFromPR == 'False'%}
             <div class="card bg-light hidden-print">
               <div class="card-body">
                   <form method="post">
@@ -184,6 +185,7 @@
                   </form>
               </div>
             </div>
+            {% endif %}
           </div>
         </div>
       </div>

@@ -339,7 +339,7 @@ function calculateAmount(vat, totalAfterDiscount){
   return totalAfterDiscount + vat;
 }
 
-$(".express" ).change(function() {
+$(".express" ).blur(function() {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
     var val = $("#id_form-"+suffix+"-express").val();

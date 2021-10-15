@@ -145,8 +145,8 @@
                     </p>
                     {% for permiss in permission %}
                       {% if po.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPO'%}
-                      <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
-                      <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                      <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">
+                      <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบสั่งซื้อนี้หรือไม่?');">
                       {% endif %}
                     {% endfor %}
                 </form>

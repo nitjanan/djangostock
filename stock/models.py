@@ -569,7 +569,7 @@ class PurchaseOrderItem(models.Model):
 
 class ComparisonPriceDistributor(models.Model):
     distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE, null = True)
-    credit = models.ForeignKey(BaseCredit,on_delete=models.CASCADE,null = True)
+    credit = models.ForeignKey(BaseCredit,on_delete=models.CASCADE,null = True, blank = True)
     vat_type = models.ForeignKey(BaseVatType,on_delete=models.CASCADE)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
     discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#หักส่วนลด

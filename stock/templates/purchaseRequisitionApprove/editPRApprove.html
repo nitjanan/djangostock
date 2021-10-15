@@ -184,8 +184,8 @@
                       </div>
                       <div class="col float-right">
                         {% if pr.purchase_status.id == 1 and request.user == pr.purchase_user %}
-                          <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
-                          <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                          <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
+                          <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
                         {% endif %}
                       </div>
                     </div>  
@@ -207,8 +207,8 @@
                         {% for permiss in permission %}
                           {% if pr.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPR'%}
                             {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
-                              <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอเบิกนี้หรือไม่?');">
-                              <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอเบิกนี้หรือไม่?');">
+                              <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
+                              <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
                             {% endif %}
                           {% endif %}
                         {% endfor %}

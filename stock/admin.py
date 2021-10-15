@@ -35,11 +35,37 @@ class PositionBasePermissionAdmin(admin.ModelAdmin):
 class DistributorAdmin(admin.ModelAdmin):
     list_display = ['id_express','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class BaseSparesTypeAdmin(admin.ModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class BaseVatTypeAdmin(admin.ModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user','position'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['position']
+
+class BaseUnitAdmin(admin.ModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class BaseCreditAdmin(admin.ModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
 
 admin.site.register(Category)
 admin.site.register(Product, ProductAdmin)
-admin.site.register(CartItem)
-admin.site.register(Cart)
+#admin.site.register(CartItem)
+#admin.site.register(Cart)
 #admin.site.register(OrderItem, OrderItemAdmin)
 #admin.site.register(Order, OrderAdmin)
 #admin.site.register(Requisition)
@@ -49,9 +75,9 @@ admin.site.register(BaseUrgency, BaseUrgencyAdmin)
 admin.site.register(Position, PositionAdmin)
 admin.site.register(PositionBasePermission, PositionBasePermissionAdmin)
 admin.site.register(BasePermission)
-admin.site.register(UserProfile)
+admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Distributor, DistributorAdmin)
-admin.site.register(BaseVatType)
-admin.site.register(BaseUnit)
-admin.site.register(BaseCredit)
-admin.site.register(BaseSparesType)
+admin.site.register(BaseVatType, BaseVatTypeAdmin)
+admin.site.register(BaseUnit, BaseUnitAdmin)
+admin.site.register(BaseCredit, BaseCreditAdmin)
+admin.site.register(BaseSparesType, BaseSparesTypeAdmin)

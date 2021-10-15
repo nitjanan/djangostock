@@ -65,7 +65,7 @@
                   <td>{{po.credit}}</td>
                   <td>{{po.shipping}}</td>
                   <td>{{po.created |date:"d/m/Y"}}</td>
-                  <td><a href="{%url 'editPOItem' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a></td>
+                  <td><a href="{%url 'editPOItem' po.id False%}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a></td>
                   <td>
                       <!--
                       {% if po.cp %}
