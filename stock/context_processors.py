@@ -133,7 +133,7 @@ def approveCPAllCounter(request):
     #ถ้าเป็นผู้อนุมัติ
     if permission:
         for permiss in permission:
-            if(permiss.base_permission.codename == 'CAECP'):
+            if(permiss.base_permission.codename == 'CAECP1' or permiss.base_permission.codename == 'CAECP2' or permiss.base_permission.codename == 'CAECP3'):
                 try:
                     #ดึงข้อมูล PurchaseOrder
                     e_item = ComparisonPrice.objects.all().filter(examiner_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
@@ -141,7 +141,7 @@ def approveCPAllCounter(request):
                     ecm_count = len(e_item)
                 except PurchaseOrder.DoesNotExist:
                     ecm_count = 0
-            if(permiss.base_permission.codename == 'CAACP'):
+            if(permiss.base_permission.codename == 'CAACP1' or permiss.base_permission.codename == 'CAACP2' or permiss.base_permission.codename == 'CAACP3'):
                 try:
                     #ดึงข้อมูล PurchaseOrder
                     a_item = ComparisonPrice.objects.all().filter(examiner_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
