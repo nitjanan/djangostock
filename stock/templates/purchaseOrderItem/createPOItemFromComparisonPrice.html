@@ -123,6 +123,14 @@
             </div>
             <div class="row">
               <div class="col-10">
+                <p class="text-right">ค่าขนส่ง</p>
+              </div>
+              <div class="col-2">
+                {{price_form.freight | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
                 <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
                 <p id="vat-type" hidden>{{po.vat_type.id}}</p>
               </div>
@@ -208,6 +216,8 @@ for(var i = 0; i < inputs.length; i++){
 $("#id_total_price").val("{{cpd_price.total_price}}");
 //หลังหักส่วนลดเป็นราคารวมก่อน
 $("#id_total_after_discount").val("{{cpd_price.total_price}}");
+$("#id_discount").val("{{cpd_price.discount}}");
+$("#id_freight").val("{{cpd_price.freight}}");
 $("#id_vat").val("{{cpd_price.vat}}");
 $("#id_amount").val("{{cpd_price.amount}}");
 });
@@ -318,6 +328,19 @@ $("#id_total_price")
     $(this).val(parseFloat($(this).val()).toFixed(2));
 });
 
+$("#id_freight")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_freight" ).change(function() {
+  var amount = calculateAmount($("#id_vat").val(), $("#id_total_after_discount").val(), $("#id_freight").val());
+  $("#id_amount").val(amount.toFixed(2));
+});
+
+
 $("#id_total_price, #id_discount").change(function() {
   var price =  $("#id_total_price").val();
   var discount =  $("#id_discount").val();
@@ -328,7 +351,7 @@ $("#id_total_price, #id_discount").change(function() {
   var vat = calculateVat(totalAfterDiscount);
   $("#id_vat").val(vat.toFixed(2));
   //คำนวน amount
-  var amount = calculateAmount(vat, totalAfterDiscount);
+  var amount = calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
   var thaibath = ArabicNumberToText(amount);
@@ -346,7 +369,7 @@ function calculateAll(){
       }
     var totalAfterDiscount = calculateTotalAfterDiscount(total);
     var vat = calculateVat(totalAfterDiscount);
-    var amount =  calculateAmount(vat, totalAfterDiscount);
+    var amount =  calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
     //แสดง จำนวนเงินหลังหักส่วนลด
     $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
     //แสดง รวมเป็นเงิน 
@@ -364,6 +387,8 @@ function calculateAll(){
 
 function calculateTotalAfterDiscount(totalPrice){
   var discount =  parseFloat($("#id_discount").val());
+  if(isNaN(discount) || discount == "")
+    discount = 0.00;
   return totalPrice - discount;
 }
 function calculateVat(totalAfterDiscount){
@@ -376,8 +401,10 @@ function calculateVat(totalAfterDiscount){
   return vat;
 }
 
-function calculateAmount(vat, totalAfterDiscount){
-  return totalAfterDiscount + vat;
+function calculateAmount(vat, totalAfterDiscount, freight){
+  if(isNaN(freight) || freight == "")
+    freight = 0.00;
+  return parseFloat(totalAfterDiscount) + parseFloat(vat) + parseFloat(freight);
 }
 
 $(".express" ).change(function() {

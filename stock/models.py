@@ -5,6 +5,7 @@ import stock
 from django.db import models
 from django.urls import reverse
 from django.core.validators import MaxLengthValidator
+from django.core.files.storage import FileSystemStorage
 import datetime
 from datetime import date
 
@@ -303,6 +304,7 @@ class Requisition(models.Model):
     )
     urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)
     ref_no = models.CharField(max_length = 500, default = requisition_ref_number, null = True, blank = True)
+    is_edit = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'Requisition'
@@ -400,6 +402,8 @@ class BasePermission(models.Model):
     name = models.CharField(max_length=255,unique=True)
     codename = models.CharField(max_length=255,unique=True)
     codename_th = models.CharField(max_length=255,unique=True)
+    ap_amount_min = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ยอดเงินอนุมัติใบเปรียบเทียบน้อยสุด
+    ap_amount_max = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
 
     class Meta:
         db_table = 'BasePermission'
@@ -436,6 +440,7 @@ class PositionBasePermission(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     position = models.ForeignKey(Position,on_delete=models.CASCADE)
+    signature = models.ImageField(null=True, blank=True, upload_to = "signature/")
 
     class Meta:
         verbose_name = 'ผู้ใช้และตำแหน่งงาน'
@@ -475,7 +480,7 @@ class BaseVatType(models.Model):
 class ComparisonPrice(models.Model):
     organizer = models.ForeignKey(User,on_delete=models.CASCADE)
     base_spares_type = models.ForeignKey(BaseSparesType,on_delete=models.CASCADE, null=True, blank=True)
-    select_bidder = models.ForeignKey(Distributor,on_delete=models.CASCADE, null=True, blank=True)
+    select_bidder = models.ForeignKey(Distributor,on_delete=models.CASCADE, null=True, blank=True) #ร้านที่เลือก
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     note = models.CharField(max_length=255, blank = True)
@@ -525,6 +530,7 @@ class PurchaseOrder(models.Model):
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
     note = models.CharField(max_length=255, blank = True)
+    freight = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
     stockman_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -576,6 +582,7 @@ class ComparisonPriceDistributor(models.Model):
     total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
+    freight = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp =  models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE, null=True)

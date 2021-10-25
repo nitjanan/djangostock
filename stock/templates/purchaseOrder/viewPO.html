@@ -54,7 +54,6 @@
                   <th scope="col">ขนส่งโดย</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
                   <th scope="col">รายการสั่งซื้อ</th>
-                  <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -65,17 +64,30 @@
                   <td>{{po.credit}}</td>
                   <td>{{po.shipping}}</td>
                   <td>{{po.created |date:"d/m/Y"}}</td>
-                  <td><a href="{%url 'editPOItem' po.id False%}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a></td>
                   <td>
-                      <!--
+                    {% if po.approver_status_id == 1 %}
+                      <a href="{%url 'editPOItem' po.id False%}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a>
+                      <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
+                    {% else %}
+                      <button type="button"
+                      class="btn
+                      {% if po.approver_status.id == 1 %}
+                        btn-outline-warning
+                      {% elif po.approver_status.id == 2 %}
+                        btn-outline-success
+                      {% elif po.approver_status.id == 3 %}
+                        btn-outline-danger
+                      {% endif %}" style="width:190px"
+                      >{{po.approver_status}}</button>
+                    {% endif %}
+                  </td>
+                  <!-- td>
                       {% if po.cp %}
                         <a href="{% url 'editPOFromComparison' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
                       {% else %}
                         <a href="{% url 'editPO' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
                       {% endif %}                        
-                      -->
-                      <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
-                    </td>
+                  </td -->
                 </tr>
               {% endfor %}
               </tbody>

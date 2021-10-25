@@ -100,8 +100,8 @@
                         {% for it in itemName %}
                             {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
                             <td>{{it.brand}}</td>
-                            <td class="text-right">{{it.unit_price}}</td>
-                            <td class="text-right">{{it.price}}</td>
+                            <td class="text-right">{% if it.unit_price %}{{it.unit_price}}{%else%}{%endif%}</td>
+                            <td class="text-right">{% if it.price %}{{it.price}}{%else%}{%endif%}</td>
                             {% endif %}
                         {% endfor %}
                     <td><!-- * --></td>
@@ -110,14 +110,14 @@
             <tr style="visibility:hidden;"><td colspan="100%">.</td></tr>
             <tr>
                 <td colspan="2" class="text-right">รวม</td>
-                <td rowspan="5"></td>
-                <td rowspan="5"></td>
+                <td rowspan="6"></td>
+                <td rowspan="6"></td>
                 {% for bd in bidder %}
-                    <td rowspan="5"></td>
-                    <td rowspan="5"></td>
+                    <td rowspan="6"></td>
+                    <td rowspan="6"></td>
                     <td class="text-right">{{bd.total_price}}</td>
                 {% endfor %}
-                <td rowspan="5"><u>หมายเหตุ</u><br>{{cp.note}}</td>
+                <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note}}</td>
             </tr>
             <tr>
                 <td colspan="2" class="text-right">หักส่วนลด</td>
@@ -129,6 +129,12 @@
                 <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
                 {% for bd in bidder %}
                     <td class="text-right">{{bd.total_after_discount}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">ค่าขนส่ง</td>
+                {% for bd in bidder %}
+                    <td class="text-right">{{bd.freight}}</td>
                 {% endfor %}
             </tr>
             <tr>
@@ -207,7 +213,7 @@
         <div class="card-group col">
                 <div class="card" style="max-width: 15rem;">
                     <div class="card-body text-center pt-1 pb-1">
-                    ผู้จัดทำ <u class="dotted">{{cp.organizer}}</u><br>
+                    ผู้จัดทำ <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                     ( {{cp.organizer}} )<br>
                     {{cp.organizer.userprofile.position}}
                     </div>
@@ -219,7 +225,7 @@
                             <br>{{cp.examiner_status.name}}
                         {% else %}
                             {% if cp.examiner_user %}
-                                <u class="dotted">{{cp.examiner_user}}</u><br>
+                            <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                 ( {{cp.examiner_user}} )<br>
                                 {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
                             {% endif %}                          
@@ -233,7 +239,7 @@
                             <br>{{cp.approver_status.name}}
                         {% else %}
                             {% if cp.approver_user %}
-                                <u class="dotted">{{cp.approver_user}}</u><br>
+                            <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                 ( {{cp.approver_user}} )<br>
                                 {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
                             {% endif %}                         

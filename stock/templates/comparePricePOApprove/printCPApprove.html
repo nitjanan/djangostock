@@ -103,8 +103,8 @@
                         {% for it in itemName %}
                             {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
                             <td>{{it.brand}}</td>
-                            <td class="text-right">{{it.unit_price}}</td>
-                            <td class="text-right">{{it.price}}</td>
+                            <td class="text-right">{% if it.unit_price %}{{it.unit_price}}{%else%}{%endif%}</td>
+                            <td class="text-right">{% if it.price %}{{it.price}}{%else%}{%endif%}</td>
                             {% endif %}
                         {% endfor %}
                     <td><!-- * --></td>
@@ -113,14 +113,14 @@
             <tr style="visibility:hidden;"><td colspan="100%">.</td></tr>
             <tr>
                 <td colspan="2" class="text-right">รวม</td>
-                <td rowspan="5"></td>
-                <td rowspan="5"></td>
+                <td rowspan="6"></td>
+                <td rowspan="6"></td>
                 {% for bd in bidder %}
-                    <td rowspan="5"></td>
-                    <td rowspan="5"></td>
+                    <td rowspan="6"></td>
+                    <td rowspan="6"></td>
                     <td class="text-right">{{bd.total_price}}</td>
                 {% endfor %}
-                <td rowspan="5"><u>หมายเหตุ</u><br>{{cp.note}}</td>
+                <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note}}</td>
             </tr>
             <tr>
                 <td colspan="2" class="text-right">หักส่วนลด</td>
@@ -132,6 +132,12 @@
                 <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
                 {% for bd in bidder %}
                     <td class="text-right">{{bd.total_after_discount}}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td colspan="2" class="text-right">ค่าขนส่ง</td>
+                {% for bd in bidder %}
+                    <td class="text-right">{{bd.freight}}</td>
                 {% endfor %}
             </tr>
             <tr>
@@ -173,52 +179,48 @@
         {% csrf_token %}
         <div class="row my-2">
             <div class="card-group col">
-                    <div class="card" style="max-width: 15rem; max-height:5rem;">
+                    <div class="card" style="max-width: 15rem; max-height:6rem;">
                         <div class="card-body text-center pt-1 pb-1">
-                        ผู้จัดทำ <u class="dotted">{{cp.organizer}}</u><br>
+                        ผู้จัดทำ <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                         ( {{cp.organizer}} )<br>
                         {{cp.organizer.userprofile.position}}
                         </div>
                     </div>
-                    <div class="card" style="max-height:5rem;">
+                    <div class="card" style="max-height:6rem;">
                         <div class="card-body text-center pt-1 pb-1">
                             ผู้ตรวจสอบ
                             {% if cp.examiner_status.id == 3 %}
                                 <br>{{cp.examiner_status.name}}
-                            {% else %}
+                            {% elif cp.select_bidder %}
                                 {% if cp.examiner_user %}
-                                    <u class="dotted">{{cp.examiner_user}}</u><br>
+                                <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.examiner_user}} )<br>
                                     {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
                                 {% endif %}
-                                {% for permiss in permission %}
+                                {% if cp.examiner_status.id == 1 and isExaminer %}
                                     <br>
-                                    {% if cp.examiner_status.id == 1 and permiss.base_permission.codename == 'CAECP'%}
                                     <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                     <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    {% endif %}
-                                {% endfor %}                            
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
-                    <div class="card" style="max-height:5rem;">
+                    <div class="card" style="max-height:6rem;">
                         <div class="card-body text-center pt-1 pb-1">
                             ผู้อนุมัติ
                             {% if cp.approver_status.id == 3 %}
                                 <br>{{cp.approver_status.name}}
                             {% else %}
                                 {% if cp.approver_user %}
-                                    <u class="dotted">{{cp.approver_user}}</u><br>
+                                <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.approver_user}} )<br>
                                     {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
                                 {% endif %}
-                                {% for permiss in permission %}
+                                {% if cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
                                     <br>
-                                    {% if cp.approver_status.id == 1 and permiss.base_permission.codename == 'CAACP' and cp.examiner_status.id == 2 %}
                                     <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                     <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    {% endif %}
-                                {% endfor %}                            
+                                {% endif %}                           
                             {% endif %}
                         </div>
                     </div>

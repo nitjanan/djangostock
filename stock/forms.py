@@ -1,9 +1,9 @@
 from django.contrib.auth import models
 from django.contrib.auth.models import User
 from django import forms
-from django.forms import fields
+from django.forms import fields, widgets
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
+from stock.models import  BaseUrgency, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 
@@ -46,6 +46,17 @@ class RequisitionItemForm(forms.ModelForm):
         'requisition_id': forms.HiddenInput(),
         }
 
+RequisitionItemFormset = formset_factory(RequisitionItemForm)
+RequisitionItemModelFormset = modelformset_factory(
+    RequisitionItem,
+    fields = ('product_name', 'description', 'quantity','quantity_take', 'machine','desired_date','unit','urgency'),
+    extra=1,
+    widgets = {
+        'desired_date': forms.DateInput(format=('%d/%m/%Y'), attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date','style': 'width:55px'}),
+        'description': forms.Textarea(attrs={'rows':1, 'cols':10}),
+    }
+)
+
 class PurchaseRequisitionForm(forms.ModelForm):
     class Meta:
        model = PurchaseRequisition 
@@ -79,13 +90,14 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 class PurchaseOrderPriceForm(forms.ModelForm):
     class Meta:
        model = PurchaseOrder
-       fields = ('total_price','discount','total_after_discount','vat','amount')
+       fields = ('total_price','discount','total_after_discount','vat','amount','freight')
        widgets={
         'total_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
-        'discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
+        'discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
         'total_after_discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'vat': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'amount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
+        'freight': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
         }
 
 class PurchaseOrderItemForm(forms.ModelForm):
@@ -100,9 +112,9 @@ PurchaseOrderItemModelFormset = modelformset_factory(
     extra=1,
     widgets={
         'item': forms.HiddenInput(attrs={'class': 'form-control item'}),#dataList
-        'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity','value':'0', 'placeholder':'0'}),
-        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price','value':'0.00', 'placeholder':'0.00'}),
-        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price','value':'0.00', 'placeholder':'0.00'}),
+        'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity'}),
+        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price'}),
+        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price'}),
     }
 )
 PurchaseOrderItemInlineFormset = inlineformset_factory(
@@ -112,9 +124,9 @@ PurchaseOrderItemInlineFormset = inlineformset_factory(
     extra=1,
     widgets={
         'item': forms.HiddenInput(attrs={'class': 'form-control item'}),#dataList
-        'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity','value':'0', 'placeholder':'0'}),
-        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price','value':'0.00', 'placeholder':'0.00'}),
-        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price','value':'0.00', 'placeholder':'0.00'}),
+        'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity'}),
+        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price'}),
+        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price'}),
     }
     , can_delete=True
 )
@@ -146,14 +158,15 @@ class CPDForm(forms.Form):
 class CPDModelForm(forms.ModelForm):
     class Meta:
         model = ComparisonPriceDistributor
-        fields = ('distributor','cp','total_price','discount','total_after_discount','vat','amount','credit','vat_type')
+        fields = ('distributor','cp','total_price','discount','total_after_discount','vat','amount','credit','vat_type', 'freight')
         widgets={
             'cp': forms.HiddenInput(),
             'total_price': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
-            'discount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
+            'discount': forms.NumberInput(attrs={'placeholder':'0.00'}),
             'total_after_discount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'vat': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'amount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
+            'freight': forms.NumberInput(attrs={'placeholder':'0.00'}),
         }
         labels = {
             'distributor': _('ผู้จำหน่าย'),
@@ -164,6 +177,7 @@ class CPDModelForm(forms.ModelForm):
             'vat_type': _('ชนิดภาษี'),
             'amount': _('รวมเป็นเงินทั้งสิ้น'),
             'credit': _('เครดิต'),
+            'freight': _('ค่าขนส่ง'),
         } 
 
 #แม่
@@ -183,9 +197,9 @@ CPitemFormset = modelformset_factory(
     fields=('item','quantity','unit','brand','unit_price','price'),
     widgets={
         'item': forms.HiddenInput(),#dataList
-        'quantity': forms.NumberInput(attrs={'value':'0', 'placeholder':'0'}),
-        'unit_price': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
-        'price': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
+        'quantity': forms.NumberInput(attrs={}),
+        'unit_price': forms.NumberInput(attrs={}),
+        'price': forms.NumberInput(attrs={}),
     },
     labels = {
         'item': _('สินค้า'),
@@ -199,6 +213,9 @@ CPitemInlineFormset = inlineformset_factory(
     fields=('item','quantity','unit','brand','unit_price','price'),
     widgets={
         'item': forms.HiddenInput(),#dataList
+        'quantity': forms.NumberInput(attrs={}),
+        'unit_price': forms.NumberInput(attrs={}),
+        'price': forms.NumberInput(attrs={}),
     },
     labels = {
         'item': _('สินค้า'),

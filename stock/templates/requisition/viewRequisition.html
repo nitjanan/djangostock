@@ -55,7 +55,6 @@
             <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">สถานะใบขอซื้อ</th>
             <th scope="col">รายการขอเบิก</th>
-            <th scope="col">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -73,14 +72,16 @@
                 <button type="button" class="btn btn-outline-warning btn-block">ไม่มีใบขอซื้อ</button>
               {% endif %}
             </td>
+            {% if requisition.is_edit %}
             <td>
               <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
-              <!-- <a href="{% url 'crud_ajax' requisition.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a> -->
-            </td>
-            <td colspan="2">
-              <!-- <a href="{% url 'editRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a> -->
               <a onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
+              <!-- <a href="{% url 'crud_ajax' requisition.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a> -->
+              <!-- <a href="{% url 'editRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a> -->
             </td>
+            {% else %}
+              <td></td>
+            {% endif %}
           </tr>
         {% endfor %}
         </tbody>

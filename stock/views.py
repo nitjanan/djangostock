@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseSparesType, BaseUnit, BaseUrgency, Category, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
+from stock.models import BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -20,7 +20,7 @@ from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
 from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter
-from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset
+from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, RequisitionItemModelFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
 
@@ -392,18 +392,35 @@ def editRequisition(request, id):
     return render(request, "requisition/createRequisition.html", context)
 
 def createRequisitionItem(request, requisition_id):
-    #ดึงใบเบิกของ
-    data = Requisition.objects.get(id = requisition_id)
-    #ดึงสินค้าในใบเบิกของ
-    items = RequisitionItem.objects.filter(requisition_id=requisition_id)
+    template_name = 'requisitionItem/createRequisitionItem.html'
+    heading_message = 'Model Formset Demo'
 
-    # form สินค้าในใบเบิกของ
-    form = RequisitionItemForm(request.POST or None, initial={'requisition_id': requisition_id})
-    if form.is_valid():
-        form.save()
-        return redirect('createRequisitionItem', requisition_id = requisition_id)
+    requisition = Requisition.objects.get(id=requisition_id)
 
-    return render(request,'createRequisitionItem.html', {'requisition':data, 'form': form, 'items':items})
+    formset = RequisitionItemModelFormset(request.POST or None, queryset=RequisitionItem.objects.none())
+    if request.method == 'POST':
+        formset = RequisitionItemModelFormset(request.POST or None)
+        if formset.is_valid():
+            # save po item
+            for form in formset:
+                # only save if name is present
+                if form.cleaned_data.get('product_name'):
+                    obj = form.save(commit=False)
+                    obj.requisition_id = requisition.id
+                    obj.requisit = requisition
+                    obj.quantity_pr = int(obj.quantity) - int(obj.quantity_take)
+                    obj.save()
+            #redirect นอก loop
+            return redirect('viewPO')
+
+    context = {
+        'requisition':requisition,
+        'po_page': "tab-active",
+        'po_show': "show",
+        'formset': formset,
+        'heading': heading_message,
+    }
+    return render(request, template_name, context)
 
 def removeRequisitionItem(request, item_id):
     item = RequisitionItem.objects.get(id = item_id)
@@ -689,6 +706,7 @@ def createPR(request, requisition_id):
     quantityTotal = 0
     for item in items:
         quantityTotal += item.quantity_pr
+
     #form
     form = PurchaseRequisitionForm(request.POST or None)
     if form.is_valid():
@@ -994,6 +1012,11 @@ def editPRApprove(request, pr_id):
                 obj.approver_status = status
                 obj.approver_user_id = request.user.id
                 obj.approver_update = datetime.datetime.now()
+        #หากอนุมัติแล้วแก้ใบขอเบิกไม่ได้
+        if obj.purchase_status_id != 1 or obj.approver_status_id != 1:
+            r = Requisition.objects.get(purchase_requisition_id = obj.id)
+            r.is_edit = False
+            r.save()
         obj.save()
         return redirect('viewPRApprove')
 
@@ -1133,7 +1156,13 @@ def createPOItem(request, po_id):
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         if formset.is_valid() and price_form.is_valid():
             # save ราคาใบ po
-            price_form.save()
+            price = price_form.save(commit=False)
+            if not price.discount:
+                price.discount = 0.00
+            if not price.freight:
+                price.freight = 0.00
+            price.save()
+
             # save po item
             for form in formset:
                 # only save if name is present
@@ -1168,9 +1197,10 @@ def editPOItem(request, po_id, isFromPR):
         formset = PurchaseOrderItemInlineFormset(request.POST, request.FILES, instance=po_data)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         form = PurchaseOrderForm(request.POST, instance=po_data)
-        if formset.is_valid() and price_form.is_valid():
+        if formset.is_valid() and price_form.is_valid() and form.is_valid():
             # save ราคาใบ po
             price_form.save()
+            form.save()
             # save po item
             instances = formset.save(commit=False)
             for instance in instances:
@@ -1179,9 +1209,6 @@ def editPOItem(request, po_id, isFromPR):
                 obj.delete()
             formset.save_m2m()
             return redirect('viewPO')
-        elif form.is_valid():
-            form.save()
-            return redirect('editPOItem', po_id = po_id , isFromPR = isFromPR) 
     else:
         formset = PurchaseOrderItemInlineFormset(instance=po_data)
         price_form = PurchaseOrderPriceForm(instance=po_data)
@@ -1358,14 +1385,20 @@ def createComparePricePOItem(request, cp_id):
         form = ComparisonPriceForm(request.POST, instance=cp)
         if bookform.is_valid() and formset.is_valid():
             # first save this book, as its reference will be used in `Author`
-            book = bookform.save()
+            book = bookform.save(commit=False)
+            if not book.discount:
+                book.discount = 0.00
+            if not book.freight:
+                book.freight = 0.00
+            book.save()
+
             for form in formset:
                 # so that `book` instance can be attached.
                 if form.cleaned_data.get('item'):
-                    bd = form.save(commit=False)
-                    bd.bidder = book 
-                    bd.cp = cp_id
-                    bd.save()
+                    cpi = form.save(commit=False)
+                    cpi.bidder = book 
+                    cpi.cp = cp_id
+                    cpi.save()
             return redirect('createComparePricePOItem', cp_id = cp_id)
         elif form.is_valid():
             form.save()
@@ -1403,7 +1436,11 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
 
         if formset.is_valid() and bookform.is_valid():
             # save ราคาใบ po
-            book = bookform.save()
+            book = bookform.save(commit=False)
+            if not book.discount:
+                book.discount = 0.00
+            book.save()
+
             # save po item
             instances = formset.save(commit=False)
             for instance in instances:
@@ -1453,7 +1490,11 @@ def editComparePricePOItem(request, cp_id , cpd_id):
 
         if formset.is_valid() and bookform.is_valid():
             # save ราคาใบ po
-            book = bookform.save()
+            book = bookform.save(commit=False)
+            if not book.discount:
+                book.discount = 0.00
+            book.save()
+
             # save po item
             instances = formset.save(commit=False)
             for instance in instances:
@@ -1463,10 +1504,10 @@ def editComparePricePOItem(request, cp_id , cpd_id):
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
-            return redirect('editComparePricePOItem',cp_id = cp_id, cpd_id = cpd_id)  
+            return redirect('createComparePricePOItem',cp_id = cp_id)  
         elif form.is_valid():
             form.save()
-            return redirect('editComparePricePOItem', cp_id = cp_id)   
+            return redirect('editComparePricePOItem', cp_id = cp_id , cpd_id = cpd_id)   
     else:
         bookform = CPDModelForm(instance=data)
         formset = CPitemInlineFormset(instance=data)
@@ -1482,7 +1523,6 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
-        'form': form,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
@@ -1691,6 +1731,8 @@ def printCPApprove(request, cp_id):
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
     itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount')
 
+    isApprover = False
+    isExaminer = False
 
     #get permission with position login
     try:
@@ -1698,6 +1740,22 @@ def printCPApprove(request, cp_id):
         permission = PositionBasePermission.objects.filter(position_id = user_profile.position_id )
     except:
         permission = None
+
+    try:
+        cpd_select = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
+    except ComparisonPriceDistributor.DoesNotExist:
+        cpd_select = None
+
+
+    if permission and cpd_select:
+        for permiss in permission:
+            if permiss.base_permission.codename == 'CAACP1' or permiss.base_permission.codename == 'CAACP2' or permiss.base_permission.codename == 'CAACP3':
+                if permiss.base_permission.ap_amount_min <= cpd_select.amount <= permiss.base_permission.ap_amount_max:
+                    isApprover = True
+            elif permiss.base_permission.codename == 'CAECP1' or permiss.base_permission.codename == 'CAECP2' or permiss.base_permission.codename == 'CAECP3':
+                if permiss.base_permission.ap_amount_min <= cpd_select.amount <= permiss.base_permission.ap_amount_max:
+                    isExaminer = True
+
 
     pr_ref_no = ""
     if items_oldest:
@@ -1716,15 +1774,15 @@ def printCPApprove(request, cp_id):
 
         obj = ComparisonPrice.objects.get(id = cp_id)
         #ผู้อนุมัติ
-        for permiss in permission:
-            if(permiss.base_permission.codename == 'CAACP'):
-                obj.approver_status = status
-                obj.approver_user_id = request.user.id
-                obj.approver_update = datetime.datetime.now()
-            elif(permiss.base_permission.codename == 'CAECP'):
-                obj.examiner_status = status
-                obj.examiner_user_id = request.user.id
-                obj.examiner_update = datetime.datetime.now()
+
+        if(isApprover):
+            obj.approver_status = status
+            obj.approver_user_id = request.user.id
+            obj.approver_update = datetime.datetime.now()
+        elif(isExaminer):
+            obj.examiner_status = status
+            obj.examiner_user_id = request.user.id
+            obj.examiner_update = datetime.datetime.now()
         obj.save()
         return redirect('viewCPApprove')
 
@@ -1736,6 +1794,8 @@ def printCPApprove(request, cp_id):
         'baseSparesType':baseSparesType,
         'permission':permission,
         'pr_ref_no': pr_ref_no,
+        'isApprover': isApprover,
+        'isExaminer': isExaminer,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",
     }

@@ -161,6 +161,7 @@
                 <div class="card">
                   <div class="card-body">
                     <h5 class="card-title">เจ้าหน้าที่พัสดุ
+                      <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;" />
                     </h5>
                     <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
                     <div class="row">
@@ -174,9 +175,16 @@
               <div class="col-sm-6 my-3">
                 <div class="card">
                   <div class="card-body">
-                    <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                        #{{pr.purchase_status}}
-                    </h5>
+                    <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
+                    {% if pr.purchase_status_id == 2 %}
+                      <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
+                        <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
+                      </h5>
+                    {% else %}
+                      <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
+                          #{{pr.purchase_status}}
+                      </h5>
+                    {% endif %}
                     <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
                     <div class="row">
                       <div class="col-sm-8">
@@ -193,12 +201,29 @@
                 </div>
               </div>
               <div class="col-sm-6 my-3">
-                <div class="card">
+                <div class="card h-100">
                   <div class="card-body">
-                    <h5 class="card-title">ผู้อนุมัติ
+                    <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
+                    {% if pr.approver_status_id == 2 %}
+                      <h5 class="card-title">ผู้อนุมัติ
+                        <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
+                      </h5>
+                    {% else %}
+                      <h5 class="card-title">ผู้อนุมัติ
                         #{{pr.approver_status}}
-                    </h5>
-                    <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
+                      </h5>
+                    {% endif %}
+                    {% if pr.approver_user %}
+                      <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
+                    {% else %}
+                      {% for permiss in permission %}
+                        {% if pr.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPR'%}
+                          {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
+                            <p class="card-text">{{request.user.first_name}} ตำแหน่ง {{request.user.userprofile.position}}</p>
+                          {% endif %}
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
                     <div class="row">
                       <div class="col-sm-8">
                         <p class="card-text">วันที่ {{pr.approver_update | date:"d/m/Y"}}</p>

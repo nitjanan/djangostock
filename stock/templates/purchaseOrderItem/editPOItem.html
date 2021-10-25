@@ -84,7 +84,7 @@
                     <div class="input-group">
                         {{form.id}} 
                         {{form.item}}
-                        <input id="express-{{forloop.counter0}}" name="express-{{forloop.counter0}}" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
+                        <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                         <datalist id="idExpressList">
                           {% for results in itemList %}
                             <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}" >เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
@@ -134,6 +134,14 @@
             </div>
             <div class="row">
               <div class="col-10">
+                <p class="text-right">ค่าขนส่ง</p>
+              </div>
+              <div class="col-2">
+                {{price_form.freight | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
                 <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
                 <p id="vat-type" hidden>{{po.vat_type.id}}</p>
               </div>
@@ -152,6 +160,12 @@
                 {{price_form.amount | add_class:"text-right" }}
               </div>
             </div>
+            <div class="card bg-light hidden-print my-3 {%if isFromPR == 'True'%}d-none{%endif%}">
+              <div class="card-body">
+                <p>{{ form | crispy}}</p>
+                {% csrf_token %}
+              </div>
+            </div>
             <hr>
             <div class="row">
               <div class="col text-right">
@@ -160,8 +174,8 @@
             </div>
             <div class="row spacer my-3">
                 <div class="col">
-                    <button id="submit" type="submit" class="btn btn-primary hidden-print"><i class="fas fa-save"></i>
-                      บันทึก
+                    <button id="submit" type="submit" class="btn btn-warning hidden-print"><i class="fas fa-save"></i>
+                      บันทึกการแก้ไข
                     </button>
                 </div>
                 <div>
@@ -171,21 +185,7 @@
                   </button>
                 </div>
             </div>
-            </form>
-            {% if isFromPR == 'False'%}
-            <div class="card bg-light hidden-print">
-              <div class="card-body">
-                  <form method="post">
-                      <p>{{ form | crispy}}</p>
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-warning hidden-print">
-                          <i class="fas fa-save"></i>
-                          บันทึกการแก้ไข
-                      </button>
-                  </form>
-              </div>
-            </div>
-            {% endif %}
+          </form>
           </div>
         </div>
       </div>
@@ -210,10 +210,9 @@ $(function() {
           var id = $('#idExpressList option[data-id='+val+']').val();
 
           //set value to form.item
-          $("#express-"+i+"").val(id);
+          $("#id_purchaseorderitem_set-"+i+"-express").val(id);
         }
     }
-
 });
 
 $('form').submit(function() {
@@ -328,6 +327,18 @@ $("#id_total_price")
     $(this).val(parseFloat($(this).val()).toFixed(2));
 });
 
+$("#id_freight")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_freight" ).change(function() {
+  var amount = calculateAmount($("#id_vat").val(), $("#id_total_after_discount").val(), $("#id_freight").val());
+  $("#id_amount").val(amount.toFixed(2));
+});
+
 $("#id_total_price, #id_discount").change(function() {
   var price =  $("#id_total_price").val();
   var discount =  $("#id_discount").val();
@@ -338,7 +349,7 @@ $("#id_total_price, #id_discount").change(function() {
   var vat = calculateVat(totalAfterDiscount);
   $("#id_vat").val(vat.toFixed(2));
   //คำนวน amount
-  var amount = calculateAmount(vat, totalAfterDiscount);
+  var amount = calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
   var thaibath = ArabicNumberToText(amount);
@@ -356,7 +367,7 @@ function calculateAll(){
     
     var totalAfterDiscount = calculateTotalAfterDiscount(total);
     var vat = calculateVat(totalAfterDiscount);
-    var amount =  calculateAmount(vat, totalAfterDiscount);
+    var amount =  calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
     //แสดง จำนวนเงินหลังหักส่วนลด
     $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
     //แสดง รวมเป็นเงิน 
@@ -372,6 +383,8 @@ function calculateAll(){
 
 function calculateTotalAfterDiscount(totalPrice){
   var discount =  parseFloat($("#id_discount").val());
+  if(isNaN(discount) || discount == "")
+    discount = 0.00;
   return totalPrice - discount;
 }
 function calculateVat(totalAfterDiscount){
@@ -384,8 +397,10 @@ function calculateVat(totalAfterDiscount){
   return vat;
 }
 
-function calculateAmount(vat, totalAfterDiscount){
-  return totalAfterDiscount + vat;
+function calculateAmount(vat, totalAfterDiscount, freight){
+  if(isNaN(freight) || freight == "")
+    freight = 0.00;
+  return parseFloat(totalAfterDiscount) + parseFloat(vat) + parseFloat(freight);
 }
 
 function hideDiv(id){
@@ -400,7 +415,7 @@ function hideDiv(id){
 $(".express" ).change(function() {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
-    var val = $("#express-"+suffix+"").val();
+    var val = $("#id_purchaseorderitem_set-"+suffix+"-express").val();
     var id = $('#idExpressList option[value='+val+']').attr('data-id');
     var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
     var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
@@ -408,6 +423,15 @@ $(".express" ).change(function() {
     $("#id_purchaseorderitem_set-"+suffix+"-item").val(id);
     $("#id_purchaseorderitem_set-"+suffix+"-quantity").val(quantity);
     $("#id_purchaseorderitem_set-"+suffix+"-unit").val(unit);
-  });
+});
+
+$("#id_vat_type").change(function() {
+  document.getElementById("vat-type").innerHTML = $(this).val();
+  var totalAfterDiscount = $("#id_total_after_discount").val();
+  var vat = calculateVat(parseFloat(totalAfterDiscount));
+  var amount =  calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
+  $("#id_vat").val(vat.toFixed(2));
+  $("#id_amount").val(amount.toFixed(2));
+});
 </script>
 {% endblock%}

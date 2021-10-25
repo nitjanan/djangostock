@@ -51,6 +51,10 @@
                 <div class="col-2 text-center">{{d.total_after_discount}}</div>
             </div>
             <div class="row spacer my-2">
+                <div class="col-3 offset-7 text-right">ค่าขนส่ง</div>
+                <div class="col-2 text-center">{{d.freight}}</div>
+            </div>
+            <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">ภาษีมูลค่าเพิ่ม 7%</div>
                 <div class="col-2 text-center">{{d.vat}}</div>
             </div>
@@ -106,7 +110,7 @@
                         <div class="input-group">
                             {{form.id}} 
                             {{form.item | add_class:"item"}}
-                            <input id="express-{{forloop.counter0}}" name="express-{{forloop.counter0}}" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
+                            <input id="id_comparisonpriceitem_set-{{forloop.counter0}}-express" name="comparisonpriceitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <datalist id="idExpressList">
                               {% for results in itemList %}
                                 <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}">เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
@@ -158,6 +162,16 @@
                     <div class="col-2">
                         <div class="input-group float-right">
                             {{bookform.total_after_discount | add_class:"form-control text-right"}}
+                        </div>
+                    </div>
+                </div>
+                <div class="row spacer my-2">
+                    <div class="col-10">
+                        <label class="float-right">{{bookform.freight.label}}</label>
+                    </div>
+                    <div class="col-2">
+                        <div class="input-group float-right">
+                            {{bookform.freight | add_class:"form-control text-right"}}
                         </div>
                     </div>
                 </div>
@@ -221,13 +235,20 @@ $(function() {
           var val = $(inputs[i]).val();
           var id = $('#idExpressList option[data-id='+val+']').val();
           //set value to form.item
-          $("#express-"+i+"").val(id);
+          $("#id_comparisonpriceitem_set-"+i+"-express").val(id);
         }
     }
 
 });
+$('form').submit(function() {
+  var inputId = $("#div-None div.col div.input-group input").attr("id").match(/\d+/);
+  var data = $('#id_comparisonpriceitem_set-'+inputId+'-item').val();
+  if(data == "")
+     $("#div-None" ).remove();
+});
 
 function updateElementIndex(el, prefix, ndx) {
+    var ndx = ndx-1;
     var id_regex = new RegExp('(' + prefix + '-\\d+)');
     var replacement = prefix + '-' + ndx;
     if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
@@ -331,10 +352,25 @@ $("#id_total_price")
     $(this).val(parseFloat($(this).val()).toFixed(2));
 });
 
+$("#id_freight")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
 $("#id_vat_type" ).change(function() {
     var totalAfterDiscount = $("#id_total_after_discount").val();
     var vat = calculateVat(totalAfterDiscount);
     $("#id_vat").val(vat.toFixed(2));
+    //amount
+    var amount = calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
+    $("#id_amount").val(amount.toFixed(2));
+});
+
+$("#id_freight").change(function() {
+  var amount = calculateAmount($("#id_vat").val(), $("#id_total_after_discount").val(), $("#id_freight").val());
+  $("#id_amount").val(amount.toFixed(2));
 });
 
 $("#id_total_price, #id_discount").change(function() {
@@ -347,7 +383,7 @@ $("#id_total_price, #id_discount").change(function() {
   var vat = calculateVat(totalAfterDiscount);
   $("#id_vat").val(vat.toFixed(2));
   //คำนวน amount
-  var amount = calculateAmount(vat, totalAfterDiscount);
+  var amount = calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
 });
 
@@ -362,7 +398,7 @@ $("#id_total_price, #id_discount").change(function() {
       }
     var totalAfterDiscount = calculateTotalAfterDiscount(total);
     var vat = calculateVat(totalAfterDiscount);
-    var amount =  calculateAmount(vat, totalAfterDiscount);
+    var amount =  calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
     //แสดง จำนวนเงินหลังหักส่วนลด
     $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
     //แสดง รวมเป็นเงิน 
@@ -375,6 +411,8 @@ $("#id_total_price, #id_discount").change(function() {
 
 function calculateTotalAfterDiscount(totalPrice){
   var discount =  parseFloat($("#id_discount").val());
+  if(isNaN(discount) || discount == "")
+    discount = 0.00;
   return totalPrice - discount;
 }
 
@@ -388,8 +426,10 @@ function calculateVat(total){
   return vat;
 }
 
-function calculateAmount(vat, total){
-  return total + vat;
+function calculateAmount(vat, total, freight){
+    if(isNaN(freight) || freight == "")
+      freight = 0.00;
+    return parseFloat(total) + parseFloat(vat) + parseFloat(freight);
 }
 
 function hideDiv(id){
@@ -405,7 +445,7 @@ function hideDiv(id){
 $(".express" ).change(function() {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
-    var val = $("#express-"+suffix+"").val();
+    var val = $("#id_comparisonpriceitem_set-"+suffix+"-express").val();
     var id = $('#idExpressList option[value='+val+']').attr('data-id');
     var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
     var unit = $('#idExpressList option[value='+val+']').attr('data-unit');

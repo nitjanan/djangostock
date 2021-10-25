@@ -1,0 +1,239 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
+{% block css %}
+<style>
+@media print {
+    .hidden-print {
+    display: none;
+    }
+    
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+      <div class="col col-md-2">
+        <img src="/media/company/logo.jpg" class="rounded float-left" width="50" height="50"/>
+      </div>
+      <div class="text-left col">
+        <h3>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h3>
+      </div>
+      <div class="text-center col col-md-3">
+        <div role="alert"  
+        class="alert
+        {% if requisition.urgency.id == 1 %}
+          alert-danger
+        {% elif requisition.urgency.id == 2 %}
+          alert-warning
+        {% elif requisition.urgency.id == 3 %}
+          alert alert-success
+        {% elif requisition.urgency.id == 4 %}
+          alert-info
+        {% endif %}">
+         {% if requisition.urgency %} 
+          <b>ระดับความเร่งด่วน: {{requisition.urgency.name}}</b>
+         {% endif %}
+        </div>
+      </div>
+    </div>
+    <hr>
+    <!--
+    <h4 align="center">ใบขอเบิก</h4>
+    -->
+    <div class="row my-2">
+      <div class="col-md-12">
+      <div class="invoice-title text-right">
+          <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-4">
+          <description>
+          <strong>ขอตั้งเบิก: </strong>{{requisition.name}}
+          <br>
+          <br>
+          </description>
+        </div>
+        <div class="col-md-4 text-center">
+            <description>
+              <strong>แผนก: </strong>{{requisition.section}}<br>
+              <br>
+            </description>
+          </div>
+        <div class="col-md-4 text-right">
+          <description>
+            <strong>วันที่ขอเบิก: </strong>{{requisition.created | date:"d/m/Y"}}<br>
+            <br>
+          </description>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">
+                  <div class="row">
+                    <div class="col-3">
+                     <strong>รายการใบขอเบิก</strong> 
+                    </div>
+                    <!-- form search -->
+                  </div>
+                </h3>
+            </div>
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table id="userTable" class="table table-condensed">
+              <thead>
+                <tr class="d-flex">
+                    <td class="text-center col"><strong>สินค้า</strong></td>
+                    <td class="text-center col"><strong>รายละเอียดเหตุผล</strong></td>
+                    <td class="text-center col"><strong>จำนวนที่ขอเบิก</strong></td>
+                    <td class="text-center col"><strong>จำนวนที่จ่ายไป</strong></td>
+                    <td class="text-center col"><strong>หน่วย</strong></td>
+                    <td class="text-center col"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center col"><strong>วันที่ต้องการ</strong></td>
+                    <td class="text-center col"><strong>ระดับความเร่งด่วน</strong></td>                    
+                </tr>
+              </thead>
+              <tbody>
+				<!-- -->
+              </tbody>
+            </table>
+          </div>
+		    <form class="form-horizontal" method="POST" action="">
+                {% csrf_token %}
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <div class="row form-row spacer my-2" >
+                <div class="col">
+                    <div class="input-group">
+                          {{form.product_name | add_class:"form-control" |attr:"width:1px"}}{{form.description | add_class:"form-control"}} {{form.quantity | add_class:"form-control"}} {{form.quantity_take| add_class:"form-control"}} {{form.unit | add_class:"form-control"}} {{form.machine | add_class:"form-control"}} {{form.desired_date | add_class:"form-control"}} {{form.urgency | add_class:"form-control"}}
+                          <div class="input-group-append text-right">
+                              <button class="btn btn-success add-form-row hidden-print">+</button>
+                          </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="row spacer my-3">
+                <div class="col">
+                    <button type="submit" class="btn btn-primary hidden-print"><i class="fas fa-save"></i>
+                      บันทึก
+                    </button>
+                </div>
+            </div>
+            </form> 
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-md-4">
+      <description>
+      <strong>หัวหน้างาน: </strong>{{requisition.chief_approve_user_name}}
+      </description>
+    </div>
+    <div class="col-md-4 text-center">
+        <description>
+          <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
+        </description>
+      </div>
+    <div class="col-md-4 text-right">
+      <description>
+        <strong>รหัสใบขอซื้อ/ขอซ่อม: #</strong>{{pr.ref_no}}
+      </description>
+    </div>
+  </div>
+  <hr>
+   <div class="invoice-title text-right my-2">
+    <h6>FM-ST-002 Rev.01</h6>
+  </div>
+  <div class="row">
+    <div class="col">
+      <a class="btn btn-primary hidden-print" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
+    </div>
+    <div class="col text-right">
+      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+        <i class="fas fa-print"></i>
+        ปริ้นใบขอเบิก
+      </button>
+    </div>
+  </div>
+  </div>
+{% endblock%}
+{% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
+<script type="text/javascript">
+function updateElementIndex(el, prefix, ndx) {
+    var id_regex = new RegExp('(' + prefix + '-\\d+)');
+    var replacement = prefix + '-' + ndx;
+    if ($(el).attr("for")) $(el).attr("for", $(el).attr("for").replace(id_regex, replacement));
+    if (el.id) el.id = el.id.replace(id_regex, replacement);
+    if (el.name) el.name = el.name.replace(id_regex, replacement);
+}
+function cloneMore(selector, prefix) {
+    var newElement = $(selector).clone(true);
+    var total = $('#id_' + prefix + '-TOTAL_FORMS').val();
+    newElement.find(':input:not([type=button]):not([type=submit]):not([type=reset])').each(function() {
+        var name = $(this).attr('name')
+        if(name) {
+            name = name.replace('-' + (total-1) + '-', '-' + total + '-');
+            var id = 'id_' + name;
+            $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
+        }
+    });
+    newElement.find('label').each(function() {
+        var forValue = $(this).attr('for');
+        if (forValue) {
+          forValue = forValue.replace('-' + (total-1) + '-', '-' + total + '-');
+          $(this).attr({'for': forValue});
+        }
+    });
+    total++;
+    $('#id_' + prefix + '-TOTAL_FORMS').val(total);
+    $(selector).after(newElement);
+    var conditionRow = $('.form-row:not(:last)');
+    conditionRow.find('.btn.add-form-row')
+    .removeClass('btn-success').addClass('btn-danger')
+    .removeClass('add-form-row').addClass('remove-form-row')
+    .html('-');
+    return false;
+}
+function deleteForm(prefix, btn) {
+    var total = parseInt($('#id_' + prefix + '-TOTAL_FORMS').val());
+    if (total > 1){
+        btn.closest('.form-row').remove();
+        var forms = $('.form-row');
+        $('#id_' + prefix + '-TOTAL_FORMS').val(forms.length);
+        for (var i=0, formCount=forms.length; i<formCount; i++) {
+            $(forms.get(i)).find(':input').each(function() {
+                updateElementIndex(this, prefix, i);
+            });
+        }
+    }
+    return false;
+}
+$(document).on('click', '.add-form-row', function(e){
+    e.preventDefault();
+    cloneMore('.form-row:last', 'form');
+    return false;
+});
+$(document).on('click', '.remove-form-row', function(e){
+    e.preventDefault();
+    deleteForm('form', $(this));
+    //คำนวนค่าทั้งหมด
+    return false;
+});
+
+</script> 
+{% endblock %}
