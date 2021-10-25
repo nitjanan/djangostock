@@ -88,6 +88,7 @@ TEMPLATES = [
                 'stock.context_processors.allApprovePOCounter',
                 'stock.context_processors.approveAllCounter',
                 'stock.context_processors.allApproveCPCounter',
+                'stock.context_processors.isPurchasingPR',
             ],
 
         },

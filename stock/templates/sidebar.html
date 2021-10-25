@@ -9,13 +9,20 @@
             <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                 <i class="fas fa-file-alt"></i> 
                 Request
+                {% if is_purchasing_pr > 0%}
+                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{is_purchasing_pr}}</span>
+                {% endif %}
             </a>
             <ul class="collapse list-unstyled {{requisitions_show}} {{pr_show}} {{po_show}} {{cp_show}}" id="requestSubmenu">
                 <li>
                     <a class="{{requisitions_page}}" href="{% url 'requisition' %}">ใบขอเบิก</a>
                 </li>
                 <li>
-                    <a class="{{pr_page}}" href="{% url 'viewPR' %}">ใบขอซื้อ</a>
+                    <a class="{{pr_page}}" href="{% url 'viewPR' %}">ใบขอซื้อ
+                        {% if is_purchasing_pr > 0%}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{is_purchasing_pr}}</span>
+                        {% endif %}
+                    </a>
                 </li>                
                 <li>
                     <a class="{{cp_page}}" href="{% url 'viewComparePricePO' %}">ใบเปรียบเทียบราคา</a>

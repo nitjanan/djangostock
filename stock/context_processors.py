@@ -1,5 +1,5 @@
 from stock.models import Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission
-from stock.views import _cart_id
+from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 
 #หมวดหมู่สินค้าที่ navbar
@@ -174,3 +174,17 @@ def findBaseUrgency(request, id):
     else:
         base_urgen = 'B'
     return dict(base_urgen = base_urgen)
+
+def isPurchasingPR(request):
+    pr_count = 0
+    #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
+    if(request.user.groups.filter(name='Purchasing').exists()):
+        try:
+            pr =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
+            pr_count = len(pr)
+        except PurchaseOrder.DoesNotExist:
+            pr_count = 0
+    return dict(is_purchasing_pr = pr_count)
+
+        
+
