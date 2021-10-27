@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load widget_tweaks %}
+{% load humanize %}
 
 {% block css %}
 <style>
@@ -103,8 +104,8 @@
                         {% for it in itemName %}
                             {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
                             <td>{{it.brand}}</td>
-                            <td class="text-right">{% if it.unit_price %}{{it.unit_price}}{%else%}{%endif%}</td>
-                            <td class="text-right">{% if it.price %}{{it.price}}{%else%}{%endif%}</td>
+                            <td class="text-right">{% if it.unit_price %}{{it.unit_price | intcomma}}{%else%}{%endif%}</td>
+                            <td class="text-right">{% if it.price %}{{it.price | intcomma}}{%else%}{%endif%}</td>
                             {% endif %}
                         {% endfor %}
                     <td><!-- * --></td>
@@ -118,38 +119,38 @@
                 {% for bd in bidder %}
                     <td rowspan="6"></td>
                     <td rowspan="6"></td>
-                    <td class="text-right">{{bd.total_price}}</td>
+                    <td class="text-right">{{bd.total_price | intcomma}}</td>
                 {% endfor %}
                 <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note}}</td>
             </tr>
             <tr>
                 <td colspan="2" class="text-right">หักส่วนลด</td>
                 {% for bd in bidder %}
-                    <td class="text-right">{{bd.discount}}</td>
+                    <td class="text-right">{{bd.discount | intcomma}}</td>
                 {% endfor %}
             </tr>
             <tr>
                 <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
                 {% for bd in bidder %}
-                    <td class="text-right">{{bd.total_after_discount}}</td>
+                    <td class="text-right">{{bd.total_after_discount | intcomma}}</td>
                 {% endfor %}
             </tr>
             <tr>
                 <td colspan="2" class="text-right">ค่าขนส่ง</td>
                 {% for bd in bidder %}
-                    <td class="text-right">{{bd.freight}}</td>
+                    <td class="text-right">{{bd.freight | intcomma}}</td>
                 {% endfor %}
             </tr>
             <tr>
                 <td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td>
                 {% for bd in bidder %}
-                    <td class="text-right"><u>{{bd.vat}}</u></td>
+                    <td class="text-right"><u>{{bd.vat | intcomma}}</u></td>
                 {% endfor %}
             </tr>
             <tr>
                 <td colspan="2" class="text-right">รวมเป็นเงินทั้งสิ้น</td>
                 {% for bd in bidder %}
-                    <td class="text-right"><b class="dblUnderlined">{{bd.amount}}</b></td>
+                    <td class="text-right"><b class="dblUnderlined">{{bd.amount | intcomma}}</b></td>
                 {% endfor %}
             </tr>           
         </tbody>

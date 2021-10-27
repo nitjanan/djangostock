@@ -2,6 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 {% load crispy_forms_tags %}
+{% load humanize %}
 
 {% block content %}
 <div class="container">
@@ -31,8 +32,8 @@
                         <div class="col">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
                         <div class="col">{% if it.unit %}{{it.unit}}{% endif %}</div>
                         <div class="col">{% if it.brand %}{{it.brand}}{% endif %}</div>
-                        <div class="col">{% if it.unit_price %}{{it.unit_price}}{% endif %}</div>
-                        <div class="col text-center">{% if it.price %}{{it.price}}{% endif %}</div>
+                        <div class="col">{% if it.unit_price %}{{it.unit_price | intcomma}}{% endif %}</div>
+                        <div class="col text-center">{% if it.price %}{{it.price | intcomma}}{% endif %}</div>
                     </div>
                 </li>
             {% endif %}
@@ -40,27 +41,27 @@
         <li class="list-group-item">
             <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">รวม</div>
-                <div class="col-2 text-center">{{d.total_price}}</div>
+                <div class="col-2 text-center">{{d.total_price | intcomma}}</div>
             </div>
             <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">หักส่วนลด</div>
-                <div class="col-2 text-center">{{d.discount}}</div>
+                <div class="col-2 text-center">{{d.discount | intcomma}}</div>
             </div>
             <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">จำนวนเงินหลังหักส่วนลด</div>
-                <div class="col-2 text-center">{{d.total_after_discount}}</div>
+                <div class="col-2 text-center">{{d.total_after_discount | intcomma}}</div>
             </div>
             <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">ค่าขนส่ง</div>
-                <div class="col-2 text-center">{{d.freight}}</div>
+                <div class="col-2 text-center">{{d.freight | intcomma}}</div>
             </div>
             <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">ภาษีมูลค่าเพิ่ม 7%</div>
-                <div class="col-2 text-center">{{d.vat}}</div>
+                <div class="col-2 text-center">{{d.vat | intcomma}}</div>
             </div>
             <div class="row spacer my-2">
                 <div class="col-3 offset-7 text-right">รวมเป็นเงินทั้งสิ้น</div>
-                <div class="col-2 text-center">{{d.amount}}</div>
+                <div class="col-2 text-center">{{d.amount | intcomma}}</div>
             </div>
         </li>
     </ul>        

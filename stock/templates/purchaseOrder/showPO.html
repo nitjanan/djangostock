@@ -1,6 +1,7 @@
 {% extends 'layouts.html' %}
 {% load static %}
 {% load widget_tweaks %}
+{% load humanize %}
 
 {% block css %}
 <style>
@@ -75,8 +76,8 @@
                             <td class="text-center">{{ forloop.counter }}</td>
                             <td class="text-center">{{ item.item.product.id_express }} {{ item.item }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
-                            <td class="text-center">{{ item.unit_price }}</td>
-                            <td class="text-center">{{ item.price }}</td>
+                            <td class="text-center">{{ item.unit_price | intcomma}}</td>
+                            <td class="text-center">{{ item.price | intcomma}}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -91,7 +92,7 @@
                 <p class="text-right">รวมเป็นเงิน</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.total_price}}&ensp;บาท</p>
+                <p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p>
               </div>
             </div>
             <div class="row">
@@ -99,7 +100,7 @@
                 <p class="text-right">หักส่วนลด</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.discount}}&ensp;บาท</p>
+                <p class="text-right">{{po.discount | intcomma}}&ensp;บาท</p>
               </div>
             </div>
             <div class="row">
@@ -107,7 +108,7 @@
                 <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.total_after_discount}}&ensp;บาท</p>
+                <p class="text-right">{{po.total_after_discount | intcomma}}&ensp;บาท</p>
               </div>
             </div>
             <div class="row">
@@ -115,7 +116,7 @@
                 <p class="text-right">ค่าขนส่ง</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.freight}}&ensp;บาท</p>
+                <p class="text-right">{{po.freight | intcomma}}&ensp;บาท</p>
               </div>
             </div>
             <div class="row">
@@ -123,7 +124,7 @@
                 <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.vat}}&ensp;บาท</p>
+                <p class="text-right">{{po.vat | intcomma}}&ensp;บาท</p>
               </div>
             </div>
             <div class="row">
@@ -134,7 +135,7 @@
                 <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.amount}}&ensp;บาท</p>
+                <p class="text-right">{{po.amount | intcomma}}&ensp;บาท</p>
               </div>
             </div>
             <hr>
