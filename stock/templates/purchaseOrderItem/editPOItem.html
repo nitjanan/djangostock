@@ -174,8 +174,12 @@
             </div>
             <div class="row spacer my-3">
                 <div class="col">
-                    <button id="submit" type="submit" class="btn btn-warning hidden-print"><i class="fas fa-save"></i>
-                      บันทึกการแก้ไข
+                    <button id="submit" type="submit" class="btn {% if isFromPR == 'True'%}btn-primary{% else %}btn-warning{% endif %} hidden-print"><i class="fas fa-save"></i>
+                      {% if isFromPR  == 'True'%}
+                        บันทึก
+                      {% else %}
+                        บันทึกการแก้ไข
+                      {% endif %}
                     </button>
                 </div>
                 <div>

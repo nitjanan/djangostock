@@ -113,7 +113,13 @@
                     <td class="text-center" name="name">{{item.product_name}}</td>
                     <td class="text-center" name="description">{{item.description}}</td>
                     <td class="text-center" name="quantity">{{item.quantity}}</td>
-                    <td class="text-center" name="unit">{{item.unit}}</td>
+                    <td class="text-center" name="unit">
+                      {% for bu in baseUnit %}
+                        {% if bu.id == item.unit %}
+                          {{bu.name}}
+                        {% endif %}
+                      {% endfor %}
+                    </td>
                     <td class="text-center" name="machine">{{item.machine}}</td>
                     <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
                     <td class="text-center" name="urgency">

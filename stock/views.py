@@ -971,9 +971,11 @@ def viewPRApprove(request):
 def editPRApprove(request, pr_id):
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
-    items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id)
+    items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=pr.requisition.id)
     baseUrgency = BaseUrgency.objects.all()
+    baseUnit = BaseUnit.objects.all()
+
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
     for item in items:
@@ -991,6 +993,7 @@ def editPRApprove(request, pr_id):
         'requisition':requisition,
         'quantityTotal': quantityTotal,
         'baseUrgency': baseUrgency,
+        'baseUnit': baseUnit,
         'pr':pr,
         'permission':permission,
         'ap_pr_page': "tab-active",
@@ -1439,6 +1442,8 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
             book = bookform.save(commit=False)
             if not book.discount:
                 book.discount = 0.00
+            if not book.freight:
+                book.freight = 0.00
             book.save()
 
             # save po item
