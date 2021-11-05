@@ -99,6 +99,12 @@ urlpatterns = [
 
     path('searchItemExpress', views.searchItemExpress, name="searchItemExpress"),
 
+    path('receive/',views.viewReceive,name="viewReceive"),
+    path('receive/create',views.createReceive,name="createReceive"),
+    path('receive/remove/<int:rc_id>',views.removeReceive,name="removeReceive"),
+
+    path('receiveItem/edit/<int:rc_id>',views.editReceiveItem,name="editReceiveItem"),
+
 ]
 
 if settings.DEBUG :

@@ -10,8 +10,8 @@
       display: none;
     }
   }
-  input[type=checkbox] {
-  display: none;
+  input.del[type=checkbox] {
+   display: none;
   }
   
 </style>
@@ -75,8 +75,8 @@
                     </tbody>
                 </table>
             </div>
-            <form class="form-horizontal" method="POST" action="">
-                {% csrf_token %}
+            <form class="form-horizontal" method="POST" enctype="multipart/form-data">
+              {% csrf_token %}
             {{ formset.management_form }}
             {% for form in formset %}
             <div class="row form-row spacer my-2" id="div-{% if form.id.value %}{{form.id.value}}{% else %}None{% endif %}">
@@ -87,10 +87,10 @@
                         <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                         <datalist id="idExpressList">
                           {% for results in itemList %}
-                            <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}" >เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
+                            <option data-id="{{results.id}}" data-show="{{results.product.id_express}} {{results.product}}" value="{{results.product.id_express}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                           {% endfor %}
                         </datalist>
-                        {{form.quantity }} {{form.unit| add_class:"form-control"}} {{form.unit_price}} {{form.price}} {{ form.DELETE}}
+                        {{form.quantity }} {{form.unit| add_class:"form-control"}} {{form.unit_price}} {{form.price}} {{ form.DELETE| add_class:"del"}}
                         {% if form.id.value %}
                           <div class="input-group-append text-right">
                             <button type="button" class="btn btn-danger hidden-print" onclick="hideDiv('{{form.id.value}}')">-</button>
@@ -200,6 +200,9 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script type="text/javascript">
+
+$('div#div_id_quotation_pdf a').addClass('btn btn-outline-success btn-sm');
+$('div#div_id_quotation_pdf a').text('Download');
 //แสดงครั้งแรกเมื่อเปิด page
 $(function() {
     //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
@@ -211,10 +214,10 @@ $(function() {
     for(var i = 0; i < inputs.length; i++){
         if($(inputs[i]).val()){
           var val = $(inputs[i]).val();
-          var id = $('#idExpressList option[data-id='+val+']').val();
+          var show = $('#idExpressList option[data-id='+val+']').attr("data-show");
 
           //set value to form.item
-          $("#id_purchaseorderitem_set-"+i+"-express").val(id);
+          $("#id_purchaseorderitem_set-"+i+"-express").val(show);
         }
     }
 });
@@ -420,13 +423,23 @@ $(".express" ).change(function() {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
     var val = $("#id_purchaseorderitem_set-"+suffix+"-express").val();
-    var id = $('#idExpressList option[value='+val+']').attr('data-id');
-    var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
-    var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
-    //set value to form.item
-    $("#id_purchaseorderitem_set-"+suffix+"-item").val(id);
-    $("#id_purchaseorderitem_set-"+suffix+"-quantity").val(quantity);
-    $("#id_purchaseorderitem_set-"+suffix+"-unit").val(unit);
+
+    if(val != ""){
+      var id = $('#idExpressList option[value='+val+']').attr('data-id');
+      var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
+      var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
+      var show = $('#idExpressList option[value='+val+']').attr('data-show');
+        //set value to form.item
+      $("#id_purchaseorderitem_set-"+suffix+"-express").val(show);
+      $("#id_purchaseorderitem_set-"+suffix+"-item").val(id);
+      $("#id_purchaseorderitem_set-"+suffix+"-quantity").val(quantity);
+      $("#id_purchaseorderitem_set-"+suffix+"-unit").val(unit);      
+    }else{
+      $("#id_purchaseorderitem_set-"+suffix+"-item").val("");
+      $("#id_purchaseorderitem_set-"+suffix+"-quantity").val("");
+      $("#id_purchaseorderitem_set-"+suffix+"-unit").val("");
+    }
+
 });
 
 $("#id_vat_type").change(function() {

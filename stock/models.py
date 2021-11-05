@@ -122,6 +122,34 @@ def purchaseOrder_ref_number():
     new_no = format + str(formatted)
     return new_no
 
+def receive_ref_number():
+    today = datetime.datetime.now()
+    year = str(today.strftime('%y'))
+    month = str(today.strftime('%m'))
+    YM = year + month
+    format = 'RC-'+ YM
+
+    try:
+        last_no = Receive.objects.all().filter(ref_no__contains=format).order_by('id').last()
+    except:
+        last_no = None
+
+    if not last_no:
+        return format + '001'
+
+    ref_no = last_no.ref_no
+    oldDate =  ref_no[3:-3]
+    if YM == oldDate:
+        no_int = int(ref_no.split(format)[-1])
+    elif YM != oldDate:
+        no_int = 000
+    
+    width = 3
+    new_no_int = no_int + 1
+    formatted = (width - len(str(new_no_int))) * "0" + str(new_no_int)
+    new_no = format + str(formatted)
+    return new_no
+
 # Create your models here.
 def get_first_name(self):
     return self.first_name + " " + self.last_name
@@ -284,6 +312,7 @@ class BaseCredit(models.Model):
 
 class Requisition(models.Model):
     purchase_requisition_id =  models.IntegerField(blank=True, null=True,unique=True)
+    pr_ref_no = models.CharField(max_length = 500, null = True, blank = True)
     name = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -305,6 +334,7 @@ class Requisition(models.Model):
     urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)
     ref_no = models.CharField(max_length = 500, default = requisition_ref_number, null = True, blank = True)
     is_edit = models.BooleanField(default=True)
+    memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
 
     class Meta:
         db_table = 'Requisition'
@@ -455,6 +485,7 @@ class Distributor(models.Model):
     address = models.TextField(blank=True)
     tel = models.CharField(max_length=255, blank = True)
     fax =  models.CharField(max_length=255, blank = True)
+    tex = models.CharField(max_length=255, blank = True, null = True, unique=True)#เลขประจำตัวผู้เสียภาษี
 
     class Meta:
         db_table = 'Distributor'
@@ -554,10 +585,14 @@ class PurchaseOrder(models.Model):
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True)
     ref_no = models.CharField(max_length = 500, default = purchaseOrder_ref_number, null = True, blank = True)
+    quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
 
     class Meta:
         db_table = 'PurchaseOrder'
         ordering=('-id',)
+    
+    def __str__(self):
+        return str(self.ref_no)
 
 class PurchaseOrderItem(models.Model):
     po = models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE, null=True)
@@ -586,6 +621,7 @@ class ComparisonPriceDistributor(models.Model):
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp =  models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE, null=True)
+    quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/CM/%Y/%m/%d')
 
     class Meta:
         db_table = 'ComparisonPriceDistributor'
@@ -605,6 +641,45 @@ class ComparisonPriceItem(models.Model):
 
     class Meta:
         db_table = 'ComparisonPriceItem'
+        ordering=('id',)
+
+class Receive(models.Model):
+    po = models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE,null = True,blank = True)
+    tax_invoice =  models.CharField(max_length=255, blank = True, null = True)#เลขที่บิล
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
+    discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#หักส่วนลด
+    total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
+    vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
+    amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
+    freight = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
+    note = models.CharField(max_length=255, blank = True)
+    receive_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='receive_user',
+        null=True
+    )
+    receive_update = models.DateField(auto_now_add=True)
+    created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    ref_no = models.CharField(max_length = 500, default = receive_ref_number, null = True, blank = True)
+
+    class Meta:
+        db_table = 'Receive'
+        ordering=('-id',)
+
+class ReceiveItem(models.Model):
+    item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
+    quantity = models.IntegerField(null=True, blank=True)
+    unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
+    created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    rc =  models.ForeignKey(Receive,on_delete=models.CASCADE,null = True,blank = True)
+
+    class Meta:
+        db_table = 'ReceiveItem'
         ordering=('id',)
 
 

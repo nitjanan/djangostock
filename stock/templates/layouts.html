@@ -222,8 +222,8 @@
     /* ---------------------------------------------------
         MEDIAQUERIES
     ----------------------------------------------------- */
-
-    @media (max-width: 768px) {
+    /* อันเดิม 768 */
+    @media (max-width: 1330px) {
         #sidebar {
             min-width: 80px;
             max-width: 80px;
@@ -314,8 +314,30 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <script src="{% static 'js/sidebar.js' %}" type="text/javascript"></script>
 
+    <script>
+        $(document).ready(function () {
+            $('#sidebarCollapse').on('click', function () {
+                $('#sidebar').toggleClass('active');
+            });
+        });
+
+        $(document).ready(function () {
+            requisitionsPage
+            $('#requisitionsPage').on('click', function () {
+                var isHave =  $("#sidebar").hasClass('active');
+                if(window.location.href && isHave){
+                    //$("#sidebar").attr("class","active");
+                    //alert('IF');
+                }
+                else{
+                    //$("#sidebar").attr("class","");
+                    //alert('ELSE');
+                }
+                
+            });
+        });
+    </script>
 {% block javascript %}
 
 {% endblock javascript%}

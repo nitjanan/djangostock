@@ -82,7 +82,7 @@
                           <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                           <datalist id="idExpressList">
                             {% for results in itemList %}
-                              <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}">เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
+                              <option data-id="{{results.id}}" data-show="{{results.product.id_express}} {{results.product}}" value="{{results.product.id_express}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                             {% endfor %}
                           </datalist>
                           {{form.quantity}} {{form.unit | add_class:"form-control"}} {{form.unit_price}} {{form.price}}
@@ -363,17 +363,28 @@ function calculateAmount(vat, totalAfterDiscount, freight){
   return parseFloat(totalAfterDiscount) + parseFloat(vat) + parseFloat(freight);
 }
 
-$(".express" ).blur(function() {
+$(".express" ).change(function() {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
     var val = $("#id_form-"+suffix+"-express").val();
-    var id = $('#idExpressList option[value='+val+']').attr('data-id');
-    var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
-    var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
-    //set value to form.item
-    $("#id_form-"+suffix+"-item").val(id);
-    $("#id_form-"+suffix+"-quantity").val(quantity);
-    $("#id_form-"+suffix+"-unit").val(unit);
+    val.replace(' ','');
+
+    if(val != ""){
+      var id = $('#idExpressList option[value='+val+']').attr('data-id');
+      var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
+      var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
+      var show = $('#idExpressList option[value='+val+']').attr('data-show');
+      //set value to form.item
+      $("#id_form-"+suffix+"-express").val(show);
+      $("#id_form-"+suffix+"-item").val(id);
+      $("#id_form-"+suffix+"-quantity").val(quantity);
+      $("#id_form-"+suffix+"-unit").val(unit);
+    }else{
+      $("#id_form-"+suffix+"-item").val("");
+      $("#id_form-"+suffix+"-quantity").val("");
+      $("#id_form-"+suffix+"-unit").val("");
+    }
+
   });
 
 </script>

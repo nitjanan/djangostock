@@ -178,7 +178,7 @@
   <hr>
   <div class="card bg-light my-3 hidden-print">
     <div class="card-body">
-        <form method="post">
+        <form method="post" enctype ="multipart/form-data">
             <p>{{ form | crispy}}</p>
             {% csrf_token %}
               <button type="submit" class="btn btn-warning hidden-print">
@@ -312,6 +312,9 @@
 {% endblock%}
 {% block javascript %}
 <script>
+$('div#div_id_memorandum_pdf a').addClass('btn btn-outline-success btn-sm');
+$('div#div_id_memorandum_pdf a').text('Download');
+
 function searchProduct(name){
     var titleInput = name;
     if (titleInput) {

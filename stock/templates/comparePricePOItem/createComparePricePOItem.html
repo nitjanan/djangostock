@@ -40,35 +40,45 @@
             {% endif %}
         {% endfor %}
         <li class="list-group-item">
-            <div class="row spacer my-2">
-                <div class="col-3 offset-7 text-right">รวม</div>
-                <div class="col-2 text-center">{{d.total_price| intcomma}}</div>
-            </div>
-            <div class="row spacer my-2">
-                <div class="col-3 offset-7 text-right">หักส่วนลด</div>
-                <div class="col-2 text-center">{{d.discount | intcomma}}</div>
-            </div>
-            <div class="row spacer my-2">
-                <div class="col-3 offset-7 text-right">จำนวนเงินหลังหักส่วนลด</div>
-                <div class="col-2 text-center">{{d.total_after_discount | intcomma}}</div>
-            </div>
-            <div class="row spacer my-2">
-                <div class="col-3 offset-7 text-right">ค่าขนส่ง</div>
-                <div class="col-2 text-center">{{d.freight | intcomma}}</div>
-            </div>
-            <div class="row spacer my-2">
-                <div class="col-3 offset-7 text-right">ภาษีมูลค่าเพิ่ม 7%</div>
-                <div class="col-2 text-center">{{d.vat | intcomma}}</div>
-            </div>
-            <div class="row spacer my-2">
-                <div class="col-3 offset-7 text-right">รวมเป็นเงินทั้งสิ้น</div>
-                <div class="col-2 text-center">{{d.amount | intcomma}}</div>
+            <div class="row spacer">
+                <div class="col-2">
+                    {% if d.quotation_pdf %}
+                        ใบเสนอราคา<br>
+                        <a href="/media/{{d.quotation_pdf}}" class="btn btn-outline-success btn-sm"><i class="fas fa-file-download"></i> Download</a>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    <div class="row spacer my-2">
+                        <div class="col-3 offset-7 text-right">รวม</div>
+                        <div class="col-2 text-center">{{d.total_price| intcomma}}</div>
+                    </div>
+                    <div class="row spacer my-2">
+                        <div class="col-3 offset-7 text-right">หักส่วนลด</div>
+                        <div class="col-2 text-center">{{d.discount | intcomma}}</div>
+                    </div>
+                    <div class="row spacer my-2">
+                        <div class="col-3 offset-7 text-right">จำนวนเงินหลังหักส่วนลด</div>
+                        <div class="col-2 text-center">{{d.total_after_discount | intcomma}}</div>
+                    </div>
+                    <div class="row spacer my-2">
+                        <div class="col-3 offset-7 text-right">ค่าขนส่ง</div>
+                        <div class="col-2 text-center">{{d.freight | intcomma}}</div>
+                    </div>
+                    <div class="row spacer my-2">
+                        <div class="col-3 offset-7 text-right">ภาษีมูลค่าเพิ่ม 7%</div>
+                        <div class="col-2 text-center">{{d.vat | intcomma}}</div>
+                    </div>
+                    <div class="row spacer my-2">
+                        <div class="col-3 offset-7 text-right">รวมเป็นเงินทั้งสิ้น</div>
+                        <div class="col-2 text-center">{{d.amount | intcomma}}</div>
+                    </div>
+                </div>
             </div>
         </li>
     </ul>  
     {% endfor %}
     <div class="card my-2 div-shadow border-primary" id="card">
-        <form class="form-horizontal" method="POST" action="">
+        <form class="form-horizontal" method="POST" action="" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="card-header text-primary">
                     <div class="row spacer">
@@ -111,7 +121,7 @@
                             <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <datalist id="idExpressList">
                               {% for results in itemList %}
-                                <option data-id="{{results.id}}" value="{{results.product.id_express}}{{results.product}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}">เลขที่ใบสั่งซื้อ {{results.requisit.purchase_requisition_id}} </option>
+                                <option data-id="{{results.id}}" data-show="{{results.product.id_express}} {{results.product}}" value="{{results.product.id_express}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                               {% endfor %}
                             </datalist>
                             {{form.quantity | add_class:"form-control quantity"}}
@@ -127,62 +137,69 @@
                 </div>
                 {% endfor %}
                 <div class="row spacer">
-                    <div class="col-10">
-                        <label class="float-right">{{bookform.total_price.label}}</label>
+                    <div class="col-4 pdf">
+                        {{bookform.quotation_pdf | add_class:"form-control text-right"}}
                     </div>
-                    <div class="col-2">
-                        <div class="input-group float-right">
-                            {{bookform.total_price | add_class:"form-control text-right" }}
+                    <div class="col">
+                        <div class="row spacer">
+                            <div class="col-8">
+                                <label class="float-right">{{bookform.total_price.label}}</label>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group float-right">
+                                    {{bookform.total_price | add_class:"form-control text-right"}}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="row spacer my-2">
-                    <div class="col-10">
-                        <label class="float-right">{{bookform.discount.label}}</label>
-                    </div>
-                    <div class="col-2">
-                        <div class="input-group float-right">
-                            {{bookform.discount  | add_class:"form-control text-right"}}
+                        <div class="row spacer my-2">
+                            <div class="col-8">
+                                <label class="float-right">{{bookform.discount.label}}</label>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group float-right">
+                                    {{bookform.discount  | add_class:"form-control text-right"}}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="row spacer my-2">
-                    <div class="col-10">
-                        <label class="float-right">{{bookform.total_after_discount.label}}</label>
-                    </div>
-                    <div class="col-2">
-                        <div class="input-group float-right">
-                            {{bookform.total_after_discount | add_class:"form-control text-right"}}
+                        <div class="row spacer my-2">
+                            <div class="col-8">
+                                <label class="float-right">{{bookform.total_after_discount.label}}</label>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group float-right">
+                                    {{bookform.total_after_discount | add_class:"form-control text-right"}}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="row spacer my-2">
-                    <div class="col-10">
-                        <label class="float-right">{{bookform.freight.label}}</label>
-                    </div>
-                    <div class="col-2">
-                        <div class="input-group float-right">
-                            {{bookform.freight | add_class:"form-control text-right"}}
+                        <div class="row spacer my-2">
+                            <div class="col-8">
+                                <label class="float-right">{{bookform.freight.label}}</label>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group float-right">
+                                    {{bookform.freight | add_class:"form-control text-right"}}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="row spacer my-2">
-                    <div class="col-10">
-                        <label class="float-right">{{bookform.vat.label}}</label>
-                    </div>
-                    <div class="col-2">
-                        <div class="input-group float-right">
-                            {{bookform.vat | add_class:"form-control text-right"}}
+                        <div class="row spacer my-2">
+                            <div class="col-8">
+                                <label class="float-right">{{bookform.vat.label}}</label>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group float-right">
+                                    {{bookform.vat | add_class:"form-control text-right"}}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <div class="row spacer my-2">
-                    <div class="col-10">
-                        <label class="float-right">{{bookform.amount.label}}</label>
-                    </div>
-                    <div class="col-2">
-                        <div class="input-group float-right">
-                            {{bookform.amount | add_class:"form-control text-right"}}
+                        <div class="row spacer my-2">
+                            <div class="col-8">
+                                <label class="float-right">{{bookform.amount.label}}</label>
+                            </div>
+                            <div class="col-4">
+                                <div class="input-group float-right">
+                                    {{bookform.amount | add_class:"form-control text-right"}}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -246,9 +263,9 @@ $(function() {
     for(var i = 0; i < inputs.length; i++){
         if($(inputs[i]).val()){
           var val = $(inputs[i]).val();
-          var id = $('#idExpressList option[data-id='+val+']').val();
+          var show = $('#idExpressList option[data-id='+val+']').attr('data-show');
           //set value to form.item
-          var val = $("#id_form-"+i+"-express").val(id);
+          var val = $("#id_form-"+i+"-express").val(show);
         }
     }
 });
@@ -437,17 +454,26 @@ function calculateAmount(vat, total, freight){
     return parseFloat(total) + parseFloat(vat) + parseFloat(freight);
 }
 
-$(".express" ).focusout(function()  {
+$(".express" ).change(function()  {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
     var val = $("#id_form-"+suffix+"-express").val();
-    var id = $('#idExpressList option[value='+val+']').attr('data-id');
-    var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
-    var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
-    //set value to form.item
-    $("#id_form-"+suffix+"-item").val(id);
-    $("#id_form-"+suffix+"-quantity").val(quantity);
-    $("#id_form-"+suffix+"-unit").val(unit);
+
+    if(val != ""){
+        var id = $('#idExpressList option[value='+val+']').attr('data-id');
+        var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
+        var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
+        var show = $('#idExpressList option[value='+val+']').attr('data-show');
+        //set value to form.item
+        $("#id_form-"+suffix+"-express").val(show);
+        $("#id_form-"+suffix+"-item").val(id);
+        $("#id_form-"+suffix+"-quantity").val(quantity);
+        $("#id_form-"+suffix+"-unit").val(unit);
+    }else{
+        $("#id_form-"+suffix+"-item").val("");
+        $("#id_form-"+suffix+"-quantity").val("");
+        $("#id_form-"+suffix+"-unit").val("");
+    }
   });
 
 function formatNumber(n) {

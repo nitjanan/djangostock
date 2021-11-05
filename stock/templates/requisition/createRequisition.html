@@ -7,8 +7,8 @@
     <h2 align="center">ใบขอเบิก</h2>
     <div class="card bg-light">
         <div class="card-body">
-            <form method="post">
-                <p>{{ form | crispy}}</p>
+            <form method="post" enctype="multipart/form-data">
+                <p>{{ form | crispy}}</p> 
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary hidden-print">
                     <i class="fas fa-save"></i>

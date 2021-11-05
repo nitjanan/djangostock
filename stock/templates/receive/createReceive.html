@@ -1,0 +1,21 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <h2 align="center">ใบรับสินค้า</h2>
+    <div class="card bg-light">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                <p>{{ form | crispy}}</p>
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary hidden-print">
+                    <i class="fas fa-save"></i>
+                    บันทึก
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock%}

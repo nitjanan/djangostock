@@ -1,0 +1,317 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load humanize %}
+
+{% block css %}
+<style>
+    @media print {
+    .hidden-print {
+      display: none;
+    }
+  }
+  u.dotted {
+  border-bottom: 1px dashed #999;
+  text-decoration: none;
+  }
+  .answer_box {
+    margin-top: 20px;
+    clear:both;
+    overflow: hidden;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row my-2">
+        <div class="col-md-12">
+        <div class="invoice-title">
+          <div class="row">
+            <div class="col">
+              <description>
+                <h4>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h4>
+                57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
+                <br>โทร 099-6813306 0842658115  
+                <br>เลขที่ผู้เสียภาษี 0845507000045 สาขาที่.00001
+              </description>
+            </div>
+            <div class="col text-right"><h2 class="pt-5">ใบรับสินค้า</h2></div>            
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col">
+            <address>
+            <strong>ผู้จำหน่าย: {{rc.po.distributor.id_express}}</strong><br>
+              {{rc.po.distributor}}<br>
+              {{rc.po.distributor.address}}<br>
+              โทร : {{rc.po.distributor.tel}}<br>
+              แฟ๊กซ์ : {{rc.po.distributor.fax}}<br>
+              เลขที่บิล : {{rc.tax_invoice}}
+            </address>
+          </div>
+          <div class="col text-right">
+            <address>
+              <strong>ใบรับสินค้า : {{rc.ref_no}}</strong><br>
+              วันที่ : {{rc.created | date:"d/m/Y"}}<br>
+              เครดิต : {{rc.po.credit}}<br><br>
+              ใบสั่งซื้อ : {{rc.po.ref_no}}&emsp;วันที่ : {{rc.po.created | date:"d/m/Y"}}<br> 
+              ขนส่งโดย : {{rc.po.shipping}}
+            </address>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="w-25">รหัสสินค้า/รายละเอียด</th>
+                        <th scope="col" class="w-25">จำนวน</th>
+                        <th scope="col" class="w-25">หน่วยละ</th>
+                        <th scope="col">จำนวนเงิน</th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+            <form class="form-horizontal" method="POST" action="">
+            {% csrf_token %}
+            {{ formset.management_form }}
+            {% for form in formset %}
+            <div class="row form-row spacer my-2" >
+                <div class="col">
+                    <div class="input-group">
+                      {% for item in items %}
+                        {% if form.item.value ==  item.item_id %}
+                        <b class="col-3">{{item.item.product.id_express}} {{item.item.product}}</b>
+                        <p class="col-2">{{item.quantity}} {{item.unit.name}}</p>
+                        {% endif %}
+                      {% endfor %}
+                      {{form.id}}{{form.item}}{{form.quantity | add_class:"quantity"}}{{form.unit_price| add_class:"form-control text-right unit-price"}}{{form.price| add_class:"form-control text-right price"}}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <hr>
+            <div class="row">
+              <div class="col-7">
+                <p>หมายเหตุ</p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">รวมเป็นเงิน</p>
+              </div>
+              <div class="col-2">
+                {{receive_form.total_price | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">หักส่วนลด</p>
+              </div>
+              <div class="col-2">
+                {{receive_form.discount | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
+              </div>
+              <div class="col-2">
+                {{receive_form.total_after_discount | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">ค่าขนส่ง</p>
+              </div>
+              <div class="col-2">
+                {{receive_form.freight | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-10">
+                <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
+                <p id="vat-type" hidden>{{po.vat_type.id}}</p>
+              </div>
+              <div class="col-2">
+                {{receive_form.vat | add_class:"text-right"}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-7">
+                <p id="total-spell"></p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
+              </div>
+              <div class="col-2">
+                {{receive_form.amount | add_class:"text-right" }}
+              </div>
+            </div>
+            <hr>
+            <div class="row">
+              <div class="col text-right">
+                <h6>FM-PU-004 Rev.00</h6>
+              </div>
+            </div>
+            <div class="row spacer my-3">
+                <div class="col">
+                    <button type="submit" class="btn btn-primary hidden-print"><i class="fas fa-save"></i>
+                      บันทึก
+                    </button>
+                </div>
+                <div>
+                  <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="window.print();">
+                      <i class="fas fa-print"></i>
+                      ปริ้นใบรับสินค้า
+                  </button>
+                </div>
+            </div>
+            </form> 
+          </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
+<script type="text/javascript">
+$(function() {
+    //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
+		var thaibath = ArabicNumberToText($("#id_amount").val());
+    document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+
+});
+
+//jQuery ดึงค่าจาก 2 class
+$(".unit-price, .quantity")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    var suffix = $(this).attr('id').match(/\d+/);
+    var quantity = $('#id_receiveitem_set-' + suffix + '-quantity').val();
+    var unitPrice = $('#id_receiveitem_set-' + suffix + '-unit_price').val();
+
+    price = parseFloat(quantity) * parseFloat(unitPrice);
+    $('#id_receiveitem_set-' + suffix + '-price').val(price);
+    
+    // format ทศนิยม 2 และ 0 ตำแหน่ง
+    $('#id_receiveitem_set-' + suffix + '-unit_price').val(parseFloat($('#id_receiveitem_set-' + suffix + '-unit_price').val()).toFixed(2));
+    $('#id_receiveitem_set-' + suffix + '-quantity').val(parseFloat($('#id_receiveitem_set-' + suffix + '-quantity').val()).toFixed());
+
+    //คำนวนค่าทั้งหมด
+    calculateAll();
+});
+
+$(".price" )
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+    //คำนวน รวมเป็นเงิน
+    calculateAll();
+  });
+
+$("#id_discount")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_total_price")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_freight")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    $(this).val(parseFloat($(this).val()).toFixed(2));
+});
+
+$("#id_freight" ).change(function() {
+  var amount = calculateAmount($("#id_vat").val(), $("#id_total_after_discount").val(), $("#id_freight").val());
+  $("#id_amount").val(amount.toFixed(2));
+});
+
+$("#id_total_price, #id_discount").change(function() {
+  var price =  $("#id_total_price").val();
+  var discount =  $("#id_discount").val();
+  var totalAfterDiscount = parseFloat(price) - parseFloat(discount);
+  $("#id_total_after_discount").val(totalAfterDiscount);
+  $("#id_total_after_discount").val(parseFloat($("#id_total_after_discount").val()).toFixed(2));
+  //คำนวน vat
+  var vat = calculateVat(totalAfterDiscount);
+  $("#id_vat").val(vat.toFixed(2));
+  //คำนวน amount
+  var amount = calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
+  $("#id_amount").val(amount.toFixed(2));
+  //แสดงจำนวนเงินตัวสะกด
+  var thaibath = ArabicNumberToText(amount);
+  document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+});
+
+function calculateAll(){
+    var inputs = $(".price" );
+    var total = 0.0;
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val() != 0.00 ){
+          total += parseFloat($(inputs[i]).val());
+        }
+    }
+    
+    var totalAfterDiscount = calculateTotalAfterDiscount(total);
+    var vat = calculateVat(totalAfterDiscount);
+    var amount =  calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
+    //แสดง จำนวนเงินหลังหักส่วนลด
+    $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
+    //แสดง รวมเป็นเงิน 
+    $("#id_total_price").val(total.toFixed(2));
+    //แสดง จำนวนภาษีมูลค่าเพิ่ม
+    $("#id_vat").val(vat.toFixed(2));
+    //แสดง จำนวนเงินรวมทั้งสิ้น
+    $("#id_amount").val(amount.toFixed(2));
+    //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
+		var thaibath = ArabicNumberToText(amount);
+    document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+}
+
+function calculateTotalAfterDiscount(totalPrice){
+  var discount =  parseFloat($("#id_discount").val());
+  if(isNaN(discount) || discount == "")
+    discount = 0.00;
+  return totalPrice - discount;
+}
+function calculateVat(totalAfterDiscount){
+  var vatType = "{{rc.po.vat_type.id}}";
+  var vat = 0.00;
+  if(vatType == "1") //vat ใน
+    vat = (totalAfterDiscount*7)/107;
+  else if(vatType == "2") //vat นอก
+    vat = (totalAfterDiscount*7)/100;
+  return vat;
+}
+
+function calculateAmount(vat, totalAfterDiscount, freight){
+  if(isNaN(freight) || freight == "")
+    freight = 0.00;
+  return parseFloat(totalAfterDiscount) + parseFloat(vat) + parseFloat(freight);
+}
+
+</script>
+{% endblock %}

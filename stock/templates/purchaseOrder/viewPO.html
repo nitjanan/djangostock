@@ -54,6 +54,7 @@
                   <th scope="col">ขนส่งโดย</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
                   <th scope="col">รายการสั่งซื้อ</th>
+                  <th scope="col">ใบเสนอราคา</th>
                 </tr>
               </thead>
               <tbody>
@@ -79,6 +80,11 @@
                         btn-outline-danger
                       {% endif %}" style="width:190px"
                       >{{po.approver_status}}</button>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if po.quotation_pdf %}
+                      <a href="/media/{{po.quotation_pdf}}" class="btn btn-success btn-block" target="_blank"><i class="fas fa-file-download"></i></a>
                     {% endif %}
                   </td>
                   <!-- td>

@@ -7,8 +7,8 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm
+from stock.models import BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -19,8 +19,8 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter
-from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, RequisitionItemModelFormset
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter
+from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
 
@@ -347,9 +347,12 @@ def requisition(request):
     return render(request,'requisition/viewRequisition.html', context)
 
 def createRequisition(request):
-    form = RequisitionForm(request.POST or None, initial={'supplies_approve_user_name': request.user.id})
+    form = RequisitionForm(request.POST or None)
     if form.is_valid():
-        new_contact = form.save()
+        form = RequisitionForm(request.POST or None, request.FILES)
+        new_contact = form.save(commit=False)
+        new_contact.supplies_approve_user_name_id = request.user.id
+        new_contact.save()
         return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
 
     context = {
@@ -373,7 +376,7 @@ def editRequisition(request, id):
     form = RequisitionForm(instance=requisition)
 
     if request.method == 'POST':
-        form = RequisitionForm(request.POST, instance=requisition)
+        form = RequisitionForm(request.POST, request.FILES, instance=requisition)
         if form.is_valid():
             new_contact = form.save()
             try :
@@ -573,7 +576,7 @@ def editAllRequisition(request, requisition_id):
     form = RequisitionForm(instance=requisition)
 
     if request.method == 'POST':
-        form = RequisitionForm(request.POST, instance=requisition)
+        form = RequisitionForm(request.POST, request.FILES , instance=requisition)
         if form.is_valid():
             new_contact =  form.save()
             try :
@@ -739,6 +742,7 @@ def createPR(request, requisition_id):
         #save purchase_requisition_id ใน requisition
         obj = Requisition.objects.get(id = requisition_id)
         obj.purchase_requisition_id = new_contact.pk
+        obj.pr_ref_no = pr.ref_no
         obj.save()
         return redirect('viewPR')
 
@@ -808,7 +812,7 @@ def createCMorPO(request, pr_id):
             ri = RequisitionItem.objects.get(id = i)
             item = PurchaseOrderItem.objects.create(
                 item_id = i,
-                quantity = ri.quantity,
+                quantity = ri.quantity_pr,
                 unit_id = ri.unit,
                 po_id = po.id
             )
@@ -832,6 +836,7 @@ def removePR(request, pr_id):
     pr = PurchaseRequisition.objects.get(id = pr_id)
     requisition = Requisition.objects.get(purchase_requisition_id = pr_id)
     requisition.purchase_requisition_id = None
+    requisition.pr_ref_no = None
     requisition.save()
     pr.delete()
     return redirect('viewPR')
@@ -1051,9 +1056,13 @@ def preparePO(request):
 
 def createPO(request):
     # set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderForm(request.POST or None, initial={'stockman_user': request.user, 'approver_status' : 1})
+    form = PurchaseOrderForm(request.POST or None)
     if form.is_valid():
-        new_contact = form.save()
+        form = PurchaseOrderForm(request.POST or None, request.FILES)
+        new_contact = form.save(commit=False)
+        new_contact.stockman_user = request.user
+        new_contact.approver_status_id = 1
+        new_contact.save()
         return HttpResponseRedirect(reverse('createPOItem', args=(new_contact.pk,)))
 
     context = {
@@ -1085,7 +1094,7 @@ def editPOFromPR(request, po_id):
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
     if request.method == 'POST':
-        form = PurchaseOrderForm(request.POST, instance=po)
+        form = PurchaseOrderForm(request.POST, request.FILES, instance=po)
         if form.is_valid():
             form.save()
             return redirect('editPOItem', po_id = po_id, isFromPR = 'True')
@@ -1199,7 +1208,7 @@ def editPOItem(request, po_id, isFromPR):
     if request.method == "POST":
         formset = PurchaseOrderItemInlineFormset(request.POST, request.FILES, instance=po_data)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
-        form = PurchaseOrderForm(request.POST, instance=po_data)
+        form = PurchaseOrderForm(request.POST, request.FILES, instance=po_data)
         if formset.is_valid() and price_form.is_valid() and form.is_valid():
             # save ราคาใบ po
             price_form.save()
@@ -1383,7 +1392,7 @@ def createComparePricePOItem(request, cp_id):
         bookform = CPDModelForm(request.GET or None, initial={'cp': cp_id})
         formset = CPitemFormset(queryset=ComparisonPriceItem.objects.none())
     elif request.method == 'POST':
-        bookform = CPDModelForm(request.POST or None, initial={'cp': cp_id})
+        bookform = CPDModelForm(request.POST or None, request.FILES, initial={'cp': cp_id})
         formset = CPitemFormset(request.POST)
         form = ComparisonPriceForm(request.POST, instance=cp)
         if bookform.is_valid() and formset.is_valid():
@@ -1434,7 +1443,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
-        bookform = CPDModelForm(request.POST, instance=data)
+        bookform = CPDModelForm(request.POST, request.FILES, instance=data)
         form = ComparisonPriceForm(request.POST, instance=cp)
 
         if formset.is_valid() and bookform.is_valid():
@@ -1490,7 +1499,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
-        bookform = CPDModelForm(request.POST, instance=data)
+        bookform = CPDModelForm(request.POST, request.FILES, instance=data)
         form = ComparisonPriceForm(request.POST, instance=cp)
 
         if formset.is_valid() and bookform.is_valid():
@@ -1528,6 +1537,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
+        'form': form,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
@@ -1643,6 +1653,7 @@ def createPOFromComparisonPrice(request):
         new_contact.credit = cpd.credit
         new_contact.stockman_user = cp.organizer
         new_contact.vat_type = cpd.vat_type
+        new_contact.quotation_pdf = cpd.quotation_pdf
         #ดึงสถานะอนุมัติใบเปรียบเทียบมาใบขอซื้อเลย
         new_contact.approver_user = cp.approver_user
         new_contact.approver_status = cp.approver_status
@@ -1817,3 +1828,98 @@ def searchItemExpress(request):
         'instance': strName,
     }
     return JsonResponse(data)
+
+def viewReceive(request):
+    data = Receive.objects.all()
+
+    #กรองข้อมูล
+    myFilter = ReceiveFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'rcs':dataPage,
+        'filter':myFilter,
+        'rc_page': "tab-active",
+        'rc_show': "show",
+    }
+    return render(request, 'receive/viewReceive.html',context)
+
+def removeReceive(request, rc_id):
+    rc = Receive.objects.get(id = rc_id)
+    #ลบ item ใน PurchaseOrder ด้วย
+    items = ReceiveItem.objects.filter(rc = rc)
+    items.delete()
+    #ลบ PurchaseOrder ทีหลัง
+    rc.delete()
+    return redirect('viewReceive')
+
+def createReceive(request):
+    #set ค่าเริ่มต้นของผู้รับสินค้า
+    form = ReceiveForm(request.POST or None, initial={'receive_user': request.user})
+    if form.is_valid():
+        new_contact = form.save(commit=False)
+        po = PurchaseOrder.objects.get(id = new_contact.po_id)
+        new_contact.total_price = po.total_price
+        new_contact.discount = po.discount
+        new_contact.total_after_discount = po.total_after_discount
+        new_contact.vat = po.vat
+        new_contact.amount = po.amount
+        new_contact.freight = po.freight
+        new_contact.save()
+
+        #create receive item
+        items = PurchaseOrderItem.objects.filter(po = new_contact.po)
+        if items:
+            for item in items:
+                rc_item = ReceiveItem.objects.create(
+                    item = item.item,
+                    quantity = item.quantity,
+                    unit = item.unit,
+                    unit_price = item.unit_price,
+                    price = item.price,
+                    rc = new_contact,
+                )
+                rc_item.save()
+
+        return HttpResponseRedirect(reverse('editReceiveItem', args=(new_contact.pk,)))
+    context = {
+        'form' : form,
+        'rc_page': "tab-active",
+        'rc_show': "show",
+    }
+    return render(request, 'receive/createReceive.html',context)
+
+def editReceiveItem(request, rc_id):
+    rc = Receive.objects.get(id = rc_id)
+    items = PurchaseOrderItem.objects.filter(po = rc.po)
+
+    if request.method == "POST":
+        formset = ReceiveItemInlineFormset(request.POST, request.FILES, instance=rc)
+        receive_form = ReceivePriceForm(request.POST, instance=rc)
+        if formset.is_valid() and receive_form.is_valid():
+            # save ราคาใบ po
+            receive_form.save()
+            # save po item
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.save()
+            formset.save_m2m()
+            return redirect('viewReceive')
+    else:
+        formset = ReceiveItemInlineFormset(instance=rc)
+        receive_form = ReceivePriceForm(instance=rc)
+
+    context = {
+        'rc': rc,
+        'items': items,
+        'receive_form': receive_form,
+        'formset': formset,
+        'rc_page': "tab-active",
+        'rc_show': "show",
+    }
+    return render(request, 'receiveItem/editReceiveItem.html',context)

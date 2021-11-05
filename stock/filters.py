@@ -80,3 +80,20 @@ ComparisonPriceFilter.base_filters['start_created'].label = 'วันที่�
 ComparisonPriceFilter.base_filters['end_created'].label = 'ถึง'
 ComparisonPriceFilter.base_filters['approver_status'].label = 'ผู้อนุมัติ'
 ComparisonPriceFilter.base_filters['examiner_status'].label = 'ผู้ตรวจสอบ'
+
+class ReceiveFilter(django_filters.FilterSet):
+    id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
+    start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
+    end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
+
+    class Meta:
+        model = Receive
+        fields = ('id','ref_no','po__ref_no','po__distributor', 'po__credit','po__shipping','created')
+
+ReceiveFilter.base_filters['id'].label = 'รหัส'
+ReceiveFilter.base_filters['ref_no'].label = 'รหัส'
+ReceiveFilter.base_filters['po__ref_no'].label = 'รหัสใบสั่งซื้อ'
+ReceiveFilter.base_filters['start_created'].label = 'วันที่รับเข้า'
+ReceiveFilter.base_filters['end_created'].label = 'ถึง'
+ReceiveFilter.base_filters['po__distributor'].label = 'ผู้จำหน่าย'
+ReceiveFilter.base_filters['po__credit'].label = 'เครดิต'

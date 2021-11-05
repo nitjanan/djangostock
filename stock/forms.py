@@ -1,11 +1,19 @@
+import os
 from django.contrib.auth import models
 from django.contrib.auth.models import User
 from django import forms
 from django.forms import fields, widgets
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor
+from stock.models import  BaseUrgency, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
+from django.forms.widgets import ClearableFileInput
+
+class MyClearableFileInput(ClearableFileInput):
+    initial_text = 'ไฟล์ปัจจุบัน'
+    input_text = 'เปลี่ยนไฟล์'
+    clear_checkbox_label = 'ล้าง'
+
 
 class SignUpForm(UserCreationForm):
     first_name = forms.CharField(max_length=100, required=True) # required=True คือบังคับให้กรอกทุกครั้ง
@@ -24,16 +32,17 @@ class UserProfileForm(forms.ModelForm):
 class RequisitionForm(forms.ModelForm):
     class Meta:
         model = Requisition
-        fields = ('name', 'section','chief_approve_user_name','supplies_approve_user_name','urgency') #สร้าง auto อ้างอิงจากฟิลด์ใน db
+        fields = ('name', 'section','chief_approve_user_name','urgency', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db
         widgets = {
         'urgency': forms.HiddenInput(),
+        'memorandum_pdf' : MyClearableFileInput,
         }
         labels = {
             'name': _('ชื่อผู้ขอตั้งเบิก'),
             'section': _('แผนก'),
             'chief_approve_user_name': _('หัวหน้างาน'),
-            'supplies_approve_user_name': _('เจ้าหน้าที่พัสดุ'),
             'urgency': _('ระดับความเร่งด่วน'),
+            'memorandum_pdf': _('ใบบันทึกข้อความ'),
         } 
 
 class RequisitionItemForm(forms.ModelForm):
@@ -65,9 +74,9 @@ class PurchaseRequisitionForm(forms.ModelForm):
 class PurchaseOrderForm(forms.ModelForm):
     class Meta:
        model = PurchaseOrder
-       fields = ('distributor','credit','shipping','vat_type','stockman_user','approver_status')
+       fields = ('distributor','credit','shipping','vat_type','quotation_pdf')
        widgets = {
-        'approver_status': forms.HiddenInput(),
+        'quotation_pdf' : MyClearableFileInput,
         }
        labels = {
             'distributor': _('ผู้จำหน่าย'),
@@ -75,6 +84,7 @@ class PurchaseOrderForm(forms.ModelForm):
             'shipping': _('ขนส่งโดย'),
             'vat_type': _('ชนิดภาษี'),
             'stockman_user': _('เจ้าหน้าที่จัดซื้อ'),
+            'quotation_pdf': _('ใบเสนอราคา'),
         }
 
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
@@ -117,6 +127,7 @@ PurchaseOrderItemModelFormset = modelformset_factory(
         'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price'}),
     }
 )
+
 PurchaseOrderItemInlineFormset = inlineformset_factory(
     PurchaseOrder,
     PurchaseOrderItem,
@@ -142,7 +153,7 @@ class ComparisonPriceForm(forms.ModelForm):
        }  
        labels = {
             'organizer': _('ผู้จัดทำ'),
-        } 
+        }
 
 #แม่ ผู้จำหน่ายใบเปรียบเทียบราคา
 class CPDForm(forms.Form):
@@ -158,7 +169,7 @@ class CPDForm(forms.Form):
 class CPDModelForm(forms.ModelForm):
     class Meta:
         model = ComparisonPriceDistributor
-        fields = ('distributor','cp','total_price','discount','total_after_discount','vat','amount','credit','vat_type', 'freight')
+        fields = ('distributor','cp','total_price','discount','total_after_discount','vat','amount','credit','vat_type', 'freight', 'quotation_pdf')
         widgets={
             'cp': forms.HiddenInput(),
             'total_price': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
@@ -167,6 +178,7 @@ class CPDModelForm(forms.ModelForm):
             'vat': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'amount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'freight': forms.NumberInput(attrs={'placeholder':'0.00'}),
+            'quotation_pdf': MyClearableFileInput,
         }
         labels = {
             'distributor': _('ผู้จำหน่าย'),
@@ -178,6 +190,7 @@ class CPDModelForm(forms.ModelForm):
             'amount': _('รวมเป็นเงินทั้งสิ้น'),
             'credit': _('เครดิต'),
             'freight': _('ค่าขนส่ง'),
+            'quotation_pdf': _('ใบเสนอราคา'),
         } 
 
 #แม่
@@ -237,3 +250,49 @@ class CPSelectBidderForm(forms.ModelForm):
             'base_spares_type': _('ชนิดอะไหล่'),
             'note': _('หมายเหตุ'),
         }
+
+#ใบรับสินค้า
+class ReceiveForm(forms.ModelForm):
+    po = forms.ModelChoiceField(label='เลขที่ใบสั่งซื้อ', queryset=PurchaseOrder.objects.filter(approver_status=2))
+    class Meta:
+       model = Receive
+       fields = ('po','tax_invoice','receive_user')
+       widgets={
+            'receive_user': forms.HiddenInput(),
+       }  
+       labels = {
+            'po': _('เลขที่ใบสั่งซื้อ'),
+            'tax_invoice': _('เลขที่ใบกำกับภาษี'),
+        }
+
+class ReceivePriceForm(forms.ModelForm):
+    class Meta:
+       model = Receive
+       fields = ('total_price','discount','total_after_discount','vat','amount','freight')
+       widgets={
+        'total_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'total_after_discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'vat': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'amount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'freight': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        }
+
+class ReceiveItemForm(forms.ModelForm):
+    class Meta:
+       model = ReceiveItem
+       fields = ('item','quantity','unit_price','price')
+
+ReceiveItemInlineFormset = inlineformset_factory(
+    Receive,
+    ReceiveItem,
+    fields=('item','unit_price','price','quantity'),
+    widgets={
+        'item': forms.HiddenInput(),
+        'unit_price': forms.NumberInput(attrs={}),
+        'price': forms.NumberInput(attrs={}),
+        'quantity': forms.HiddenInput(),
+    },
+    extra=1,
+    max_num=1
+)
