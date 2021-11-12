@@ -1771,11 +1771,11 @@ def printCPApprove(request, cp_id):
     except ComparisonPriceDistributor.DoesNotExist:
         cpd_select = None
 
-    if isPermissAA:
+    if isPermissAA and cpd_select:
         if pmAA.ap_amount_min <= cpd_select.amount <= pmAA.ap_amount_max:
             isApprover = True
 
-    if isPermissAE:
+    if isPermissAE and cpd_select:
         if pmAE.ap_amount_min <= cpd_select.amount <= pmAE.ap_amount_max:
             isExaminer = True
 
