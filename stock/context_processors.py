@@ -4,6 +4,15 @@ from django.contrib.auth.models import User
 from django.db.models import Prefetch
 from django.db import connection
 
+def userVisibleTab(request):
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        visible_tab = user_profile.visible
+    except:
+        visible_tab = None
+
+    return dict(visible_tab = visible_tab)
+
 #หมวดหมู่สินค้าที่ navbar
 def menu_link(request):
     links = Category.objects.all() #เก็บ Category ทั้งหมด
@@ -200,6 +209,8 @@ def isPurchasingPR(request):
         except PurchaseOrder.DoesNotExist:
             pr_count = 0
     return dict(is_purchasing_pr = pr_count)
+
+
 
         
 

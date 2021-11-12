@@ -467,11 +467,15 @@ class PositionBasePermission(models.Model):
         verbose_name = 'ตำแหน่งงานและสิทธิการทำงาน'
         verbose_name_plural = 'ข้อมูลตำแหน่งงานและสิทธิการทำงาน'
 
+VISIBLE_CHOICES = ((1, 'Request'),
+                   (2, 'Approve'),
+                   (3, 'Receive'))
 #USER PROFILE
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     position = models.ForeignKey(Position,on_delete=models.CASCADE)
     signature = models.ImageField(null=True, blank=True, upload_to = "signature/")
+    visible = MultiSelectField(choices = VISIBLE_CHOICES)
 
     class Meta:
         verbose_name = 'ผู้ใช้และตำแหน่งงาน'
