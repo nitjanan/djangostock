@@ -102,8 +102,11 @@
                 {% endif %}"
                 >{{pr.approver_status}}</button>
             </td>
-
-            <td><a href="{%url 'editPRApprove' pr.id %}" class="btn btn-primary btn-block">ทำการอนุมัติ</a></td>
+            <td>
+              {% if pr.purchase_status.id == 1 or pr.approver_status.id == 1 %}
+              <a href="{%url 'editPRApprove' pr.id %}" class="btn btn-primary btn-block">ทำการอนุมัติ</a>
+              {%endif%}
+            </td>
           </tr>
         {% endfor %}
         </tbody>

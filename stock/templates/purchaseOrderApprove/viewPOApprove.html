@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container my-3">
-<h3 align="center">อนุมัติใบขอซื้อ/ขอซ่อม</h3>
+<h3 align="center">อนุมัติใบสั่งซื้อ</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
     <form method="get">
@@ -76,7 +76,11 @@
               {% endif %}"
               >{{po.approver_status}}</button>
             </td>
-            <td><a href="{%url 'editPOApprove' po.id %}" class="btn btn-primary btn-block">ทำการอนุมัติ</a></td>
+            <td>
+              {% if po.approver_status.id == 1 %}
+              <a href="{%url 'editPOApprove' po.id %}" class="btn btn-primary btn-block">ทำการอนุมัติ</a>
+              {%endif%}
+            </td>
           </tr>
         {% endfor %}
         </tbody>

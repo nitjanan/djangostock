@@ -4,6 +4,7 @@
         <strong><a href="/">SS</a></strong>
     </div>
 
+    {% if request.user.is_authenticated %}
     <ul class="list-unstyled components" id="myTab">
         <li class="">
             <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
@@ -71,49 +72,14 @@
                 </li>
             </ul>
         </li>
-        <li>
-            <a href="#pageSubmenu" data-toggle="    " aria-expanded="false" class="dropdown-toggle">
-                <i class="fas fa-copy"></i>
-                Pages
-            </a>
-            <ul class="collapse list-unstyled" id="pageSubmenu">
-                <li>
-                    <a href="#">Page 1</a>
-                </li>
-                <li>
-                    <a href="#">Page 2</a>
-                </li>
-                <li>
-                    <a href="#">Page 3</a>
-                </li>
-            </ul>
-        </li>
-        <li>
-            <a href="#">
-                <i class="fas fa-image"></i>
-                Portfolio
-            </a>
-        </li>
-        <li>
-            <a href="#">
-                <i class="fas fa-question"></i>
-                FAQ
-            </a>
-        </li>
-        <li>
-            <a href="#">
-                <i class="fas fa-paper-plane"></i>
-                Contact
-            </a>
-        </li>
     </ul>
-
-    <ul class="list-unstyled CTAs">
+    {% endif %}
+    <!-- ul class="list-unstyled CTAs">
         <li>
             <a href="https://bootstrapious.com/tutorial/files/sidebar.zip" class="download">Download source</a>
         </li>
         <li>
             <a href="https://bootstrapious.com/p/bootstrap-sidebar" class="article">Back to article</a>
         </li>
-    </ul>
+    </ul -->
 </nav>

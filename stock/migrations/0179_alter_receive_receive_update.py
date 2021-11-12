@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='receive',
             name='receive_update',
-            field=models.DateField(auto_now_add=True, default=1),
+            field=models.DateField(auto_now_add=True),
             preserve_default=False,
         ),
     ]

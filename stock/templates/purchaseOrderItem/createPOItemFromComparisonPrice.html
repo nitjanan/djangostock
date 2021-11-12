@@ -37,7 +37,13 @@
           </div>
           <div class="col-md-6 text-right">
             <address>
-              <strong>ใบสั่งซื้อ</strong><br>
+              <strong>ใบสั่งซื้อ
+                {% for item in po_items %}
+                  {% if item.item.requisit.memorandum_pdf %}
+                    <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                  {% endif %}
+                {% endfor %}
+              </strong><br>
               เลขที่ใบสั่งซื้อ : {{po.ref_no}}<br>
               วันที่ : {{po.created}}<br>
               เครดิต : {{po.credit}}<br>
@@ -95,8 +101,11 @@
             {% endfor %}
             <hr>
             <div class="row">
-              <div class="col-7">
-                <p>หมายเหตุ</p>
+              <div class="col-2">
+                <p>{{price_form.note.label}}</p>
+              </div>
+              <div class="col-5">
+                {{price_form.note | add_class:"form-control"}}
               </div>
               <div class="col-3">
                 <p class="text-right">รวมเป็นเงิน</p>
@@ -106,7 +115,13 @@
               </div>
             </div>
             <div class="row">
-              <div class="col-10">
+              <div class="col-2">
+                <p>{{price_form.delivery.label}}</p>
+              </div>
+              <div class="col-5">
+                {{price_form.delivery | add_class:"form-control"}}
+              </div>
+              <div class="col-3">
                 <p class="text-right">หักส่วนลด</p>
               </div>
               <div class="col-2">

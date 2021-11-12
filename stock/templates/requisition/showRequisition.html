@@ -47,7 +47,11 @@
     <div class="row my-2">
       <div class="col-md-12">
       <div class="invoice-title text-right">
-          <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+          <h5>รหัสใบขอเบิก # {{requisition.ref_no}}
+            {% if requisition.memorandum_pdf %}
+              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+            {% endif %}
+          </h5>
       </div>
       <hr>
       <div class="row">

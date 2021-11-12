@@ -1,5 +1,7 @@
 from django.contrib import admin
-from stock.models import BaseCredit, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor
+from django.forms import CheckboxSelectMultiple
+from django.db import models
+from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor
 
 # Register your models here.
 class ProductAdmin(admin.ModelAdmin):
@@ -29,7 +31,10 @@ class PositionAdmin(admin.ModelAdmin):
     list_editable = ['name']
 
 class PositionBasePermissionAdmin(admin.ModelAdmin):
-    list_display = ['position','base_permission'] #แสดงรายการสินค้าในรูปแบบตาราง
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
+    list_display = ['position']
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
 
 class DistributorAdmin(admin.ModelAdmin):
@@ -62,6 +67,11 @@ class BaseCreditAdmin(admin.ModelAdmin):
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
 
+class BaseDeliveryAdmin(admin.ModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
 admin.site.register(Category)
 admin.site.register(Product, ProductAdmin)
 #admin.site.register(CartItem)
@@ -81,3 +91,4 @@ admin.site.register(BaseVatType, BaseVatTypeAdmin)
 admin.site.register(BaseUnit, BaseUnitAdmin)
 admin.site.register(BaseCredit, BaseCreditAdmin)
 admin.site.register(BaseSparesType, BaseSparesTypeAdmin)
+admin.site.register(BaseDelivery, BaseDeliveryAdmin)

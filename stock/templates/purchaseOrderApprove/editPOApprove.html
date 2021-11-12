@@ -41,7 +41,13 @@
           </div>
           <div class="col text-right">
             <address>
-              <strong>ใบสั่งซื้อ</strong><br>
+              <strong>ใบสั่งซื้อ
+                {% for item in items %}
+                  {% if item.item.requisit.memorandum_pdf %}
+                    <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                  {% endif %}
+                {% endfor %}
+              </strong><br>
               เลขที่ใบสั่งซื้อ : {{po.ref_no}}<br>
               วันที่ : {{po.created}}<br>
               เครดิต : {{po.credit}}<br>
@@ -86,7 +92,7 @@
             <hr>
             <div class="row">
               <div class="col-7">
-                <p>หมายเหตุ</p>
+                <p>หมายเหตุ : {{po.note}}</p>
               </div>
               <div class="col-3">
                 <p class="text-right">รวมเป็นเงิน</p>
@@ -96,7 +102,10 @@
               </div>
             </div>
             <div class="row">
-              <div class="col-10">
+              <div class="col-7">
+                <p>สถานที่จัดส่ง : {% if po.delivery %}{{po.delivery}}{% endif %}</p>
+              </div>
+              <div class="col-3">
                 <p class="text-right">หักส่วนลด</p>
               </div>
               <div class="col-2">
@@ -158,12 +167,10 @@
                         {% endif %}
                       </u>
                     </p>
-                    {% for permiss in permission %}
-                      {% if po.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPO'%}
+                    {% if isPermiss %}
                       <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">
                       <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบสั่งซื้อนี้หรือไม่?');">
-                      {% endif %}
-                    {% endfor %}
+                    {% endif %}
                 </form>
                 </div>
                 <div class="float-right">

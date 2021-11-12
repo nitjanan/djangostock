@@ -48,11 +48,12 @@
     </div>
     <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
     <div class="row">
-      <div class="col invoice-title text-left">
-        <h5>รหัสใบขอซื้อ # {{pr.ref_no}}</h5>
-      </div>
       <div class="col invoice-title text-right">
-        <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+        <h5>รหัสใบขอเบิก # {{requisition.ref_no}}
+          {% if requisition.memorandum_pdf %}
+            <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+          {% endif %}
+        </h5>
       </div>
     </div>
     <hr>
@@ -222,27 +223,23 @@
                     {% if pr.approver_user %}
                       <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
                     {% else %}
-                      {% for permiss in permission %}
-                        {% if pr.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPR'%}
+                        {% if pr.approver_status.id == 1 and isPermiss %}
                           {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
                             <p class="card-text">{{request.user.first_name}} ตำแหน่ง {{request.user.userprofile.position}}</p>
                           {% endif %}
                         {% endif %}
-                      {% endfor %}
                     {% endif %}
                     <div class="row">
                       <div class="col-sm-8">
                         <p class="card-text">วันที่ {{pr.approver_update | date:"d/m/Y"}}</p>
                       </div>
                       <div class="col float-right">
-                        {% for permiss in permission %}
-                          {% if pr.approver_status.id == 1 and permiss.base_permission.codename == 'CAAPR'%}
+                          {% if pr.approver_status.id == 1 and isPermiss %}
                             {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
                               <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
                               <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
                             {% endif %}
                           {% endif %}
-                        {% endfor %}
                       </div>
                     </div>  
                   </div>

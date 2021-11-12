@@ -1,6 +1,8 @@
-from stock.models import Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission
+from stock.models import BasePermission, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
+from django.db.models import Prefetch
+from django.db import connection
 
 #หมวดหมู่สินค้าที่ navbar
 def menu_link(request):
@@ -28,27 +30,29 @@ def counter(request):
         
     return dict(item_count = item_count)
 
+#ใบขอซื้อ
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสิทธิอนุมัติ
 def approvePendingCounter(request):
     pending_count = 0
     #get permission with position login
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permission = PositionBasePermission.objects.filter(position_id = user_profile.position_id )
+
+        permiss = BasePermission.objects.filter(codename ='CAAPR')
+        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
     except:
-        permission = None
+        isPermiss  = False
 
     #ถ้าเป็นผู้อนุมัติ
-    if permission:
-        for permiss in permission:
-            if(permiss.base_permission.codename == 'CAAPR'):
-                try:
-                    #ดึงข้อมูล PurchaseRequisition
-                    pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
-                    #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-                    pending_count = len(pr_item)
-                except PurchaseRequisition.DoesNotExist:
-                    pending_count = 0
+
+    if(isPermiss):
+        try:
+            #ดึงข้อมูล PurchaseRequisition
+            pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+            pending_count = len(pr_item)
+        except PurchaseRequisition.DoesNotExist:
+            pending_count = 0
         
     return pending_count
 
@@ -71,21 +75,21 @@ def approvePOCounter(request):
     #get permission with position login
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permission = PositionBasePermission.objects.filter(position_id = user_profile.position_id )
+
+        permiss = BasePermission.objects.filter(codename ='CAAPO')
+        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
     except:
-        permission = None
+        isPermiss  = False
 
     #ถ้าเป็นผู้อนุมัติ
-    if permission:
-        for permiss in permission:
-            if(permiss.base_permission.codename == 'CAAPO'):
-                try:
-                    #ดึงข้อมูล PurchaseOrder
-                    po_item = PurchaseOrder.objects.all().filter(approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
-                    #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-                    po_count = len(po_item)
-                except PurchaseOrder.DoesNotExist:
-                    po_count = 0
+    if(isPermiss):
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+            po_count = len(po_item)
+        except PurchaseOrder.DoesNotExist:
+            po_count = 0
 
     return po_count
 
@@ -123,32 +127,43 @@ def approveCPAllCounter(request):
     cm_count = 0
     ecm_count = 0
     acm_count = 0
-    #get permission with position login
+
+    #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permission = PositionBasePermission.objects.filter(position_id = user_profile.position_id )
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
-        permission = None
+        isPermissAE = None
+
+    if(isPermissAE):
+        for i in isPermissAE:
+            pmAE = BasePermission.objects.get(id = i['base_permission'])
+
+    #ผู้อนุมัติ
+    try:
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+    except:
+        isPermissAA = None
+
+    if(isPermissAA):
+        for i in isPermissAA:
+            pmAA = BasePermission.objects.get(id = i['base_permission'])
 
     #ถ้าเป็นผู้อนุมัติ
-    if permission:
-        for permiss in permission:
-            if(permiss.base_permission.codename == 'CAECP1' or permiss.base_permission.codename == 'CAECP2' or permiss.base_permission.codename == 'CAECP3'):
-                try:
-                    #ดึงข้อมูล PurchaseOrder
-                    e_item = ComparisonPrice.objects.all().filter(examiner_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
-                    #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-                    ecm_count = len(e_item)
-                except PurchaseOrder.DoesNotExist:
-                    ecm_count = 0
-            if(permiss.base_permission.codename == 'CAACP1' or permiss.base_permission.codename == 'CAACP2' or permiss.base_permission.codename == 'CAACP3'):
-                try:
-                    #ดึงข้อมูล PurchaseOrder
-                    a_item = ComparisonPrice.objects.all().filter(examiner_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
-                    #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-                    acm_count = len(a_item)
-                except PurchaseOrder.DoesNotExist:
-                    acm_count = 0
+    if(isPermissAE):
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            ecm_count = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAE.ap_amount_min, pmAE.ap_amount_max)).values("cp").distinct().count()
+        except ComparisonPrice.DoesNotExist:
+            ecm_count = 0
+    if(isPermissAA):
+        try:
+        #ดึงข้อมูล PurchaseOrder
+            acm_count = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAA.ap_amount_min, pmAA.ap_amount_max)).values("cp").distinct().count()
+        except ComparisonPrice.DoesNotExist:
+            acm_count = 0
     cm_count = ecm_count + acm_count
     return cm_count
 

@@ -6,6 +6,7 @@ from django.db import models
 from django.urls import reverse
 from django.core.validators import MaxLengthValidator
 from django.core.files.storage import FileSystemStorage
+from multiselectfield import MultiSelectField
 import datetime
 from datetime import date
 
@@ -459,7 +460,7 @@ class BaseSparesType(models.Model):
 
 class PositionBasePermission(models.Model):
     position = models.ForeignKey(Position, on_delete = models.CASCADE)
-    base_permission = models.ForeignKey(BasePermission, on_delete = models.CASCADE)
+    base_permission = models.ManyToManyField(BasePermission)
     class Meta:
         db_table = 'PositionBasePermission'
         ordering=('id',)
@@ -508,6 +509,18 @@ class BaseVatType(models.Model):
     def __str__(self):
         return str(self.name)
 
+class BaseDelivery(models.Model):
+    name = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = 'BaseDelivery'
+        ordering=('id',)
+        verbose_name = 'สถานที่จัดส่ง'
+        verbose_name_plural = 'ข้อมูลสถานที่จัดส่ง'
+
+    def __str__(self):
+        return str(self.name)
+
 class ComparisonPrice(models.Model):
     organizer = models.ForeignKey(User,on_delete=models.CASCADE)
     base_spares_type = models.ForeignKey(BaseSparesType,on_delete=models.CASCADE, null=True, blank=True)
@@ -542,6 +555,7 @@ class ComparisonPrice(models.Model):
     )
     examiner_update = models.DateField(blank=True, null=True)
     ref_no = models.CharField(max_length = 500, default = comparisonPrice_ref_number, null = True, blank = True)
+    po_ref_no = models.CharField(max_length=255, blank = True)
 
     class Meta:
         db_table = 'ComparisonPrice'
@@ -586,6 +600,7 @@ class PurchaseOrder(models.Model):
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True)
     ref_no = models.CharField(max_length = 500, default = purchaseOrder_ref_number, null = True, blank = True)
     quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
+    delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
 
     class Meta:
         db_table = 'PurchaseOrder'

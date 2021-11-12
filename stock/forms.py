@@ -12,7 +12,7 @@ from django.forms.widgets import ClearableFileInput
 class MyClearableFileInput(ClearableFileInput):
     initial_text = 'ไฟล์ปัจจุบัน'
     input_text = 'เปลี่ยนไฟล์'
-    clear_checkbox_label = 'ล้าง'
+    clear_checkbox_label = 'ลบไฟล์'
 
 
 class SignUpForm(UserCreationForm):
@@ -88,7 +88,7 @@ class PurchaseOrderForm(forms.ModelForm):
         }
 
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
-    cp = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False))
+    cp = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = ""))
     class Meta:
        model = PurchaseOrder
        fields = ('cp','shipping')
@@ -100,7 +100,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 class PurchaseOrderPriceForm(forms.ModelForm):
     class Meta:
        model = PurchaseOrder
-       fields = ('total_price','discount','total_after_discount','vat','amount','freight')
+       fields = ('total_price','discount','total_after_discount','vat','amount','freight','note','delivery')
        widgets={
         'total_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
@@ -109,6 +109,10 @@ class PurchaseOrderPriceForm(forms.ModelForm):
         'amount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'freight': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
         }
+       labels = {
+            'note': _('หมายเหตุ'),
+            'delivery': _('สถานที่จัดส่ง'),
+        } 
 
 class PurchaseOrderItemForm(forms.ModelForm):
     class Meta:

@@ -96,7 +96,9 @@
                     >{{cp.approver_status}}</button>
                   </td>
                   <td>
+                    {% if cp.examiner_status.id == 1 or cp.approver_status.id == 1 %}
                     <a href="{% url 'printCPApprove' cp.id %}" class="btn btn-primary"> ทำการอนุมัติ</a>
+                    {% endif %}
                   </td>
                 </tr>
               {% endfor %}

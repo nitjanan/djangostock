@@ -150,21 +150,9 @@
             </div>
         </form>
     </div>
-    <div class="card bg-light my-2">
-        <div class="card-body">
-            <form method="post">
-                <p>{{ form | crispy}}</p>
-                {% csrf_token %}
-                <button type="submit" class="btn btn-info hidden-print">
-                    <i class="fas fa-save"></i>
-                    บันทึกการแก้ไข
-                </button>
-            </form>
-        </div>
-    </div>
     <div class="row my-4">
         <div class="col">
-            <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn btn-outline-secondary float-right"><i class="fas fa-pen"></i> preview print</a>
+            <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn bg-success text-white float-right">Next <i class="fas fa-arrow-right"></i></a>
         </div>
     </div>
 </div>
