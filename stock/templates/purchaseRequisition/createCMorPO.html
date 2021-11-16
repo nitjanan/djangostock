@@ -151,7 +151,7 @@
                       </td>
                       <td class="text-center">
                         <div class="custom-control form-control-lg custom-checkbox">
-                          <input type="checkbox" name="choices" value="{{item.id}}" class="custom-control-input" id="customCheck{{forloop.counter}}">
+                          <input type="checkbox" name="choices" value="{{item.id}}" class="custom-control-input" id="customCheck{{forloop.counter}}" {% if item.is_used %}disabled{% endif %}>
                           <label class="custom-control-label" for="customCheck{{forloop.counter}}"></label>
                       </div>
                       </td>

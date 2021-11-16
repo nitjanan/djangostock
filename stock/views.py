@@ -634,6 +634,14 @@ def viewPR(request):
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
         data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
+
+        #เช็คว่าใช้หมดแล้วหรือเปล่า
+        for pr in data:
+            ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0).count()
+            ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0).count()
+            if ri_is_used == ri_all:
+                #ให้เอา pr ออกจากใน list
+                data = data.exclude(id = pr.id)
     else:
         data = PurchaseRequisition.objects.all()
 
@@ -763,8 +771,8 @@ def createCMorPO(request, pr_id):
         quantityTotal += item.quantity_pr
     
     listItem = request.POST.getlist('choices')
-    if request.method=='POST' and 'btnformCM' in request.POST:
 
+    if request.method=='POST' and 'btnformCM' in request.POST:
         cp = ComparisonPrice.objects.create(
             organizer = request.user,
             approver_status_id = 1,
@@ -778,6 +786,11 @@ def createCMorPO(request, pr_id):
         )
         cpd.save()
         for i in listItem:
+            #บอกสถานะว่าใช้ไปใน CM หรือ PR แล้ว
+            ri = RequisitionItem.objects.get(id = i)
+            ri.is_used = True
+            ri.save()
+
             item = ComparisonPriceItem.objects.create(
                 item_id = i,
                 bidder_id = cpd.id,
@@ -794,7 +807,11 @@ def createCMorPO(request, pr_id):
         po.save()
 
         for i in listItem:
+            #บอกสถานะว่าใช้ไปใน CM หรือ PR แล้ว
             ri = RequisitionItem.objects.get(id = i)
+            ri.is_used = True
+            ri.save()
+
             item = PurchaseOrderItem.objects.create(
                 item_id = i,
                 quantity = ri.quantity_pr,
@@ -1629,9 +1646,9 @@ def showComparePricePO(request, cp_id, isAP):
         }
     return render(request, 'comparePricePO/showComparePricePO.html',context)
 
-def createPOFromComparisonPrice(request):
+def createPOFromComparisonPrice(request, cp_id):
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderFromComparisonPriceForm(request.POST or None)
+    form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id})
     if form.is_valid():
         new_contact = form.save(commit=False)
         cp = ComparisonPrice.objects.get(id = new_contact.cp.id)

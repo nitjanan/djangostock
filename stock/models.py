@@ -1,4 +1,5 @@
 from django.db.models.deletion import CASCADE
+from django.db.models.expressions import F
 from django.db.models.fields.related import ForeignKey
 from django.contrib.auth.models import Group, User
 import stock
@@ -360,6 +361,7 @@ class RequisitionItem(models.Model):
     requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True)
     quantity_pr = models.IntegerField()
     quantity_take = models.IntegerField()
+    is_used = models.BooleanField(default=False)#สถานะที่บอกว่านำไปใช้ใน pr หรือ cm หรือยัง
 
     class Meta:
         db_table = 'RequisitionItem'

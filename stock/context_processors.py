@@ -1,4 +1,4 @@
-from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
@@ -204,8 +204,15 @@ def isPurchasingPR(request):
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(request.user.groups.filter(name='Purchasing').exists()):
         try:
-            pr =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
-            pr_count = len(pr)
+            data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
+            #เช็คว่าใช้หมดแล้วหรือเปล่า
+            for pr in data:
+                ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0).count()
+                ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0).count()
+                if ri_is_used == ri_all:
+                    #ให้เอา pr ออกจากใน list
+                    data = data.exclude(id = pr.id)
+            pr_count = len(data)
         except PurchaseOrder.DoesNotExist:
             pr_count = 0
     return dict(is_purchasing_pr = pr_count)
