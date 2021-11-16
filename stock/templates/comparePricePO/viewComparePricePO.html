@@ -37,7 +37,7 @@
       </div>
     <div class="card div-shadow">
         <div class="card-body">
-            <a class="btn btn-primary btn-block" href="{%url 'prepareComparePricePO' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบเปรียบเทียบราคา</a>
+            <a class="btn btn-primary btn-block btn-sm" href="{%url 'prepareComparePricePO' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบเปรียบเทียบราคา</a>
           <div class="table-responsive">
             <table class="table table-striped my-3">
               <thead class="thead-dark">
@@ -46,7 +46,7 @@
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
                   <th scope="col">วันที่สร้าง</th>
-                  <th scope="col">รายการเปรียบเทียบ</th>
+                  <th scope="col">ทำรายการ</th>
                   <th scope="col">Action</th>
                 </tr>
               </thead>
@@ -66,35 +66,34 @@
                   <td>{{cp.organizer}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   {% if cp.approver_status_id == 1 and cp.examiner_status_id == 1 %}
-                    <td><a href="{%url 'createComparePricePOItem' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a></td>
+                    <td><a href="{%url 'createComparePricePOItem' cp.id %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a></td>
                     <td>
                         <!-- a href="{% url 'editComparePricePO' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a -->
-                        <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removeComparePricePO' cp.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
-                        <a href="{% url 'printComparePricePO' cp.id %}" class="btn btn-outline-info"><i class="fas fa-check-square"></i> เลือก</a>
+                        <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removeComparePricePO' cp.id %}" class="btn btn-danger btn-sm" style="width:90px"><i class="fas fa-trash-alt"></i> ลบ</a>
                     </td>
                   {% else %}
                     <td>
                       <button type="button"
-                      class="btn btn-block
+                      class="btn btn-block btn-sm
                       {% if cp.examiner_status.id == 1 %}
                         btn-outline-warning
                       {% elif cp.examiner_status.id == 2 %}
                         btn-outline-success
                       {% elif cp.examiner_status.id == 3 %}
                         btn-outline-danger
-                      {% endif %}" style="width:120px"
+                      {% endif %}" style="width:90px"
                       >{{cp.examiner_status}}</button>
                     </td>
                     <td>
                       <button type="button"
-                      class="btn btn-block
+                      class="btn btn-block btn-sm
                       {% if cp.approver_status.id == 1 %}
                         btn-outline-warning
                       {% elif cp.approver_status.id == 2 %}
                         btn-outline-success
                       {% elif cp.approver_status.id == 3 %}
                         btn-outline-danger
-                      {% endif %}" style="width:140px"
+                      {% endif %}" style="width:90px"
                       >{{cp.approver_status}}</button>
                     </td>
                   {% endif %}

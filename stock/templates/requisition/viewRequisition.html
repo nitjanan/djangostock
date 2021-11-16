@@ -68,15 +68,15 @@
             <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
               {% if requisition.purchase_requisition_id %}
-                <button type="button" class="btn btn-outline-info btn-block">มีใบขอซื้อ</button>
+                <button type="button" class="btn btn-outline-info btn-block btn-sm">มีใบขอซื้อ</button>
               {% else %}
-                <button type="button" class="btn btn-outline-warning btn-block">ไม่มีใบขอซื้อ</button>
+                <button type="button" class="btn btn-outline-warning btn-block btn-sm">ไม่มีใบขอซื้อ</button>
               {% endif %}
             </td>
             {% if requisition.is_edit %}
             <td>
-              <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
-              <a onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
+              <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
+              <a onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
               <!-- <a href="{% url 'crud_ajax' requisition.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a> -->
               <!-- <a href="{% url 'editRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a> -->
             </td>
@@ -85,7 +85,7 @@
             {% endif %}
             <td>
               {% if requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block" target="_blank"><i class="fas fa-file-download"></i></a>
+              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
               {% endif %}
             </td>
           </tr>

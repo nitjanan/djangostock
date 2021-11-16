@@ -6,7 +6,7 @@
 {% block content %}
 <div class="container my-3">
 {% if isPurchasing %}
-  <h3 align="center">สร้างใบเปรียบเทียบราคา/ใบสั่งซื้อจากใบขอซื้อ/ขอซ่อม</h3>
+  <h3 align="center">สร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อจากใบขอซื้อ/ขอซ่อม</h3>
 {% else %}
   <h3 align="center">ใบขอซื้อ/ขอซ่อม</h3>
 {% endif %}
@@ -79,31 +79,31 @@
             <!-- <td class="text-center">{{pr.requisition.urgency.name}}</td> -->
             <td colspan="2">
               {% if isPurchasing %}
-                <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning"><i class="fas fa-edit"></i> สร้างใบเปรียบเทียบราคา/ใบสั่งซื้อ</a>
+                <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบเปรียบเทียบราคา/ใบสั่งซื้อ</a>
               {% else %}
                 {% if pr.purchase_status_id == 1 and pr.approver_status_id == 1 %}
-                  <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary" style="width:110px"><i class="fas fa-edit"></i> แก้ไข</a>
-                  <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?')" href="{% url 'removePR' pr.id %}" class="btn btn-danger" style="width:110px"><i class="fas fa-trash-alt"></i> ลบ</a>
+                  <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a>
+                  <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm" style="width:90px"><i class="fas fa-trash-alt"></i> ลบ</a>
                 {% else %}
                   <button type="button"
-                    class="btn
+                    class="btn btn-sm
                     {% if pr.purchase_status.id == 1 %}
                       btn-outline-warning
                     {% elif pr.purchase_status.id == 2 %}
                       btn-outline-success
                     {% elif pr.purchase_status.id == 3 %}
                       btn-outline-danger
-                    {% endif %}" style="width:110px"
+                    {% endif %}" style="width:90px"
                     >{{pr.purchase_status}}</button>
                   <button type="button"
-                    class="btn
+                    class="btn btn-sm
                     {% if pr.approver_status.id == 1 %}
                       btn-outline-warning
                     {% elif pr.approver_status.id == 2 %}
                       btn-outline-success
                     {% elif pr.approver_status.id == 3 %}
                       btn-outline-danger
-                    {% endif %}" style="width:110px"
+                    {% endif %}" style="width:90px"
                     >{{pr.approver_status}}</button>
                 {% endif %}
               {% endif %}

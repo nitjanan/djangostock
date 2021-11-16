@@ -67,24 +67,24 @@
                   <td>{{po.created |date:"d/m/Y"}}</td>
                   <td>
                     {% if po.approver_status_id == 1 %}
-                      <a href="{%url 'editPOItem' po.id False%}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไขร้านค้า</a>
-                      <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
+                      <a href="{%url 'editPOItem' po.id False%}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+                      <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
                     {% else %}
                       <button type="button"
-                      class="btn
+                      class="btn btn-sm
                       {% if po.approver_status.id == 1 %}
                         btn-outline-warning
                       {% elif po.approver_status.id == 2 %}
                         btn-outline-success
                       {% elif po.approver_status.id == 3 %}
                         btn-outline-danger
-                      {% endif %}" style="width:190px"
+                      {% endif %}" style="width:120px"
                       >{{po.approver_status}}</button>
                     {% endif %}
                   </td>
                   <td>
                     {% if po.quotation_pdf %}
-                      <a href="/media/{{po.quotation_pdf}}" class="btn btn-success btn-block" target="_blank"><i class="fas fa-file-download"></i></a>
+                      <a href="/media/{{po.quotation_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
                     {% endif %}
                   </td>
                   <!-- td>

@@ -49,7 +49,7 @@
       <div class="invoice-title text-right">
           <h5>รหัสใบขอเบิก # {{requisition.ref_no}}
             {% if requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
             {% endif %}
           </h5>
       </div>
@@ -212,8 +212,6 @@
             <input class="form-control" type="text" name="description" required>
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="1" required>
-            <label for="name">จำนวนที่จ่ายไป</label>
-            <input class="form-control" type="number" name="quantityTake" min="0" required>
             <label for="name">หน่วย</label>
             <select id="sel-unit" name="unit" class="select form-control" required>
               <option value="" selected="">---------</option>
@@ -342,7 +340,6 @@ $(document).on('submit','form#addUser',function(){
     var nameInput = $('input[name="name"]').val().trim();
     var descriptionInput = $('input[name="description"]').val().trim();
     var quantityInput = $('input[name="quantity"]').val().trim();
-    var quantityTakeInput = $('input[name="quantityTake"]').val().trim();
     var machineInput = $('input[name="machine"]').val().trim();
     var desireddateInput = $('input[name="desireddate"]').val();
     var unitInput = $('#sel-unit').val();
@@ -350,7 +347,7 @@ $(document).on('submit','form#addUser',function(){
 
     if (desireddateInput == '')
       desireddateInput = null;
-    if (nameInput && descriptionInput && quantityInput && quantityTakeInput) {
+    if (nameInput && descriptionInput && quantityInput) {
         // Create Ajax Call
         $.ajax({
             url: '{% url "crud_ajax_create" requisition.id %}',
@@ -358,7 +355,6 @@ $(document).on('submit','form#addUser',function(){
                 'name': nameInput,
                 'description': descriptionInput,
                 'quantity': quantityInput,
-                'quantity_take': quantityTakeInput,
                 'machine': machineInput,
                 'desired_date': desireddateInput,
                 'unit': unitInput,
@@ -481,7 +477,7 @@ function appendToUsrTable(user) {
             <td class="text-center userName" name="name">${user.name}</td>
             '<td class="text-center userDescription" name="description">${user.description}</td>
             '<td class="text-center userQuantity" name="quantity">${user.quantity}</td>
-            '<td class="text-center userQuantityTake" name="quantityTake">${user.quantity_take}</td>
+            '<td class="text-center userQuantityTake" name="quantityTake">0</td>
             '<td class="text-center userUnit" name="unit">${user.unit}</td>
             '<td class="text-center userMachine" name="machine">${user.machine}</td>
             '<td class="text-center userDesiredDate" name="desireddate">${user.desired_date}</td>

@@ -63,7 +63,7 @@
                 {% for bd in bidder %}
                     <td scope="col" colspan="3">{{bd.distributor.name}}
                         {% if bd.quotation_pdf %}
-                            <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                            <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
                         {% endif %}
                     </td>
                 {% endfor %}
@@ -185,12 +185,13 @@
     {% endif %} 
     <form method="post">
     <div class="row my-3 hidden-print">
-        <div class="col-2">
+        <div class="col-2 text-danger">
             {{form.select_bidder.label}} :
         </div>
-        <div class="col-10">
+        <div class="col-10 text-danger">
                 {{form.select_bidder | add_class:"select-bidder"}}
-                <input id="express" name="express" type="text" list="idExpressList" class="express form-control" Placeholder="เลือกจากร้าน ..." class="form-control" autocomplete="off">
+                {{ form.select_bidder.errors }}
+                <input id="express" name="express" type="text" list="idExpressList" class="express form-control is-invalid" Placeholder="เลือกจากร้าน ..." class="form-control" autocomplete="off">
                 <datalist id="idExpressList">
                   {% for results in bidder %}
                     <option data-id="{{results.distributor.id}}" data-value="{{results.total_price}}" data-index="{{forloop.counter}}" data-amount="{{results.amount}}" value="{{results.distributor.name}}"></option>

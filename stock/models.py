@@ -467,15 +467,25 @@ class PositionBasePermission(models.Model):
         verbose_name = 'ตำแหน่งงานและสิทธิการทำงาน'
         verbose_name_plural = 'ข้อมูลตำแหน่งงานและสิทธิการทำงาน'
 
-VISIBLE_CHOICES = ((1, 'Request'),
-                   (2, 'Approve'),
-                   (3, 'Receive'))
+class BaseVisible(models.Model):       
+    name = models.CharField(max_length=255,unique=True)
+
+    class Meta:
+        db_table = 'BaseVisible'
+        ordering=('id',)
+        verbose_name = 'แท็บการใช้งาน'
+        verbose_name_plural = 'ข้อมูลแท็บการใช้งาน'
+    
+    def __str__(self):
+        return str(self.name)
+
+
 #USER PROFILE
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     position = models.ForeignKey(Position,on_delete=models.CASCADE)
     signature = models.ImageField(null=True, blank=True, upload_to = "signature/")
-    visible = MultiSelectField(choices = VISIBLE_CHOICES)
+    visible = models.ManyToManyField(BaseVisible)
 
     class Meta:
         verbose_name = 'ผู้ใช้และตำแหน่งงาน'
@@ -528,7 +538,7 @@ class BaseDelivery(models.Model):
 class ComparisonPrice(models.Model):
     organizer = models.ForeignKey(User,on_delete=models.CASCADE)
     base_spares_type = models.ForeignKey(BaseSparesType,on_delete=models.CASCADE, null=True, blank=True)
-    select_bidder = models.ForeignKey(Distributor,on_delete=models.CASCADE, null=True, blank=True) #ร้านที่เลือก
+    select_bidder = models.ForeignKey(Distributor,on_delete=models.CASCADE, null=True) #ร้านที่เลือก
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     note = models.CharField(max_length=255, blank = True)

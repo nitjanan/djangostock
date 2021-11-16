@@ -40,7 +40,7 @@
               <strong>ใบสั่งซื้อ
                 {% for item in po_items %}
                   {% if item.item.requisit.memorandum_pdf %}
-                    <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                    <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
                   {% endif %}
                 {% endfor %}
               </strong><br>

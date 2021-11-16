@@ -66,7 +66,7 @@
             <td>{{po.created |date:"d/m/Y"}}</td>
             <td>
               <button type="button"
-              class="btn btn-block
+              class="btn btn-block btn-sm
               {% if po.approver_status.id == 1 %}
                 btn-outline-warning
               {% elif po.approver_status.id == 2 %}
@@ -78,7 +78,7 @@
             </td>
             <td>
               {% if po.approver_status.id == 1 %}
-              <a href="{%url 'editPOApprove' po.id %}" class="btn btn-primary btn-block">ทำการอนุมัติ</a>
+              <a href="{%url 'editPOApprove' po.id %}" class="btn btn-primary btn-block btn-sm">ทำการอนุมัติ</a>
               {%endif%}
             </td>
           </tr>

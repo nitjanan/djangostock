@@ -66,7 +66,7 @@
                 {% for bd in bidder %}
                     <td scope="col" colspan="3">{{bd.distributor.name}}
                         {% if bd.quotation_pdf %}
-                            <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                            <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
                         {% endif %}
                     </td>
                 {% endfor %}
@@ -233,7 +233,11 @@
         <div class="col text-right">FM-PU-002 ; Rev 00</div>
     </div>
     <div class="row my-2">
-        <div class="col-6 offset-6 text-right">
+        <div class="col d-print-none">
+            <a href="" class="btn btn-outline-success btn-sm"><i class="fas fa-file-download"></i></a> = ใบบันทึก &emsp;
+            <a href="" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-download"></i></a> = ใบเสนอราคา
+        </div>
+        <div class="col-6 text-right">
           <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
             <i class="fas fa-print"></i>
             ปริ้นใบเปรียบเทียบราคา

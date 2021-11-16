@@ -73,7 +73,7 @@
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   <td>
                     <button type="button"
-                    class="btn btn-block
+                    class="btn btn-block btn-sm
                     {% if cp.examiner_status.id == 1 %}
                       btn-outline-warning
                     {% elif cp.examiner_status.id == 2 %}
@@ -85,7 +85,7 @@
                   </td>
                   <td>
                     <button type="button"
-                    class="btn btn-block
+                    class="btn btn-block btn-sm
                     {% if cp.approver_status.id == 1 %}
                       btn-outline-warning
                     {% elif cp.approver_status.id == 2 %}
@@ -97,7 +97,7 @@
                   </td>
                   <td>
                     {% if cp.examiner_status.id == 1 or cp.approver_status.id == 1 %}
-                    <a href="{% url 'printCPApprove' cp.id %}" class="btn btn-primary"> ทำการอนุมัติ</a>
+                    <a href="{% url 'printCPApprove' cp.id %}" class="btn btn-primary btn-sm"> ทำการอนุมัติ</a>
                     {% endif %}
                   </td>
                 </tr>

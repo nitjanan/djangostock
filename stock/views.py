@@ -494,7 +494,7 @@ class CreateCrudUser(View):
             product_name = name1,
             description = description1,
             quantity = quantity1,
-            quantity_take = quantityTake1,
+            quantity_take = 0,
             quantity_pr = quantityPQ,
             machine = machine1,
             desired_date = desireddate1,
@@ -1563,7 +1563,7 @@ def printComparePricePO(request, cp_id):
         form = CPSelectBidderForm(request.POST, instance=cp)
         if form.is_valid():
             form.save()
-            return redirect('printComparePricePO', cp_id = cp_id)
+            return redirect('viewComparePricePO')
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
     itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount')

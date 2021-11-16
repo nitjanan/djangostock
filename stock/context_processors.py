@@ -1,4 +1,4 @@
-from stock.models import BasePermission, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
@@ -7,7 +7,7 @@ from django.db import connection
 def userVisibleTab(request):
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        visible_tab = user_profile.visible
+        visible_tab = BaseVisible.objects.filter(userprofile = user_profile)
     except:
         visible_tab = None
 
