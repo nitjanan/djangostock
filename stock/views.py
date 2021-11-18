@@ -481,8 +481,13 @@ class CreateCrudUser(View):
         desireddate1 = request.GET.get('desired_date', None) or None
         unit1 = request.GET.get('unit', None)
         urgency1 = request.GET.get('urgency', None)
+        product1 = request.GET.get('product', None)
+
+        product_item = get_object_or_404(Product, id_express=product1)
 
         try:
+            if(not quantityTake1):
+                quantityTake1 = 0
             quantityPQ  = int(quantity1) - int(quantityTake1)
         except:
             quantityPQ = 0
@@ -501,6 +506,7 @@ class CreateCrudUser(View):
             unit = unit1,
             urgency = urgency1,
             requisit = rqs,
+            product = product_item,
         )
 
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
@@ -524,6 +530,9 @@ class UpdateCrudUser(View):
         desireddate1 = request.GET.get('desired_date', None)
         unit1 = request.GET.get('unit', None)
         urgency1 = request.GET.get('urgency', None)
+        product1 = request.GET.get('product', None)
+
+        product_item = get_object_or_404(Product, id_express=product1)
 
         try:
             quantityPQ  = int(quantity1) - int(quantityTake1)
@@ -541,6 +550,7 @@ class UpdateCrudUser(View):
         obj.desired_date = desireddate1
         obj.unit = unit1
         obj.urgency = urgency1
+        obj.product = product_item
         obj.save()
 
 
@@ -1946,3 +1956,34 @@ def editReceiveItem(request, rc_id):
         'rc_show': "show",
     }
     return render(request, 'receiveItem/editReceiveItem.html',context)
+
+def reApprovePR(request, pr_id):
+        pr = PurchaseRequisition.objects.get(id = pr_id)
+        pr.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
+        pr.purchase_update = None
+        pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
+        pr.approver_update = None
+        #พัสดุ
+        pr.stockman_user_id = request.user.id
+        pr.stockman_update = datetime.datetime.now()
+        pr.save()
+
+        users = RequisitionItem.objects.filter(requisit = pr.requisition)
+        requisition = Requisition.objects.get(id = pr.requisition.id)
+            
+        baseUrgency = BaseUrgency.objects.all()
+        baseUnit = BaseUnit.objects.all()
+        baseProduct = Product.objects.all()
+
+        context = {
+            'users' : users,
+            'requisition' : requisition,
+            'pr' : pr,
+            'baseUrgency' : baseUrgency,
+            'baseUnit' : baseUnit,
+            'baseProduct' : baseProduct,
+            'ap_pr_page': "tab-active",
+            'ap_pr_show': "show",
+        }
+
+        return render(request, "purchaseRequisition/reApprovePR.html", context)

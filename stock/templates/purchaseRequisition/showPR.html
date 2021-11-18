@@ -236,7 +236,10 @@
             </div>
           </div>
           <div class="row my-2">
-            <div class="col-6 offset-6 text-right">
+            <div class="col-6">
+              <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+            </div>
+            <div class="col-6 text-right">
               <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
                 <i class="fas fa-print"></i>
                 ปริ้นใบขอซื้อ

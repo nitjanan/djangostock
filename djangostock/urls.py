@@ -60,6 +60,7 @@ urlpatterns = [
     path('purchaseRequisition/edit/<int:pr_id>',views.editPR,name="editPR"),
     path('purchaseRequisition/create/CMorPO/<int:pr_id>',views.createCMorPO,name="createCMorPO"),
     path('purchaseRequisition/show/<int:pr_id>/<str:isAP>',views.showPR,name="showPR"),
+    path('purchaseRequisition/reApprove/<int:pr_id>',views.reApprovePR,name="reApprovePR"),
 
     path('purchaseRequisitionApprove/',views.viewPRApprove,name="viewPRApprove"),
     path('purchaseRequisitionApprove/edit/<int:pr_id>',views.editPRApprove,name="editPRApprove"),
