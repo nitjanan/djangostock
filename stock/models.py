@@ -679,6 +679,7 @@ class Receive(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
     discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#หักส่วนลด
     total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
+    vat_type = models.ForeignKey(BaseVatType,on_delete=models.CASCADE)
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
     freight = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ค่าขนส่ง

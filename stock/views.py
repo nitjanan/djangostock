@@ -2020,6 +2020,7 @@ def uploadReceive(request):
                             created = data[1],
                             distributor_id = data[2],
                             tax_invoice = data[3],
+                            vat_type_id = data[4],
                             total_price = data[6],
                             total_after_discount = data[6],
                             vat = data[7],

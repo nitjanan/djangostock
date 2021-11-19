@@ -72,6 +72,7 @@
                         <th scope="col" class="text-center">No.</th>
                         <th scope="col" class="text-center">รหัสสินค้า/รายละเอียด</th>
                         <th scope="col" class="text-center">จำนวน</th>
+                        <th scope="col" class="text-center">หน่วย</th>
                         <th scope="col" class="text-center">หน่วยละ</th>
                         <th scope="col" class="text-center">จำนวนเงิน</th>
                     </tr>
@@ -82,6 +83,7 @@
                             <td class="text-center">{{ forloop.counter }}</td>
                             <td class="text-center">{{ item.item.product.id_express }} {{ item.item }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-center">{{ item.unit}}</td>
                             <td class="text-center">{{ item.unit_price | intcomma}}</td>
                             <td class="text-center">{{ item.price | intcomma}}</td>
                         </tr>
