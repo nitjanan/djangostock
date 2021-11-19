@@ -56,7 +56,8 @@ INSTALLED_APPS = [
     'stripe',
     'widget_tweaks',
     'django_filters',
-    'multiselectfield',
+    'import_export',
+
 ]
 
 MIDDLEWARE = [

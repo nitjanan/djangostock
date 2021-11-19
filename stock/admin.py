@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.forms import CheckboxSelectMultiple, MultipleChoiceField
 from django.db import models
-from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible
+from import_export.admin import ImportExportModelAdmin
+from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem
 
 # Register your models here.
 class ProductAdmin(admin.ModelAdmin):
@@ -75,6 +76,9 @@ class BaseDeliveryAdmin(admin.ModelAdmin):
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
 
+class ReceiveItemAdmin(ImportExportModelAdmin):
+    list_display = ('item', 'quantity', 'unit','unit_price','price', 'rc_id')
+
 admin.site.register(Category)
 admin.site.register(Product, ProductAdmin)
 #admin.site.register(CartItem)
@@ -96,3 +100,4 @@ admin.site.register(BaseCredit, BaseCreditAdmin)
 admin.site.register(BaseSparesType, BaseSparesTypeAdmin)
 admin.site.register(BaseDelivery, BaseDeliveryAdmin)
 admin.site.register(BaseVisible)
+admin.site.register(ReceiveItem, ReceiveItemAdmin)

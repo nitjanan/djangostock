@@ -103,8 +103,13 @@ urlpatterns = [
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),
     path('receive/remove/<int:rc_id>',views.removeReceive,name="removeReceive"),
-
+    path('receive/show/<int:rc_id>',views.showReceive,name="showReceive"),
+    path('receive/upload', views.uploadReceive,name="uploadReceive"),
+    
     path('receiveItem/edit/<int:rc_id>',views.editReceiveItem,name="editReceiveItem"),
+
+    path('export/', views.export ,name="export"),
+
 
 ]
 

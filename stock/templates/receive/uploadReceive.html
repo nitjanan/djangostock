@@ -1,0 +1,21 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h3 align="center">รับเข้าสินค้า</h3>
+    <div class="card my-3">
+        <div class="card-header bg-info text-white">
+            <h5>Upload ไฟล์รับสินค้า</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input  class="form-control" type="file" name="myfile">
+                <br>
+                <button class="btn btn-primary" type="submit">Upload</button>
+            </form>
+        </div>
+      </div>
+</div>
+{% endblock%}

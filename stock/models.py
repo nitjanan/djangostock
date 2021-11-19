@@ -7,7 +7,6 @@ from django.db import models
 from django.urls import reverse
 from django.core.validators import MaxLengthValidator
 from django.core.files.storage import FileSystemStorage
-from multiselectfield import MultiSelectField
 import datetime
 from datetime import date
 
@@ -691,16 +690,19 @@ class Receive(models.Model):
         null=True
     )
     receive_update = models.DateField(auto_now_add=True)
-    created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    created = models.DateField(max_length=255, blank = True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     ref_no = models.CharField(max_length = 500, default = receive_ref_number, null = True, blank = True)
+    pay = models.CharField(max_length=255, blank = True)
+    due_date = models.DateField(null = True, blank = True)
+    distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE, null = True)
 
     class Meta:
         db_table = 'Receive'
         ordering=('-id',)
 
 class ReceiveItem(models.Model):
-    item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
+    item = models.ForeignKey(PurchaseOrderItem,on_delete=models.CASCADE, null=True)
     quantity = models.IntegerField(null=True, blank=True)
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)

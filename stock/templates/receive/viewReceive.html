@@ -43,7 +43,8 @@
       </div>
     <div class="card div-shadow">
         <div class="card-body">
-          <a class="btn btn-primary btn-block" href="{%url 'createReceive' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบรับสินค้า</a>
+          <!--a class="btn btn-primary btn-block" href="{%url 'createReceive' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบรับสินค้า</a -->
+          <a class="btn btn-primary btn-block" href="{%url 'uploadReceive' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบรับสินค้า</a>
           <div class="table-responsive">
             <table class="table table-striped my-3">
               <thead class="thead-dark">
@@ -53,19 +54,19 @@
                   <th scope="col">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เครดิต</th>
                   <th scope="col">วันที่รับสินค้า</th>
-                  <th scope="col">รายการรับสินค้า</th>
+                  <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody>
               {% for rc in rcs %}
                 <tr>
-                  <th scope="row"><a href="{%url 'showPO' rc.id False %}">{{rc.ref_no}}</a></th>
+                  <th scope="row"><a href="{%url 'showReceive' rc.id %}">{{rc.ref_no}}</a></th>
                   <td>{{rc.po.ref_no}}</td>
                   <td>{{rc.po.distributor}}</td>
                   <td>{{rc.po.credit}}</td>
                   <td>{{rc.created |date:"d/m/Y"}}</td>
                   <td>
-                      <a href="{%url 'editReceiveItem' rc.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
+                      <!--a href="{%url 'editReceiveItem' rc.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a-->
                       <a onclick="return confirm('คุณต้องการลบใบรับสินค้าหรือไม่ ?')" href="{% url 'removeReceive' rc.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
                   </td>
                 </tr>

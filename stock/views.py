@@ -20,10 +20,12 @@ from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
 from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter
-from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, RequisitionItemModelFormset, ReceiveItemInlineFormset
+from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
 from django.db.models import Prefetch
+from .resources import ReceiveItemResource
+from tablib import Dataset
 
 
 # Create your views here.
@@ -1987,3 +1989,83 @@ def reApprovePR(request, pr_id):
         }
 
         return render(request, "purchaseRequisition/reApprovePR.html", context)
+
+def export(request):
+    person_resource = ReceiveItemResource()
+    dataset = person_resource.export()
+    response = HttpResponse(dataset.xls, content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="persons.xls"'
+    return response
+
+def uploadReceive(request):
+    if request.method == 'POST':
+        dataset = Dataset()
+        new_persons = request.FILES.get('myfile', False)
+
+        if new_persons:
+            imported_data = dataset.load(new_persons.read(),format='xlsx')
+            for data in imported_data:
+                if data[0] is None and data[1] is None and data[2] is None and data[3] is None:
+                    pass
+                elif not(data[0] is None):
+                    #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
+                    try:
+                        rc_old = Receive.objects.get(ref_no = data[0])
+                    except:
+                        rc_old = None
+                    if not rc_old:
+                        po = PurchaseOrder.objects.get(ref_no = data[10])
+                        rc = Receive(
+                            ref_no = data[0],
+                            created = data[1],
+                            distributor_id = data[2],
+                            tax_invoice = data[3],
+                            total_price = data[6],
+                            total_after_discount = data[6],
+                            vat = data[7],
+                            amount = data[8],
+                            due_date = data[9],
+                            pay = data[11],
+                            po_id = po.id,
+                            receive_user = request.user,
+                            )
+                        rc.save()
+                elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
+                    rc = Receive.objects.get(po__ref_no = data[12])
+                    po_item = PurchaseOrderItem.objects.get(po_id = rc.po.id, item__product__id_express = data[4])
+                    #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
+                    try:
+                        rc_item_old =  ReceiveItem.objects.get(item_id = po_item.id)
+                    except:
+                        rc_item_old = None
+                    if not rc_item_old:
+                        unit = BaseUnit.objects.get(name = data[8])
+                        if po_item:
+                            rc_item = ReceiveItem(
+                                id = data[2],
+                                item_id = po_item.id,
+                                quantity = data[7],
+                                unit_id  = unit.id,
+                                unit_price  = data[9],
+                                price = data[11],
+                                rc_id = rc.id,
+                            )
+                            rc_item.save()
+            return redirect('viewReceive')
+    context = {
+        'rc_page': "tab-active",
+        'rc_show': "show",
+    }
+    return render(request, 'receive/uploadReceive.html',context)
+
+def showReceive(request, rc_id):
+    rc = Receive.objects.get(id = rc_id)
+    items = ReceiveItem.objects.filter(rc = rc)
+
+    context = {
+        'rc':rc,
+        'items':items,
+        'rc_page': "tab-active",
+        'rc_show': "show",
+    }
+    return render(request, 'receive/showReceive.html',context)
