@@ -484,8 +484,11 @@ class CreateCrudUser(View):
         unit1 = request.GET.get('unit', None)
         urgency1 = request.GET.get('urgency', None)
         product1 = request.GET.get('product', None)
-
-        product_item = get_object_or_404(Product, id_express=product1)
+        
+        try:
+            product_item = get_object_or_404(Product, id_express=product1)
+        except:
+            product_item = None
 
         try:
             if(not quantityTake1):
@@ -534,7 +537,10 @@ class UpdateCrudUser(View):
         urgency1 = request.GET.get('urgency', None)
         product1 = request.GET.get('product', None)
 
-        product_item = get_object_or_404(Product, id_express=product1)
+        try:
+            product_item = get_object_or_404(Product, id_express=product1)
+        except:
+            product_item = None
 
         try:
             quantityPQ  = int(quantity1) - int(quantityTake1)

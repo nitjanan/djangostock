@@ -38,8 +38,8 @@ class PositionBasePermissionAdmin(admin.ModelAdmin):
     list_display = ['position']
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
 
-class DistributorAdmin(admin.ModelAdmin):
-    list_display = ['id_express','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+class DistributorAdmin(ImportExportModelAdmin):
+    list_display = ['id_express','name', 'address', 'tel', 'fax', 'tex'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
 
@@ -78,7 +78,7 @@ class BaseDeliveryAdmin(admin.ModelAdmin):
 
 class ReceiveItemAdmin(ImportExportModelAdmin):
     list_display = ('item', 'quantity', 'unit','unit_price','price', 'rc_id')
-
+    
 admin.site.register(Category)
 admin.site.register(Product, ProductAdmin)
 #admin.site.register(CartItem)
