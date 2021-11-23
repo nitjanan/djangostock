@@ -67,7 +67,7 @@
                   <td>{{rc.created |date:"d/m/Y"}}</td>
                   <td>
                       <!--a href="{%url 'editReceiveItem' rc.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a-->
-                      <a onclick="return confirm('คุณต้องการลบใบรับสินค้าหรือไม่ ?')" href="{% url 'removeReceive' rc.id %}" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</a>
+                      <a onclick="return confirm('คุณต้องการลบใบรับสินค้าหรือไม่ ?')" href="{% url 'removeReceive' rc.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
                   </td>
                 </tr>
               {% endfor %}

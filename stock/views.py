@@ -2027,6 +2027,7 @@ def uploadReceive(request):
                             distributor_id = data[2],
                             tax_invoice = data[3],
                             vat_type_id = data[4],
+                            discount = data[5],
                             total_price = data[6],
                             total_after_discount = data[6],
                             vat = data[7],
@@ -2039,13 +2040,15 @@ def uploadReceive(request):
                         rc.save()
                 elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
                     rc = Receive.objects.get(po__ref_no = data[12])
-                    po_item = PurchaseOrderItem.objects.get(po_id = rc.po.id, item__product__id_express = data[4])
+    
                     #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
                     try:
+                        po_item = PurchaseOrderItem.objects.get(po_id = rc.po.id, item__product__id_express = data[4])
                         rc_item_old =  ReceiveItem.objects.get(item_id = po_item.id)
                     except:
+                        po_item = None
                         rc_item_old = None
-                    if not rc_item_old:
+                    if not rc_item_old and not po_item:
                         unit = BaseUnit.objects.get(name = data[8])
                         if po_item:
                             rc_item = ReceiveItem(
