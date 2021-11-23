@@ -338,7 +338,7 @@ $(".unit-price, .quantity")
     calculateAll();
 });
 
-$(".price" )
+$(".price")
   .focusout(function() {
   })  
   .blur(function() {
@@ -351,7 +351,11 @@ $("#id_discount")
   .focusout(function() {
   })  
   .blur(function() {
-    $(this).val(parseFloat($(this).val()).toFixed(2));
+    if($(this).val().indexOf('%') != -1){
+        //ไม่ต้องทำอะไร
+    }else{
+        $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
 });
 
 $("#id_total_price")
@@ -385,7 +389,7 @@ $("#id_freight").change(function() {
 $("#id_total_price, #id_discount").change(function() {
   var price =  $("#id_total_price").val();
   var discount =  $("#id_discount").val();
-  var totalAfterDiscount = parseFloat(price) - parseFloat(discount);
+  var totalAfterDiscount = parseFloat(price) - calculateDiscount(discount);
   $("#id_total_after_discount").val(totalAfterDiscount);
   $("#id_total_after_discount").val(parseFloat($("#id_total_after_discount").val()).toFixed(2));
   //คำนวน vat
@@ -396,7 +400,18 @@ $("#id_total_price, #id_discount").change(function() {
   $("#id_amount").val(amount.toFixed(2));
 });
 
-  function calculateAll(){
+function calculateDiscount(prmDiscount){
+    if(prmDiscount.indexOf('%') != -1){
+        var discountPersent = prmDiscount.replace('%','');
+        var totalPrice = $("#id_total_price").val();
+        var discount = parseFloat(totalPrice) * parseFloat(discountPersent)/100;
+        return discount;
+    }else{
+        return prmDiscount;
+    }
+}
+
+function calculateAll(){
     //คำนวน รวมเป็นเงิน
     var inputs = $(".price" );
       var total = 0.0;

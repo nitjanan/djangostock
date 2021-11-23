@@ -354,7 +354,11 @@ $("#id_discount")
   .focusout(function() {
   })  
   .blur(function() {
-    $(this).val(parseFloat($(this).val()).toFixed(2));
+    if($(this).val().indexOf('%') != -1){
+        //ไม่ต้องทำอะไร
+    }else{
+        $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
 });
 
 $("#id_freight")
@@ -381,7 +385,7 @@ $("#id_vat_type" ).change(function() {
 $("#id_total_price, #id_discount").change(function() {
   var price =  $("#id_total_price").val();
   var discount =  $("#id_discount").val();
-  var totalAfterDiscount = parseFloat(price) - parseFloat(discount);
+  var totalAfterDiscount = parseFloat(price) - calculateDiscount(discount);
   $("#id_total_after_discount").val(totalAfterDiscount);
   $("#id_total_after_discount").val(parseFloat($("#id_total_after_discount").val()).toFixed(2));
   //คำนวน vat
@@ -394,6 +398,17 @@ $("#id_total_price, #id_discount").change(function() {
   var thaibath = ArabicNumberToText(amount);
   document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
+
+function calculateDiscount(prmDiscount){
+    if(prmDiscount.indexOf('%') != -1){
+        var discountPersent = prmDiscount.replace('%','');
+        var totalPrice = $("#id_total_price").val();
+        var discount = parseFloat(totalPrice) * parseFloat(discountPersent)/100;
+        return discount;
+    }else{
+        return prmDiscount;
+    }
+}
 
 function calculateAll(){
     //คำนวน รวมเป็นเงิน

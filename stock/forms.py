@@ -103,7 +103,7 @@ class PurchaseOrderPriceForm(forms.ModelForm):
        fields = ('total_price','discount','total_after_discount','vat','amount','freight','note','delivery')
        widgets={
         'total_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
-        'discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'discount': forms.TextInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
         'total_after_discount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'vat': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'amount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
@@ -177,7 +177,7 @@ class CPDModelForm(forms.ModelForm):
         widgets={
             'cp': forms.HiddenInput(),
             'total_price': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
-            'discount': forms.NumberInput(attrs={'placeholder':'0.00'}),
+            'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
             'total_after_discount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'vat': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'amount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),

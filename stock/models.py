@@ -585,7 +585,7 @@ class PurchaseOrder(models.Model):
     credit = models.ForeignKey(BaseCredit,on_delete=models.CASCADE,null = True,blank = True)
     shipping = models.CharField(max_length=255, blank = True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
-    discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#หักส่วนลด
+    discount = models.CharField(max_length=255, blank = True, null = True)#หักส่วนลด
     total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
@@ -643,7 +643,7 @@ class ComparisonPriceDistributor(models.Model):
     credit = models.ForeignKey(BaseCredit,on_delete=models.CASCADE,null = True, blank = True)
     vat_type = models.ForeignKey(BaseVatType,on_delete=models.CASCADE)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
-    discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#หักส่วนลด
+    discount = models.CharField(max_length=255, blank = True, null = True)#หักส่วนลด
     total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
@@ -677,7 +677,7 @@ class Receive(models.Model):
     po = models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE,null = True,blank = True)
     tax_invoice =  models.CharField(max_length=255, blank = True, null = True)#เลขที่บิล
     total_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
-    discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#หักส่วนลด
+    discount = models.CharField(max_length=255, blank = True, null = True)#หักส่วนลด
     total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
     vat_type = models.ForeignKey(BaseVatType,on_delete=models.CASCADE)
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
