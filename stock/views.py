@@ -961,8 +961,11 @@ def saveIdExpressPR(request):
                     if i == j:
                         item = get_object_or_404(RequisitionItem, id=val_id)
                         if val_product != "":
-                            product_item = get_object_or_404(Product, id_express=val_product)
-                            item.product = product_item
+                            try:
+                                product_item = get_object_or_404(Product, id_express=val_product)
+                                item.product = product_item
+                            except:
+                                pass
                             item.save()
                     else:
                         pass
@@ -1722,7 +1725,7 @@ def createPOItemFromComparisonPrice(request, po_id):
                     obj.po = po_data
                     obj.save()
             #redirect นอก loop
-            return redirect('viewPO')
+            return redirect('viewComparePricePO')
 
     po = PurchaseOrder.objects.get(id = po_id)
     context = {
@@ -2040,15 +2043,19 @@ def uploadReceive(request):
                         rc.save()
                 elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
                     rc = Receive.objects.get(po__ref_no = data[12])
-    
-                    #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
+
+                    #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
                     try:
                         po_item = PurchaseOrderItem.objects.get(po_id = rc.po.id, item__product__id_express = data[4])
-                        rc_item_old =  ReceiveItem.objects.get(item_id = po_item.id)
                     except:
                         po_item = None
+                    #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
+                    try:
+                        rc_item_old =  ReceiveItem.objects.get(item_id = po_item.id)
+                    except:
                         rc_item_old = None
-                    if not rc_item_old and not po_item:
+
+                    if not rc_item_old and po_item:
                         unit = BaseUnit.objects.get(name = data[8])
                         if po_item:
                             rc_item = ReceiveItem(

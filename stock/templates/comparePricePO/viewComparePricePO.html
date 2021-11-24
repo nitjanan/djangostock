@@ -99,7 +99,7 @@
                     </td>
                   {% endif %}
                   <td>
-                    {% if cp.select_bidder and cp.po_ref_no == "" %}
+                    {% if cp.select_bidder and cp.po_ref_no == "" and cp.examiner_status.id == 2 and cp.approver_status.id == 2 %}
                       <a href="{%url 'createPOFromComparisonPrice' cp.id %}" class="btn btn-primary btn-sm"><i class="fas fa-plus-square"></i> สร้างใบสั่งซื้อ</a></td>
                     {% endif %}
                   </td>
