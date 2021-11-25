@@ -55,6 +55,7 @@
                   <th scope="col">ขนส่งโดย</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
                   <th scope="col">รายการสั่งซื้อ</th>
+                  <th scope="col">รับสินค้า</th>
                   <th scope="col">ใบเสนอราคา</th>
                 </tr>
               </thead>
@@ -86,6 +87,16 @@
                       {% endif %}" style="width:120px"
                       >{{po.approver_status}}</button>
                     {% endif %}
+                  </td>
+                  <td>
+                    <button type="button"
+                    class="btn btn-sm btn-block
+                    {% if po.is_receive == True %}
+                      btn-outline-primary
+                    {% elif po.is_receive == False %}
+                      btn-outline-warning
+                    {% endif %}"
+                    >{% if po.is_receive == True %}รับแล้ว{% elif po.is_receive == False%}ยังไม่รับ{%endif%}</button>
                   </td>
                   <td>
                     {% if po.quotation_pdf %}

@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container">
-    <h3 align="center">ใบรับสินค้า</h3>
+    <h3 align="center">ใบสั่งซื้อ</h3>
     <div class="card my-3 bg-light div-shadow">
         <div class="card-body">
           <form method="get">
@@ -14,14 +14,14 @@
               <div class="form-group col-md-1 mb-0">
                 {{ filter.form.ref_no|as_crispy_field }}
               </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.po__ref_no|as_crispy_field}}
-              </div>
               <div class="form-group col-md-3 mb-0">
-                {{filter.form.po__distributor|as_crispy_field}}
+                {{filter.form.distributor|as_crispy_field}}
               </div>
               <div class="form-group col-md-1 mb-0">
-                {{filter.form.po__credit|as_crispy_field}}
+                {{filter.form.credit|as_crispy_field}}
+              </div>
+              <div class="form-group col-md-2 mb-0">
+                {{filter.form.shipping|as_crispy_field}}
               </div>
               <div class="form-group col-md-2 mb-0">
                 {{filter.form.start_created|as_crispy_field}}
@@ -43,32 +43,44 @@
       </div>
     <div class="card div-shadow">
         <div class="card-body">
-          <!--a class="btn btn-primary btn-block" href="{%url 'createReceive' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบรับสินค้า</a -->
-          <a class="btn btn-primary btn-block" href="{%url 'uploadReceive' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบรับสินค้า</a>
+          <a class="btn btn-primary btn-block" href="{%url 'uploadReceive' %}" role="button"><i class="fas fa-upload"></i> รับสินค้า</a>
           <div class="table-responsive">
             <table class="table table-striped my-3">
               <thead class="thead-dark">
                 <tr>
-                  <th scope="col">รหัสใบรับสินค้า</th>
-                  <th scope="col">รหัสใบสั่งสินค้า</th>
+                  <th scope="col">รหัสใบสั่งซื้อ</th>
+                  <th scope="col">รหัส CM/รหัส PR</th>
                   <th scope="col">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เครดิต</th>
-                  <th scope="col">วันที่รับสินค้า</th>
-                  <th scope="col">Action</th>
+                  <th scope="col">ขนส่งโดย</th>
+                  <th scope="col">วันที่สั่งซื้อ</th>
+                  <th scope="col">ใบเสนอราคา</th>
                 </tr>
               </thead>
               <tbody>
-              {% for rc in rcs %}
+              {% for po in pos %}
                 <tr>
-                  <th scope="row"><a href="{%url 'showReceive' rc.id %}">{{rc.ref_no}}</a></th>
-                  <td>{{rc.po.ref_no}}</td>
-                  <td>{{rc.po.distributor}}</td>
-                  <td>{{rc.po.credit}}</td>
-                  <td>{{rc.created |date:"d/m/Y"}}</td>
+                  <th scope="row"><a href="{%url 'showPO' po.id False %}">{{po.ref_no}}</a></th>
                   <td>
-                      <!--a href="{%url 'editReceiveItem' rc.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a-->
-                      <a onclick="return confirm('คุณต้องการลบใบรับสินค้าหรือไม่ ?')" href="{% url 'removeReceive' rc.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+                    {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id False %}">{{po.cp.ref_no}}</a>{%endif%}
+                    {%if po.pr %}<a href="{%url 'showPR' po.pr.id False %}">{{po.pr.ref_no}}</a>{%endif%}
                   </td>
+                  <td>{{po.distributor}}</td>
+                  <td>{{po.credit}}</td>
+                  <td>{{po.shipping}}</td>
+                  <td>{{po.created |date:"d/m/Y"}}</td>
+                  <td>
+                    {% if po.quotation_pdf %}
+                      <a href="/media/{{po.quotation_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
+                    {% endif %}
+                  </td>
+                  <!-- td>
+                      {% if po.cp %}
+                        <a href="{% url 'editPOFromComparison' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
+                      {% else %}
+                        <a href="{% url 'editPO' po.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a>
+                      {% endif %}                        
+                  </td -->
                 </tr>
               {% endfor %}
               </tbody>
@@ -80,9 +92,9 @@
     <!--Pagination-->
     <nav aria-label="Page navigation example">
       <ul class="pagination justify-content-center">
-      {% if rcs.has_previous %}
+      {% if pos.has_previous %}
           <li class="page-item">
-          <a class="page-link" href="{% my_url rcs.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          <a class="page-link" href="{% my_url pos.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
         </li>
       {% else %}
           <li class="page-item disabled">
@@ -90,30 +102,30 @@
         </li>
       {% endif %}
 
-      {% if rcs.number|add:'-4' > 1 %}
-          <li class="page-item"><a class="page-link" href="{% my_url rcs.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+      {% if pos.number|add:'-4' > 1 %}
+          <li class="page-item"><a class="page-link" href="{% my_url pos.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
       {% endif %}
 
-      {% for i in rcs.paginator.page_range %}
-          {% if rcs.number == i %}
+      {% for i in pos.paginator.page_range %}
+          {% if pos.number == i %}
               <li class="page-item active" aria-current="page">
             <span class="page-link">
               {{ i }}
               <span class="sr-only">(current)</span>
             </span>
           </li>
-          {% elif i > rcs.number|add:'-5' and i < rcs.number|add:'5' %}
+          {% elif i > pos.number|add:'-5' and i < pos.number|add:'5' %}
                <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
           {% endif %}
       {% endfor %}
 
-      {% if rcs.paginator.num_pages > rcs.number|add:'4' %}
-         <li class="page-item"><a class="page-link" href="{% my_url rcs.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+      {% if pos.paginator.num_pages > pos.number|add:'4' %}
+         <li class="page-item"><a class="page-link" href="{% my_url pos.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
       {% endif %}
 
-      {% if rcs.has_next %}
+      {% if pos.has_next %}
           <li class="page-item">
-          <a class="page-link"  href="{% my_url rcs.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          <a class="page-link"  href="{% my_url pos.next_page_number 'page' request.GET.urlencode %}">Next</a>
         </li>
       {% else %}
           <li class="page-item disabled">

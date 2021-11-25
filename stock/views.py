@@ -929,6 +929,7 @@ def showPR(request, pr_id, isAP):
             'create_mode': False,
             'ap_pr_page': "tab-active",
             'ap_pr_show': "show",
+            'isAP': True
         }
     else:
         context = {
@@ -942,6 +943,7 @@ def showPR(request, pr_id, isAP):
             'create_mode': False,
             'pr_page': "tab-active",
             'pr_show': "show",
+            'isAP': False
         }
 
     return render(request, "purchaseRequisition/showPR.html", context)
@@ -1875,10 +1877,10 @@ def searchItemExpress(request):
     return JsonResponse(data)
 
 def viewReceive(request):
-    data = Receive.objects.all()
+    data = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False)
 
     #กรองข้อมูล
-    myFilter = ReceiveFilter(request.GET, queryset = data)
+    myFilter = PurchaseOrderFilter(request.GET, queryset = data)
     data = myFilter.qs
 
     #สร้าง page
@@ -1887,7 +1889,7 @@ def viewReceive(request):
     dataPage = p.get_page(page)
 
     context = {
-        'rcs':dataPage,
+        'pos':dataPage,
         'filter':myFilter,
         'rc_page': "tab-active",
         'rc_show': "show",
@@ -2018,57 +2020,22 @@ def uploadReceive(request):
                 if data[0] is None and data[1] is None and data[2] is None and data[3] is None:
                     pass
                 elif not(data[0] is None):
-                    #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
                     try:
-                        rc_old = Receive.objects.get(ref_no = data[0])
-                    except:
-                        rc_old = None
-                    if not rc_old:
                         po = PurchaseOrder.objects.get(ref_no = data[10])
-                        rc = Receive(
-                            ref_no = data[0],
-                            created = data[1],
-                            distributor_id = data[2],
-                            tax_invoice = data[3],
-                            vat_type_id = data[4],
-                            discount = data[5],
-                            total_price = data[6],
-                            total_after_discount = data[6],
-                            vat = data[7],
-                            amount = data[8],
-                            due_date = data[9],
-                            pay = data[11],
-                            po_id = po.id,
-                            receive_user = request.user,
-                            )
-                        rc.save()
-                elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
-                    rc = Receive.objects.get(po__ref_no = data[12])
+                        po.is_receive = True
+                        po.save()
+                    except PurchaseOrder.DoesNotExist:
+                        pass
 
+                elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
                     #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
                     try:
-                        po_item = PurchaseOrderItem.objects.get(po_id = rc.po.id, item__product__id_express = data[4])
+                        po_item = PurchaseOrderItem.objects.get(po__ref_no = data[12], item__product__id_express = data[4])
+                        po_item.is_receive = True
+                        po_item.save()
                     except:
-                        po_item = None
-                    #เช็คว่าเคย save ไปหรือยังถ้าเคยจะไม่ให้ save
-                    try:
-                        rc_item_old =  ReceiveItem.objects.get(item_id = po_item.id)
-                    except:
-                        rc_item_old = None
+                        pass
 
-                    if not rc_item_old and po_item:
-                        unit = BaseUnit.objects.get(name = data[8])
-                        if po_item:
-                            rc_item = ReceiveItem(
-                                id = data[2],
-                                item_id = po_item.id,
-                                quantity = data[7],
-                                unit_id  = unit.id,
-                                unit_price  = data[9],
-                                price = data[11],
-                                rc_id = rc.id,
-                            )
-                            rc_item.save()
             return redirect('viewReceive')
     context = {
         'rc_page': "tab-active",
