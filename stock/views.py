@@ -821,6 +821,7 @@ def createCMorPO(request, pr_id):
             stockman_user = request.user,
             approver_status_id = 1,
             vat_type_id = 1,
+            pr = pr,
         )
         po.save()
 

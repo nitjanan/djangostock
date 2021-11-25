@@ -48,7 +48,7 @@
         <thead class="thead-dark">
             <tr>
                 <th scope="col">รหัสใบสั่งซื้อ</th>
-                <th scope="col">รหัสใบเปรียบเทียบ</th>
+                <th scope="col">รหัส CM/รหัส PR</th>
                 <th scope="col">ชื่อผู้จำหน่าย</th>
                 <th scope="col">เครดิต</th>
                 <th scope="col">ขนส่งโดย</th>
@@ -61,7 +61,10 @@
         {% for po in pos %}
           <tr>
             <th scope="row"><a href="{%url 'showPO' po.id True %}">{{po.ref_no}}</a></th>
-            <td>{%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id True %}">{{po.cp.ref_no}}</a>{%endif%}</td>
+            <td>
+              {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id True %}">{{po.cp.ref_no}}</a>{%endif%}
+              {%if po.pr %}<a href="{%url 'showPR' po.pr.id False %}">{{po.pr.ref_no}}</a>{%endif%}
+            </td>
             <td>{{po.distributor}}</td>
             <td>{{po.credit}}</td>
             <td>{{po.shipping}}</td>

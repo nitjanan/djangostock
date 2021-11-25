@@ -199,7 +199,7 @@ def findBaseUrgency(request, id):
         base_urgen = 'B'
     return dict(base_urgen = base_urgen)
 
-def isPurchasingPR(request):
+def isPurchasingPRCounter(request):
     pr_count = 0
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(request.user.groups.filter(name='Purchasing').exists()):
@@ -215,9 +215,41 @@ def isPurchasingPR(request):
             pr_count = len(data)
         except PurchaseOrder.DoesNotExist:
             pr_count = 0
-    return dict(is_purchasing_pr = pr_count)
+    return pr_count
 
+def isPurchasingPR(request):
+    is_purchasing_pr = isPurchasingPRCounter(request)
 
+    if 'admin' in request.path:
+        return {} #รีเทริ์นค่าเปล่า
+
+    return dict(is_purchasing_pr = is_purchasing_pr)
+
+def addPOCounter(request):
+    cp_count = 0
+    if(request.user.groups.filter(name='Purchasing').exists()):
+        try:
+            cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2).count()
+        except ComparisonPrice.DoesNotExist:
+            pass
+    return cp_count
+
+def addPOAll(request):
+    add_po_all = addPOCounter(request)
+
+    if 'admin' in request.path:
+        return {} #รีเทริ์นค่าเปล่า
+
+    return dict(add_po_all = add_po_all)
+
+def purchasingAllConter(request):
+    add_po = addPOCounter(request)
+    pr_count = isPurchasingPRCounter(request)
+    if 'admin' in request.path:
+        return {} #รีเทริ์นค่าเปล่า
+    else:
+        pc_all = add_po + pr_count
+    return dict(pc_all = pc_all)
 
         
 
