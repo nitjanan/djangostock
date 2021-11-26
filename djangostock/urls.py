@@ -22,7 +22,8 @@ from stock import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('',views.index,name="home"),
+    path('',views.firstPage,name="firstPage"),
+    path('/home',views.index,name="home"),
     path('category/<slug:category_slug>',views.index,name="product_by_category"), # category/fashion ส่งค่า slug ไปด้วยเพื่อกำหมวดหมู่สินค้า และตั้งชื่อเราท์ name = xxx
     path('product/<slug:category_slug>/<slug:product_slug>',views.productPage,name="productDetail"), # product/fashion/shoes
     path('cart/add/<int:product_id>',views.addCart,name="addCart"),

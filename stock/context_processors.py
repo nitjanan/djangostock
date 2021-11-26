@@ -78,7 +78,7 @@ def approvePRCounter(request):
 
     return pr_count
 
-#หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีขอซื้อ
+#หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสั่งซื้อ
 def approvePOCounter(request):
     po_count = 0
     #get permission with position login
@@ -102,7 +102,7 @@ def approvePOCounter(request):
 
     return po_count
 
-#รวมการรออนุมัติใบขอซื้อ
+#รวมการรออนุมัติใบสั่งซื้อ
 def allApprovePOCounter(request):
     all_po_ap = approvePOCounter(request)
 
@@ -111,7 +111,7 @@ def allApprovePOCounter(request):
 
     return dict(all_po_ap = all_po_ap)
 
-#รวมการรออนุมัติใบสั่งซื้อ
+#รวมการรอนุมัติใบขอซื้อ
 def allApprovePRCounter(request):
     all_pr_ap = 0
     pd_count = approvePendingCounter(request)
@@ -160,18 +160,19 @@ def approveCPAllCounter(request):
         for i in isPermissAA:
             pmAA = BasePermission.objects.get(id = i['base_permission'])
 
-    #ถ้าเป็นผู้อนุมัติ
+    #ถ้าเป็นผู้ตรวจสอบ
     if(isPermissAE):
         try:
             #ดึงข้อมูล PurchaseOrder
             ecm_count = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAE.ap_amount_min, pmAE.ap_amount_max)).values("cp").distinct().count()
-        except ComparisonPrice.DoesNotExist:
+        except ComparisonPriceDistributor.DoesNotExist:
             ecm_count = 0
+    #ถ้าเป็นผู้อนุมัติ
     if(isPermissAA):
         try:
         #ดึงข้อมูล PurchaseOrder
             acm_count = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAA.ap_amount_min, pmAA.ap_amount_max)).values("cp").distinct().count()
-        except ComparisonPrice.DoesNotExist:
+        except ComparisonPriceDistributor.DoesNotExist:
             acm_count = 0
     cm_count = ecm_count + acm_count
     return cm_count

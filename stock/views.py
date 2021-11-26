@@ -27,6 +27,140 @@ from django.db.models import Prefetch
 from .resources import ReceiveItemResource
 from tablib import Dataset
 
+@login_required(login_url='signIn')
+def firstPage(request):
+    #ใบขอซื้อ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CAAPR')
+        isPermiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
+    except:
+        isPermiss_pr  = False
+
+    #ถ้าเป็นผู้อนุมัติ
+
+    pr_item_ap = None
+    if(isPermiss_pr):
+        try:
+            #ดึงข้อมูล PurchaseRequisition
+            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseRequisition.DoesNotExist:
+            pass
+
+    new_pr = dict()
+    if pr_item_ap:
+        for obj in pr_item_ap:
+            if obj not in new_pr:
+                new_pr[obj] = obj
+
+    try:
+        #ดึงข้อมูล PurchaseRequisition
+        pr_item_pc = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+    except PurchaseRequisition.DoesNotExist:
+        pr_item_pc = None
+
+    if pr_item_pc:
+        for obj in pr_item_pc:
+            if obj not in new_pr:
+                new_pr[obj] = obj
+
+    #ใบสั่งซื้อ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CAAPO')
+        isPermiss_po = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
+    except:
+        isPermiss_po  = False
+
+    po_item = None
+    #ถ้าเป็นผู้อนุมัติ
+    if(isPermiss_po):
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            pass
+    
+    new_po = dict()
+    if po_item:
+        for obj in po_item:
+            if obj not in new_po:
+                new_po[obj] = obj
+
+
+    #ผู้ตรวจสอบ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+    except:
+        isPermissAE = None
+
+    if(isPermissAE):
+        for i in isPermissAE:
+            pmAE = BasePermission.objects.get(id = i['base_permission'])
+
+    #ผู้อนุมัติ
+    try:
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+    except:
+        isPermissAA = None
+
+    if(isPermissAA):
+        for i in isPermissAA:
+            pmAA = BasePermission.objects.get(id = i['base_permission'])
+
+    ecm_item = None
+    #ถ้าเป็นผู้ตรวจสอบ
+    if(isPermissAE):
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            ecm_item = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAE.ap_amount_min, pmAE.ap_amount_max)).values("cp")
+        except ComparisonPriceDistributor.DoesNotExist:
+            ecm_item = None
+
+    ecp = None
+    try:
+        ecp = ComparisonPrice.objects.filter(pk__in = ecm_item).distinct()
+    except:
+        pass
+
+    new_cm = dict()
+    if ecp:
+        for obj in ecp:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+    
+    #ถ้าเป็นผู้อนุมัติ
+    if(isPermissAA):
+        try:
+        #ดึงข้อมูล PurchaseOrder
+            acm_item = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAA.ap_amount_min, pmAA.ap_amount_max)).values("cp")
+        except ComparisonPriceDistributor.DoesNotExist:
+            acm_item = None
+
+    acp = None
+    try:
+        acp = ComparisonPrice.objects.filter(pk__in = acm_item).distinct()
+    except:
+        pass
+
+    if acp:
+        for obj in acp:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+
+    context = {
+        'prs':new_pr,
+        'pos':new_po,
+        'cms':new_cm,
+    }
+
+    return render(request,'firstPage.html', context)
 
 # Create your views here.
 @login_required(login_url='signIn')
@@ -230,7 +364,7 @@ def signInView(request):
             #ถ้าล็อกอินสำเร็จไปหน้า home else ให้ไปสมัครใหม่
             if user is not None:
                 login(request, user)
-                return redirect('home')
+                return redirect('firstPage')
             else:
                 return redirect('signUp')
     else:
