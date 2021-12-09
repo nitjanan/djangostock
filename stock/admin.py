@@ -1,8 +1,11 @@
 from django.contrib import admin
-from django.forms import CheckboxSelectMultiple, MultipleChoiceField
+from django.db.models import fields
+from django.forms import CheckboxSelectMultiple, MultipleChoiceField, widgets
 from django.db import models
 from import_export.admin import ImportExportModelAdmin
-from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem
+from import_export import fields, resources
+from import_export.widgets import ForeignKeyWidget
+from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
 
 # Register your models here.
 class ProductAdmin(ImportExportModelAdmin):
@@ -38,10 +41,28 @@ class PositionBasePermissionAdmin(admin.ModelAdmin):
     list_display = ['position']
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
 
-class DistributorAdmin(ImportExportModelAdmin):
-    list_display = ['id_express','name', 'address', 'tel', 'fax', 'tex'] #แสดงรายการสินค้าในรูปแบบตาราง
+class BaseDistributorGenreAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
+
+class BaseDistributorTypeAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class BaseAffiliatedCompanyAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class BasePrefixAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
+class DistributorAdmin(ImportExportModelAdmin):
+    list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
 
 class BaseSparesTypeAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -66,7 +87,7 @@ class BaseUnitAdmin(admin.ModelAdmin):
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
 
-class BaseCreditAdmin(admin.ModelAdmin):
+class BaseCreditAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
@@ -93,6 +114,10 @@ admin.site.register(Position, PositionAdmin)
 admin.site.register(PositionBasePermission, PositionBasePermissionAdmin)
 admin.site.register(BasePermission)
 admin.site.register(UserProfile, UserProfileAdmin)
+admin.site.register(BaseDistributorType, BaseDistributorTypeAdmin)
+admin.site.register(BaseDistributorGenre, BaseDistributorGenreAdmin)
+admin.site.register(BaseAffiliatedCompany, BaseAffiliatedCompanyAdmin)
+admin.site.register(BasePrefix, BasePrefixAdmin)
 admin.site.register(Distributor, DistributorAdmin)
 admin.site.register(BaseVatType, BaseVatTypeAdmin)
 admin.site.register(BaseUnit, BaseUnitAdmin)

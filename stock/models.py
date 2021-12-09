@@ -495,13 +495,74 @@ class UserProfile(models.Model):
     def __str__(self):
         return self.user.username
 
+class BaseDistributorType(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True)
+    name = models.CharField(max_length=255,unique=True)
+
+    class Meta:
+        db_table = 'BaseDistributorType'
+        ordering=('id',)
+        verbose_name = 'ชนิดของผู้จัดจำหน่าย'
+        verbose_name_plural = 'ข้อมูลชนิดของผู้จัดจำหน่าย'
+
+    def __str__(self):
+        return self.id
+
+class BaseDistributorGenre(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีประเภทผู้จัดจำหน่าย
+    name = models.CharField(max_length=255,unique=True)
+
+    class Meta:
+        db_table = 'BaseDistributorGenre'
+        ordering=('id',)
+        verbose_name = 'ประเภทของผู้จัดจำหน่าย'
+        verbose_name_plural = 'ข้อมูลประเภทของผู้จัดจำหน่าย'
+
+    def __str__(self):
+        return self.name
+
+class BaseAffiliatedCompany(models.Model):
+    name = models.CharField(max_length=255,unique=True)
+
+    class Meta:
+        db_table = 'BaseAffiliatedCompany'
+        ordering=('id',)
+        verbose_name = 'สังกัดบริษัท'
+        verbose_name_plural = 'ข้อมูลสังกัดบริษัท'
+
+    def __str__(self):
+        return self.name
+
+class BasePrefix(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีคำนำหน้า
+    name = models.CharField(max_length=255,unique=True)
+
+    class Meta:
+        db_table = 'BasePrefix'
+        ordering=('id',)
+        verbose_name = 'คำนำหน้านาม'
+        verbose_name_plural = 'ข้อมูลคำนำหน้านาม'
+
+    def __str__(self):
+        return self.name
+
 class Distributor(models.Model):
-    id_express = models.CharField(max_length=255, blank = True, null = True, unique=True)#เก็บไอดีสินค้าใน express
-    name =  models.CharField(max_length=255, unique=True)
-    address = models.TextField(blank=True)
-    tel = models.CharField(max_length=255, blank = True)
-    fax =  models.CharField(max_length=255, blank = True)
-    tex = models.CharField(max_length=255, blank = True, null = True, unique=True)#เลขประจำตัวผู้เสียภาษี
+    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีสินค้าใน express
+    prefix = models.ForeignKey(BasePrefix, on_delete=models.CASCADE, blank = True, null = True)
+    name =  models.CharField(max_length=255, blank = True, null = True)
+    type = models.ForeignKey(BaseDistributorType, on_delete=models.CASCADE, blank = True, null = True)
+    genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.CASCADE, blank = True, null = True)
+    credit = models.ForeignKey(BaseCredit, on_delete=models.CASCADE, blank = True, null = True)
+    discount = models.CharField(max_length=255, blank = True, null = True)
+    credit_limit = models.CharField(max_length=255, blank = True, null = True)
+    account_number = models.CharField(max_length=255, blank = True, null = True)
+    address = models.TextField(blank=True, null = True)
+    tel = models.CharField(max_length=255, blank = True, null = True)
+    payment = models.CharField(max_length=255, blank = True, null = True)
+    contact = models.CharField(max_length=255, blank = True, null = True)
+    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True)
+    tex = models.CharField(max_length=255, blank = True, null = True)#เลขประจำตัวผู้เสียภาษี
+    fax =  models.CharField(max_length=255, blank = True, null = True)
 
     class Meta:
         db_table = 'Distributor'

@@ -2310,7 +2310,7 @@ def viewRequisitionHistory(request):
     return render(request,'history/viewRequisition.html', context)
 
 def viewPRHistory(request):
-    data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3)))
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -2331,7 +2331,7 @@ def viewPRHistory(request):
     return render(request,'history/viewPR.html',context)
 
 def viewPOHistory(request):
-    data = PurchaseOrder.objects.filter(~Q(approver_status_id = 1), is_receive = True)
+    data = PurchaseOrder.objects.filter(Q(~Q(approver_status_id = 1), is_receive = True) | Q(approver_status_id = 3))
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -2351,7 +2351,7 @@ def viewPOHistory(request):
     return render(request, "history/viewPO.html", context)
 
 def viewComparePricePOHistory(request):
-    data = ComparisonPrice.objects.filter(examiner_status_id = 2, approver_status_id = 2)
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) | Q(examiner_status_id = 3) | Q(approver_status_id = 3))
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)

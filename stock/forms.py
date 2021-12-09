@@ -1,10 +1,11 @@
 import os
+import floppyforms as forms
 from django.contrib.auth import models
 from django.contrib.auth.models import User
 from django import forms
 from django.forms import fields, widgets
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput

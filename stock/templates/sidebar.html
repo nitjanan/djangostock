@@ -82,11 +82,11 @@
                     </ul>
                 </li>
             {% endif %}
-            {% if 'History Complete' in tab.name %}
+            {% if 'History' in tab.name %}
             <li class="">
                 <a href="{% if request.user.is_authenticated %}#historySubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if h_requisitions_page or h_pr_page or h_po_page or h_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-history"></i>
-                    History Complete
+                    History
                 </a>
                 <ul class="collapse list-unstyled {{h_requisitions_show}} {{h_pr_show}} {{h_po_show}} {{h_cp_show}}" id="historySubmenu">
                     <li>
