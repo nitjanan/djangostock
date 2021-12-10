@@ -17,6 +17,13 @@
       <div class="collapse navbar-collapse float-right" id="navbarSupportedContent">
         <ul class="navbar-nav ml-auto">
           {% for tab in visible_tab %}
+            {% if 'Admin' in tab.name %}
+              <li class="nav-item">
+                <a class="nav-link text-uppercase font-weight-bold px-3" href="/admin">
+                  Admin
+                </a>
+              </li>
+            {%endif%}
             {% if 'Category' in tab.name %}
             <li class="nav-item dropdown"><a class="nav-link text-uppercase font-weight-bold px-3"
               href="" data-toggle="dropdown">Category <i class="fas fa-caret-down"></i></a>

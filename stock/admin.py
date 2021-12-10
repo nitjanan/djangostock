@@ -6,6 +6,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
 from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
+from .resources import ReceiveItemResource, DistributorResource
 
 # Register your models here.
 class ProductAdmin(ImportExportModelAdmin):
@@ -61,7 +62,40 @@ class BasePrefixAdmin(ImportExportModelAdmin):
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
 
+class DistributorResource(resources.ModelResource):
+
+    prefix = fields.Field(
+        column_name='prefix',
+        attribute='prefix',
+        widget=ForeignKeyWidget(BasePrefix, 'name'))
+
+    type = fields.Field(
+        column_name='type',
+        attribute='type',
+        widget=ForeignKeyWidget(BaseDistributorType, 'name'))
+
+    genre = fields.Field(
+        column_name='genre',
+        attribute='genre',
+        widget=ForeignKeyWidget(BaseDistributorGenre, 'name'))
+
+    credit = fields.Field(
+        column_name='credit',
+        attribute='credit',
+        widget=ForeignKeyWidget(BaseCredit, 'name'))
+
+    affiliated = fields.Field(
+        column_name='affiliated',
+        attribute='affiliated',
+        widget=ForeignKeyWidget(BaseAffiliatedCompany, 'name'))
+
+    class Meta:
+        model = Distributor
+        fields = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+        export_order = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+
 class DistributorAdmin(ImportExportModelAdmin):
+    resource_class = DistributorResource
     list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
 
 class BaseSparesTypeAdmin(admin.ModelAdmin):

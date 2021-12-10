@@ -47,10 +47,10 @@
       <table class="table table-bordered my-3">
         <thead class="table-info">
           <tr>
+            <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
             <th scope="col">แผนก</th>
-            <th scope="col">วันที่ตั้งเบิก</th>
             <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">สถานะใบขอซื้อ</th>
             <th scope="col">ใบบันทึก</th>
@@ -59,10 +59,10 @@
         <tbody>
         {% for requisition in requisitions %}
           <tr>
+            <td>{{requisition.created |date:"d/m/Y" }}</td>
             <th scope="row"><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></th>
             <td>{{requisition.name}}</td>
             <td>{{requisition.section}}</td>
-            <td>{{requisition.created |date:"d/m/Y" }}</td>
             <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
               {% if requisition.purchase_requisition_id %}

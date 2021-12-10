@@ -177,6 +177,15 @@
             </div>
             <div class="card bg-light hidden-print my-3 {%if isFromPR == 'True'%}d-none{%endif%}">
               <div class="card-body">
+                <label>{{ form.distributor.label }}</label>
+                <div>
+                    <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                    <datalist id="idDistributorList">
+                    {% for results in distributorList %}
+                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit.id}}"></option>
+                    {% endfor %}
+                    </datalist>
+                </div>
                 <p>{{ form | crispy}}</p>
                 {% csrf_token %}
               </div>
@@ -235,6 +244,12 @@ $(function() {
           $("#id_purchaseorderitem_set-"+i+"-express").val(show);
         }
     }
+
+    //set ผู้จำหน่าย
+    var valDT  = $('#id_distributor').val();
+    var showDT = $('#idDistributorList option[data-id='+valDT+']').val();
+    $('#id-form-distributor').val(showDT);
+
 });
 
 $('form').submit(function() {
@@ -480,5 +495,15 @@ $("#id_vat_type").change(function() {
   $("#id_vat").val(vat.toFixed(2));
   $("#id_amount").val(amount.toFixed(2));
 });
+
+$(".distributor" ).change(function() {
+    // get data id ของ option data list
+    var str = $("#id-form-distributor").val();
+    var items = str.split( "-" );
+    var id = items[items.length - 2]
+    $("#id_distributor").val(id);
+    var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
+    $("#id_credit").val(credit);
+  });
 </script>
 {% endblock%}

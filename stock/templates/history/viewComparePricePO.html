@@ -47,17 +47,18 @@
             <table class="table table-bordered my-3">
               <thead class="table-info">
                 <tr>
+                  <th scope="col">วันที่สร้าง</th>
                   <th scope="col">รหัสใบเปรียบเทียบ</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
-                  <th scope="col">วันที่สั่งซื้อ</th>
-                  <th scope="col">ผู้ตรวจสอบ</th>
-                  <th scope="col">ผู้อนุมัติ</th>
+                  <th scope="col">ลงวันที่ตรวจสอบ</th>
+                  <th scope="col">ลงวันที่อนุมัติ</th>
                 </tr>
               </thead>
               <tbody>
               {% for cp in cps %}
                 <tr>
+                  <td>{{cp.created |date:"d/m/Y"}}</td>
                   <th scope="row"><a href="{%url 'showComparePricePO' cp.id 4 %}">{{cp.ref_no}}</a></th>
                   <td>
                       <ul style="list-style: none;">
@@ -69,30 +70,33 @@
                       </ul>
                   </td>
                   <td>{{cp.organizer}}</td>
-                  <td>{{cp.created |date:"d/m/Y"}}</td>
                   <td>
-                    <button type="button"
-                    class="btn btn-block btn-sm
-                    {% if cp.examiner_status.id == 1 %}
-                      btn-outline-warning
-                    {% elif cp.examiner_status.id == 2 %}
-                      btn-outline-success
-                    {% elif cp.examiner_status.id == 3 %}
-                      btn-outline-danger
-                    {% endif %}"
-                    >{{cp.examiner_status}}</button>
+                    {% if cp.examiner_status.id == 1 or cp.examiner_status.id == 3%}
+                      <button type="button"
+                      class="btn btn-block btn-sm
+                      {% if cp.examiner_status.id == 1 %}
+                        btn-outline-warning
+                      {% elif cp.examiner_status.id == 3 %}
+                        btn-outline-danger
+                      {% endif %}"
+                      >{{cp.examiner_status}}</button>
+                    {% else %}
+                      {{cp.examiner_update |date:"d/m/Y"}}
+                    {% endif %}
                   </td>
                   <td>
-                    <button type="button"
-                    class="btn btn-block btn-sm
-                    {% if cp.approver_status.id == 1 %}
-                      btn-outline-warning
-                    {% elif cp.approver_status.id == 2 %}
-                      btn-outline-success
-                    {% elif cp.approver_status.id == 3 %}
-                      btn-outline-danger
-                    {% endif %}"
-                    >{{cp.approver_status}}</button>
+                    {% if cp.approver_status.id == 1 or cp.approver_status.id == 3%}
+                      <button type="button"
+                      class="btn btn-block btn-sm
+                      {% if cp.approver_status.id == 1 %}
+                        btn-outline-warning
+                      {% elif cp.approver_status.id == 3 %}
+                        btn-outline-danger
+                      {% endif %}"
+                      >{{cp.approver_status}}</button>
+                    {% else %}
+                      {{cp.approver_update |date:"d/m/Y"}}
+                    {% endif %}
                   </td>
                 </tr>
               {% endfor %}

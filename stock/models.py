@@ -679,6 +679,7 @@ class PurchaseOrder(models.Model):
     quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
+    receive_update = models.DateField(blank=True, null=True) #วันที่รับสินค้า
 
     class Meta:
         db_table = 'PurchaseOrder'

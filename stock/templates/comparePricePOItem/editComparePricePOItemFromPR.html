@@ -17,6 +17,12 @@
                                 <label>{{bookform.distributor.label}}</label>&ensp;
                                 {{bookform.cp}}
                                 {{bookform.distributor | add_class:"form-control"}}
+                                <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                                <datalist id="idDistributorList">
+                                {% for results in distributorList %}
+                                    <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit.id}}"></option>
+                                {% endfor %}
+                                </datalist>
                             </div>
                         </div>
                         <div class="col-3">
@@ -178,6 +184,11 @@ $(function() {
           
         }
     }
+
+    //set ผู้จำหน่าย
+    var valDT  = $('#id_distributor').val();
+    var showDT = $('#idDistributorList option[data-id='+valDT+']').val();
+    $('#id-form-distributor').val(showDT);
 
 });
 
@@ -417,6 +428,16 @@ $(".express" ).change(function() {
         $("#id_comparisonpriceitem_set-"+suffix+"-quantity").val("");
         $("#id_comparisonpriceitem_set-"+suffix+"-unit").val("");
     }
+  });
+
+  $(".distributor" ).change(function() {
+    // get data id ของ option data list
+    var str = $("#id-form-distributor").val();
+    var items = str.split( "-" );
+    var id = items[items.length - 2]
+    $("#id_distributor").val(id);
+    var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
+    $("#id_credit").val(credit);
   });
 
 </script>

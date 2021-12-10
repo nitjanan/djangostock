@@ -24,7 +24,7 @@ from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, Purc
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
 from django.db.models import Prefetch
-from .resources import ReceiveItemResource
+from .resources import ReceiveItemResource, DistributorResource
 from tablib import Dataset
 from django.db.models import Q
 
@@ -961,7 +961,7 @@ def preparePR(request):
     return render(request,'purchaseRequisition/preparePR.html', context)
 
 def is_purchasing(user):
-    return user.groups.filter(name='Purchasing').exists()
+    return user.groups.filter(name='จัดซื้อ').exists()
 
 def createPR(request, requisition_id):
     items= RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0)
@@ -1360,6 +1360,7 @@ def editPO(request, po_id):
     return render(request, "purchaseOrder/createPO.html", context)
 
 def editPOFromPR(request, po_id):
+    distributorList = Distributor.objects.filter(affiliated = 1)
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
     if request.method == 'POST':
@@ -1370,6 +1371,7 @@ def editPOFromPR(request, po_id):
 
     context = {
         'form':form,
+        'distributorList': distributorList,
         'po_page': "tab-active",
         'po_show': "show",
     }
@@ -1475,6 +1477,7 @@ def editPOItem(request, po_id, isFromPR):
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    distributorList = Distributor.objects.filter(affiliated = 1)
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
@@ -1517,6 +1520,7 @@ def editPOItem(request, po_id, isFromPR):
         'form': form,
         'isFromPR':isFromPR,
         'itemList':itemList,
+        'distributorList': distributorList,
         'heading': heading_message,
     }
     return render(request, template_name, context)
@@ -1566,6 +1570,7 @@ def editPOApprove(request, po_id, isFromHome):
         if(isPermiss):
             obj.approver_status = status
             obj.approver_user_id = request.user.id
+            obj.approver_update = datetime.datetime.now()
         obj.save()
         return redirect('editPOApprove', po_id = po_id, isFromHome = isFromHome)
 
@@ -1664,6 +1669,7 @@ def createComparePricePOItem(request, cp_id):
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    distributorList = Distributor.objects.filter(affiliated = 1)
 
     try:
         bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
@@ -1706,6 +1712,7 @@ def createComparePricePOItem(request, cp_id):
         'itemList': itemList,
         'bookform': bookform,
         'formset': formset,
+        'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
@@ -1716,6 +1723,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    distributorList = Distributor.objects.filter(affiliated = 1)
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
@@ -1756,6 +1764,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
+        'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
@@ -1766,6 +1775,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    distributorList = Distributor.objects.filter(affiliated = 1)
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
@@ -1804,6 +1814,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
+        'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
     }
@@ -1923,6 +1934,7 @@ def createPOFromComparisonPrice(request, cp_id):
 
     context = {
         'form':form,
+
         'po_page': "tab-active",
         'po_show': "show",
     }
@@ -2232,7 +2244,7 @@ def reApprovePR(request, pr_id):
         return render(request, "purchaseRequisition/reApprovePR.html", context)
 
 def export(request):
-    person_resource = ReceiveItemResource()
+    person_resource = DistributorResource()
     dataset = person_resource.export()
     response = HttpResponse(dataset.xls, content_type='application/vnd.ms-excel')
     response['Content-Disposition'] = 'attachment; filename="persons.xls"'
@@ -2252,6 +2264,7 @@ def uploadReceive(request):
                     try:
                         po = PurchaseOrder.objects.get(ref_no = data[10])
                         po.is_receive = True
+                        po.receive_update = data[1]
                         po.save()
                     except PurchaseOrder.DoesNotExist:
                         pass

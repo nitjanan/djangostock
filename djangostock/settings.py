@@ -57,7 +57,6 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'django_filters',
     'import_export',
-    'floppyforms',
 
 ]
 
@@ -95,6 +94,7 @@ TEMPLATES = [
                 'stock.context_processors.userVisibleTab',
                 'stock.context_processors.purchasingAllConter',
                 'stock.context_processors.addPOAll',
+                'stock.context_processors.receiveCounter',
             ],
 
         },

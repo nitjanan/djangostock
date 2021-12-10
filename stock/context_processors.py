@@ -203,7 +203,7 @@ def findBaseUrgency(request, id):
 def isPurchasingPRCounter(request):
     pr_count = 0
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
-    if(request.user.groups.filter(name='Purchasing').exists()):
+    if(request.user.groups.filter(name='จัดซื้อ').exists()):
         try:
             data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
             #เช็คว่าใช้หมดแล้วหรือเปล่า
@@ -228,7 +228,7 @@ def isPurchasingPR(request):
 
 def addPOCounter(request):
     cp_count = 0
-    if(request.user.groups.filter(name='Purchasing').exists()):
+    if(request.user.groups.filter(name='จัดซื้อ').exists()):
         try:
             cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2).count()
         except ComparisonPrice.DoesNotExist:
@@ -251,6 +251,16 @@ def purchasingAllConter(request):
     else:
         pc_all = add_po + pr_count
     return dict(pc_all = pc_all)
+
+
+def receiveCounter(request):
+    rc_count = 0
+    if(request.user.groups.filter(name='จัดซื้อ').exists()):
+        try:
+            rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False).count()
+        except PurchaseOrder.DoesNotExist:
+            pass
+    return dict(rc_count = rc_count)
 
         
 

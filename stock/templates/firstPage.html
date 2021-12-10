@@ -180,7 +180,7 @@ thead, tbody tr {
                                     <th scope="row"><a href="{%url 'showComparePricePO' cm.id 2 %}">{{cm.ref_no}}</a></th>
                                     <td>{{cm.created |date:"d/m/Y" }}</td>
                                     <td>
-                                        <a href="{% url 'printCPApprove' cm.id True %}" class="btn btn-primary btn-sm">อนุมัติ</a>
+                                        <a href="{% url 'printCPApprove' cm.id True %}" class="btn btn-primary btn-block btn-sm">อนุมัติ</a>
                                     </td>
                                 </tr>
                             {% empty %}

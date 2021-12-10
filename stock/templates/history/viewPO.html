@@ -47,19 +47,20 @@
       <table class="table table-bordered my-3">
         <thead class="table-info">
             <tr>
+                <th scope="col">วันที่สั่งซื้อ</th>
                 <th scope="col">รหัสใบสั่งซื้อ</th>
                 <th scope="col">รหัส CM/รหัส PR</th>
                 <th scope="col">ชื่อผู้จำหน่าย</th>
                 <th scope="col">เครดิต</th>
                 <th scope="col">ขนส่งโดย</th>
-                <th scope="col">วันที่สร้าง</th>
-                <th scope="col">ผู้อนุมัติ</th>
-                <th scope="col">รับสินค้า</th>
+                <th scope="col">ลงวันที่อนุมัติ</th>
+                <th scope="col">วันที่รับสินค้า</th>
             </tr>
         </thead>
         <tbody>
         {% for po in pos %}
           <tr>
+            <td>{{po.created |date:"d/m/Y"}}</td>
             <th scope="row"><a href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
             <td>
               {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
@@ -67,9 +68,9 @@
             </td>
             <td>{{po.distributor}}</td>
             <td>{{po.credit}}</td>
-            <td>{{po.shipping}}</td>
-            <td>{{po.created |date:"d/m/Y"}}</td>
+            <td>{{po.shipping}}</td>            
             <td>
+              {% if po.approver_status.id == 1 or po.approver_status.id == 3%}
               <button type="button"
               class="btn btn-block btn-sm
               {% if po.approver_status.id == 1 %}
@@ -80,16 +81,14 @@
                 btn-outline-danger
               {% endif %}"
               >{{po.approver_status}}</button>
+              {%else%}
+                {{po.approver_update |date:"d/m/Y"}}
+              {%endif%}
             </td>
             <td>
-              <button type="button"
-              class="btn btn-sm btn-block
               {% if po.is_receive == True %}
-                btn-outline-primary
-              {% elif po.is_receive == False %}
-                btn-outline-warning
-              {% endif %}"
-              >{% if po.is_receive == True %}รับแล้ว{% elif po.is_receive == False%}ยังไม่รับ{%endif%}</button>
+                {{ po.receive_update |date:"d/m/Y" }}
+              {%endif%}
             </td>
           </tr>
         {% endfor %}

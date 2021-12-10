@@ -1,5 +1,4 @@
 import os
-import floppyforms as forms
 from django.contrib.auth import models
 from django.contrib.auth.models import User
 from django import forms
@@ -78,6 +77,7 @@ class PurchaseOrderForm(forms.ModelForm):
        fields = ('distributor','credit','shipping','vat_type','quotation_pdf')
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
+        'distributor': forms.HiddenInput(),#dataList
         }
        labels = {
             'distributor': _('ผู้จำหน่าย'),
@@ -177,6 +177,7 @@ class CPDModelForm(forms.ModelForm):
         fields = ('distributor','cp','total_price','discount','total_after_discount','vat','amount','credit','vat_type', 'freight', 'quotation_pdf')
         widgets={
             'cp': forms.HiddenInput(),
+            'distributor' : forms.HiddenInput(),
             'total_price': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),
             'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
             'total_after_discount': forms.NumberInput(attrs={'value':'0.00', 'placeholder':'0.00'}),

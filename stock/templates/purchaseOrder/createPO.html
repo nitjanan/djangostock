@@ -7,6 +7,17 @@
     <div class="card bg-light">
         <div class="card-body">
             <form method="post" enctype="multipart/form-data">
+                {% if form.distributor.label %}
+                <label>{{ form.distributor.label }}</label>
+                <div>
+                    <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                    <datalist id="idDistributorList">
+                    {% for results in distributorList %}
+                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit.id}}"></option>
+                    {% endfor %}
+                    </datalist>
+                </div>
+                {% endif %}
                 <p>{{ form | crispy}}</p>
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary hidden-print">
@@ -17,4 +28,17 @@
         </div>
     </div>
 </div>
-{% endblock%}
+{% endblock %}
+{% block javascript %}
+<script>
+    $(".distributor" ).change(function() {
+    // get data id ของ option data list
+    var str = $("#id-form-distributor").val();
+    var items = str.split( "-" );
+    var id = items[items.length - 2]
+    $("#id_distributor").val(id);
+    var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
+    $("#id_credit").val(credit);
+  });
+</script>
+{% endblock %}

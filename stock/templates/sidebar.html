@@ -71,15 +71,29 @@
             {% endif %}
             {% if 'Receive' in tab.name %}
                 <li class="">
+                    <a href="{% url 'viewReceive' %}" class="{{rc_page}}">
+                        <i class="fas fa-warehouse"></i> Receive
+                        {% if rc_count > 0%}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{rc_count}}</span>
+                        {% endif %}
+                    </a>
+                    <!--
                     <a href="{% if request.user.is_authenticated %}#receiveSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rc_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                         <i class="fas fa-warehouse"></i> Receive
+                        {% if rc_count > 0%}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{rc_count}}</span>
+                        {% endif %}
                     </a>
                     <ul class="collapse list-unstyled {{rc_show}}" id="receiveSubmenu">
                         <li>
-                            <a class="{{rc_page}}" href="{% url 'viewReceive' %}">รับเข้าสินค้า
+                            <a class="{{rc_page}}" href="{% url 'viewReceive' %}">ใบสั่งซื้อที่ไม่ได้รับเข้า
+                                {% if rc_count > 0%}
+                                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{rc_count}}</span>
+                                {% endif %}
                             </a>
                         </li>
                     </ul>
+                    -->
                 </li>
             {% endif %}
             {% if 'History' in tab.name %}
