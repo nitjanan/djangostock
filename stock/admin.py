@@ -5,7 +5,7 @@ from django.db import models
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
+from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
 from .resources import ReceiveItemResource, DistributorResource
 
 # Register your models here.
@@ -166,8 +166,12 @@ admin.site.register(Product, ProductAdmin)
 #admin.site.register(Cart)
 #admin.site.register(OrderItem, OrderItemAdmin)
 #admin.site.register(Order, OrderAdmin)
-#admin.site.register(Requisition)
+admin.site.register(Requisition)
 #admin.site.register(RequisitionItem)
+admin.site.register(PurchaseRequisition)
+admin.site.register(PurchaseOrder)
+admin.site.register(ComparisonPrice)
+admin.site.register(ComparisonPriceDistributor)
 admin.site.register(BaseApproveStatus, BaseApproveStatusAdmin)
 admin.site.register(BaseUrgency, BaseUrgencyAdmin)
 admin.site.register(Position, PositionAdmin)
