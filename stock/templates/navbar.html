@@ -27,7 +27,7 @@
             {% if 'Category' in tab.name %}
             <li class="nav-item dropdown"><a class="nav-link text-uppercase font-weight-bold px-3"
               href="" data-toggle="dropdown">Category <i class="fas fa-caret-down"></i></a>
-              <div class="dropdown-menu">
+              <div class="dropdown-menu" style="height:350px;overflow-y:auto;">
                 <a class="dropdown-item" href="{% url 'home' %}">สินค้าทั้งหมด</a>
                 {% for catagory in links %}
                 <a class="dropdown-item" href="{{catagory.get_url}}">{{catagory.name}}</a>

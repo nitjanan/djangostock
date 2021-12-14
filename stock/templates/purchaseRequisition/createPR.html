@@ -125,10 +125,10 @@
                     <td class="text-center">{{ forloop.counter }}</td>
                     <td class="text-center">
                       <input type='hidden' value='{{item.id}}' name='id'>
-                      <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" style="width:190px;" autocomplete="off" value="{{item.product.id_express}}">
+                      <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" style="width:190px;" autocomplete="off" value="{{item.product.id}}">
                       <datalist id="idExpresslist">
                       {% for results in baseProduct %}
-                        <option value="{{results.id_express}}">{{results.name}}</option>
+                        <option value="{{results.id}}">{{results.name}}</option>
                       {% endfor %}
                       </datalist>
                     </td>

@@ -59,7 +59,7 @@
                             <input id="id_comparisonpriceitem_set-{{forloop.counter0}}-express" name="comparisonpriceitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <datalist id="idExpressList">
                               {% for results in itemList %}
-                                <option data-id="{{results.id}}" data-show="{{results.product.id_express}} {{results.product}}" value="{{results.product.id_express}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
+                                <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" value="{{results.product.id}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                               {% endfor %}
                             </datalist>
                             {{form.quantity | add_class:"form-control quantity"}}

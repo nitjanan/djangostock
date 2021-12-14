@@ -37,11 +37,11 @@
         <div class="row">
           <div class="col">
             <address>
-            <strong>ผู้จำหน่าย: {{rc.po.distributor.id_express}}</strong><br>
+            <strong>ผู้จำหน่าย: {{rc.po.distributor.id}}</strong><br>
               {{rc.po.distributor}}<br>
               {{rc.po.distributor.address}}<br>
               โทร : {{rc.po.distributor.tel}}<br>
-              แฟ๊กซ์ : {{rc.po.distributor.fax}}<br>
+              เลขประจำตัวผู้เสียภาษี : {{rc.po.distributor.tex}}
               เลขที่บิล : {{rc.tax_invoice}}
             </address>
           </div>
@@ -81,7 +81,7 @@
                         {% for item in items %}
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
-                            <td class="text-center">{{ item.item.item.product.id_express}} {{ item.item.item }}</td>
+                            <td class="text-center">{{ item.item.item.product.id}} {{ item.item.item }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
                             <td class="text-center">{{ item.unit}}</td>
                             <td class="text-center">{{ item.unit_price}}</td>

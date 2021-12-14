@@ -5,42 +5,76 @@
 {% block content %}
 
 <div class="container">
-    <div class="row my-3">
+  <h5>{{category.name}}</h5>
+    <div class="row my-4">
         {% for product in products %}
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
-              <a href="#"><img class="card-img-top" src="{{product.image.url}}" alt=""></a>
               <div class="card-body">
-                <h4 class="card-title">
-                  <a href="{{product.get_url}}">{{product.name}}</a>
-                </h4>
-                <h5>฿{{product.price | intcomma}}</h5>
+                <b class="card-title">
+                  <!-- a href="{{product.get_url}}">{{product.name}}</a-->
+                  {{product.id}}
+                </b>
+                {{product.name}}
+                <!-- h5>฿{{product.price | intcomma}}</h5-->
                 <p class="card-text">{{product.description | slice:":150"}}</p>
               </div>
-              <div class="card-footer">
+              <!--div class="card-footer">
                 {% if product.stock <= 0 %}
                   <h4 class="text-danger">สินค้าหมด</h4>
                 {% else %}
                   <h4 class="text-success">มีในสต็อก {{product.stock}}</h4>
-                  <!--a href="{%url 'addCart' product.id%}" class="btn btn-primary">เพิ่มลงตะกร้า</a-->
                 {% endif %}
-              </div>
+              </div-->
             </div>
-          </div>
+        </div>
     {% endfor %}
     </div>
-    <nav aria-label="pagination">
-      {% if products.paginator.num_pages > 1 %}
-      <ul class="pagination">
-          {% for page_number in products.paginator.page_range %}
-            <li class="page-item 
-            {% if products.number == page_number %}
-                active
+    <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if products.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="?page={{ products.previous_page_number }}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="True">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if products.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="?page={{ products.number|add:'-5' }}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in products.paginator.page_range %}
+            {% if products.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > products.number|add:'-5' and i < products.number|add:'5' %}
+                <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
             {% endif %}
-            "><a class="page-link" href="?page={{page_number}}">{{page_number}}</a></li>
-          {% endfor %}
+        {% endfor %}
+
+        {% if products.paginator.num_pages > products.number|add:'4' %}
+          <li class="page-item"><a class="page-link" href="?page={{ products.number|add:'5' }}">&hellip;</a></li>
+        {% endif %}
+
+        {% if products.has_next %}
+            <li class="page-item">
+            <a class="page-link" href="?page={{ products.next_page_number }}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="True">Next</a>
+          </li>
+        {% endif %}
       </ul>
-      {% endif %}
-    </nav>
+      </nav>
+    <!--end of Pagination-->
 </div>
 {% endblock%}

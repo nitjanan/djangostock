@@ -32,11 +32,11 @@
         <div class="row">
           <div class="col-md-6">
             <address>
-            <strong>ผู้จำหน่าย: {{po.distributor.id_express}}</strong><br>
+            <strong>ผู้จำหน่าย: {{po.distributor.id}}</strong><br>
               {{po.distributor}}<br>
               {{po.distributor.address}}<br>
               โทร : {{po.distributor.tel}}<br>
-              แฟ๊กซ์ : {{po.distributor.fax}}
+              เลขประจำตัวผู้เสียภาษี : {{po.distributor.tex}}
             </address>
           </div>
           <div class="col-md-6 text-right">
@@ -93,7 +93,7 @@
                         <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                         <datalist id="idExpressList">
                           {% for results in itemList %}
-                            <option data-id="{{results.id}}" data-show="{{results.product.id_express}} {{results.product}}" value="{{results.product.id_express}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
+                            <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" value="{{results.product.id}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                           {% endfor %}
                         </datalist>
                         {{form.quantity }} {{form.unit| add_class:"form-control"}} {{form.unit_price}} {{form.price}} {{ form.DELETE| add_class:"del"}}

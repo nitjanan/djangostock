@@ -131,7 +131,7 @@
                 {% for user in users %}
                 <tr id="user-{{user.id}}">
                     <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center userProduct userData" name="product">{{user.product.id_express}}</td>
+                    <td class="text-center userProduct userData" name="product">{{user.product.id}}</td>
                     <td class="text-center userName userData" name="name"><form class="form-inline ml-3" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
                     <td class="text-center userDescription userData" name="description">{{user.description}}</td>
                     <td class="text-center userQuantity userData" name="quantity">{{user.quantity}}</td>
@@ -281,10 +281,10 @@
             <label for="name">สินค้า</label>
             <input class="form-control" type="text" name="name" required>
             <label for="product">รหัสวัสดุ/อุปกรณ์</label>
-            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id_express}}">
+            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
-              <option value="{{results.id_express}}">{{results.name}}</option>
+              <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
             <label for="name">รายละเอียดเหตุผล</label>
@@ -333,10 +333,10 @@
             <label for="name">สินค้า</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
             <label for="formProduct">รหัสวัสดุ/อุปกรณ์</label>
-            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id_express}}">
+            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
-              <option value="{{results.id_express}}">{{results.name}}</option>
+              <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
             <label for="description">รายละเอียดเหตุผล</label>

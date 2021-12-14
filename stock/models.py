@@ -156,6 +156,30 @@ def get_first_name(self):
     return self.first_name + " " + self.last_name
 User.add_to_class("__str__", get_first_name)
 
+class BaseAffiliatedCompany(models.Model):
+    name = models.CharField(max_length=255,unique=True)
+
+    class Meta:
+        db_table = 'BaseAffiliatedCompany'
+        ordering=('id',)
+        verbose_name = 'สังกัดบริษัท'
+        verbose_name_plural = 'ข้อมูลสังกัดบริษัท'
+
+    def __str__(self):
+        return self.name
+
+class BaseUnit(models.Model):
+    name = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = 'BaseUnit'
+        ordering=('id',)
+        verbose_name = 'หน่วยสินค้า'
+        verbose_name_plural = 'ข้อมูลหน่วยสินค้า'
+
+    def __str__(self):
+        return str(self.name)
+
 class Category(models.Model):
     name = models.CharField(max_length=255,unique=True) #ชื่อโหมดที่ไม่ซ้ำกัน
     slug = models.SlugField(max_length=255,unique=True) #เก็บ url ไว้ผูกข้อมูล Category
@@ -165,6 +189,7 @@ class Category(models.Model):
         
     class Meta :
         ordering = ('name',)
+        ordering = ('id',)
         verbose_name = 'หมวดหมู่สินค้า'
         verbose_name_plural = 'ข้อมูลประเภทสินค้า'
     
@@ -172,17 +197,19 @@ class Category(models.Model):
         return reverse('product_by_category', args=[self.slug])
 
 class Product(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีสินค้าใน express
     name = models.CharField(max_length=255,unique=True) #ชื่อโหมดที่ไม่ซ้ำกัน
+    unit = models.ForeignKey(BaseUnit, on_delete=models.CASCADE, null=True, blank = True)
     slug = models.SlugField(max_length=255,unique=True) #เก็บ url ไว้ผูกข้อมูล Product
     description = models.TextField(blank=True) #เป็นค่าว่างได้
-    price = models.DecimalField(max_digits=20,decimal_places=2) #ราคา Product มีเลข 20 หลัก ทศนิยม 2 ตำแหน่ง
-    category = models.ForeignKey(Category,on_delete=models.CASCADE) #ดึงข้อมูล Category มาใช้ใน Product และ on_delete = models.CASCADE คือหากลบอันใดอันนึงให้ลบทั้งหมดเลย
+    price = models.DecimalField(max_digits=20,decimal_places=2, null=True, blank = True) #ราคา Product มีเลข 20 หลัก ทศนิยม 2 ตำแหน่ง
+    category = models.ForeignKey(Category,on_delete=models.CASCADE, null=True, blank = True) #ดึงข้อมูล Category มาใช้ใน Product และ on_delete = models.CASCADE คือหากลบอันใดอันนึงให้ลบทั้งหมดเลย
     image = models.ImageField(upload_to="product",blank=True) #เก็บรูปภาพ
-    stock = models.IntegerField() #จำนวนชิ้นของ Product
+    stock = models.IntegerField(null=True, blank = True) #จำนวนชิ้นของ Product
     available = models.BooleanField(default=True) #Product ใช้งานได้ไหม
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
-    id_express = models.CharField(max_length=255, blank = True, null = True, unique=True)#เก็บไอดีสินค้าใน express
+    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True)
      
     def __str__(self):
         return self.name
@@ -285,18 +312,6 @@ class BaseUrgency(models.Model):
 
     def __str__(self):
         return str(self.name + " " + self.description)
-
-class BaseUnit(models.Model):
-    name = models.CharField(max_length=255, blank=True)
-
-    class Meta:
-        db_table = 'BaseUnit'
-        ordering=('id',)
-        verbose_name = 'หน่วยสินค้า'
-        verbose_name_plural = 'ข้อมูลหน่วยสินค้า'
-
-    def __str__(self):
-        return str(self.name)
 
 class BaseCredit(models.Model):
     name = models.CharField(max_length=255, blank=True)
@@ -517,18 +532,6 @@ class BaseDistributorGenre(models.Model):
         ordering=('id',)
         verbose_name = 'ประเภทของผู้จัดจำหน่าย'
         verbose_name_plural = 'ข้อมูลประเภทของผู้จัดจำหน่าย'
-
-    def __str__(self):
-        return self.name
-
-class BaseAffiliatedCompany(models.Model):
-    name = models.CharField(max_length=255,unique=True)
-
-    class Meta:
-        db_table = 'BaseAffiliatedCompany'
-        ordering=('id',)
-        verbose_name = 'สังกัดบริษัท'
-        verbose_name_plural = 'ข้อมูลสังกัดบริษัท'
 
     def __str__(self):
         return self.name

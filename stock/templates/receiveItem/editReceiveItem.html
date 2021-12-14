@@ -42,11 +42,11 @@
         <div class="row">
           <div class="col">
             <address>
-            <strong>ผู้จำหน่าย: {{rc.po.distributor.id_express}}</strong><br>
+            <strong>ผู้จำหน่าย: {{rc.po.distributor.id}}</strong><br>
               {{rc.po.distributor}}<br>
               {{rc.po.distributor.address}}<br>
               โทร : {{rc.po.distributor.tel}}<br>
-              แฟ๊กซ์ : {{rc.po.distributor.fax}}<br>
+              เลขประจำตัวผู้เสียภาษี : {{rc.po.distributor.tex}}
               เลขที่บิล : {{rc.tax_invoice}}
             </address>
           </div>
@@ -94,7 +94,7 @@
                     <div class="input-group">
                       {% for item in items %}
                         {% if form.item.value ==  item.item_id %}
-                        <b class="col-3">{{item.item.product.id_express}} {{item.item.product}}</b>
+                        <b class="col-3">{{item.item.product.id}} {{item.item.product}}</b>
                         <p class="col-2">{{item.quantity}} {{item.unit.name}}</p>
                         {% endif %}
                       {% endfor %}

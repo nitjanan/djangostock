@@ -9,10 +9,36 @@ from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesTyp
 from .resources import ReceiveItemResource, DistributorResource
 
 # Register your models here.
+class CategoryAdmin(ImportExportModelAdmin):
+    list_display = ('id', 'name', 'slug') #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 15 #แสดงผล 10 รายการต่อ 1 หน้า
+
+class ProductResource(resources.ModelResource):
+
+    unit = fields.Field(
+        column_name='unit',
+        attribute='unit',
+        widget=ForeignKeyWidget(BaseUnit, 'name'))
+
+    affiliated = fields.Field(
+        column_name='affiliated',
+        attribute='affiliated',
+        widget=ForeignKeyWidget(BaseAffiliatedCompany, 'name'))
+    
+    category = fields.Field(
+        column_name='category',
+        attribute='category',
+        widget=ForeignKeyWidget(Category, 'slug'))
+
+    class Meta:
+        model = Product
+        fields = ('id', 'name', 'unit', 'slug', 'category', 'affiliated')
+        export_order = ('id', 'name', 'unit', 'slug', 'category', 'affiliated')
+
 class ProductAdmin(ImportExportModelAdmin):
-    list_display = ['name', 'price','stock','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_editable = ['price','stock'] #แก้ไขค่าได้เลยในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    resource_class = ProductResource
+    list_display = ('id', 'name', 'unit', 'slug', 'affiliated') #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 15 #แสดงผล 10 รายการต่อ 1 หน้า
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['id','name','email', 'total','token','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -116,9 +142,9 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['position']
 
-class BaseUnitAdmin(admin.ModelAdmin):
+class BaseUnitAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 15 #แสดงผล 10 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BaseCreditAdmin(ImportExportModelAdmin):
@@ -134,7 +160,7 @@ class BaseDeliveryAdmin(admin.ModelAdmin):
 class ReceiveItemAdmin(ImportExportModelAdmin):
     list_display = ('item', 'quantity', 'unit','unit_price','price', 'rc_id')
     
-admin.site.register(Category)
+admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
 #admin.site.register(CartItem)
 #admin.site.register(Cart)

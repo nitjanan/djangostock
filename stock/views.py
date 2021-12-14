@@ -42,7 +42,8 @@ def index(request, category_slug = None):
     else :
         products = Product.objects.all().filter(available=True) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True
     
-    paginator =Paginator(products,2) #หมายถึงให้แสดงสินค้า 4 ต่อ 1 หน้า
+    
+    paginator = Paginator(products,20) #หมายถึงให้แสดงสินค้า 4 ต่อ 1 หน้า
     try:
         page = int(request.GET.get('page', '1')) #กำหนดหมายเลขหน้าแรกเปน str แล้วแปลงเปน int
     except:
@@ -52,7 +53,15 @@ def index(request, category_slug = None):
     try:
         productperPage = paginator.page(page)
     except (EmptyPage, InvalidPage):
-        productperPage = paginator.page(paginator.num_pages)
+        productperPage = paginator.page(paginator.num_pages)    
+    
+    '''
+    #สร้าง page
+    p = Paginator(products, 10)
+    page = request.GET.get('page')
+    productperPage = p.get_page(page)    
+    '''
+
 
     '''
     first page
@@ -212,6 +221,7 @@ def _cart_id(request):
         cart = request.session.create()
     return cart
 
+
 @login_required(login_url='signIn') #ถ้า addCart แล้วยังไม่ได้ login ก็ให้ไปหน้า signIn
 def addCart(request, product_id):
     #ส่งรหัสสินค้ามา
@@ -243,6 +253,7 @@ def addCart(request, product_id):
         )
         cart_item.save()
     return redirect('cartdetail')
+
 
 def cartdetail(request):
     total = 0 #ผลรวมสินค้าทั้งหมดในตะกร้า
@@ -732,7 +743,7 @@ class CreateCrudUser(View):
         product1 = request.GET.get('product', None)
         
         try:
-            product_item = get_object_or_404(Product, id_express=product1)
+            product_item = get_object_or_404(Product, id=product1)
         except:
             product_item = None
 
@@ -784,7 +795,7 @@ class UpdateCrudUser(View):
         product1 = request.GET.get('product', None)
 
         try:
-            product_item = get_object_or_404(Product, id_express=product1)
+            product_item = get_object_or_404(Product, id=product1)
         except:
             product_item = None
 
@@ -1207,7 +1218,7 @@ def saveIdExpressPR(request):
                         item = get_object_or_404(RequisitionItem, id=val_id)
                         if val_product != "":
                             try:
-                                product_item = get_object_or_404(Product, id_express=val_product)
+                                product_item = get_object_or_404(Product, id=val_product)
                                 item.product = product_item
                             except:
                                 pass
@@ -2110,7 +2121,7 @@ def searchItemExpress(request):
     name = request.GET.get('title', None)
     product = Product.objects.filter(name__icontains=name)
     for i in product:
-        strName += "<div class='row'><div class='col-2'>"+ i.id_express + "</div><div class='col-5'>" + i.name + "</div><div class='col'>เหลือใน stock&emsp;"+ str(i.stock) + '</div></div>' 
+        strName += "<div class='row'><div class='col-2'>"+ i.id + "</div><div class='col-5'>" + i.name + "</div><div class='col'>เหลือใน stock&emsp;"+ str(i.stock) + '</div></div>' 
     
     data = {
         'instance': strName,
@@ -2272,12 +2283,22 @@ def uploadReceive(request):
                 elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
                     #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
                     try:
-                        po_item = PurchaseOrderItem.objects.get(po__ref_no = data[12], item__product__id_express = data[4])
+                        po_item = PurchaseOrderItem.objects.get(po__ref_no = data[12], item__product__id = data[4])
                         po_item.is_receive = True
                         po_item.save()
                     except:
                         pass
-
+                ''' temp upload tex
+                if not(data[0] is None) :
+                    #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
+                    try:
+                        dis = Distributor.objects.get(Q(id = data[0]) or Q(name = data[1]))
+                        dis.tex = data[2]
+                        dis.save()
+                    except Distributor.DoesNotExist:
+                        pass
+                '''
+ 
             return redirect('viewReceive')
     context = {
         'rc_page': "tab-active",
