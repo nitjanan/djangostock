@@ -81,7 +81,7 @@
                           <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                           <datalist id="idExpressList">
                             {% for results in itemList %}
-                              <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" value="{{results.product.id}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
+                              <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                             {% endfor %}
                           </datalist>
                           {{form.quantity}} {{form.unit | add_class:"form-control"}} {{form.unit_price}} {{form.price}}

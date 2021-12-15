@@ -173,7 +173,7 @@ class BaseUnit(models.Model):
 
     class Meta:
         db_table = 'BaseUnit'
-        ordering=('id',)
+        ordering=('name',)
         verbose_name = 'หน่วยสินค้า'
         verbose_name_plural = 'ข้อมูลหน่วยสินค้า'
 
@@ -376,6 +376,7 @@ class RequisitionItem(models.Model):
     quantity_pr = models.IntegerField()
     quantity_take = models.IntegerField()
     is_used = models.BooleanField(default=False)#สถานะที่บอกว่านำไปใช้ใน pr หรือ cm หรือยัง
+    is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
 
     class Meta:
         db_table = 'RequisitionItem'

@@ -127,7 +127,7 @@
                             <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <datalist id="idExpressList">
                               {% for results in itemList %}
-                                <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" value="{{results.product.id}}{{results.product}}เลขที่{{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
+                                <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
                               {% endfor %}
                             </datalist>
                             {{form.quantity | add_class:"form-control quantity"}}
@@ -467,12 +467,19 @@ $(".express" ).change(function()  {
     // get data id ของ option data list
     var suffix = $(this).attr('id').match(/\d+/);
     var val = $("#id_form-"+suffix+"-express").val();
+    var item1 = val.split(":");
+    var idExpress = item1[item1.length - 2];
+
+    var item2 = val.split("เลขที่ ");
+    var idRef = item2[item2.length - 1];
+
+    var dataRef = idRef + idExpress;
 
     if(val != ""){
-        var id = $('#idExpressList option[value='+val+']').attr('data-id');
-        var quantity = $('#idExpressList option[value='+val+']').attr('data-quantity');
-        var unit = $('#idExpressList option[value='+val+']').attr('data-unit');
-        var show = $('#idExpressList option[value='+val+']').attr('data-show');
+        var id = $('#idExpressList option[data-refno='+dataRef+']').attr('data-id');
+        var quantity = $('#idExpressList option[data-refno='+dataRef+']').attr('data-quantity');
+        var unit = $('#idExpressList option[data-refno='+dataRef+']').attr('data-unit');
+        var show = $('#idExpressList option[data-refno='+dataRef+']').attr('data-show');
         //set value to form.item
         $("#id_form-"+suffix+"-express").val(show);
         $("#id_form-"+suffix+"-item").val(id);
@@ -524,7 +531,7 @@ $(".distributor" ).change(function() {
     // get data id ของ option data list
     var str = $("#id-form-distributor").val();
     var items = str.split( "-" );
-    var id = items[items.length - 2]
+    var id = items[items.length - 2];
     $("#id_distributor").val(id);
     var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
     $("#id_credit").val(credit);

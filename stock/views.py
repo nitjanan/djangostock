@@ -1443,7 +1443,7 @@ def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
 
     po_data = PurchaseOrder.objects.get(id=po_id)
     if request.method == 'GET':
@@ -1487,7 +1487,7 @@ def editPOItem(request, po_id, isFromPR):
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     distributorList = Distributor.objects.filter(affiliated = 1)
 
     po_data = PurchaseOrder.objects.get(id = po_id)
@@ -1679,7 +1679,7 @@ def createComparePricePOItem(request, cp_id):
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     distributorList = Distributor.objects.filter(affiliated = 1)
 
     try:
@@ -1733,7 +1733,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     distributorList = Distributor.objects.filter(affiliated = 1)
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
@@ -1785,7 +1785,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     distributorList = Distributor.objects.filter(affiliated = 1)
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
@@ -1956,7 +1956,7 @@ def createPOItemFromComparisonPrice(request, po_id):
     template_name = 'purchaseOrderItem/createPOItemFromComparisonPrice.html'
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False)
+    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
 
     po_data = PurchaseOrder.objects.get(id=po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
@@ -2286,7 +2286,13 @@ def uploadReceive(request):
                         po_item = PurchaseOrderItem.objects.get(po__ref_no = data[12], item__product__id = data[4])
                         po_item.is_receive = True
                         po_item.save()
-                    except:
+                        try:
+                            item = RequisitionItem.objects.get(id = po_item.item_id)
+                            item.is_receive = True
+                            item.save()
+                        except RequisitionItem.DoesNotExist:
+                            pass
+                    except PurchaseOrderItem.DoesNotExist:
                         pass
                 ''' temp upload tex
                 if not(data[0] is None) :

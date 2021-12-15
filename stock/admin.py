@@ -38,27 +38,28 @@ class ProductResource(resources.ModelResource):
 class ProductAdmin(ImportExportModelAdmin):
     resource_class = ProductResource
     list_display = ('id', 'name', 'unit', 'slug', 'affiliated') #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 15 #แสดงผล 10 รายการต่อ 1 หน้า
+    search_fields = ['id', 'name']
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['id','name','email', 'total','token','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ['order','product', 'quantity','price','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseApproveStatusAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseUrgencyAdmin(admin.ModelAdmin):
     list_display = ['id','name','description'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class PositionAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class PositionBasePermissionAdmin(admin.ModelAdmin):
@@ -66,26 +67,26 @@ class PositionBasePermissionAdmin(admin.ModelAdmin):
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
     list_display = ['position']
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseDistributorGenreAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BaseDistributorTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BaseAffiliatedCompanyAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BasePrefixAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class DistributorResource(resources.ModelResource):
@@ -126,12 +127,12 @@ class DistributorAdmin(ImportExportModelAdmin):
 
 class BaseSparesTypeAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BaseVatTypeAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class UserProfileAdmin(admin.ModelAdmin):
@@ -139,22 +140,22 @@ class UserProfileAdmin(admin.ModelAdmin):
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
     list_display = ['user','position'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['position']
 
 class BaseUnitAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 15 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BaseCreditAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class BaseDeliveryAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class ReceiveItemAdmin(ImportExportModelAdmin):

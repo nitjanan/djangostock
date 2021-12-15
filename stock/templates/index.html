@@ -5,30 +5,18 @@
 {% block content %}
 
 <div class="container">
-  <h5>{{category.name}}</h5>
-    <div class="row my-4">
-        {% for product in products %}
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <b class="card-title">
-                  <!-- a href="{{product.get_url}}">{{product.name}}</a-->
-                  {{product.id}}
-                </b>
-                {{product.name}}
-                <!-- h5>฿{{product.price | intcomma}}</h5-->
-                <p class="card-text">{{product.description | slice:":150"}}</p>
-              </div>
-              <!--div class="card-footer">
-                {% if product.stock <= 0 %}
-                  <h4 class="text-danger">สินค้าหมด</h4>
-                {% else %}
-                  <h4 class="text-success">มีในสต็อก {{product.stock}}</h4>
-                {% endif %}
-              </div-->
-            </div>
-        </div>
-    {% endfor %}
+  <h5>{% if category.name %}{{category.name}}{%else%}สินค้าทั้งหมด{%endif%}</h5>
+    <div class="row my-4 justify-content-center">
+      <div class="card" style="width: 50rem;">
+        <ul class="list-group list-group-flush">
+          {% for product in products %}
+          <li class="list-group-item">
+            <b class="card-title">{{product.id}}</b>
+            {{product.name}}
+          </li>
+          {% endfor %}
+        </ul>      
+      </div>
     </div>
     <!--Pagination-->
       <nav aria-label="Page navigation example">
