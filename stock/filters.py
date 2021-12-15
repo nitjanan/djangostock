@@ -71,7 +71,6 @@ class ComparisonPriceFilter(django_filters.FilterSet):
 
     class Meta:
         model = ComparisonPrice
-        fields = ('id','ref_no','organizer','created','approver_status','examiner_status')
 
 ComparisonPriceFilter.base_filters['id'].label = 'รหัส'
 ComparisonPriceFilter.base_filters['ref_no'].label = 'รหัส'
