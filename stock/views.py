@@ -2121,7 +2121,7 @@ def searchItemExpress(request):
     name = request.GET.get('title', None)
     product = Product.objects.filter(name__icontains=name)
     for i in product:
-        strName += "<div class='row'><div class='col-2'>"+ i.id + "</div><div class='col-5'>" + i.name + "</div><div class='col'>เหลือใน stock&emsp;"+ str(i.stock) + '</div></div>' 
+        strName += "<div class='row'><div class='col-4'>"+ i.id + "</div><div class='col'>" + i.name + "</div></div>"
     
     data = {
         'instance': strName,

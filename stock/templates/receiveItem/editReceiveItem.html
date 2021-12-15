@@ -43,10 +43,9 @@
           <div class="col">
             <address>
             <strong>ผู้จำหน่าย: {{rc.po.distributor.id}}</strong><br>
-              {{rc.po.distributor}}<br>
+              {% if rc.po.distributor.prefix %}{{rc.po.distributor.prefix}}{%endif%} {{rc.po.distributor}}<br>
               {{rc.po.distributor.address}}<br>
               โทร : {{rc.po.distributor.tel}}<br>
-              เลขประจำตัวผู้เสียภาษี : {{rc.po.distributor.tex}}
               เลขที่บิล : {{rc.tax_invoice}}
             </address>
           </div>
