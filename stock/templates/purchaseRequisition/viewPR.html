@@ -81,7 +81,7 @@
               {% if isPurchasing %}
                 <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบเปรียบเทียบราคา/ใบสั่งซื้อ</a>
               {% else %}
-                {% if pr.purchase_status_id == 1 and pr.approver_status_id == 1 %}
+                {% if pr.approver_status_id == 1 %}
                   <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a>
                   <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm" style="width:90px"><i class="fas fa-trash-alt"></i> ลบ</a>
                 {% else %}

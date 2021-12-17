@@ -59,7 +59,7 @@
                             <input id="id_comparisonpriceitem_set-{{forloop.counter0}}-express" name="comparisonpriceitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <datalist id="idExpressList">
                               {% for results in itemList %}
-                                <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.unit}}"></option>
+                                <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
                               {% endfor %}
                             </datalist>
                             {{form.quantity | add_class:"form-control quantity"}}
@@ -174,7 +174,6 @@ $(function() {
     for(var i = 0; i < inputs.length; i++){
         if($(inputs[i]).val()){
           var val = $(inputs[i]).val();
-          alert(val);
           var show = $('#idExpressList option[data-id='+val+']').attr('data-show');
           var quantity = $('#idExpressList option[data-id='+val+']').attr('data-quantity');
           var unit = $('#idExpressList option[data-id='+val+']').attr('data-unit');
@@ -185,11 +184,6 @@ $(function() {
           
         }
     }
-
-    //set ผู้จำหน่าย
-    var valDT  = $('#id_distributor').val();
-    var showDT = $('#idDistributorList option[data-id='+valDT+']').val();
-    $('#id-form-distributor').val(showDT);
 
 });
 

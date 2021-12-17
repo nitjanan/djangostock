@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
+from stock.models import BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -612,6 +612,11 @@ def createRequisition(request):
         form = RequisitionForm(request.POST or None, request.FILES)
         new_contact = form.save(commit=False)
         new_contact.supplies_approve_user_name_id = request.user.id
+        try:
+            userProfile = UserProfile.objects.get(user = new_contact.name)
+            new_contact.section = userProfile.department
+        except UserProfile.DoesNotExist:
+            pass
         new_contact.save()
         return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
 
@@ -911,7 +916,7 @@ def viewPR(request):
 
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
-        data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
+        data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
 
         #เช็คว่าใช้หมดแล้วหรือเปล่า
         for pr in data:
@@ -1004,10 +1009,17 @@ def createPR(request, requisition_id):
         pr.requisition = requisition
         pr.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
         pr.purchase_user_id = requisition.chief_approve_user_name
+        # set ให้ผู้ขอซื้ออนุมัติมาเลย
+        pr.purchase_status_id = 2
+        pr.purchase_update = datetime.datetime.now()
+
         pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
         #พัสดุ
         pr.stockman_user_id = request.user.id
         pr.stockman_update = datetime.datetime.now()
+        #เจ้าหน้าที่จัดซื้อ
+        pr.organizer = requisition.organizer
+
         pr.save()
 
         #save purchase_requisition_id ใน requisition
@@ -1979,7 +1991,7 @@ def createPOItemFromComparisonPrice(request, po_id):
                     obj.po = po_data
                     obj.save()
             #redirect นอก loop
-            return redirect('viewComparePricePO')
+            return redirect('viewPO')
 
     po = PurchaseOrder.objects.get(id = po_id)
     context = {
@@ -2117,12 +2129,15 @@ def printCPApprove(request, cp_id, isFromHome):
     return render(request, 'comparePricePOApprove/printCPApprove.html',context)
 
 def searchItemExpress(request):
-    strName = ""
+    strName = "<ul class='list-group list-group-flush'>"
     name = request.GET.get('title', None)
     product = Product.objects.filter(name__icontains=name)
+    index = 1
     for i in product:
-        strName += "<div class='row'><div class='col-4'>"+ i.id + "</div><div class='col'>" + i.name + "</div></div>"
-    
+        strName += "<li class='list-group-item'>"+ str(index) + ")  " + i.id + "  " + i.name + "</li>"
+        index += 1
+    strName += "</ul>"
+
     data = {
         'instance': strName,
     }
@@ -2279,11 +2294,12 @@ def uploadReceive(request):
                         po.save()
                     except PurchaseOrder.DoesNotExist:
                         pass
-
                 elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
                     #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
+                    strRefNo = data[12]
+                    refNo = strRefNo.split(' ')[0]
                     try:
-                        po_item = PurchaseOrderItem.objects.get(po__ref_no = data[12], item__product__id = data[4])
+                        po_item = PurchaseOrderItem.objects.get(po__ref_no = refNo, item__product__id = data[4])
                         po_item.is_receive = True
                         po_item.save()
                         try:
@@ -2294,17 +2310,6 @@ def uploadReceive(request):
                             pass
                     except PurchaseOrderItem.DoesNotExist:
                         pass
-                ''' temp upload tex
-                if not(data[0] is None) :
-                    #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
-                    try:
-                        dis = Distributor.objects.get(Q(id = data[0]) or Q(name = data[1]))
-                        dis.tex = data[2]
-                        dis.save()
-                    except Distributor.DoesNotExist:
-                        pass
-                '''
- 
             return redirect('viewReceive')
     context = {
         'rc_page': "tab-active",

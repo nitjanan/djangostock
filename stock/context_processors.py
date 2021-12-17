@@ -205,7 +205,7 @@ def isPurchasingPRCounter(request):
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(request.user.groups.filter(name='จัดซื้อ').exists()):
         try:
-            data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2)
+            data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
             #เช็คว่าใช้หมดแล้วหรือเปล่า
             for pr in data:
                 ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0).count()

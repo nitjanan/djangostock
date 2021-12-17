@@ -2,11 +2,13 @@ from django.contrib import admin
 from django.db.models import fields
 from django.forms import CheckboxSelectMultiple, MultipleChoiceField, widgets
 from django.db import models
+from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
 from .resources import ReceiveItemResource, DistributorResource
+from django.utils.translation import ugettext_lazy as _
 
 # Register your models here.
 class CategoryAdmin(ImportExportModelAdmin):
@@ -57,7 +59,7 @@ class BaseUrgencyAdmin(admin.ModelAdmin):
     list_display = ['id','name','description'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
-class PositionAdmin(admin.ModelAdmin):
+class PositionAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
@@ -130,6 +132,11 @@ class BaseSparesTypeAdmin(admin.ModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
+class BaseDepartmentAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+    list_editable = ['name']
+
 class BaseVatTypeAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
@@ -173,6 +180,7 @@ admin.site.register(PurchaseRequisition)
 admin.site.register(PurchaseOrder)
 admin.site.register(ComparisonPrice)
 admin.site.register(ComparisonPriceDistributor)
+admin.site.register(BaseDepartment, BaseDepartmentAdmin)
 admin.site.register(BaseApproveStatus, BaseApproveStatusAdmin)
 admin.site.register(BaseUrgency, BaseUrgencyAdmin)
 admin.site.register(Position, PositionAdmin)

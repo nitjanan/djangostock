@@ -9,6 +9,7 @@ from django.core.validators import MaxLengthValidator
 from django.core.files.storage import FileSystemStorage
 import datetime
 from datetime import date
+from django.utils.translation import gettext_lazy as _
 
 def requisition_ref_number():   
     today = datetime.datetime.now()
@@ -157,7 +158,7 @@ def get_first_name(self):
 User.add_to_class("__str__", get_first_name)
 
 class BaseAffiliatedCompany(models.Model):
-    name = models.CharField(max_length=255,unique=True)
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อบริษัท")
 
     class Meta:
         db_table = 'BaseAffiliatedCompany'
@@ -169,7 +170,7 @@ class BaseAffiliatedCompany(models.Model):
         return self.name
 
 class BaseUnit(models.Model):
-    name = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อหน่วยสินค้า")
 
     class Meta:
         db_table = 'BaseUnit'
@@ -180,9 +181,21 @@ class BaseUnit(models.Model):
     def __str__(self):
         return str(self.name)
 
+class BaseDepartment(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนก")
+
+    class Meta:
+        db_table = 'BaseDepartment'
+        ordering=('id',)
+        verbose_name = 'แผนก'
+        verbose_name_plural = 'ข้อมูลแผนก'
+
+    def __str__(self):
+        return self.name
+
 class Category(models.Model):
-    name = models.CharField(max_length=255,unique=True) #ชื่อโหมดที่ไม่ซ้ำกัน
-    slug = models.SlugField(max_length=255,unique=True) #เก็บ url ไว้ผูกข้อมูล Category
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อหมวดหมู่สินค้า") #ชื่อโหมดที่ไม่ซ้ำกัน
+    slug = models.SlugField(max_length=255,unique=True, verbose_name="ลิ้งค์") #เก็บ url ไว้ผูกข้อมูล Category
 
     def __str__(self):
         return self.name
@@ -191,25 +204,25 @@ class Category(models.Model):
         ordering = ('name',)
         ordering = ('id',)
         verbose_name = 'หมวดหมู่สินค้า'
-        verbose_name_plural = 'ข้อมูลประเภทสินค้า'
+        verbose_name_plural = 'ข้อมูลหมวดหมู่สินค้า'
     
     def get_url(self):
         return reverse('product_by_category', args=[self.slug])
 
 class Product(models.Model):
-    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีสินค้าใน express
-    name = models.CharField(max_length=255,unique=True) #ชื่อโหมดที่ไม่ซ้ำกัน
-    unit = models.ForeignKey(BaseUnit, on_delete=models.CASCADE, null=True, blank = True)
-    slug = models.SlugField(max_length=255,unique=True) #เก็บ url ไว้ผูกข้อมูล Product
-    description = models.TextField(blank=True) #เป็นค่าว่างได้
-    price = models.DecimalField(max_digits=20,decimal_places=2, null=True, blank = True) #ราคา Product มีเลข 20 หลัก ทศนิยม 2 ตำแหน่ง
-    category = models.ForeignKey(Category,on_delete=models.CASCADE, null=True, blank = True) #ดึงข้อมูล Category มาใช้ใน Product และ on_delete = models.CASCADE คือหากลบอันใดอันนึงให้ลบทั้งหมดเลย
-    image = models.ImageField(upload_to="product",blank=True) #เก็บรูปภาพ
-    stock = models.IntegerField(null=True, blank = True) #จำนวนชิ้นของ Product
-    available = models.BooleanField(default=True) #Product ใช้งานได้ไหม
-    created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
-    update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
-    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True)
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสสินค้า")#เก็บไอดีสินค้าใน express
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อสินค้า") #ชื่อโหมดที่ไม่ซ้ำกัน
+    unit = models.ForeignKey(BaseUnit, on_delete=models.CASCADE, null=True, blank = True, verbose_name="หน่วยสินค้า")
+    slug = models.SlugField(max_length=255,unique=True, verbose_name="ลิ้งค์") #เก็บ url ไว้ผูกข้อมูล Product
+    description = models.TextField(blank=True, verbose_name="รายละเอียด") #เป็นค่าว่างได้
+    price = models.DecimalField(max_digits=20,decimal_places=2, null=True, blank = True, verbose_name="ราคา") #ราคา Product มีเลข 20 หลัก ทศนิยม 2 ตำแหน่ง
+    category = models.ForeignKey(Category,on_delete=models.CASCADE, null=True, blank = True, verbose_name="หมวดหมู่สินค้า") #ดึงข้อมูล Category มาใช้ใน Product และ on_delete = models.CASCADE คือหากลบอันใดอันนึงให้ลบทั้งหมดเลย
+    image = models.ImageField(upload_to="product",blank=True, verbose_name="รูปภาพ") #เก็บรูปภาพ
+    stock = models.IntegerField(null=True, blank = True, verbose_name="จำนวนสินค้าในสต็อก") #จำนวนชิ้นของ Product
+    available = models.BooleanField(default=True, verbose_name="ใช้งานอยู่") #Product ใช้งานได้ไหม
+    created = models.DateField(auto_now_add=True, verbose_name="วันที่สร้าง") #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateField(auto_now=True, verbose_name="วันที่อัพเดท") #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True, verbose_name="สังกัดบริษัท")
      
     def __str__(self):
         return self.name
@@ -301,8 +314,8 @@ class BaseApproveStatus(models.Model):
         return str(self.name)
 
 class BaseUrgency(models.Model):
-    name = models.CharField(max_length=255, blank=True)
-    description = models.TextField(blank=True) #เป็นค่าว่างได้
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อระดับความเร่งด่วน")
+    description = models.TextField(blank=True, verbose_name="รายละเอียดระดับความเร่งด่วน") #เป็นค่าว่างได้
 
     class Meta:
         db_table = 'BaseUrgency'
@@ -314,7 +327,7 @@ class BaseUrgency(models.Model):
         return str(self.name + " " + self.description)
 
 class BaseCredit(models.Model):
-    name = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อเครดิต")
 
     class Meta:
         db_table = 'BaseCredit'
@@ -334,7 +347,7 @@ class Requisition(models.Model):
         on_delete=models.CASCADE,
         related_name='name'
     )
-    section = models.ForeignKey(Group, on_delete=models.CASCADE,blank=True, null=True)
+    section = models.ForeignKey(BaseDepartment, on_delete=models.CASCADE,blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     chief_approve_user_name = models.ForeignKey(
@@ -351,6 +364,7 @@ class Requisition(models.Model):
     ref_no = models.CharField(max_length = 500, default = requisition_ref_number, null = True, blank = True)
     is_edit = models.BooleanField(default=True)
     memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
+    organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
 
     class Meta:
         db_table = 'Requisition'
@@ -358,7 +372,6 @@ class Requisition(models.Model):
 
     def __str__(self):
         return str(self.id)
-
 
 class RequisitionItem(models.Model):
     requisition_id = models.IntegerField()
@@ -428,6 +441,7 @@ class PurchaseRequisition(models.Model):
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     note = models.CharField(max_length=255, blank=True)
     ref_no = models.CharField(max_length = 500, default = purchaseRequisition_ref_number, null = True, blank = True)
+    organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
 
     class Meta:
         db_table = 'PurchaseRequisition'
@@ -435,23 +449,23 @@ class PurchaseRequisition(models.Model):
 
 #ตำแหน่งงาน
 class Position(models.Model):
-    name = models.CharField(max_length=255,unique=True)
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อตำแหน่งงาน")
 
     class Meta:
         db_table = 'Position'
         ordering=('id',)
-        verbose_name = 'ประเภทตำแหน่งงาน'
-        verbose_name_plural = 'ข้อมูลประเภทตำแหน่งงาน'
+        verbose_name = 'ตำแหน่งงาน'
+        verbose_name_plural = 'ข้อมูลตำแหน่งงาน'
     
     def __str__(self):
         return str(self.name)
 
 class BasePermission(models.Model):
-    name = models.CharField(max_length=255,unique=True)
-    codename = models.CharField(max_length=255,unique=True)
-    codename_th = models.CharField(max_length=255,unique=True)
-    ap_amount_min = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ยอดเงินอนุมัติใบเปรียบเทียบน้อยสุด
-    ap_amount_max = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อสิทธิการทำงาน")
+    codename = models.CharField(max_length=255,unique=True, verbose_name="โค้ด")
+    codename_th = models.CharField(max_length=255,unique=True, verbose_name="โค้ดไทย")
+    ap_amount_min = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบน้อยสุด")#ยอดเงินอนุมัติใบเปรียบเทียบน้อยสุด
+    ap_amount_max = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบมากสุด")#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
 
     class Meta:
         db_table = 'BasePermission'
@@ -463,7 +477,7 @@ class BasePermission(models.Model):
         return str(self.codename_th)
 
 class BaseSparesType(models.Model):
-    name = models.CharField(max_length=255,unique=True)
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชนิดอะไหล่")
 
     class Meta:
         db_table = 'BaseSparesType'
@@ -476,16 +490,19 @@ class BaseSparesType(models.Model):
 
 
 class PositionBasePermission(models.Model):
-    position = models.ForeignKey(Position, on_delete = models.CASCADE)
-    base_permission = models.ManyToManyField(BasePermission)
+    position = models.ForeignKey(Position, on_delete = models.CASCADE, verbose_name="ตำแหน่งงาน")
+    base_permission = models.ManyToManyField(BasePermission, verbose_name="สิทธิการทำงาน")
     class Meta:
         db_table = 'PositionBasePermission'
         ordering=('id',)
         verbose_name = 'ตำแหน่งงานและสิทธิการทำงาน'
         verbose_name_plural = 'ข้อมูลตำแหน่งงานและสิทธิการทำงาน'
 
+    def __str__(self):
+        return str(self.position.name)
+
 class BaseVisible(models.Model):       
-    name = models.CharField(max_length=255,unique=True)
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแท็บการใช้งาน")
 
     class Meta:
         db_table = 'BaseVisible'
@@ -499,10 +516,11 @@ class BaseVisible(models.Model):
 
 #USER PROFILE
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    position = models.ForeignKey(Position,on_delete=models.CASCADE)
-    signature = models.ImageField(null=True, blank=True, upload_to = "signature/")
-    visible = models.ManyToManyField(BaseVisible)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="ผู้ใช้")
+    position = models.ForeignKey(Position,on_delete=models.CASCADE, verbose_name="ตำแหน่งงาน")
+    department = models.ForeignKey(BaseDepartment,on_delete=models.CASCADE, verbose_name="แผนก")
+    signature = models.ImageField(null=True, blank=True, upload_to = "signature/",verbose_name="ลายเซ็น")
+    visible = models.ManyToManyField(BaseVisible,verbose_name="การมองเห็นแท็ปการใช้งาน")
 
     class Meta:
         verbose_name = 'ผู้ใช้และตำแหน่งงาน'
@@ -512,8 +530,8 @@ class UserProfile(models.Model):
         return self.user.username
 
 class BaseDistributorType(models.Model):
-    id = models.CharField(primary_key=True, max_length=255, unique=True)
-    name = models.CharField(max_length=255,unique=True)
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสชนิดของผู้จัดจำหน่าย")
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อชนิดของผู้จัดจำหน่าย")
 
     class Meta:
         db_table = 'BaseDistributorType'
@@ -525,8 +543,8 @@ class BaseDistributorType(models.Model):
         return self.id
 
 class BaseDistributorGenre(models.Model):
-    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีประเภทผู้จัดจำหน่าย
-    name = models.CharField(max_length=255,unique=True)
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทของผู้จัดจำหน่าย")#เก็บไอดีประเภทผู้จัดจำหน่าย
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทของผู้จัดจำหน่าย")
 
     class Meta:
         db_table = 'BaseDistributorGenre'
@@ -538,8 +556,8 @@ class BaseDistributorGenre(models.Model):
         return self.name
 
 class BasePrefix(models.Model):
-    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีคำนำหน้า
-    name = models.CharField(max_length=255,unique=True)
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสคำนำหน้านาม")#เก็บไอดีคำนำหน้า
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อคำนำหน้านาม")
 
     class Meta:
         db_table = 'BasePrefix'
@@ -551,22 +569,22 @@ class BasePrefix(models.Model):
         return self.name
 
 class Distributor(models.Model):
-    id = models.CharField(primary_key=True, max_length=255, unique=True)#เก็บไอดีสินค้าใน express
-    prefix = models.ForeignKey(BasePrefix, on_delete=models.CASCADE, blank = True, null = True)
-    name =  models.CharField(max_length=255, blank = True, null = True)
-    type = models.ForeignKey(BaseDistributorType, on_delete=models.CASCADE, blank = True, null = True)
-    genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.CASCADE, blank = True, null = True)
-    credit = models.ForeignKey(BaseCredit, on_delete=models.CASCADE, blank = True, null = True)
-    discount = models.CharField(max_length=255, blank = True, null = True)
-    credit_limit = models.CharField(max_length=255, blank = True, null = True)
-    account_number = models.CharField(max_length=255, blank = True, null = True)
-    address = models.TextField(blank=True, null = True)
-    tel = models.CharField(max_length=255, blank = True, null = True)
-    payment = models.CharField(max_length=255, blank = True, null = True)
-    contact = models.CharField(max_length=255, blank = True, null = True)
-    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True)
-    tex = models.CharField(max_length=255, blank = True, null = True)#เลขประจำตัวผู้เสียภาษี
-    fax =  models.CharField(max_length=255, blank = True, null = True)
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสผู้จัดจำหน่าย")#เก็บไอดีสินค้าใน express
+    prefix = models.ForeignKey(BasePrefix, on_delete=models.CASCADE, blank = True, null = True, verbose_name="คำนำหน้า")
+    name =  models.CharField(max_length=255, blank = True, null = True, verbose_name="ชื่อผู้จัดจำหน่าย")
+    type = models.ForeignKey(BaseDistributorType, on_delete=models.CASCADE, blank = True, null = True, verbose_name="ชนิดของผู้จัดจำหน่าย")
+    genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.CASCADE, blank = True, null = True, verbose_name="ประเภทของผู้จัดจำหน่าย")
+    credit = models.ForeignKey(BaseCredit, on_delete=models.CASCADE, blank = True, null = True, verbose_name="เครดิต")
+    discount = models.CharField(max_length=255, blank = True, null = True, verbose_name="ส่วนลด")
+    credit_limit = models.CharField(max_length=255, blank = True, null = True, verbose_name="ยอดวงเงิน")
+    account_number = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขบัญชี")
+    address = models.TextField(blank=True, null = True, verbose_name="ที่อยู่")
+    tel = models.CharField(max_length=255, blank = True, null = True, verbose_name="เบอร์โทร+เบอร์แฟกส์")
+    payment = models.CharField(max_length=255, blank = True, null = True, verbose_name="เงื่อนไขการชำระเงิน")
+    contact = models.CharField(max_length=255, blank = True, null = True, verbose_name="ผู้ติดต่อ")
+    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True, verbose_name="สังกัดบริษัท")
+    tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")#เลขประจำตัวผู้เสียภาษี
+    fax =  models.CharField(max_length=255, blank = True, null = True, verbose_name="แฟกส์")
 
     class Meta:
         db_table = 'Distributor'
@@ -578,7 +596,7 @@ class Distributor(models.Model):
         return self.name
 
 class BaseVatType(models.Model):
-    name = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อประเภทภาษี")
 
     class Meta:
         db_table = 'BaseVatType'
@@ -590,7 +608,7 @@ class BaseVatType(models.Model):
         return str(self.name)
 
 class BaseDelivery(models.Model):
-    name = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อสถานที่จัดส่ง")
 
     class Meta:
         db_table = 'BaseDelivery'

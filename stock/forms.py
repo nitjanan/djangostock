@@ -30,9 +30,11 @@ class UserProfileForm(forms.ModelForm):
         fields = ('position',)
 
 class RequisitionForm(forms.ModelForm):
+    chief_approve_user_name = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
+    organizer = forms.ModelChoiceField(label='เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ'))
     class Meta:
         model = Requisition
-        fields = ('name', 'section','chief_approve_user_name','urgency', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db
+        fields = ('name','chief_approve_user_name','organizer','urgency', 'memorandum_pdf',) #สร้าง auto อ้างอิงจากฟิลด์ใน db
         widgets = {
         'urgency': forms.HiddenInput(),
         'memorandum_pdf' : MyClearableFileInput,
@@ -40,7 +42,6 @@ class RequisitionForm(forms.ModelForm):
         labels = {
             'name': _('ชื่อผู้ขอตั้งเบิก'),
             'section': _('แผนก'),
-            'chief_approve_user_name': _('หัวหน้างาน'),
             'urgency': _('ระดับความเร่งด่วน'),
             'memorandum_pdf': _('ใบบันทึกข้อความ'),
         } 
