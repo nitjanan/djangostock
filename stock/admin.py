@@ -146,7 +146,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
-    list_display = ['user','position'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_display = ['user','position','department'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['position']
 

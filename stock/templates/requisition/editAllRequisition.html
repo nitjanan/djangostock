@@ -382,8 +382,9 @@ $(document).on('submit','form#addUser',function(){
         alert("All fields must have a valid value.");
     }
     $('form#addUser').trigger("reset");
+    $(this).find('form#addUser')[0].reset();
     $('#myModal-create').modal('hide');
-    location.reload();
+    window.location.reload();
     return false;
   });
 });
@@ -449,8 +450,9 @@ $(document).on('submit','form#updateUser',function(){
         alert("All fields must have a valid value.");
     }
     $('form#updateUser').trigger("reset");
+    $(this).find('form#updateUser')[0].reset();
     $('#myModal').modal('hide');
-    location.reload();
+    window.location.reload();
     return false;
   });
 });
