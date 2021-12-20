@@ -516,9 +516,9 @@ class BaseVisible(models.Model):
 
 #USER PROFILE
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="ผู้ใช้")
-    position = models.ForeignKey(Position,on_delete=models.CASCADE, verbose_name="ตำแหน่งงาน")
-    department = models.ForeignKey(BaseDepartment,on_delete=models.CASCADE, verbose_name="แผนก")
+    user = models.OneToOneField(User, on_delete=models.CASCADE,null=True, blank=True, verbose_name="ผู้ใช้")
+    position = models.ForeignKey(Position,on_delete=models.CASCADE,null=True, blank=True, verbose_name="ตำแหน่งงาน")
+    department = models.ForeignKey(BaseDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนก")
     signature = models.ImageField(null=True, blank=True, upload_to = "signature/",verbose_name="ลายเซ็น")
     visible = models.ManyToManyField(BaseVisible,verbose_name="การมองเห็นแท็ปการใช้งาน")
 
