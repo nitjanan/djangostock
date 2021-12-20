@@ -488,6 +488,7 @@ function appendToUsrTable(user) {
             </td>
         </tr>
     `);
+    window.location.reload();
 }
 
 function updateToUserTabel(user){
@@ -511,6 +512,7 @@ function updateToUserTabel(user){
           $(this).text(user.urgency);
         }
       });
+      window.location.reload();
 }
 function parseDate(str) {
     var mdy = str.split('-');
