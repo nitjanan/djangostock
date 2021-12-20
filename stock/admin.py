@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import ugettext_lazy as _
 
@@ -177,9 +177,11 @@ admin.site.register(Product, ProductAdmin)
 admin.site.register(Requisition)
 #admin.site.register(RequisitionItem)
 admin.site.register(PurchaseRequisition)
+admin.site.register(PurchaseOrderItem)
 admin.site.register(PurchaseOrder)
 admin.site.register(ComparisonPrice)
 admin.site.register(ComparisonPriceDistributor)
+admin.site.register(ComparisonPriceItem)
 admin.site.register(BaseDepartment, BaseDepartmentAdmin)
 admin.site.register(BaseApproveStatus, BaseApproveStatusAdmin)
 admin.site.register(BaseUrgency, BaseUrgencyAdmin)

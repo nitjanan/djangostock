@@ -137,11 +137,7 @@
                     <td class="text-center userQuantity userData" name="quantity">{{user.quantity}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake"><b onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" style="cursor: pointer;">{{user.quantity_take}}</b></td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
-                      {% for unit in baseUnit %}
-                        {% if user.unit == unit.id %}
-                          {{unit.name}}
-                        {% endif %}
-                      {% endfor %}
+                      {{user.unit}}
                     </td>
                     <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
                     <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>

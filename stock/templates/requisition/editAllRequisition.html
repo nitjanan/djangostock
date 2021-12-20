@@ -123,11 +123,7 @@
                     <td class="text-center userQuantity userData" name="quantity">{{user.quantity}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake"><b onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" style="cursor: pointer;color:red;">{{user.quantity_take}}</b></td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
-                      {% for unit in baseUnit %}
-                        {% if user.unit == unit.id %}
-                          {{unit.name}}
-                        {% endif %}
-                      {% endfor %}
+                      {{user.unit}}
                     </td>
                     <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
                     <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
@@ -224,12 +220,12 @@
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="1" required>
             <label for="name">หน่วย</label>
-            <select id="sel-unit" name="unit" class="select form-control" required>
-              <option value="" selected="">---------</option>
+            <input class="form-control" list="unitList" name="unit" id="sel-unit">
+            <datalist id="unitList">
               {% for unit in baseUnit %}
-              <option value="{{unit.id}}">{{unit.name}}</option>
+                <option data-id = "{{unit.id}}" value="{{unit.name}}">
               {% endfor %}
-            </select>
+            </datalist>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
             <input class="form-control" type="text" name="machine" >
             <label for="name">วันที่ต้องการ</label>
@@ -271,12 +267,12 @@
             <label for="quantityTake">จำนวนที่จ่ายไป</label>
             <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min=0 />
             <label for="name">หน่วย</label>
-            <select id="form-unit" name="formUnit" class="select form-control" required>
-              <option value="" selected="">---------</option>
+            <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">
+            <datalist id="formUnitList">
               {% for unit in baseUnit %}
-              <option value="{{unit.id}}">{{unit.name}}</option>
+                <option data-id = "{{unit.id}}" value="{{unit.name}}">
               {% endfor %}
-            </select>
+            </datalist>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
             <input class="form-control" type="text" id="form-machine" name="formMachine">
             <label for="name">วันที่ต้องการ</label>

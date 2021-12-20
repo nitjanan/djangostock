@@ -382,7 +382,7 @@ class RequisitionItem(models.Model):
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     desired_date = models.DateField(blank=True, null=True)
-    unit = models.IntegerField(blank=True, null=True)
+    unit = models.CharField(max_length=255, blank=True, null=True)
     urgency = models.IntegerField(blank=True, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
     requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True)

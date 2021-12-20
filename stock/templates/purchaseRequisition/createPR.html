@@ -125,7 +125,7 @@
                     <td class="text-center">{{ forloop.counter }}</td>
                     <td class="text-center">
                       <input type='hidden' value='{{item.id}}' name='id'>
-                      <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" style="width:190px;" autocomplete="off" value="{{item.product.id}}">
+                      <input id="product" name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" style="width:190px;" autocomplete="off" value="{{item.product.id}}" required>
                       <datalist id="idExpresslist">
                       {% for results in baseProduct %}
                         <option value="{{results.id}}">{{results.name}}</option>
@@ -136,11 +136,7 @@
                     <td class="text-center" name="description">{{item.description}}</td>
                     <td class="text-center" name="quantity">{{item.quantity_pr}}</td>
                     <td class="text-center" name="unit">
-                      {% for bu in baseUnit %}
-                        {% if bu.id == item.unit %}
-                          {{bu.name}}
-                        {% endif %}
-                      {% endfor %}
+                      {{item.unit}}
                     </td>
                     <td class="text-center" name="machine">{{item.machine}}</td>
                     <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>

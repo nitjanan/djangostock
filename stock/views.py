@@ -1106,7 +1106,6 @@ def createCMorPO(request, pr_id):
             item = PurchaseOrderItem.objects.create(
                 item_id = i,
                 quantity = ri.quantity_pr,
-                unit_id = ri.unit,
                 po_id = po.id
             )
             item.save()
@@ -2328,7 +2327,6 @@ def showReceive(request, rc_id):
         'rc_show': "show",
     }
     return render(request, 'receive/showReceive.html',context)
-
 
 def viewRequisitionHistory(request):
     month = datetime.datetime.now().month

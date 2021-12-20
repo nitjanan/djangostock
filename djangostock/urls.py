@@ -19,6 +19,7 @@ from stock import views
 from django.conf.urls.static import static
 from django.conf import settings
 from stock import views
+from django.contrib.auth.decorators import login_required
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -47,9 +48,9 @@ urlpatterns = [
     path('requisitionItem/remove/<int:item_id>',views.removeRequisitionItem,name="removeRequisitionItem"),
     path('requisitionItem/edit/<int:item_id>',views.editRequisitionItem,name="editRequisitionItem"),
     path('requisitionItem/view/<int:requisition_id>',views.crudRequisitionItemView,name="crudRequisitionItemView"),
-    path('requisitionItem/crud/<int:requisition_id>',  views.CrudView.as_view(), name='crud_ajax'),
-    path('ajax/crud/create/<int:requisition_id>',  views.CreateCrudUser.as_view(), name='crud_ajax_create'),
-    path('ajax/crud/update/<int:requisition_id>',  views.UpdateCrudUser.as_view(), name='crud_ajax_update'),
+    path('requisitionItem/crud/<int:requisition_id>', login_required(views.CrudView.as_view()), name='crud_ajax'),
+    path('ajax/crud/create/<int:requisition_id>',  login_required(views.CreateCrudUser.as_view()), name='crud_ajax_create'),
+    path('ajax/crud/update/<int:requisition_id>',  login_required(views.UpdateCrudUser.as_view()), name='crud_ajax_update'),
     path('ajax/crud/delete/',  views.DeleteCrudUser.as_view(), name='crud_ajax_delete'),
     path('requisitionItem/editAll/<int:requisition_id>',  views.editAllRequisition, name='editAllRequisition'),
 

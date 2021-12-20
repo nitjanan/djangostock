@@ -115,11 +115,7 @@
                     <td class="text-center userQuantity userData" name="quantity">{{item.quantity}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake">{{item.quantity_take}}</td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{item.unit}}">
-                      {% for unit in baseUnit %}
-                        {% if item.unit == unit.id %}
-                          {{item.name}}
-                        {% endif %}
-                      {% endfor %}
+                      {{item.unit}}
                     </td>
                     <td class="text-center userMachine userData" name="machine">{{item.machine}}</td>
                     <td class="text-center userDesiredDate userData" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
