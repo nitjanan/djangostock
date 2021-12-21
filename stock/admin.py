@@ -82,9 +82,15 @@ class BaseDistributorTypeAdmin(ImportExportModelAdmin):
     list_editable = ['name']
 
 class BaseAffiliatedCompanyAdmin(ImportExportModelAdmin):
-    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_display = ['id','name','name_th', 'logo_preview'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
-    list_editable = ['name']
+    readonly_fields = ('logo_preview',)
+
+    def logo_preview(self, obj):
+        return obj.logo_preview
+
+    logo_preview.short_description = 'โลโก้บริษัท preview'
+    logo_preview.allow_tags = True
 
 class BasePrefixAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -148,7 +154,14 @@ class UserProfileAdmin(admin.ModelAdmin):
     }
     list_display = ['user','position','department'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
-    list_editable = ['position']
+    list_editable = ['position','department']
+    readonly_fields = ('signature_preview',)
+
+    def signature_preview(self, obj):
+        return obj.signature_preview
+
+    signature_preview.short_description = 'ลายเซ็น preview'
+    signature_preview.allow_tags = True
 
 class BaseUnitAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง

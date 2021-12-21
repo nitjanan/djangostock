@@ -10,6 +10,8 @@ from django.core.files.storage import FileSystemStorage
 import datetime
 from datetime import date
 from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
+from django.template.defaultfilters import truncatechars
 
 def requisition_ref_number():   
     today = datetime.datetime.now()
@@ -158,13 +160,26 @@ def get_first_name(self):
 User.add_to_class("__str__", get_first_name)
 
 class BaseAffiliatedCompany(models.Model):
-    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อบริษัท")
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อบริษัทย่อ")
+    name_th = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทไทย")
+    name_eng = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทอังกฤษ")
+    address = models.CharField(max_length=255, blank=True, null = True, verbose_name="ที่อยู่")
+    tel = models.CharField(max_length=255, blank = True, null = True, verbose_name="เบอร์โทร")
+    tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")
+    branch = models.CharField(max_length=255, blank = True, null = True, verbose_name="สาขา")
+    logo = models.ImageField(null=True, blank=True, upload_to = "company/",verbose_name="โลโก้บริษัท")
 
     class Meta:
         db_table = 'BaseAffiliatedCompany'
         ordering=('id',)
         verbose_name = 'สังกัดบริษัท'
         verbose_name_plural = 'ข้อมูลสังกัดบริษัท'
+
+    @property
+    def logo_preview(self):
+        if self.logo:
+            return mark_safe('<img src="{}" height="100" />'.format(self.logo.url))
+        return ""
 
     def __str__(self):
         return self.name
@@ -525,6 +540,12 @@ class UserProfile(models.Model):
     class Meta:
         verbose_name = 'ผู้ใช้และตำแหน่งงาน'
         verbose_name_plural = 'ข้อมูลผู้ใช้และตำแหน่งงาน'
+        
+    @property
+    def signature_preview(self):
+        if self.signature:
+            return mark_safe('<img src="{}" height="100" />'.format(self.signature.url))
+        return ""
 
     def __str__(self):
         return self.user.username
