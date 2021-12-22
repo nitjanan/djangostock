@@ -238,9 +238,11 @@ $(function() {
         if($(inputs[i]).val()){
           var val = $(inputs[i]).val();
           var show = $('#idExpressList option[data-id='+val+']').attr("data-show");
+          var unit = $('#idExpressList option[data-id='+val+']').attr("data-unit");
 
           //set value to form.item
           $("#id_purchaseorderitem_set-"+i+"-express").val(show);
+          $("#id_purchaseorderitem_set-"+i+"-unit").val(unit);
         }
     }
 
