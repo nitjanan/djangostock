@@ -108,7 +108,7 @@
                 <p class="text-right">หักส่วนลด</p>
               </div>
               <div class="col-2">
-                <p class="text-right">{{po.discount | intcomma}}&ensp;บาท</p>
+                <p class="text-right">{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</p>
               </div>
             </div>
             <div class="row">
