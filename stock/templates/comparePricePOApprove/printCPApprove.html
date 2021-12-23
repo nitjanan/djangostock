@@ -227,7 +227,11 @@
                                     ( {{cp.approver_user}} )<br>
                                     {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
                                 {% endif %}
-                                {% if cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
+                                {% if isApprover and isExaminer and cp.examiner_status.id == 1%}
+                                    <br>
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                {% elif cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
                                     <br>
                                     <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                     <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">

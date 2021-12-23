@@ -21,7 +21,7 @@
           {{ filter.form.section|as_crispy_field }}
         </div>
         <div class="form-group col-md-2 mb-0">
-          {{ filter.form.urgency|as_crispy_field }}
+          {{ filter.form.organizer|as_crispy_field }}
         </div>
         <div class="form-group col-md-2 mb-0">
           {{ filter.form.start_created|as_crispy_field }}
@@ -52,6 +52,8 @@
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
             <th scope="col">แผนก</th>
             <!--<th scope="col">ความเร่งด่วน</th>-->
+            <th scope="col">หัวหน้างาน</th>
+            <th scope="col">ส่งให้เจ้าหน้าที่จัดซื้อ</th>
             <th scope="col">สถานะใบขอซื้อ</th>
             <th scope="col">ใบบันทึก</th>
           </tr>
@@ -63,6 +65,8 @@
             <th scope="row"><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></th>
             <td>{{requisition.name}}</td>
             <td>{{requisition.section}}</td>
+            <td>{{requisition.chief_approve_user_name}}</td>
+            <td>{{requisition.organizer}}</td>
             <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
               {% if requisition.purchase_requisition_id %}

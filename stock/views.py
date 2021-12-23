@@ -1072,7 +1072,7 @@ def createCMorPO(request, pr_id):
 
         cpd = ComparisonPriceDistributor.objects.create(
             cp_id = cp.id,
-            vat_type_id = 1
+            vat_type_id = 4
         )
         cpd.save()
         for i in listItem:
@@ -2009,7 +2009,7 @@ def createPOItemFromComparisonPrice(request, po_id):
 
 @login_required(login_url='signIn')
 def viewCPApprove(request):
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3))
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3), select_bidder_id__isnull = False)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
@@ -2100,8 +2100,15 @@ def printCPApprove(request, cp_id, isFromHome):
 
         obj = ComparisonPrice.objects.get(id = cp_id)
         #ผู้อนุมัติ
+        if(isApprover and isExaminer):
+            obj.examiner_status = status
+            obj.examiner_user_id = request.user.id
+            obj.examiner_update = datetime.datetime.now()
 
-        if(isApprover):
+            obj.approver_status = status
+            obj.approver_user_id = request.user.id
+            obj.approver_update = datetime.datetime.now()
+        elif(isApprover):
             obj.approver_status = status
             obj.approver_user_id = request.user.id
             obj.approver_update = datetime.datetime.now()
@@ -2239,8 +2246,7 @@ def editReceiveItem(request, rc_id):
 
 def reApprovePR(request, pr_id):
         pr = PurchaseRequisition.objects.get(id = pr_id)
-        pr.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
-        pr.purchase_update = None
+
         pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
         pr.approver_update = None
         #พัสดุ

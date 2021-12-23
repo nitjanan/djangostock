@@ -31,7 +31,7 @@ class UserProfileForm(forms.ModelForm):
 
 class RequisitionForm(forms.ModelForm):
     chief_approve_user_name = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
-    organizer = forms.ModelChoiceField(label='เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    organizer = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ'))
     class Meta:
         model = Requisition
         fields = ('name','chief_approve_user_name','organizer','urgency', 'memorandum_pdf',) #สร้าง auto อ้างอิงจากฟิลด์ใน db

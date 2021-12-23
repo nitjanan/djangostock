@@ -48,7 +48,7 @@
               <thead class="thead-dark">
                 <tr>
                   <th scope="col">รหัสใบเปรียบเทียบ</th>
-                  <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
+                  <th scope="col" class="text-center">ร้านที่เลือก</th>
                   <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
                   <th scope="col">วันที่สร้าง</th>
                   <th scope="col">ผู้ตรวจสอบ</th>
@@ -60,15 +60,7 @@
               {% for cp in cps %}
                 <tr>
                   <th scope="row"><a href="{%url 'showComparePricePO' cp.id 2 %}">{{cp.ref_no}}</a></th>
-                  <td>
-                      <ul style="list-style: none;">
-                      {% for bd in bidder %}
-                        {% if cp.id == bd.cp.id %}
-                            <li>{{bd.distributor.name}}</li>
-                        {% endif %}
-                      {% endfor %}                          
-                      </ul>
-                  </td>
+                  <td>{{cp.select_bidder}}</td>
                   <td>{{cp.organizer}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   <td>
