@@ -155,7 +155,7 @@
           <strong>หมายเหตุ</strong><br>
           <input type="text" class="form-control" value="{{pr.note}}">
           <!-- form Apporve -->
-          <form action="{% url 'editPRApprove' pr.id %}" method="post">
+          <form action="{% url 'editPRApprove' pr.id isFromHome %}" method="post">
             {% csrf_token %}
             <div class="row my-3">
               <div class="col-sm-6">
@@ -255,7 +255,11 @@
           </div>
           <div class="row my-2">
             <div class="col">
-              <!-- save button -->
+              {% if isFromHome == 'True' %}
+                <a href="{% url 'home' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+              {% elif isFromHome == 'False' %}
+                <a href="{% url 'viewPRApprove' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+              {% endif %}
             </div>
             <div class="col-6 col-md-2 text-right">
               <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">

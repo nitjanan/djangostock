@@ -59,7 +59,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row"><a href="{%url 'showComparePricePO' cp.id True %}">{{cp.ref_no}}</a></th>
+                  <th scope="row"><a href="{%url 'showComparePricePO' cp.id 2 %}">{{cp.ref_no}}</a></th>
                   <td>
                       <ul style="list-style: none;">
                       {% for bd in bidder %}
@@ -97,7 +97,7 @@
                   </td>
                   <td>
                     {% if cp.examiner_status.id == 1 or cp.approver_status.id == 1 %}
-                    <a href="{% url 'printCPApprove' cp.id %}" class="btn btn-primary btn-sm"> ทำการอนุมัติ</a>
+                    <a href="{% url 'printCPApprove' cp.id False %}" class="btn btn-primary btn-sm"> ทำการอนุมัติ</a>
                     {% endif %}
                   </td>
                 </tr>

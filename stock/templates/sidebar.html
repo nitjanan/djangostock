@@ -1,7 +1,7 @@
 <nav class="hidden-print" id="sidebar">
     <div class="sidebar-header">
-        <h3><a href="/">Silachai Stock</a></h3>
-        <strong><a href="/">SS</a></strong>
+        <h3><a href="{% url 'home' %}">Silachai Stock</a></h3>
+        <strong><a href="{% url 'home' %}">SS</a></strong>
     </div>
 
     {% if request.user.is_authenticated %}
@@ -37,14 +37,13 @@
                         <li>
                             <a class="{{po_page}}" href="{% url 'viewPO' %}">ใบสั่งซื้อ</a>
                         </li>
-
                     </ul>
                 </li>
             {% endif %}
             {% if 'Approve' in tab.name %}
                 <li class="">
                     <a href="{% if request.user.is_authenticated %}#approveSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ap_pr_page or ap_po_page or ap_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
-                        <i class="fas fa-check-circle"></i> Approve
+                        <i class="fas fa-file-signature"></i> Approve
                         {% if ap_all > 0%}
                             <span class="float-right badge badge-pill badge-warning notification mr-5">{{ap_all}}</span>
                         {% endif %}
@@ -56,14 +55,14 @@
                                     <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_pr_ap}}</span>
                                 {% endif %}
                             </a>
-                            <a class="{{ap_po_page}}" href="{% url 'viewPOApprove' %}">ใบสั่งซื้อ
-                                {% if all_po_ap > 0%}
-                                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_po_ap}}</span>
-                                {% endif %}
-                            </a>
                             <a class="{{ap_cp_page}}" href="{% url 'viewCPApprove' %}">ใบเปรียบเทียบราคา
                                 {% if all_cp_ap > 0%}
                                     <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_cp_ap}}</span>
+                                {% endif %}
+                            </a>
+                            <a class="{{ap_po_page}}" href="{% url 'viewPOApprove' %}">ใบสั่งซื้อ
+                                {% if all_po_ap > 0%}
+                                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{all_po_ap}}</span>
                                 {% endif %}
                             </a>
                         </li>
@@ -82,6 +81,51 @@
                         </li>
                     </ul>
                 </li>
+            {% endif %}
+            {% if 'History Complete' in tab.name %}
+            <li class="">
+                <a href="{% if request.user.is_authenticated %}#historySubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if h_requisitions_page or h_pr_page or h_po_page or h_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <i class="fas fa-history"></i>
+                    History Complete
+                </a>
+                <ul class="collapse list-unstyled {{h_requisitions_show}} {{h_pr_show}} {{h_po_show}} {{h_cp_show}}" id="historySubmenu">
+                    <li>
+                        <a class="{{h_requisitions_page}}" href="{% url 'viewRequisitionHistory' %}">ใบขอเบิก</a>
+                    </li>
+                    <li>
+                        <a class="{{h_pr_page}}" href="{% url 'viewPRHistory' %}">ใบขอซื้อ</a>
+                    </li>                
+                    <li>
+                        <a class="{{h_cp_page}}" href="{% url 'viewComparePricePOHistory' %}">ใบเปรียบเทียบราคา</a>
+                    </li>
+                    <li>
+                        <a class="{{h_po_page}}" href="{% url 'viewPOHistory' %}">ใบสั่งซื้อ</a>
+                    </li>
+                </ul>
+            </li>
+            {% endif %}
+            {% if 'History Incomplete' in tab.name %}
+            <li class="">
+                <a href="{% if request.user.is_authenticated %}#historyIncompleteSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if h_i_requisitions_page or h_i_pr_page or h_i_po_page or h_i_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <i class="fas fa-times-circle"></i>
+                    History Incomplete
+                </a>
+                <ul class="collapse list-unstyled {{h_i_requisitions_show}} {{h_i_pr_show}} {{h_i_po_show}} {{h_i_cp_show}}" id="historyIncompleteSubmenu">
+                    <!--ซ่อนก่อนเพราะไม่มีการอนุมัติในใบขอเบิก-->
+                    <!--li>
+                        <a class="{{h_i_requisitions_page}}" href="{% url 'viewRequisitionHistoryIncomplete' %}">ใบขอเบิก</a>
+                    </li-->
+                    <li>
+                        <a class="{{h_i_pr_page}}" href="{% url 'viewPRHistoryIncomplete' %}">ใบขอซื้อ</a>
+                    </li>                
+                    <li>
+                        <a class="{{h_i_cp_page}}" href="{% url 'viewComparePricePOHistoryIncomplete' %}">ใบเปรียบเทียบราคา</a>
+                    </li>
+                    <li>
+                        <a class="{{h_i_po_page}}" href="{% url 'viewPOHistoryIncomplete' %}">ใบสั่งซื้อ</a>
+                    </li>
+                </ul>
+            </li>
             {% endif %}
         {% endfor %}
     </ul>

@@ -5,7 +5,7 @@ from import_export.admin import ImportExportModelAdmin
 from stock.models import BaseCredit, BaseDelivery, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem
 
 # Register your models here.
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ImportExportModelAdmin):
     list_display = ['name', 'price','stock','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_editable = ['price','stock'] #แก้ไขค่าได้เลยในรูปแบบตาราง
     list_per_page = 10 #แสดงผล 10 รายการต่อ 1 หน้า

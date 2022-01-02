@@ -22,8 +22,7 @@ from stock import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('',views.firstPage,name="firstPage"),
-    path('/home',views.index,name="home"),
+    path('',views.index,name="home"),
     path('category/<slug:category_slug>',views.index,name="product_by_category"), # category/fashion ส่งค่า slug ไปด้วยเพื่อกำหมวดหมู่สินค้า และตั้งชื่อเราท์ name = xxx
     path('product/<slug:category_slug>/<slug:product_slug>',views.productPage,name="productDetail"), # product/fashion/shoes
     path('cart/add/<int:product_id>',views.addCart,name="addCart"),
@@ -42,7 +41,7 @@ urlpatterns = [
     path('requisition/create',views.createRequisition,name="createRequisition"),
     path('requisition/remove/<int:id>',views.removeRequisition,name="removeRequisition"),
     path('requisition/edit/<int:id>',views.editRequisition,name="editRequisition"),
-    path('requisition/show/<int:requisition_id>',views.showRequisition,name="showRequisition"),
+    path('requisition/show/<int:requisition_id>/<int:mode>',views.showRequisition,name="showRequisition"),
 
     path('requisitionItem/create/<int:requisition_id>',views.createRequisitionItem,name="createRequisitionItem"),
     path('requisitionItem/remove/<int:item_id>',views.removeRequisitionItem,name="removeRequisitionItem"),
@@ -60,11 +59,11 @@ urlpatterns = [
     path('purchaseRequisition/remove/<int:pr_id>',views.removePR,name="removePR"),
     path('purchaseRequisition/edit/<int:pr_id>',views.editPR,name="editPR"),
     path('purchaseRequisition/create/CMorPO/<int:pr_id>',views.createCMorPO,name="createCMorPO"),
-    path('purchaseRequisition/show/<int:pr_id>/<str:isAP>',views.showPR,name="showPR"),
+    path('purchaseRequisition/show/<int:pr_id>/<int:mode>',views.showPR,name="showPR"),
     path('purchaseRequisition/reApprove/<int:pr_id>',views.reApprovePR,name="reApprovePR"),
 
     path('purchaseRequisitionApprove/',views.viewPRApprove,name="viewPRApprove"),
-    path('purchaseRequisitionApprove/edit/<int:pr_id>',views.editPRApprove,name="editPRApprove"),
+    path('purchaseRequisitionApprove/edit/<int:pr_id>/<str:isFromHome>',views.editPRApprove,name="editPRApprove"),
 
     path('purchaseOrder/',views.viewPO,name="viewPO"),
     path('purchaseOrder/prepare',views.preparePO,name="preparePO"),
@@ -74,14 +73,14 @@ urlpatterns = [
     path('purchaseOrder/editPOFromPR/<int:po_id>',views.editPOFromPR,name="editPOFromPR"),
     path('purchaseOrder/editPOFromComparison/<int:po_id>',views.editPOFromComparison,name="editPOFromComparison"),
     path('purchaseOrder/remove/<int:po_id>',views.removePO,name="removePO"),
-    path('purchaseOrder/show/<int:po_id>/<str:isAP>',views.showPO,name="showPO"),
+    path('purchaseOrder/show/<int:po_id>/<int:mode>',views.showPO,name="showPO"),
 
     path('purchaseOrderItem/create/<int:po_id>',views.createPOItem,name="createPOItem"),
     path('purchaseOrderItem/edit/<int:po_id>/<str:isFromPR>',views.editPOItem,name="editPOItem"),
     path('purchaseOrderItem/createFromComparisonPrice/<int:po_id>',views.createPOItemFromComparisonPrice,name="createPOItemFromComparisonPrice"),
 
     path('purchaseOrderApprove/',views.viewPOApprove,name="viewPOApprove"),
-    path('purchaseOrderApprove/edit/<int:po_id>',views.editPOApprove,name="editPOApprove"),
+    path('purchaseOrderApprove/edit/<int:po_id>/<str:isFromHome>',views.editPOApprove,name="editPOApprove"),
 
     path('comparePricePO/',views.viewComparePricePO,name="viewComparePricePO"),
     path('comparePricePO/prepare',views.prepareComparePricePO,name="prepareComparePricePO"),
@@ -89,7 +88,7 @@ urlpatterns = [
     path('comparePricePO/edit/<int:cp_id>',views.editComparePricePO,name="editComparePricePO"),
     path('comparePricePO/remove/<int:cp_id>',views.removeComparePricePO,name="removeComparePricePO"),
     path('comparePricePO/print/<int:cp_id>',views.printComparePricePO,name="printComparePricePO"),
-    path('comparePricePO/show/<int:cp_id>/<str:isAP>',views.showComparePricePO,name="showComparePricePO"),
+    path('comparePricePO/show/<int:cp_id>/<int:mode>',views.showComparePricePO,name="showComparePricePO"),
 
     path('comparePricePOItem/create/<int:cp_id>',views.createComparePricePOItem,name="createComparePricePOItem"),
     path('comparePricePOItem/edit/<int:cp_id>/<int:cpd_id>',views.editComparePricePOItem,name="editComparePricePOItem"),
@@ -97,7 +96,7 @@ urlpatterns = [
     path('comparePriceDistributor/remove/<int:cp_id>/<int:cpd_id>',views.removeComparePriceDistributor,name="removeComparePriceDistributor"),
 
     path('comparePricePOApprove/',views.viewCPApprove,name="viewCPApprove"),
-    path('comparePricePOApprove/print/<int:cp_id>',views.printCPApprove,name="printCPApprove"),
+    path('comparePricePOApprove/print/<int:cp_id>/<str:isFromHome>',views.printCPApprove,name="printCPApprove"),
 
     path('searchItemExpress', views.searchItemExpress, name="searchItemExpress"),
 
@@ -111,6 +110,15 @@ urlpatterns = [
 
     path('export/', views.export ,name="export"),
 
+    path('history/requisition/',views.viewRequisitionHistory,name="viewRequisitionHistory"),
+    path('history/purchaseRequisition/',views.viewPRHistory,name="viewPRHistory"),
+    path('history/purchaseOrder/',views.viewPOHistory,name="viewPOHistory"),
+    path('history/comparePricePO/',views.viewComparePricePOHistory,name="viewComparePricePOHistory"),
+
+    path('history/incomplete/requisition/',views.viewRequisitionHistoryIncomplete,name="viewRequisitionHistoryIncomplete"),
+    path('history/incomplete/purchaseRequisition/',views.viewPRHistoryIncomplete,name="viewPRHistoryIncomplete"),
+    path('history/incomplete/purchaseOrder/',views.viewPOHistoryIncomplete,name="viewPOHistoryIncomplete"),
+    path('history/incomplete/comparePricePO/',views.viewComparePricePOHistoryIncomplete,name="viewComparePricePOHistoryIncomplete"),
 
 ]
 

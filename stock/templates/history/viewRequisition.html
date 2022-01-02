@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container my-3">
-<h3 align="center">ใบขอเบิก</h3>
+<h3 align="center">ประวัติใบขอเบิกที่สำเร็จ</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
     <form method="get">
@@ -43,10 +43,9 @@
 </div>
 <div class="card div-shadow">
   <div class="card-body">
-    <a class="btn btn-primary btn-block" href="{%url 'createRequisition' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอเบิก</a>
     <div class="table-responsive">
-      <table class="table table-striped my-3">
-        <thead class="thead-dark">
+      <table class="table table-bordered my-3">
+        <thead class="table-info">
           <tr>
             <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
@@ -54,15 +53,13 @@
             <th scope="col">วันที่ตั้งเบิก</th>
             <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">สถานะใบขอซื้อ</th>
-            <th scope="col">รายการขอเบิก</th>
-            <th scope="col">ลบ</th>
             <th scope="col">ใบบันทึก</th>
           </tr>
         </thead>
         <tbody>
         {% for requisition in requisitions %}
           <tr>
-            <th scope="row"><a href="{% url 'showRequisition' requisition.id 1 %}">{{requisition.ref_no}}</a></th>
+            <th scope="row"><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></th>
             <td>{{requisition.name}}</td>
             <td>{{requisition.section}}</td>
             <td>{{requisition.created |date:"d/m/Y" }}</td>
@@ -73,18 +70,6 @@
               {% else %}
                 <button type="button" class="btn btn-outline-warning btn-block btn-sm">ไม่มีใบขอซื้อ</button>
               {% endif %}
-            </td>
-            <td>
-              {% if requisition.is_edit %}
-                <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
-                <!-- <a href="{% url 'crud_ajax' requisition.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a> -->
-                <!-- <a href="{% url 'editRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a> -->
-              {%endif%}
-            </td>
-            <td>
-              {% if requisition.is_edit %}
-              <a onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
-              {%endif%}
             </td>
             <td>
               {% if requisition.memorandum_pdf %}

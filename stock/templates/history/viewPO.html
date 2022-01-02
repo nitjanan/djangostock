@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container my-3">
-<h3 align="center">อนุมัติใบสั่งซื้อ</h3>
+<h3 align="center">ประวัติใบสั่งซื้อที่สำเร็จ</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
     <form method="get">
@@ -44,8 +44,8 @@
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-striped my-3">
-        <thead class="thead-dark">
+      <table class="table table-bordered my-3">
+        <thead class="table-info">
             <tr>
                 <th scope="col">รหัสใบสั่งซื้อ</th>
                 <th scope="col">รหัส CM/รหัส PR</th>
@@ -54,16 +54,16 @@
                 <th scope="col">ขนส่งโดย</th>
                 <th scope="col">วันที่สร้าง</th>
                 <th scope="col">ผู้อนุมัติ</th>
-                <th scope="col">ดำเนินการ</th>
+                <th scope="col">รับสินค้า</th>
             </tr>
         </thead>
         <tbody>
         {% for po in pos %}
           <tr>
-            <th scope="row"><a href="{%url 'showPO' po.id 2 %}">{{po.ref_no}}</a></th>
+            <th scope="row"><a href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
             <td>
-              {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id 2 %}">{{po.cp.ref_no}}</a>{%endif%}
-              {%if po.pr %}<a href="{%url 'showPR' po.pr.id 2 %}">{{po.pr.ref_no}}</a>{%endif%}
+              {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
+              {%if po.pr %}<a href="{%url 'showPR' po.pr.id 4 %}">{{po.pr.ref_no}}</a>{%endif%}
             </td>
             <td>{{po.distributor}}</td>
             <td>{{po.credit}}</td>
@@ -82,9 +82,14 @@
               >{{po.approver_status}}</button>
             </td>
             <td>
-              {% if po.approver_status.id == 1 %}
-              <a href="{%url 'editPOApprove' po.id False %}" class="btn btn-primary btn-block btn-sm">ทำการอนุมัติ</a>
-              {%endif%}
+              <button type="button"
+              class="btn btn-sm btn-block
+              {% if po.is_receive == True %}
+                btn-outline-primary
+              {% elif po.is_receive == False %}
+                btn-outline-warning
+              {% endif %}"
+              >{% if po.is_receive == True %}รับแล้ว{% elif po.is_receive == False%}ยังไม่รับ{%endif%}</button>
             </td>
           </tr>
         {% endfor %}

@@ -152,10 +152,15 @@
                 <div class="col">
                   <p><img src="/media/{{po.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/></p>
                   <p>ผู้สั่งสินค้า</p>
+                  {% if isFromHome == 'True' %}
+                    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+                  {% elif isFromHome == 'False' %}
+                    <a href="{% url 'viewPOApprove' %}" class="btn btn-secondary btn-sm d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+                  {% endif %}
                 </div>
                 <div class="col">
                 <!-- form Apporve -->
-                <form action="{% url 'editPOApprove' po.id %}" method="post">
+                <form action="{% url 'editPOApprove' po.id isFromHome %}" method="post">
                     {% csrf_token %}
                     <p>ในนาม บริษัท ศิลาชัยสุราษฎร์ จำกัด</p>
                     <p>ผู้รับมอบอำนาจ
@@ -167,7 +172,7 @@
                         {% endif %}
                       </u>
                     </p>
-                    {% if isPermiss %}
+                    {% if isPermiss and po.approver_status_id == 1%}
                       <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">
                       <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบสั่งซื้อนี้หรือไม่?');">
                     {% endif %}
@@ -175,7 +180,7 @@
                 </div>
                 <div class="float-right">
                   <h6>FM-PU-003 Rev.00</h6>
-                  <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="window.print();">
+                  <button type="button" class="btn btn-outline-info pull-right hidden-print" onclick="window.print();">
                       <i class="fas fa-print"></i>
                       ปริ้นใบสั่งซื้อ
                   </button>

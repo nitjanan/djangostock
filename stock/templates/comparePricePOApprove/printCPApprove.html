@@ -186,7 +186,7 @@
     </div>    
     <hr>
     {% endif %}           
-    <form action="{% url 'printCPApprove' cp.id %}" method="post">
+    <form action="{% url 'printCPApprove' cp.id isFromHome %}" method="post">
         {% csrf_token %}
         <div class="row my-2">
             <div class="card-group col">
@@ -239,12 +239,19 @@
         </div>
     </form>
     <div class="row">
+        <div class="col">
+            <a href="" class="btn btn-outline-success btn-sm d-print-none"><i class="fas fa-file-download"></i></a> = ใบบันทึก &emsp;
+            <a href="" class="btn btn-outline-primary btn-sm d-print-none"><i class="fas fa-file-download"></i></a> = ใบเสนอราคา
+        </div>
         <div class="col text-right">FM-PU-002 ; Rev 00</div>
     </div>
     <div class="row my-2">
         <div class="col d-print-none">
-            <a href="" class="btn btn-outline-success btn-sm"><i class="fas fa-file-download"></i></a> = ใบบันทึก &emsp;
-            <a href="" class="btn btn-outline-primary btn-sm"><i class="fas fa-file-download"></i></a> = ใบเสนอราคา
+            {% if isFromHome == 'True' %}
+                <a href="{% url 'home' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+            {% elif isFromHome == 'False' %}
+                <a href="{% url 'viewCPApprove' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+            {% endif %}
         </div>
         <div class="col-6 text-right">
           <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">

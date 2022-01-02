@@ -6,7 +6,7 @@
   <h3 align="center">สร้างใบขอซื้อ</h3>
     {% for requisition in requisitions%}
     <div class="card my-3">
-        <h5 class="card-header">ใบขอเบิก #{{requisition.ref_no}}</h5>
+        <h5 class="card-header alert-info">ใบขอเบิก #{{requisition.ref_no}}</h5>
         <div class="card-body">
           <h6 class="card-title">วันที่ตั้งเบิก {{requisition.created |date:"d/m/Y"}}</h6>
           <ul>

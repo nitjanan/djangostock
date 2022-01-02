@@ -185,9 +185,7 @@
         </div>
     </div>    
     <hr>
-    {% endif %}           
-    <form action="{% url 'printCPApprove' cp.id %}" method="post">
-        {% csrf_token %}
+    {% endif %}
         <div class="row my-2">
             <div class="card-group col">
                     <div class="card" style="max-width: 15rem;">
@@ -228,7 +226,6 @@
                     </div>
             </div>        
         </div>
-    </form>
     <div class="row">
         <div class="col text-right">FM-PU-002 ; Rev 00</div>
     </div>

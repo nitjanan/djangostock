@@ -16,14 +16,18 @@
       </form>    
       <div class="collapse navbar-collapse float-right" id="navbarSupportedContent">
         <ul class="navbar-nav ml-auto">
-          <li class="nav-item dropdown"><a class="nav-link text-uppercase font-weight-bold px-3"
-            href="" data-toggle="dropdown">Category <i class="fas fa-caret-down"></i></a>
-            <div class="dropdown-menu">
-              <a class="dropdown-item" href="{% url 'home' %}">สินค้าทั้งหมด</a>
-              {% for catagory in links %}
-              <a class="dropdown-item" href="{{catagory.get_url}}">{{catagory.name}}</a>
-              {% endfor %}
-            </div>
+          {% for tab in visible_tab %}
+            {% if 'Category' in tab.name %}
+            <li class="nav-item dropdown"><a class="nav-link text-uppercase font-weight-bold px-3"
+              href="" data-toggle="dropdown">Category <i class="fas fa-caret-down"></i></a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="{% url 'home' %}">สินค้าทั้งหมด</a>
+                {% for catagory in links %}
+                <a class="dropdown-item" href="{{catagory.get_url}}">{{catagory.name}}</a>
+                {% endfor %}
+              </div>
+            {%endif%}
+          {%endfor%}
           </li>
             <li class="nav-item dropdown">
               
