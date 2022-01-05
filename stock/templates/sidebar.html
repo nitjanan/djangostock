@@ -1,7 +1,7 @@
 <nav class="hidden-print" id="sidebar">
     <div class="sidebar-header">
         <h3><a href="{% url 'home' %}"><img src="/media/company/STG_logo.png" class="rounded center" style="-webkit-filter: drop-shadow(5px 5px 5px #45507f); filter: drop-shadow(5px 5px 5px #45507f);" width="155" height="75"></a></h3>
-        <strong style="color:#ED3237; text-shadow: 0 0 5px #45507f;"><a href="{% url 'home' %}">STG</a></strong>
+        <strong style="color:#ED3237; text-shadow: 0 0 5px #45507f; font-size:25px;"><a href="{% url 'home' %}">STG</a></strong>
     </div>
 
     {% if request.user.is_authenticated %}
