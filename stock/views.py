@@ -367,9 +367,9 @@ def signUpView(request):
             #ดึง user จาก db มาใช้
             signUpUser = User.objects.get(username = username)
             #จัด Group
-            customer_group = Group.objects.get(name = "Customer")
-            customer_group.user_set.add(signUpUser)
-            return redirect('signInView')
+            #customer_group = Group.objects.get(name = "Customer")
+            #customer_group.user_set.add(signUpUser)
+            return redirect('signIn')
 
     else:
         form = SignUpForm()

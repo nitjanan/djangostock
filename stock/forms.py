@@ -2,9 +2,12 @@ import os
 from django.contrib.auth import models
 from django.contrib.auth.models import User
 from django import forms
-from django.forms import fields, widgets
+from django.db.models import fields
+from django.db import models
+from django.db.models.fields.related import ManyToManyField
+from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -16,18 +19,18 @@ class MyClearableFileInput(ClearableFileInput):
 
 
 class SignUpForm(UserCreationForm):
-    first_name = forms.CharField(max_length=100, required=True) # required=True คือบังคับให้กรอกทุกครั้ง
-    last_name = forms.CharField(max_length=100, required=True)
+    first_name = forms.CharField(max_length=100, required=True, label='ชื่อจริง') # required=True คือบังคับให้กรอกทุกครั้ง
+    last_name = forms.CharField(max_length=100, required=True, label='นามสกุล')
     email = forms.EmailField(max_length=250, help_text='example@gmail.com') #help_text='example@gmail.com' ข้อความตัวอย่างใน textbox
 
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'username','email', 'password1', 'password2','is_superuser','is_staff') #สร้าง auto อ้างอิงจากฟิลด์ใน db 
+        fields = ('first_name', 'last_name', 'username','email', 'password1', 'password2',) #สร้าง auto อ้างอิงจากฟิลด์ใน db 
 
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ('position',)
+        fields = ('position','department')
 
 class RequisitionForm(forms.ModelForm):
     chief_approve_user_name = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
