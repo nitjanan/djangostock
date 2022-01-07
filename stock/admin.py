@@ -126,12 +126,12 @@ class DistributorResource(resources.ModelResource):
 
     class Meta:
         model = Distributor
-        fields = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
-        export_order = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+        fields = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+        export_order = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
 
 class DistributorAdmin(ImportExportModelAdmin):
     resource_class = DistributorResource
-    list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+    list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
 
 class BaseSparesTypeAdmin(admin.ModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง

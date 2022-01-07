@@ -130,8 +130,8 @@ def index(request, category_slug = None):
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3'])
-        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAE = None
 
@@ -141,8 +141,8 @@ def index(request, category_slug = None):
 
     #ผู้อนุมัติ
     try:
-        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3'])
-        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAA = None
 
@@ -1072,7 +1072,7 @@ def createCMorPO(request, pr_id):
 
         cpd = ComparisonPriceDistributor.objects.create(
             cp_id = cp.id,
-            vat_type_id = 4
+            vat_type_id = 0
         )
         cpd.save()
         for i in listItem:
@@ -1092,7 +1092,7 @@ def createCMorPO(request, pr_id):
         po = PurchaseOrder.objects.create(
             stockman_user = request.user,
             approver_status_id = 1,
-            vat_type_id = 1,
+            vat_type_id = 0,
             pr = pr,
         )
         po.save()
@@ -1693,11 +1693,18 @@ def createComparePricePOItem(request, cp_id):
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     distributorList = Distributor.objects.filter(affiliated = 1)
 
+    #ร้านแรก
     try:
         bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         bidder_oldest = bidder.id
     except (ComparisonPriceDistributor.DoesNotExist, AttributeError):
         bidder_oldest = None
+
+    #ร้านทั้งหมดในใบเปรียบเทียบ
+    try:
+        bidder_have = ComparisonPriceDistributor.objects.filter(cp = cp_id)
+    except (ComparisonPriceDistributor.DoesNotExist, AttributeError):
+        bidder_have = None
 
     if request.method == 'GET':
         bookform = CPDModelForm(request.GET or None, initial={'cp': cp_id})
@@ -1731,6 +1738,7 @@ def createComparePricePOItem(request, cp_id):
         'cpd':cpd,
         'cp_item':cp_item,
         'bidder_oldest':bidder_oldest,
+        'bidder_have': bidder_have,
         'itemList': itemList,
         'bookform': bookform,
         'formset': formset,
@@ -2049,8 +2057,8 @@ def printCPApprove(request, cp_id, isFromHome):
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3'])
-        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAE = None
 
@@ -2060,8 +2068,8 @@ def printCPApprove(request, cp_id, isFromHome):
 
     #ผู้อนุมัติ
     try:
-        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3'])
-        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAA = None
 

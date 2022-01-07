@@ -140,8 +140,8 @@ def approveCPAllCounter(request):
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3'])
-        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAE = None
 
@@ -151,8 +151,8 @@ def approveCPAllCounter(request):
 
     #ผู้อนุมัติ
     try:
-        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3'])
-        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAA = None
 

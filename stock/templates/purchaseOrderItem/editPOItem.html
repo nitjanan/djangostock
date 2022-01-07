@@ -181,7 +181,7 @@
                     <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
                     <datalist id="idDistributorList">
                     {% for results in distributorList %}
-                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit.id}}"></option>
+                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit.id}}" data-vat_type="{{results.vat_type.id}}"></option>
                     {% endfor %}
                     </datalist>
                 </div>
@@ -512,6 +512,9 @@ $(".distributor" ).change(function() {
     $("#id_distributor").val(id);
     var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
     $("#id_credit").val(credit);
+
+    var vat_type = $('#idDistributorList option[data-id='+id+']').attr('data-vat_type');
+    $("#id_vat_type").val(vat_type);
   });
 </script>
 {% endblock%}

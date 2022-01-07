@@ -480,7 +480,7 @@ class BasePermission(models.Model):
     codename = models.CharField(max_length=255,unique=True, verbose_name="โค้ด")
     codename_th = models.CharField(max_length=255,unique=True, verbose_name="โค้ดไทย")
     ap_amount_min = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบน้อยสุด")#ยอดเงินอนุมัติใบเปรียบเทียบน้อยสุด
-    ap_amount_max = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบมากสุด")#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
+    ap_amount_max = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบมากสุด")#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
 
     class Meta:
         db_table = 'BasePermission'
@@ -588,6 +588,19 @@ class BasePrefix(models.Model):
     def __str__(self):
         return self.name
 
+class BaseVatType(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสชนิดภาษี")#เก็บไอดีชนิดภาษี
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อชนิดภาษี")
+
+    class Meta:
+        db_table = 'BaseVatType'
+        ordering=('id',)
+        verbose_name = 'ชนิดภาษี'
+        verbose_name_plural = 'ข้อมูลชนิดภาษี'
+
+    def __str__(self):
+        return str(self.name)
+
 class Distributor(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสผู้จัดจำหน่าย")#เก็บไอดีสินค้าใน express
     prefix = models.ForeignKey(BasePrefix, on_delete=models.CASCADE, blank = True, null = True, verbose_name="คำนำหน้า")
@@ -595,6 +608,7 @@ class Distributor(models.Model):
     type = models.ForeignKey(BaseDistributorType, on_delete=models.CASCADE, blank = True, null = True, verbose_name="ชนิดของผู้จัดจำหน่าย")
     genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.CASCADE, blank = True, null = True, verbose_name="ประเภทของผู้จัดจำหน่าย")
     credit = models.ForeignKey(BaseCredit, on_delete=models.CASCADE, blank = True, null = True, verbose_name="เครดิต")
+    vat_type = models.ForeignKey(BaseVatType, on_delete=models.CASCADE, blank = True, null = True, verbose_name="ชนิดภาษี")
     discount = models.CharField(max_length=255, blank = True, null = True, verbose_name="ส่วนลด")
     credit_limit = models.CharField(max_length=255, blank = True, null = True, verbose_name="ยอดวงเงิน")
     account_number = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขบัญชี")
@@ -615,17 +629,6 @@ class Distributor(models.Model):
     def __str__(self):
         return self.name
 
-class BaseVatType(models.Model):
-    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อประเภทภาษี")
-
-    class Meta:
-        db_table = 'BaseVatType'
-        ordering=('id',)
-        verbose_name = 'ประเภทภาษี'
-        verbose_name_plural = 'ข้อมูลประเภทภาษี'
-
-    def __str__(self):
-        return str(self.name)
 
 class BaseDelivery(models.Model):
     name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อสถานที่จัดส่ง")
