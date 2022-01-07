@@ -51,11 +51,11 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_display = ['order','product', 'quantity','price','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
-class BaseApproveStatusAdmin(admin.ModelAdmin):
+class BaseApproveStatusAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
-class BaseUrgencyAdmin(admin.ModelAdmin):
+class BaseUrgencyAdmin(ImportExportModelAdmin):
     list_display = ['id','name','description'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
@@ -64,7 +64,7 @@ class PositionAdmin(ImportExportModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
-class PositionBasePermissionAdmin(admin.ModelAdmin):
+class PositionBasePermissionAdmin(ImportExportModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
@@ -133,7 +133,7 @@ class DistributorAdmin(ImportExportModelAdmin):
     resource_class = DistributorResource
     list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
 
-class BaseSparesTypeAdmin(admin.ModelAdmin):
+class BaseSparesTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
@@ -143,12 +143,12 @@ class BaseDepartmentAdmin(ImportExportModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
-class BaseVatTypeAdmin(admin.ModelAdmin):
+class BaseVatTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ImportExportModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
@@ -173,13 +173,19 @@ class BaseCreditAdmin(ImportExportModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
-class BaseDeliveryAdmin(admin.ModelAdmin):
+class BaseDeliveryAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
 class ReceiveItemAdmin(ImportExportModelAdmin):
     list_display = ('item', 'quantity', 'unit','unit_price','price', 'rc_id')
+
+class BasePermissionAdmin(ImportExportModelAdmin):
+    list_display = ('codename','codename_th',)
+
+class BaseVisibleAdmin(ImportExportModelAdmin):
+    list_display = ('name',)
     
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
@@ -200,7 +206,7 @@ admin.site.register(BaseApproveStatus, BaseApproveStatusAdmin)
 admin.site.register(BaseUrgency, BaseUrgencyAdmin)
 admin.site.register(Position, PositionAdmin)
 admin.site.register(PositionBasePermission, PositionBasePermissionAdmin)
-admin.site.register(BasePermission)
+admin.site.register(BasePermission, BasePermissionAdmin)
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BaseDistributorType, BaseDistributorTypeAdmin)
 admin.site.register(BaseDistributorGenre, BaseDistributorGenreAdmin)
@@ -212,5 +218,5 @@ admin.site.register(BaseUnit, BaseUnitAdmin)
 admin.site.register(BaseCredit, BaseCreditAdmin)
 admin.site.register(BaseSparesType, BaseSparesTypeAdmin)
 admin.site.register(BaseDelivery, BaseDeliveryAdmin)
-admin.site.register(BaseVisible)
+admin.site.register(BaseVisible, BaseVisibleAdmin)
 admin.site.register(ReceiveItem, ReceiveItemAdmin)

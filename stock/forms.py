@@ -25,7 +25,7 @@ class SignUpForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'username','email', 'password1', 'password2',) #สร้าง auto อ้างอิงจากฟิลด์ใน db 
+        fields = ('first_name', 'last_name', 'username','email', 'password1', 'password2', 'is_superuser','is_staff') #สร้าง auto อ้างอิงจากฟิลด์ใน db 
 
 class UserProfileForm(forms.ModelForm):
     class Meta:
