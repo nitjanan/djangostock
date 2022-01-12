@@ -3,6 +3,16 @@ from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
 from django.db import connection
+from collections import Counter
+
+def get_unique(li):
+    #Create the counter to count frequencies
+    c = Counter(li)
+
+    #Create a list of items with count 1
+    result = [key for key,value in c.items() if value == 1]
+
+    return result
 
 def userVisibleTab(request):
     try:
@@ -131,12 +141,10 @@ def allApproveCPCounter(request):
 
     return dict(all_cp_ap = all_cp_ap)
 
+
 #หาจำนวนสถานะรอดำเนินการในใบเปรียบเทียบราคาของผู้อนุมัติและผู้ตรวจสอบ
 def approveCPAllCounter(request):
     cm_count = 0
-    ecm_count = 0
-    acm_count = 0
-
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
@@ -145,9 +153,11 @@ def approveCPAllCounter(request):
     except:
         isPermissAE = None
 
+    pmAE = []
     if(isPermissAE):
         for i in isPermissAE:
-            pmAE = BasePermission.objects.get(id = i['base_permission'])
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAE.append(obj)
 
     #ผู้อนุมัติ
     try:
@@ -156,25 +166,57 @@ def approveCPAllCounter(request):
     except:
         isPermissAA = None
 
+    pmAA = []
     if(isPermissAA):
         for i in isPermissAA:
-            pmAA = BasePermission.objects.get(id = i['base_permission'])
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
 
+    ecm_item = []
     #ถ้าเป็นผู้ตรวจสอบ
     if(isPermissAE):
         try:
-            #ดึงข้อมูล PurchaseOrder
-            ecm_count = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAE.ap_amount_min, pmAE.ap_amount_max)).values("cp").distinct().count()
+            for ae in pmAE:
+                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
-            ecm_count = 0
+            ecm_item = None
+
+    ecp = []
+    new_cm = dict()
+    try:
+        for item in ecm_item:
+            ecp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if ecp:
+                for obj in ecp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
+    except:
+        pass
+
+
+    acm_item = []
     #ถ้าเป็นผู้อนุมัติ
     if(isPermissAA):
         try:
-        #ดึงข้อมูล PurchaseOrder
-            acm_count = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAA.ap_amount_min, pmAA.ap_amount_max)).values("cp").distinct().count()
+            for aa in pmAA:
+                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
-            acm_count = 0
-    cm_count = ecm_count + acm_count
+            acm_item = None
+
+    acp = []
+    try:
+        for item in acm_item:
+            acp = ComparisonPrice.objects.filter(pk__in = acm_item).distinct()
+            if acp:
+                for obj in acp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
+    except:
+        pass
+
+    cm_count =  len(new_cm)
     return cm_count
 
 

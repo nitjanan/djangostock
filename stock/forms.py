@@ -250,14 +250,16 @@ CPitemInlineFormset = inlineformset_factory(
 class CPSelectBidderForm(forms.ModelForm):
     class Meta:
        model = ComparisonPrice
-       fields = ('select_bidder','base_spares_type','note')
+       fields = ('select_bidder','base_spares_type','note', 'cm_type')
        widgets={
             'select_bidder': forms.HiddenInput(),#dataList
             'base_spares_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
+            'cm_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
        }
        labels = {
             'select_bidder': _('เลือกผู้จัดจำหน่าย'),
             'base_spares_type': _('ชนิดอะไหล่'),
+            'cm_type': _('ประเภทใบเปรียบเทียบ'),
             'note': _('หมายเหตุ'),
         }
 

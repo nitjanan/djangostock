@@ -208,12 +208,24 @@
             {{form.note | add_class:"form-control"}}
         </div>
     </div>
+    <div class="row my-2 d-print-none">
+        <div class="col-2">
+            {{form.cm_type.label}} :
+        </div>
+        <div class="col-10">
+            <div class="card" style="width: 28rem;">
+                <div class="card-body">
+                    {{form.cm_type}}
+                </div>
+            </div>            
+        </div>
+    </div>
     <div class="row my-2 hidden-print">
         <div class="col-2">
             {{form.base_spares_type.label}} :
         </div>
         <div class="col-10">
-            <div class="card" style="width: 18rem;">
+            <div class="card" style="width: 28rem;">
                 <div class="card-body">
                     {{form.base_spares_type}}
                 </div>

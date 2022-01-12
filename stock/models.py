@@ -642,6 +642,20 @@ class BaseDelivery(models.Model):
     def __str__(self):
         return str(self.name)
 
+class BaseCMType(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทใบเปรียบเทียบเทียบราคา")#เก็บไอดีชนิดภาษี
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อประเภทใบเปรียบเทียบเทียบราคา")
+    codename = models.CharField(max_length=255, verbose_name="โค้ด", blank=True, null=True)
+
+    class Meta:
+        db_table = 'BaseCMType'
+        ordering=('id',)
+        verbose_name = 'ประเภทใบเปรียบเทียบเทียบราคา'
+        verbose_name_plural = 'ข้อมูลประเภทใบเปรียบเทียบเทียบราคา'
+
+    def __str__(self):
+        return str(self.name)
+
 class ComparisonPrice(models.Model):
     organizer = models.ForeignKey(User,on_delete=models.CASCADE)
     base_spares_type = models.ForeignKey(BaseSparesType,on_delete=models.CASCADE, null=True, blank=True)
@@ -677,6 +691,7 @@ class ComparisonPrice(models.Model):
     examiner_update = models.DateField(blank=True, null=True)
     ref_no = models.CharField(max_length = 500, default = comparisonPrice_ref_number, null = True, blank = True)
     po_ref_no = models.CharField(max_length=255, blank = True)
+    cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         db_table = 'ComparisonPrice'

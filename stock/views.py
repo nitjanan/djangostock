@@ -135,9 +135,11 @@ def index(request, category_slug = None):
     except:
         isPermissAE = None
 
+    pmAE = []
     if(isPermissAE):
         for i in isPermissAE:
-            pmAE = BasePermission.objects.get(id = i['base_permission'])
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAE.append(obj)
 
     #ผู้อนุมัติ
     try:
@@ -146,49 +148,56 @@ def index(request, category_slug = None):
     except:
         isPermissAA = None
 
+    pmAA = []
     if(isPermissAA):
         for i in isPermissAA:
-            pmAA = BasePermission.objects.get(id = i['base_permission'])
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
 
-    ecm_item = None
+    ecm_item = []
     #ถ้าเป็นผู้ตรวจสอบ
     if(isPermissAE):
         try:
-            #ดึงข้อมูล PurchaseOrder
-            ecm_item = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAE.ap_amount_min, pmAE.ap_amount_max)).values("cp")
+            for ae in pmAE:
+                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
 
-    ecp = None
+    ecp = []
+    new_cm = dict()
     try:
-        ecp = ComparisonPrice.objects.filter(pk__in = ecm_item).distinct()
+        for item in ecm_item:
+            ecp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if ecp:
+                for obj in ecp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
     except:
         pass
 
-    new_cm = dict()
-    if ecp:
-        for obj in ecp:
-            if obj not in new_cm:
-                new_cm[obj] = obj
-    
+
+    acm_item = []
     #ถ้าเป็นผู้อนุมัติ
     if(isPermissAA):
         try:
-        #ดึงข้อมูล PurchaseOrder
-            acm_item = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(pmAA.ap_amount_min, pmAA.ap_amount_max)).values("cp")
+            for aa in pmAA:
+                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None
 
-    acp = None
+    acp = []
     try:
-        acp = ComparisonPrice.objects.filter(pk__in = acm_item).distinct()
+        for item in acm_item:
+            acp = ComparisonPrice.objects.filter(pk__in = acm_item).distinct()
+            if acp:
+                for obj in acp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
     except:
         pass
 
-    if acp:
-        for obj in acp:
-            if obj not in new_cm:
-                new_cm[obj] = obj
 
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
@@ -2062,9 +2071,11 @@ def printCPApprove(request, cp_id, isFromHome):
     except:
         isPermissAE = None
 
+    pmAE = []
     if(isPermissAE):
         for i in isPermissAE:
-            pmAE = BasePermission.objects.get(id = i['base_permission'])
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAE.append(obj)
 
     #ผู้อนุมัติ
     try:
@@ -2073,9 +2084,11 @@ def printCPApprove(request, cp_id, isFromHome):
     except:
         isPermissAA = None
 
+    pmAA = []
     if(isPermissAA):
         for i in isPermissAA:
-            pmAA = BasePermission.objects.get(id = i['base_permission'])
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
 
     try:
         cpd_select = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
@@ -2083,12 +2096,15 @@ def printCPApprove(request, cp_id, isFromHome):
         cpd_select = None
 
     if isPermissAA and cpd_select:
-        if pmAA.ap_amount_min <= cpd_select.amount <= pmAA.ap_amount_max:
-            isApprover = True
+        for aa in pmAA:
+            if aa.ap_amount_min <= cpd_select.amount <= aa.ap_amount_max:
+                isApprover = True
+
 
     if isPermissAE and cpd_select:
-        if pmAE.ap_amount_min <= cpd_select.amount <= pmAE.ap_amount_max:
-            isExaminer = True
+        for ae in pmAE:
+            if ae.ap_amount_min <= cpd_select.amount <= ae.ap_amount_max:
+                isExaminer = True
 
 
     pr_ref_no = ""
