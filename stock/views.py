@@ -130,8 +130,8 @@ def index(request, category_slug = None):
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4'])
-        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAE = None
 
@@ -143,8 +143,8 @@ def index(request, category_slug = None):
 
     #ผู้อนุมัติ
     try:
-        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4'])
-        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAA = None
 
@@ -159,7 +159,12 @@ def index(request, category_slug = None):
     if(isPermissAE):
         try:
             for ae in pmAE:
-                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                if ae.codename == 'CAECPD':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False).values("cp")
+                elif ae.codename == 'CAECPA':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
+                else:
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
                 ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
@@ -182,7 +187,12 @@ def index(request, category_slug = None):
     if(isPermissAA):
         try:
             for aa in pmAA:
-                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                if aa.codename == 'CAACPD':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False).values("cp")
+                elif aa.codename == 'CAACPA':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
+                else:
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
                 acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None
@@ -190,7 +200,7 @@ def index(request, category_slug = None):
     acp = []
     try:
         for item in acm_item:
-            acp = ComparisonPrice.objects.filter(pk__in = acm_item).distinct()
+            acp = ComparisonPrice.objects.filter(pk__in = item).distinct()
             if acp:
                 for obj in acp:
                     if obj not in new_cm:
@@ -1883,8 +1893,11 @@ def printComparePricePO(request, cp_id):
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
         for id in new_pr_id:
-            pr = PurchaseRequisition.objects.get(id = id)
-            pr_ref_no += pr.ref_no + ", "
+            try:
+                pr = PurchaseRequisition.objects.get(id = id)
+                pr_ref_no += pr.ref_no + ", "
+            except PurchaseRequisition.DoesNotExist:
+                pass 
 
     cp = ComparisonPrice.objects.get(id=cp_id)
     form = CPSelectBidderForm(instance=cp)
@@ -1931,8 +1944,11 @@ def showComparePricePO(request, cp_id, mode):
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
         for id in new_pr_id:
-            pr = PurchaseRequisition.objects.get(id = id)
-            pr_ref_no += pr.ref_no + ", "
+            try:
+                pr = PurchaseRequisition.objects.get(id = id)
+                pr_ref_no += pr.ref_no + ", "
+            except PurchaseRequisition.DoesNotExist:
+                pass
 
     page = CPPageMode(mode)
     show = CPShowMode(mode)
@@ -2066,8 +2082,8 @@ def printCPApprove(request, cp_id, isFromHome):
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4'])
-        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAE = None
 
@@ -2079,8 +2095,8 @@ def printCPApprove(request, cp_id, isFromHome):
 
     #ผู้อนุมัติ
     try:
-        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4'])
-        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAA = None
 
@@ -2097,14 +2113,32 @@ def printCPApprove(request, cp_id, isFromHome):
 
     if isPermissAA and cpd_select:
         for aa in pmAA:
-            if aa.ap_amount_min <= cpd_select.amount <= aa.ap_amount_max:
-                isApprover = True
+            if aa.codename == 'CAACPD' or aa.codename == 'CAACPA':
+                try:
+                    if aa.codename == 'CAACPD' and cp.cm_type.id == '1':
+                        isApprover = True
+                    if aa.codename == 'CAACPA' and cp.cm_type.id == '2':
+                        isApprover = True
+                except:
+                    pass
+            else:
+                if aa.ap_amount_min <= cpd_select.amount <= aa.ap_amount_max:
+                    isApprover = True
 
 
     if isPermissAE and cpd_select:
         for ae in pmAE:
-            if ae.ap_amount_min <= cpd_select.amount <= ae.ap_amount_max:
-                isExaminer = True
+            if ae.codename == 'CAECPD' or ae.codename == 'CAECPA':
+                try:
+                    if ae.codename == 'CAECPD' and cp.cm_type.id == '1':
+                        isExaminer = True
+                    if ae.codename == 'CAECPA' and cp.cm_type.id == '2':
+                        isExaminer = True
+                except:
+                    pass
+            else:
+                if ae.ap_amount_min <= cpd_select.amount <= ae.ap_amount_max:
+                    isExaminer = True
 
 
     pr_ref_no = ""
@@ -2115,8 +2149,11 @@ def printCPApprove(request, cp_id, isFromHome):
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
         for id in new_pr_id:
-            pr = PurchaseRequisition.objects.get(id = id)
-            pr_ref_no += pr.ref_no + ", "
+            try:
+                pr = PurchaseRequisition.objects.get(id = id)
+                pr_ref_no += pr.ref_no + ", "
+            except PurchaseRequisition.DoesNotExist:
+                pass
 
     if request.method == 'POST':
         post_status = request.POST['status'] or None

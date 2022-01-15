@@ -163,13 +163,13 @@
                     {% csrf_token %}
                     <p>ในนาม บริษัท ศิลาชัยสุราษฎร์ จำกัด</p>
                     <p>ผู้รับมอบอำนาจ
-                      <u class="dotted">
                         {% if po.approver_status_id == 2 %}
                           <img src="/media/{{po.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
                         {% else %}
-                          #{{po.approver_status}}
+                          <u class="dotted">
+                            #{{po.approver_status}}
+                          </u>
                         {% endif %}
-                      </u>
                     </p>
                     {% if isPermiss and po.approver_status_id == 1%}
                       <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">

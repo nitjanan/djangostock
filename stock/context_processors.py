@@ -148,8 +148,8 @@ def approveCPAllCounter(request):
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4'])
-        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAE = None
 
@@ -161,8 +161,8 @@ def approveCPAllCounter(request):
 
     #ผู้อนุมัติ
     try:
-        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4'])
-        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
         isPermissAA = None
 
@@ -177,7 +177,12 @@ def approveCPAllCounter(request):
     if(isPermissAE):
         try:
             for ae in pmAE:
-                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                if ae.codename == 'CAECPD':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False).values("cp")
+                elif ae.codename == 'CAECPA':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
+                else:
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
                 ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
@@ -200,7 +205,12 @@ def approveCPAllCounter(request):
     if(isPermissAA):
         try:
             for aa in pmAA:
-                obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                if aa.codename == 'CAACPD':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False).values("cp")
+                elif aa.codename == 'CAACPA':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
+                else:
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
                 acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None
@@ -208,7 +218,7 @@ def approveCPAllCounter(request):
     acp = []
     try:
         for item in acm_item:
-            acp = ComparisonPrice.objects.filter(pk__in = acm_item).distinct()
+            acp = ComparisonPrice.objects.filter(pk__in = item).distinct()
             if acp:
                 for obj in acp:
                     if obj not in new_cm:
