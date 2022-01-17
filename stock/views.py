@@ -117,7 +117,7 @@ def index(request, category_slug = None):
     if(isPermiss_po):
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, is_save = True) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
     
@@ -1536,7 +1536,10 @@ def editPOItem(request, po_id, isFromPR):
                 price.freight = 0.00
             price.save()
 
-            form.save()
+            po = form.save(commit=False)
+            po.is_save = True
+            po.save()
+
             # save po item
             instances = formset.save(commit=False)
             for instance in instances:
@@ -1976,11 +1979,7 @@ def createPOFromComparisonPrice(request, cp_id):
         new_contact.stockman_user = cp.organizer
         new_contact.vat_type = cpd.vat_type
         new_contact.quotation_pdf = cpd.quotation_pdf
-        #ดึงสถานะอนุมัติใบเปรียบเทียบมาใบขอซื้อเลย
-        new_contact.approver_user = cp.approver_user
-        new_contact.approver_status = cp.approver_status
-        new_contact.approver_update = cp.approver_update
-        
+        new_contact.approver_status_id = 1
         new_contact.save()
 
         cp.po_ref_no = new_contact.ref_no
@@ -2004,6 +2003,7 @@ def createPOItemFromComparisonPrice(request, po_id):
 
     po_data = PurchaseOrder.objects.get(id=po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
+    cp = ComparisonPrice.objects.get(id = po_data.cp.id)
     cp_item = ComparisonPriceItem.objects.filter(cp = po_data.cp.id, bidder__distributor = po_data.cp.select_bidder)
     cpd_price = ComparisonPriceDistributor.objects.get(cp = po_data.cp.id, distributor = po_data.cp.select_bidder)
     if request.method == 'GET':
@@ -2013,8 +2013,15 @@ def createPOItemFromComparisonPrice(request, po_id):
         formset = PurchaseOrderItemModelFormset(request.POST)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         if formset.is_valid() and price_form.is_valid():
+
             # save ราคาใบ po
-            price_form.save()
+            po = price_form.save(commit=False)
+            #ดึงสถานะอนุมัติใบเปรียบเทียบมาใบขอซื้อเลย
+            po.approver_user = cp.approver_user
+            po.approver_status = cp.approver_status
+            po.approver_update = cp.approver_update
+            po.save()
+
             # save po item
             for form in formset:
                 # only save if name is present
