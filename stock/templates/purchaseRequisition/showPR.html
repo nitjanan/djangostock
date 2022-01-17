@@ -14,6 +14,19 @@ u.dotted {
   border-bottom: 1px dashed #999;
   text-decoration: none;
 }
+
+@media print { 
+  table.table-bordered{
+    border:1px solid black;
+    margin-top:20px;
+  }
+  table.table-bordered > thead > tr > th{
+      border:1px solid black;
+  }
+  table.table-bordered > tbody > tr > td{
+      border:1px solid black;
+  }
+}
 </style>
 {% endblock %}
 
@@ -97,14 +110,14 @@ u.dotted {
   <div class="row">
     <div class="col-md-12">
       <div class="panel panel-default">
-            <div class="panel-heading">
+            <!-- div class="panel-heading">
                 <h3 class="panel-title">
                   <strong>รายการใบขอซื้อ</strong>
                 </h3>
-            </div>
+            </div-->
         <div class="panel-body">
           <div class="table-responsive">
-            <table id="userTable" class="table table-condensed">
+            <table id="userTable" class="table table-bordered">
               <thead>
                 <tr>
                     <td class="text-center"><strong>ลำดับที่</strong></td>
