@@ -740,7 +740,6 @@ class PurchaseOrder(models.Model):
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
     receive_update = models.DateField(blank=True, null=True) #วันที่รับสินค้า
-    is_save = models.BooleanField(default=False) #สถานะ save PurchaseOrderItem หรือยัง
 
     class Meta:
         db_table = 'PurchaseOrder'

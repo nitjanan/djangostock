@@ -65,7 +65,7 @@ u.dotted {
     <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
     <div class="row">
       <div class="col invoice-title text-left">
-        <h5>รหัสใบขอเบิก # {{requisition.ref_no}}</h5>
+        <h5>รหัสใบขอเบิก # <a href="{% url 'showRequisition' requisition.id 1 %}">{{requisition.ref_no}}</a></h5>
       </div>
       <div class="col invoice-title text-right">
         <h5>รหัสใบขอซื้อ # {{pr.ref_no}}

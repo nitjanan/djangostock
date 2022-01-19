@@ -21,7 +21,7 @@
                 {{filter.form.credit|as_crispy_field}}
               </div>
               <div class="form-group col-md-2 mb-0">
-                {{filter.form.shipping|as_crispy_field}}
+                {{filter.form.stockman_user|as_crispy_field}}
               </div>
               <div class="form-group col-md-2 mb-0">
                 {{filter.form.start_created|as_crispy_field}}
@@ -52,7 +52,7 @@
                   <th scope="col">รหัส CM/รหัส PR</th>
                   <th scope="col">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เครดิต</th>
-                  <th scope="col">ขนส่งโดย</th>
+                  <th scope="col">ผู้สั่งสินค้า</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
                   <th scope="col" style="width:150px;">รายการสั่งซื้อ</th>
                   <th scope="col">รับสินค้า</th>
@@ -69,7 +69,7 @@
                   </td>
                   <td>{{po.distributor}}</td>
                   <td>{{po.credit}}</td>
-                  <td>{{po.shipping}}</td>
+                  <td>{{po.stockman_user}}</td>
                   <td>{{po.created |date:"d/m/Y"}}</td>
                   <td>
                     {% if po.approver_status_id == 1 %}

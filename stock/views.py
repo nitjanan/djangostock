@@ -117,7 +117,7 @@ def index(request, category_slug = None):
     if(isPermiss_po):
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, is_save = True) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
     
@@ -1536,9 +1536,7 @@ def editPOItem(request, po_id, isFromPR):
                 price.freight = 0.00
             price.save()
 
-            po = form.save(commit=False)
-            po.is_save = True
-            po.save()
+            form.save()
 
             # save po item
             instances = formset.save(commit=False)
@@ -1572,7 +1570,7 @@ def editPOItem(request, po_id, isFromPR):
 @login_required(login_url='signIn')
 def viewPOApprove(request):
 
-    data = PurchaseOrder.objects.filter(approver_status_id = 1)
+    data = PurchaseOrder.objects.filter(approver_status_id = 1, amount__isnull = False)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)

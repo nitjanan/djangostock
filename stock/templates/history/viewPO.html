@@ -14,11 +14,11 @@
         <div class="form-group col-md-1 mb-0">
             {{ filter.form.ref_no|as_crispy_field }}
           </div>
-          <div class="form-group col-md-3 mb-0">
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.distributor|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1 mb-0">
-            {{filter.form.credit|as_crispy_field}}
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.stockman_user|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
             {{filter.form.approver_status|as_crispy_field}}
@@ -52,7 +52,7 @@
                 <th scope="col">รหัส CM/รหัส PR</th>
                 <th scope="col">ชื่อผู้จำหน่าย</th>
                 <th scope="col">เครดิต</th>
-                <th scope="col">ขนส่งโดย</th>
+                <th scope="col">ผู้สั่งสินค้า</th>
                 <th scope="col">ลงวันที่อนุมัติ</th>
                 <th scope="col">วันที่รับสินค้า</th>
             </tr>
@@ -68,7 +68,7 @@
             </td>
             <td>{{po.distributor}}</td>
             <td>{{po.credit}}</td>
-            <td>{{po.shipping}}</td>            
+            <td>{{po.stockman_user}}</td>            
             <td>
               {% if po.approver_status.id == 1 or po.approver_status.id == 3%}
               <button type="button"

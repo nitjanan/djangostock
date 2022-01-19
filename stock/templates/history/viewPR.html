@@ -21,7 +21,7 @@
           {{filter.form.purchase_user|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
-          {{filter.form.requisition__section|as_crispy_field}}
+          {{filter.form.organizer|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
           {{filter.form.start_created|as_crispy_field}}
@@ -53,7 +53,7 @@
             <th scope="col">ชื่อผู้ขอเบิก</th>
             <th scope="col">ชื่อผู้ขอซื้อ</th>
             <th scope="col">แผนก</th>
-            <!-- <th scope="col">ความเร่งด่วน</th> -->
+            <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
             <th scope="col">ลงวันที่ขอซื้อ</th>          
             <th scope="col">ลงวันที่อนุมัติ</th>
           </tr>
@@ -67,7 +67,7 @@
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>
             <td>{{pr.requisition.section}}</td>
-            <!-- <td class="text-center">{{pr.requisition.urgency.name}}</td> -->
+            <td>{{pr.organizer}}</td>
             <td>
               {% if pr.purchase_status.id == 1 or pr.purchase_status.id == 3%}
               <button type="button"

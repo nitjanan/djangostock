@@ -104,7 +104,7 @@ def approvePOCounter(request):
     if(isPermiss):
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, is_save = True) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
             po_count = len(po_item)
         except PurchaseOrder.DoesNotExist:
