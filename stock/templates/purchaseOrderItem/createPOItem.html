@@ -119,6 +119,7 @@
               </div>
               <div class="col-2">
                 {{price_form.discount | add_class:"text-right"}}
+                <p class="text-right" id="tempTotal" hidden>{{po.total_price}}</p>
               </div>
             </div>
             <div class="row">
@@ -313,13 +314,15 @@ $("#id_total_price, #id_discount").change(function() {
   var price =  $("#id_total_price").val();
   var discount =  $("#id_discount").val();
   var totalAfterDiscount = parseFloat(price) - calculateDiscount(discount);
-  $("#id_total_after_discount").val(totalAfterDiscount);
-  $("#id_total_after_discount").val(parseFloat($("#id_total_after_discount").val()).toFixed(2));
+
   //คำนวน vat
   var vat = calculateVat(totalAfterDiscount);
   $("#id_vat").val(vat.toFixed(2));
+
+  setValueTotalAfterDiscount(totalAfterDiscount, vat);
+
   //คำนวน amount
-  var amount = calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
+  var amount = calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
   var thaibath = ArabicNumberToText(amount);
@@ -348,7 +351,9 @@ function calculateAll(){
       }
     var totalAfterDiscount = calculateTotalAfterDiscount(total);
     var vat = calculateVat(totalAfterDiscount);
-    var amount =  calculateAmount(vat, totalAfterDiscount, $("#id_freight").val());
+
+    setValueTotalAfterDiscount(totalAfterDiscount, vat);
+
     //แสดง จำนวนเงินหลังหักส่วนลด
     $("#id_total_after_discount").val(totalAfterDiscount.toFixed(2));
     //แสดง รวมเป็นเงิน 
@@ -357,11 +362,27 @@ function calculateAll(){
     $("#id_vat").val(vat.toFixed(2));
     //document.getElementById("vat").innerHTML = vat.toFixed(2) + " บาท";
     //แสดง จำนวนเงินรวมทั้งสิ้น
+    var amount =  calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
     $("#id_amount").val(amount.toFixed(2));
     //document.getElementById("amount").innerHTML = amount.toFixed(2) + " บาท";
     //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
 		var thaibath = ArabicNumberToText(amount);
     document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+}
+
+function setValueTotalAfterDiscount(totalAfterDiscount, vat){
+  var TAD = 0.00;
+  tempTotal.innerHTML = totalAfterDiscount;
+  var vatType = document.getElementById("vat-type").innerHTML;
+  if(vatType == "1"){
+    TAD = parseFloat(tempTotal.innerHTML) - parseFloat(vat) ;
+  } //vat ใน
+  else if(vatType == "2") //vat นอก
+    TAD = parseFloat(tempTotal.innerHTML);
+  else
+    TAD = parseFloat(tempTotal.innerHTML);
+    
+  $("#id_total_after_discount").val(TAD.toFixed(2));
 }
 
 function calculateTotalAfterDiscount(totalPrice){

@@ -11,7 +11,7 @@
     {% for d in cpd%}
     <ul class="list-group list-group-horizontal-sm my-2">
         <li class="list-group-item">
-            <h3 class="float-left">{{d.distributor}}</h3>
+            <h3 class="float-left">{{forloop.counter}}. {{d.distributor}}</h3>
             <a href="{% url 'editComparePricePOItem' d.cp.id d.id%}" class="btn btn-warning float-right"><i class="fas fa-pen"></i> แก้ไข</a>
             <a onclick="return confirm('คุณต้องการลบผู้จำหน่าย {{d.distributor}} หรือไม่ ?')" href="{% url 'removeComparePriceDistributor' d.cp.id d.id%}" class="btn btn-danger float-right"><i class="fas fa-trash-alt"></i> ลบ</a>
         </li>
@@ -77,6 +77,7 @@
         </li>
     </ul>  
     {% endfor %}
+    <h4><span class="my-4 badge badge-pill badge-primary">เพิ่มร้านค้า</span></h4>
     <div class="card my-2 div-shadow border-primary" id="card">
         <form class="form-horizontal" method="POST" action="" enctype="multipart/form-data">
             {% csrf_token %}

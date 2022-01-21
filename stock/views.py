@@ -2315,12 +2315,17 @@ def reApprovePR(request, pr_id):
 
         pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
         pr.approver_update = None
+        pr.approver_user = None
         #พัสดุ
         pr.stockman_user_id = request.user.id
         pr.stockman_update = datetime.datetime.now()
         pr.save()
 
-        users = RequisitionItem.objects.filter(requisit = pr.requisition)
+        items = RequisitionItem.objects.filter(requisit = pr.requisition)
+        for item in items:
+            item.is_used = False
+            item.save()
+
         requisition = Requisition.objects.get(id = pr.requisition.id)
             
         baseUrgency = BaseUrgency.objects.all()
@@ -2328,7 +2333,7 @@ def reApprovePR(request, pr_id):
         baseProduct = Product.objects.all()
 
         context = {
-            'users' : users,
+            'users' : items,
             'requisition' : requisition,
             'pr' : pr,
             'baseUrgency' : baseUrgency,
