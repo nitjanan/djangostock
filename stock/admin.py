@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import ugettext_lazy as _
 
@@ -132,6 +132,7 @@ class DistributorResource(resources.ModelResource):
 class DistributorAdmin(ImportExportModelAdmin):
     resource_class = DistributorResource
     list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+    search_fields = ('id', 'name')
 
 class BaseSparesTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -155,6 +156,7 @@ class UserProfileAdmin(ImportExportModelAdmin):
     list_display = ['user','position','department'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['position','department']
+    search_fields = ['user__first_name', 'user__last_name']
     readonly_fields = ('signature_preview',)
 
     def signature_preview(self, obj):
@@ -216,6 +218,7 @@ admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BaseDistributorType, BaseDistributorTypeAdmin)
 admin.site.register(BaseDistributorGenre, BaseDistributorGenreAdmin)
 admin.site.register(BaseAffiliatedCompany, BaseAffiliatedCompanyAdmin)
+admin.site.register(BaseBranchCompany)
 admin.site.register(BasePrefix, BasePrefixAdmin)
 admin.site.register(Distributor, DistributorAdmin)
 admin.site.register(BaseVatType, BaseVatTypeAdmin)

@@ -5,15 +5,6 @@ from django.db.models import Prefetch
 from django.db import connection
 from collections import Counter
 
-def get_unique(li):
-    #Create the counter to count frequencies
-    c = Counter(li)
-
-    #Create a list of items with count 1
-    result = [key for key,value in c.items() if value == 1]
-
-    return result
-
 def userVisibleTab(request):
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)

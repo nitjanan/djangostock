@@ -19,6 +19,21 @@
                         {% csrf_token %}
                         <div class="fieldWrapper my-2">
                             {{ form.username.errors }}
+                            <label for="{{ form.username.id_for_label }}">บริษัท</label>
+                            <div class="input-group mb-3">
+                                <div class="input-group-prepend">
+                                  <span class="input-group-text"><i class="fas fa-building"></i></span>
+                                </div>
+                                <input list="companys" name="company" id="company" class="form-control" autocomplete="off">
+                                <datalist id="companys">
+                                    {% for company in companys %}
+                                        <option value="{{company.code}}-{{company.affiliated.name_sh}}{%if company.name %} สาขา {{company.name}}{%endif%}">
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+                        </div>
+                        <div class="fieldWrapper my-2">
+                            {{ form.username.errors }}
                             <label for="{{ form.username.id_for_label }}">ชื่อผู้ใช้งาน</label>
                             <div class="input-group mb-3">
                                 <div class="input-group-prepend">

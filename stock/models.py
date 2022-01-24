@@ -12,17 +12,15 @@ from datetime import date
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
+import pytz
 
-def requisition_ref_number():   
-       
-    local_tz = get_localzone()
-    timezone.activate(local_tz)
-
-    today =  timezone.localtime(timezone.now())
-    year = str(timezone.localtime(timezone.now()).year)
-    month = str(timezone.localtime(timezone.now()).month)
+def requisition_ref_number():
+    #tz = pytz.timezone('Asia/Bangkok')
+    today = datetime.datetime.now()
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
+    month = str(today.strftime('%m'))
     YM = year + month
-    format = 'R-'+ YM
+    format = 'QS1'+ YM
 
     try:
         last_no = Requisition.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -33,7 +31,7 @@ def requisition_ref_number():
         return format + '001'
 
     ref_no = last_no.ref_no
-    oldDate =  ref_no[2:-3]
+    oldDate =  ref_no[3:-3]
     if YM == oldDate:
         no_int = int(ref_no.split(format)[-1])
     elif YM != oldDate:
@@ -47,10 +45,10 @@ def requisition_ref_number():
 
 def purchaseRequisition_ref_number():
     today = datetime.datetime.now()
-    year = str(today.strftime('%y'))
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'PR-'+ YM
+    format = 'RS1'+ YM
 
     try:
         last_no = PurchaseRequisition.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -74,12 +72,11 @@ def purchaseRequisition_ref_number():
     return new_no
 
 def comparisonPrice_ref_number():
-    
     today = datetime.datetime.now()
-    year = str(today.strftime('%y'))
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'CM-'+ YM
+    format = 'CS1'+ YM
 
     try:
         last_no = ComparisonPrice.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -104,10 +101,10 @@ def comparisonPrice_ref_number():
 
 def purchaseOrder_ref_number():
     today = datetime.datetime.now()
-    year = str(today.strftime('%y'))
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'PO-'+ YM
+    format = 'S1'+ YM
 
     try:
         last_no = PurchaseOrder.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -118,7 +115,7 @@ def purchaseOrder_ref_number():
         return format + '001'
 
     ref_no = last_no.ref_no
-    oldDate =  ref_no[3:-3]
+    oldDate =  ref_no[2:-3]
     if YM == oldDate:
         no_int = int(ref_no.split(format)[-1])
     elif YM != oldDate:
@@ -135,7 +132,7 @@ def receive_ref_number():
     year = str(today.strftime('%y'))
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'RC-'+ YM
+    format = 'RC'+ YM
 
     try:
         last_no = Receive.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -146,7 +143,7 @@ def receive_ref_number():
         return format + '001'
 
     ref_no = last_no.ref_no
-    oldDate =  ref_no[3:-3]
+    oldDate =  ref_no[2:-3]
     if YM == oldDate:
         no_int = int(ref_no.split(format)[-1])
     elif YM != oldDate:
@@ -164,7 +161,8 @@ def get_first_name(self):
 User.add_to_class("__str__", get_first_name)
 
 class BaseAffiliatedCompany(models.Model):
-    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อบริษัทย่อ")
+    name = models.CharField(max_length=255,unique=True, verbose_name="โค้ดบริษัท")
+    name_sh = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทย่อ")
     name_th = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทไทย")
     name_eng = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทอังกฤษ")
     address = models.CharField(max_length=255, blank=True, null = True, verbose_name="ที่อยู่")
@@ -187,6 +185,21 @@ class BaseAffiliatedCompany(models.Model):
 
     def __str__(self):
         return self.name
+
+class BaseBranchCompany(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสสาขาบริษัท")
+    code = models.CharField(max_length=255,unique=True, verbose_name="โค้ดสาขาบริษัท")
+    affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True,related_name='branch_affiliated', verbose_name="ชื่อสังกัดบริษัท")
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อสาขาบริษัท", blank = True, null = True)
+
+    class Meta:
+        db_table = 'BaseBranchCompany'
+        ordering=('id',)
+        verbose_name = 'สาขาบริษัท'
+        verbose_name_plural = 'ข้อมูลสาขาบริษัท'
+
+    def __str__(self):
+        return self.code
 
 class BaseUnit(models.Model):
     name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อหน่วยสินค้า")

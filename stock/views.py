@@ -7,7 +7,7 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
+from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -27,6 +27,7 @@ from django.db.models import Prefetch
 from .resources import ReceiveItemResource, DistributorResource
 from tablib import Dataset
 from django.db.models import Q
+from django.core.cache import cache
 
 # Create your views here.
 @login_required(login_url='signIn')
@@ -34,14 +35,21 @@ def index(request, category_slug = None):
     '''
     catalogy show สินค้า
     '''
+
+    try:
+        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    except:
+        return redirect('signOut')
+
     products = None
     categories_page = None
     if category_slug != None :
-        categories_page = get_object_or_404(Category, slug = category_slug,affiliated =  company.affiliated ) #เช็ค 404 คือเช็คว่ามีค่ามาไหม
-        products = Product.objects.all().filter(category = categories_page, available=True) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True
+        categories_page = get_object_or_404(Category, slug = category_slug) #เช็ค 404 คือเช็คว่ามีค่ามาไหม
+        #products = Product.objects.all().filter(category = categories_page, available=True, affiliated =  company.affiliated) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True
+        products = Product.objects.all().filter(category = categories_page, available=True)
     else :
-        products = Product.objects.all().filter(available=True) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True
-    
+        #products = Product.objects.all().filter(available=True, affiliated =  company.affiliated) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True
+        products = Product.objects.all().filter(available=True)
     
     paginator = Paginator(products,20) #หมายถึงให้แสดงสินค้า 4 ต่อ 1 หน้า
     try:
@@ -397,21 +405,26 @@ def signUpView(request):
     return render(request, "signup.html", context)
 
 def signInView(request):
+    companys = BaseBranchCompany.objects.all()
     if request.method == 'POST':
         form = AuthenticationForm(data = request.POST)
         if form.is_valid():
             username = request.POST['username']
             password = request.POST['password']
+            company = request.POST['company']
             user = authenticate(username=username,password=password)
             #ถ้าล็อกอินสำเร็จไปหน้า home else ให้ไปสมัครใหม่
             if user is not None:
+                #เซลชั่น
+                request.session['company_code'] = company.split("-",1)[0]
+                request.session['company'] = company.split("-",1)[1]
                 login(request, user)
                 return redirect('home')
             else:
                 return redirect('signUp')
     else:
         form = AuthenticationForm()
-    return render(request, 'signin.html', {'form':form})
+    return render(request, 'signin.html', {'form':form,'companys':companys })
 
 def signOutView(request):
     logout(request)
@@ -1401,7 +1414,10 @@ def editPO(request, po_id):
     return render(request, "purchaseOrder/createPO.html", context)
 
 def editPOFromPR(request, po_id):
-    distributorList = Distributor.objects.filter(affiliated = 1)
+    #
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
+    distributorList = Distributor.objects.filter()
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
     if request.method == 'POST':
@@ -1469,6 +1485,21 @@ def showPO(request, po_id, mode):
     }
     return render(request, 'purchaseOrder/showPO.html',context)
 
+def showPOFromRef(request, po_ref_no, mode):
+    po = PurchaseOrder.objects.get(ref_no = po_ref_no)
+    items = PurchaseOrderItem.objects.filter(po = po)
+
+    page = POPageMode(mode)
+    show = POShowMode(mode)
+
+    context = {
+            'po':po,
+            'items':items,
+            page: "tab-active",
+            show: "show",
+    }
+    return render(request, 'purchaseOrder/showPO.html',context)
+
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
@@ -1518,7 +1549,10 @@ def editPOItem(request, po_id, isFromPR):
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    distributorList = Distributor.objects.filter(affiliated = 1)
+    #
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
+    distributorList = Distributor.objects.filter()
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
@@ -1711,7 +1745,10 @@ def createComparePricePOItem(request, cp_id):
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    distributorList = Distributor.objects.filter(affiliated = 1)
+    #
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
+    distributorList = Distributor.objects.filter()
 
     #ร้านแรก
     try:
@@ -1773,7 +1810,10 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    distributorList = Distributor.objects.filter(affiliated = 1)
+    #
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
+    distributorList = Distributor.objects.filter()
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
@@ -1825,7 +1865,10 @@ def editComparePricePOItem(request, cp_id , cpd_id):
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    distributorList = Distributor.objects.filter(affiliated = 1)
+    #
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
+    distributorList = Distributor.objects.filter()
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
