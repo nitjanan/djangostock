@@ -37,7 +37,7 @@ def index(request, category_slug = None):
     products = None
     categories_page = None
     if category_slug != None :
-        categories_page = get_object_or_404(Category, slug = category_slug) #เช็ค 404 คือเช็คว่ามีค่ามาไหม
+        categories_page = get_object_or_404(Category, slug = category_slug,affiliated =  company.affiliated ) #เช็ค 404 คือเช็คว่ามีค่ามาไหม
         products = Product.objects.all().filter(category = categories_page, available=True) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True
     else :
         products = Product.objects.all().filter(available=True) #ดึงข้อมูล Product จาก db ทั้งหมดโดยที่ available=True

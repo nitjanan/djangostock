@@ -14,9 +14,13 @@ from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
 
 def requisition_ref_number():   
-    today = datetime.datetime.now()
-    year = str(today.strftime('%y'))
-    month = str(today.strftime('%m'))
+       
+    local_tz = get_localzone()
+    timezone.activate(local_tz)
+
+    today =  timezone.localtime(timezone.now())
+    year = str(timezone.localtime(timezone.now()).year)
+    month = str(timezone.localtime(timezone.now()).month)
     YM = year + month
     format = 'R-'+ YM
 
