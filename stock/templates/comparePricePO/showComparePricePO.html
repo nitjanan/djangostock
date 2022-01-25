@@ -15,7 +15,7 @@
     size: A4 landscape;
     }
     body {
-        font-size: 9pt;
+        font-size: 4pt;
         font-family: serif;
         color: black;
         float: right;
@@ -51,7 +51,11 @@
                     {% endif %}
                 {% endfor %}
             </p>
-            <p style="font-size:6pt">รหัสใบขอซื้อ {{pr_ref_no}}</p>
+            <h6 style="font-size:6pt">รหัสใบขอซื้อ
+                {% for i in new_pr %}
+                    <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
+                {% endfor %}
+            </h6>
             <p style="font-size:6pt">วันที่&emsp;{{cp.created | date:"d/m/Y"}}</p>
         </div>
     </div>

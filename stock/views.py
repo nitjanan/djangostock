@@ -639,11 +639,18 @@ def requisition(request):
     return render(request,'requisition/viewRequisition.html', context)
 
 def createRequisition(request):
+    try:
+        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    except:
+        return redirect('signOut')
+
     form = RequisitionForm(request.POST or None)
     if form.is_valid():
         form = RequisitionForm(request.POST or None, request.FILES)
         new_contact = form.save(commit=False)
         new_contact.supplies_approve_user_name_id = request.user.id
+        new_contact.branch_company = company
+
         try:
             userProfile = UserProfile.objects.get(user = new_contact.name)
             new_contact.section = userProfile.department
@@ -1012,6 +1019,11 @@ def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
 
 def createPR(request, requisition_id):
+    try:
+        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    except:
+        return redirect('signOut')
+
     items= RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=requisition_id)
     baseUrgency = BaseUrgency.objects.all() #ระดับความเร่งด่วน
@@ -1032,6 +1044,7 @@ def createPR(request, requisition_id):
     if form.is_valid():
         #save PR
         new_contact = form.save()
+        new_contact.branch_company = company
 
         #save id express
         saveIdExpressPR(request)
@@ -1078,6 +1091,11 @@ def createPR(request, requisition_id):
     return render(request,'purchaseRequisition/createPR.html', context)
 
 def createCMorPO(request, pr_id):
+    try:
+        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    except:
+        return redirect('signOut')
+
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
@@ -1099,6 +1117,7 @@ def createCMorPO(request, pr_id):
             organizer = request.user,
             approver_status_id = 1,
             examiner_status_id = 1,
+            branch_company = company,
         )
         cp.save()
 
@@ -1126,6 +1145,7 @@ def createCMorPO(request, pr_id):
             approver_status_id = 1,
             vat_type_id = 0,
             pr = pr,
+            branch_company = company,
         )
         po.save()
 
@@ -1378,6 +1398,11 @@ def preparePO(request):
     return render(request, 'purchaseOrder/preparePO.html')
 
 def createPO(request):
+    try:
+        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    except:
+        return redirect('signOut')
+
     # set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderForm(request.POST or None)
     if form.is_valid():
@@ -1385,6 +1410,7 @@ def createPO(request):
         new_contact = form.save(commit=False)
         new_contact.stockman_user = request.user
         new_contact.approver_status_id = 1
+        new_contact.branch_company = company
         new_contact.save()
         return HttpResponseRedirect(reverse('createPOItem', args=(new_contact.pk,)))
 
@@ -1485,21 +1511,6 @@ def showPO(request, po_id, mode):
     }
     return render(request, 'purchaseOrder/showPO.html',context)
 
-def showPOFromRef(request, po_ref_no, mode):
-    po = PurchaseOrder.objects.get(ref_no = po_ref_no)
-    items = PurchaseOrderItem.objects.filter(po = po)
-
-    page = POPageMode(mode)
-    show = POShowMode(mode)
-
-    context = {
-            'po':po,
-            'items':items,
-            page: "tab-active",
-            show: "show",
-    }
-    return render(request, 'purchaseOrder/showPO.html',context)
-
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
@@ -1576,6 +1587,12 @@ def editPOItem(request, po_id, isFromPR):
             instances = formset.save(commit=False)
             for instance in instances:
                 instance.save()
+                try:
+                    r_item = RequisitionItem.objects.get(id = instance.item.id)
+                    r_item.is_used = True
+                    r_item.save()
+                except RequisitionItem.DoesNotExist:
+                    pass
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
@@ -1785,6 +1802,13 @@ def createComparePricePOItem(request, cp_id):
                     cpi.bidder = book 
                     cpi.cp = cp_id
                     cpi.save()
+                    #ตัดสินค้าหน้า PR
+                    try:
+                        r_item = RequisitionItem.objects.get(id = cpi.item.id)
+                        r_item.is_used = True
+                        r_item.save()
+                    except RequisitionItem.DoesNotExist:
+                        pass
             return redirect('createComparePricePOItem', cp_id = cp_id)
 
     cpd = ComparisonPriceDistributor.objects.filter(cp = cp_id)
@@ -1832,9 +1856,16 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
             # save po item
             instances = formset.save(commit=False)
             for instance in instances:
-                instance.bidder = book 
+                instance.bidder = book
                 instance.cp = cp_id
                 instance.save()
+                #ตัดสินค้าหน้า PR
+                try:
+                    r_item = RequisitionItem.objects.get(id = instance.item.id)
+                    r_item.is_used = True
+                    r_item.save()
+                except RequisitionItem.DoesNotExist:
+                    pass
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
@@ -1888,6 +1919,13 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                 instance.bidder = book 
                 instance.cp = cp_id
                 instance.save()
+                #ตัดสินค้าหน้า PR
+                try:
+                    r_item = RequisitionItem.objects.get(id = instance.item.id)
+                    r_item.is_used = True
+                    r_item.save()
+                except RequisitionItem.DoesNotExist:
+                    pass
             for obj in formset.deleted_objects:
                 obj.delete()
             formset.save_m2m()
@@ -1936,10 +1974,12 @@ def printComparePricePO(request, cp_id):
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
+        new_pr = dict()
         for id in new_pr_id:
             try:
                 pr = PurchaseRequisition.objects.get(id = id)
                 pr_ref_no += pr.ref_no + ", "
+                new_pr[pr] = pr
             except PurchaseRequisition.DoesNotExist:
                 pass 
 
@@ -1960,6 +2000,7 @@ def printComparePricePO(request, cp_id):
         'items_oldest' : items_oldest,
         'itemName':itemName,
         'pr_ref_no': pr_ref_no,
+        'new_pr': new_pr,
         'form':form,
         'baseSparesType' : baseSparesType,
         'cp_page': "tab-active",
@@ -1987,10 +2028,12 @@ def showComparePricePO(request, cp_id, mode):
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
+        new_pr = dict()
         for id in new_pr_id:
             try:
                 pr = PurchaseRequisition.objects.get(id = id)
                 pr_ref_no += pr.ref_no + ", "
+                new_pr[pr] = pr
             except PurchaseRequisition.DoesNotExist:
                 pass
 
@@ -2003,12 +2046,18 @@ def showComparePricePO(request, cp_id, mode):
             'itemName':itemName,
             'baseSparesType':baseSparesType,
             'pr_ref_no': pr_ref_no,
+            'new_pr': new_pr,
             page: "tab-active",
             show: "show",
     }
     return render(request, 'comparePricePO/showComparePricePO.html',context)
 
 def createPOFromComparisonPrice(request, cp_id):
+    try:
+        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    except:
+        return redirect('signOut')
+
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id})
     if form.is_valid():
@@ -2021,6 +2070,7 @@ def createPOFromComparisonPrice(request, cp_id):
         new_contact.vat_type = cpd.vat_type
         new_contact.quotation_pdf = cpd.quotation_pdf
         new_contact.approver_status_id = 1
+        new_contact.branch_company = company
         new_contact.save()
 
         cp.po_ref_no = new_contact.ref_no
@@ -2196,10 +2246,12 @@ def printCPApprove(request, cp_id, isFromHome):
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
+        new_pr = dict()
         for id in new_pr_id:
             try:
                 pr = PurchaseRequisition.objects.get(id = id)
                 pr_ref_no += pr.ref_no + ", "
+                new_pr[pr] = pr
             except PurchaseRequisition.DoesNotExist:
                 pass
 
@@ -2234,6 +2286,7 @@ def printCPApprove(request, cp_id, isFromHome):
         'items_oldest' : items_oldest,
         'itemName':itemName,
         'baseSparesType':baseSparesType,
+        'new_pr': new_pr,
         'pr_ref_no': pr_ref_no,
         'isApprover': isApprover,
         'isExaminer': isExaminer,

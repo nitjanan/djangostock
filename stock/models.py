@@ -397,6 +397,7 @@ class Requisition(models.Model):
     is_edit = models.BooleanField(default=True)
     memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'Requisition'
@@ -474,6 +475,7 @@ class PurchaseRequisition(models.Model):
     note = models.CharField(max_length=255, blank=True)
     ref_no = models.CharField(max_length = 500, default = purchaseRequisition_ref_number, null = True, blank = True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'PurchaseRequisition'
@@ -709,6 +711,7 @@ class ComparisonPrice(models.Model):
     ref_no = models.CharField(max_length = 500, default = comparisonPrice_ref_number, null = True, blank = True)
     po_ref_no = models.CharField(max_length=255, blank = True)
     cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'ComparisonPrice'
@@ -757,6 +760,7 @@ class PurchaseOrder(models.Model):
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
     receive_update = models.DateField(blank=True, null=True) #วันที่รับสินค้า
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'PurchaseOrder'
@@ -839,6 +843,7 @@ class Receive(models.Model):
     pay = models.CharField(max_length=255, blank = True)
     due_date = models.DateField(null = True, blank = True)
     distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE, null = True)
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'Receive'
