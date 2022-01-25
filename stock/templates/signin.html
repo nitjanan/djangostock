@@ -24,7 +24,7 @@
                                 <div class="input-group-prepend">
                                   <span class="input-group-text"><i class="fas fa-building"></i></span>
                                 </div>
-                                <input list="companys" name="company" id="company" class="form-control" autocomplete="off">
+                                <input list="companys" name="company" id="company" class="form-control" autocomplete="off" required>
                                 <datalist id="companys">
                                     {% for company in companys %}
                                         <option value="{{company.code}}-{{company.affiliated.name_sh}}{%if company.name %} สาขา {{company.name}}{%endif%}">
