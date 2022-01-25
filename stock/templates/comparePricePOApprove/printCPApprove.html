@@ -171,12 +171,12 @@
         </table>
     </div>
     {% if cp.select_bidder %}
-    <div class="row mx-auto pd-3" style="height: 4px;">
+    <div class="row mx-auto pd-3 less" style="height: 4px;">
         <div class="col">
             <b id="txtLess"></b>
         </div>
     </div>
-    <hr>
+    <hr class="less">
     <div class="row mx-auto pd-3" style="height: 4px;">
         <div class="col-6">
             <b id="txtSelectBidder"></b>
@@ -288,21 +288,35 @@
     "{% endfor %}"
     
     document.getElementById("txtSelectBidder").innerHTML = "ขออนุมัติจัดซื้อจาก "+ bidderName + " เป็นเงินทั้งสิ้น";
-    document.getElementById("txtSelectBidderPrice").innerHTML = amount + " บาท";
+    document.getElementById("txtSelectBidderPrice").innerHTML = ReplaceNumberWithCommas(amount) + " บาท";
 
     var thaibath = ArabicNumberToText(amount);
     document.getElementById("txtSelectBidderSpell").innerHTML = "(" + thaibath + ")";
 
     calculateDiffPrice(priceSelect, index);
-    
-    $("#pShow").html("{{pr_ref_no}}");
+
 }); 
 
   function calculateDiffPrice(priceSelect, index){
     var priceFirst = parseFloat("{{ bidder.0.total_price}}");
+    var priceSelect = parseFloat("{{ bidder.1.total_price}}");
     var diff = priceSelect - priceFirst;
     var diffPercent = (diff/priceFirst)*100;
-    document.getElementById("txtLess").innerHTML = "รายการที่ 1 ถูกกว่ารายการที่ "+ index +" (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ diff.toFixed(2) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+diffPercent.toFixed(2)+"%";
+    if (typeof index !== "undefined" && !isNaN(diff)){
+        document.getElementById("txtLess").innerHTML = "รายการที่ 1 ถูกกว่ารายการที่ 2 (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ ReplaceNumberWithCommas(diff) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+diffPercent.toFixed(2)+"%";
+    }else{
+        $(".less").remove();
+    }
+        
   }
+
+  function ReplaceNumberWithCommas(num) {
+        const options = { 
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2 
+        };
+        const formatted = Number(num).toLocaleString('en', options);
+        return formatted;
+    }
 </script>
 {% endblock %}
