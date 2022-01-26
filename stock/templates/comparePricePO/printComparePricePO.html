@@ -353,8 +353,6 @@
     var diffPercent = (diff/priceFirst)*100;
     if (typeof index !== "undefined" && !isNaN(diff)) {
         document.getElementById("txtLess").innerHTML = "รายการที่ 1 ถูกกว่ารายการที่ 2 (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ ReplaceNumberWithCommas(diff) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+diffPercent.toFixed(2)+"%";
-    }else{
-        $(".less").remove();
     }
   }
 

@@ -1524,8 +1524,8 @@ def showPO(request, po_id, mode):
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
 
+    new_pr_id = dict()
     if items:
-        new_pr_id = dict()
         for obj in items:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
@@ -1649,8 +1649,9 @@ def editPOItem(request, po_id, isFromPR):
 
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po_id)
+
+    new_pr_id = dict()
     if items:
-        new_pr_id = dict()
         for obj in items:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
@@ -1705,8 +1706,8 @@ def viewPOApprove(request):
 def editPOApprove(request, po_id, isFromHome):
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
+    new_pr_id = dict()
     if items:
-        new_pr_id = dict()
         for obj in items:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
@@ -2078,8 +2079,8 @@ def printComparePricePO(request, cp_id):
         items_oldest = None
 
     pr_ref_no = ""
+    new_pr_id = dict()
     if items_oldest:
-        new_pr_id = dict()
         for obj in items_oldest:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
@@ -2135,8 +2136,8 @@ def showComparePricePO(request, cp_id, mode):
     itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount')
 
     pr_ref_no = ""
+    new_pr_id = dict()
     if items_oldest:
-        new_pr_id = dict()
         for obj in items_oldest:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
@@ -2237,8 +2238,8 @@ def createPOItemFromComparisonPrice(request, po_id):
 
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po_id)
+    new_pr_id = dict()
     if items:
-        new_pr_id = dict()
         for obj in items:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
@@ -2368,8 +2369,8 @@ def printCPApprove(request, cp_id, isFromHome):
 
 
     pr_ref_no = ""
+    new_pr_id = dict()
     if items_oldest:
-        new_pr_id = dict()
         for obj in items_oldest:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
