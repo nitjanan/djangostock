@@ -1498,6 +1498,14 @@ def removePO(request, po_id):
     po = PurchaseOrder.objects.get(id = po_id)
     #ลบ item ใน PurchaseOrder ด้วย
     items = PurchaseOrderItem.objects.filter(po = po)
+    for obj in items:
+        try:
+            d_item = RequisitionItem.objects.get(id = obj.item.id)
+            d_item.is_used = False
+            d_item.save()
+        except RequisitionItem.DoesNotExist:
+            pass
+
     items.delete()
 
     #ล้าง po_ref_no ที่ผูกไว้
@@ -1516,12 +1524,27 @@ def showPO(request, po_id, mode):
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
 
+    if items:
+        new_pr_id = dict()
+        for obj in items:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass
+    
     page = POPageMode(mode)
     show = POShowMode(mode)
 
     context = {
             'po':po,
             'items':items,
+            'new_pr':new_pr,
             page: "tab-active",
             show: "show",
     }
@@ -1610,6 +1633,12 @@ def editPOItem(request, po_id, isFromPR):
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
+                try:
+                    d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    d_item.is_used = False
+                    d_item.save()
+                except RequisitionItem.DoesNotExist:
+                    pass
                 obj.delete()
             formset.save_m2m()
             return redirect('viewPO')
@@ -1619,6 +1648,21 @@ def editPOItem(request, po_id, isFromPR):
         form = PurchaseOrderForm(instance=po_data)
 
     po = PurchaseOrder.objects.get(id = po_id)
+    items = PurchaseOrderItem.objects.filter(po = po_id)
+    if items:
+        new_pr_id = dict()
+        for obj in items:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass
+
     context = {
         'po':po,
         'po_items':po_items,
@@ -1629,6 +1673,7 @@ def editPOItem(request, po_id, isFromPR):
         'form': form,
         'isFromPR':isFromPR,
         'itemList':itemList,
+        'new_pr':new_pr,
         'distributorList': distributorList,
         'heading': heading_message,
     }
@@ -1660,6 +1705,19 @@ def viewPOApprove(request):
 def editPOApprove(request, po_id, isFromHome):
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
+    if items:
+        new_pr_id = dict()
+        for obj in items:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass
 
     #get permission with position login
     try:
@@ -1693,6 +1751,7 @@ def editPOApprove(request, po_id, isFromHome):
                 'items':items,
                 'isPermiss':isPermiss,
                 'isFromHome':isFromHome,
+                'new_pr':new_pr,
                 'ap_po_page': "tab-active",
                 'ap_po_show': "show",
     }
@@ -1759,6 +1818,13 @@ def removeComparePricePO(request, cp_id):
 
     #ลบ item ใน ComparisonPriceItem ด้วย
     items = ComparisonPriceItem.objects.filter(cp = cp_id)
+    for obj in items:
+        try:
+            d_item = RequisitionItem.objects.get(id = obj.item.id)
+            d_item.is_used = False
+            d_item.save()
+        except RequisitionItem.DoesNotExist:
+            pass
     items.delete()
 
     #ลบผู้จำหน่าย
@@ -1888,6 +1954,12 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
+                try:
+                    d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    d_item.is_used = False
+                    d_item.save()
+                except RequisitionItem.DoesNotExist:
+                    pass
                 obj.delete()
             formset.save_m2m()
             return redirect('createComparePricePOItem',cp_id = cp_id)    
@@ -1923,6 +1995,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     distributorList = Distributor.objects.filter()
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
+    numDistributor = ComparisonPriceDistributor.objects.filter(cp = cp_id).count()
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
         bookform = CPDModelForm(request.POST, request.FILES, instance=data)
@@ -1948,6 +2021,13 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
+                if numDistributor == 1:
+                    try:
+                        d_item = RequisitionItem.objects.get(id = obj.item.id)
+                        d_item.is_used = False
+                        d_item.save()
+                    except RequisitionItem.DoesNotExist:
+                        pass   
                 obj.delete()
             formset.save_m2m()
             return redirect('createComparePricePOItem',cp_id = cp_id)
@@ -1973,9 +2053,18 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     return render(request, 'comparePricePOItem/editComparePricePOItem.html',context)
 
 def removeComparePriceDistributor(request, cp_id, cpd_id):
+    numDistributor = ComparisonPriceDistributor.objects.filter(cp = cp_id).count()
     cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
     #ลบ item ใน PurchaseOrder ด้วย
     items = ComparisonPriceItem.objects.filter(bidder = cpd)
+    if numDistributor == 1:
+        for obj in items:
+            try:
+                d_item = RequisitionItem.objects.get(id = obj.item.id)
+                d_item.is_used = False
+                d_item.save()
+            except RequisitionItem.DoesNotExist:
+                pass  
     items.delete()
     #ลบ PurchaseOrder ทีหลัง
     cpd.delete()
@@ -2147,6 +2236,21 @@ def createPOItemFromComparisonPrice(request, po_id):
             return redirect('viewPO')
 
     po = PurchaseOrder.objects.get(id = po_id)
+    items = PurchaseOrderItem.objects.filter(po = po_id)
+    if items:
+        new_pr_id = dict()
+        for obj in items:
+            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
+                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
+
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass
+
     context = {
         'po':po,
         'po_items':po_items,
@@ -2157,6 +2261,7 @@ def createPOItemFromComparisonPrice(request, po_id):
         'formset': formset,
         'price_form': price_form,
         'itemList':itemList,
+        'new_pr':new_pr,
         'heading': heading_message,
     }
     return render(request, template_name, context)

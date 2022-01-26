@@ -139,7 +139,7 @@ thead, tbody tr {
                           <tbody>
                             {% for po in pos%}
                                 <tr>
-                                    <th scope="row">{{po.ref_no}}</th>
+                                    <th scope="row"><a href="{% url 'showPO' po.id 2 %}">{{po.ref_no}}</a></th>
                                     <td>{{po.created |date:"d/m/Y" }}</td>
                                       <td>
                                         {% if po.approver_status.id == 1 %}

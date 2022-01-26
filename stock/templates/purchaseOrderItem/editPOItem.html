@@ -36,6 +36,11 @@
               {% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor}}<br>
               {{po.distributor.address}}<br>
               โทร : {{po.distributor.tel}}<br>
+              <h6 style="font-size:8pt">รหัสใบขอซื้อ :
+                {% for i in new_pr %}
+                  <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
+                {% endfor %}                
+              </h6>
             </address>
           </div>
           <div class="col-md-6 text-right">

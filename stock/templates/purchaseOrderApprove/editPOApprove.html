@@ -36,6 +36,11 @@
               {% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor}}<br>
               {{po.distributor.address}}<br>
               โทร : {{po.distributor.tel}}<br>
+              <h6 style="font-size:8pt">รหัสใบขอซื้อ :
+                {% for i in new_pr %}
+                  <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
+                {% endfor %}                
+              </h6>
             </address>
           </div>
           <div class="col text-right">
@@ -79,7 +84,7 @@
                         {% for item in items %}
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
-                            <td class="text-center">{{ item.item.product.id}} {{ item.item }}</td>
+                            <td>{{ item.item.product.id}} {{ item.item }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
                             <td class="text-center">{{ item.unit_price | intcomma}}</td>
                             <td class="text-center">{{ item.price | intcomma}}</td>
