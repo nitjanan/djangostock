@@ -417,8 +417,8 @@ class RequisitionItem(models.Model):
     desired_date = models.DateField(blank=True, null=True)
     unit = models.CharField(max_length=255, blank=True, null=True)
     urgency = models.IntegerField(blank=True, null=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
-    requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+    requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True, blank=True)
     quantity_pr = models.IntegerField()
     quantity_take = models.IntegerField()
     is_used = models.BooleanField(default=False)#สถานะที่บอกว่านำไปใช้ใน pr หรือ cm หรือยัง
@@ -798,6 +798,7 @@ class ComparisonPriceDistributor(models.Model):
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp =  models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE, null=True)
     quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/CM/%Y/%m/%d')
+    is_select = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'ComparisonPriceDistributor'

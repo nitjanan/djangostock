@@ -91,16 +91,36 @@ def approvePOCounter(request):
     except:
         isPermiss  = False
 
-    #ถ้าเป็นผู้อนุมัติ
-    if(isPermiss):
+    po_item = None
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if isPermiss:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False) #หาสถานะรอดำเนินการของผู้อนุมัติ
-            #หาความยาวของ index PurchaseOrder ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-            po_count = len(po_item)
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, approver_user__isnull = True) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
-            po_count = 0
+            po_item = None
 
+    new_po = dict()
+    if po_item:
+        for obj in po_item:
+            if obj not in new_po:
+                new_po[obj] = obj
+
+    #เคสที่ดึงมาจากใบเปรียบเทียบมีชื่อคนอนุมัติอยู่แล้ว
+    cm_po_item = None
+    if request.user.is_authenticated:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, approver_user = request.user) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            cm_po_item = None
+    
+    if cm_po_item:
+        for obj in cm_po_item:
+            if obj not in new_po:
+                new_po[obj] = obj
+                
+    po_count  =  len(new_po)
     return po_count
 
 #รวมการรออนุมัติใบสั่งซื้อ
@@ -173,7 +193,7 @@ def approveCPAllCounter(request):
                 elif ae.codename == 'CAECPA':
                     obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
                 ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
@@ -201,7 +221,7 @@ def approveCPAllCounter(request):
                 elif aa.codename == 'CAACPA':
                     obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
                 acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None

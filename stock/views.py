@@ -1,3 +1,5 @@
+from multiprocessing import context
+import re
 from typing import cast
 from django import forms
 from django import http
@@ -121,17 +123,31 @@ def index(request, category_slug = None):
         isPermiss_po  = False
 
     po_item = None
-    #ถ้าเป็นผู้อนุมัติ
-    if(isPermiss_po):
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, approver_user__isnull = True) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
-    
+
     new_po = dict()
     if po_item:
         for obj in po_item:
+            if obj not in new_po:
+                new_po[obj] = obj
+
+    cm_po_item = None
+    #เคสที่ดึงมาจากใบเปรียบเทียบมีชื่อคนอนุมัติอยู่แล้ว
+    if request.user.is_authenticated:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, approver_user = request.user) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            cm_po_item = None
+    
+    if cm_po_item:
+        for obj in cm_po_item:
             if obj not in new_po:
                 new_po[obj] = obj
 
@@ -172,7 +188,7 @@ def index(request, category_slug = None):
                 elif ae.codename == 'CAECPA':
                     obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
                 ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
@@ -200,7 +216,7 @@ def index(request, category_slug = None):
                 elif aa.codename == 'CAACPA':
                     obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
                 acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None
@@ -1654,6 +1670,11 @@ def editPOApprove(request, po_id, isFromHome):
     except:
         isPermiss  = False
 
+    if isPermiss and not po.approver_user:
+        isPermiss  = True
+    elif po.approver_user == request.user:
+        isPermiss  = True
+
     if request.method == 'POST':
         post_status = request.POST['status'] or None
         status = BaseApproveStatus.objects.get(name = post_status)
@@ -1988,7 +2009,10 @@ def printComparePricePO(request, cp_id):
     if request.method == 'POST':
         form = CPSelectBidderForm(request.POST, instance=cp)
         if form.is_valid():
-            form.save()
+            f_cp = form.save()
+            select_bidder = ComparisonPriceDistributor.objects.get(cp = f_cp, distributor = f_cp.select_bidder)
+            select_bidder.is_select = True
+            select_bidder.save()
             return redirect('viewComparePricePO')
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
@@ -2109,7 +2133,6 @@ def createPOItemFromComparisonPrice(request, po_id):
             po = price_form.save(commit=False)
             #ดึงสถานะอนุมัติใบเปรียบเทียบมาใบขอซื้อเลย
             po.approver_user = cp.approver_user
-            po.approver_status = cp.approver_status
             po.approver_update = cp.approver_update
             po.save()
 
