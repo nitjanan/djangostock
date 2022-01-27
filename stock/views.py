@@ -2184,6 +2184,7 @@ def createPOFromComparisonPrice(request, cp_id):
         new_contact.vat_type = cpd.vat_type
         new_contact.quotation_pdf = cpd.quotation_pdf
         new_contact.approver_status_id = 1
+        new_contact.approver_user = cp.approver_user
         new_contact.branch_company = company
         new_contact.save()
 
@@ -2220,12 +2221,7 @@ def createPOItemFromComparisonPrice(request, po_id):
         if formset.is_valid() and price_form.is_valid():
 
             # save ราคาใบ po
-            po = price_form.save(commit=False)
-            #ดึงสถานะอนุมัติใบเปรียบเทียบมาใบขอซื้อเลย
-            po.approver_user = cp.approver_user
-            po.approver_update = cp.approver_update
-            po.save()
-
+            price_form.save()
             # save po item
             for form in formset:
                 # only save if name is present
