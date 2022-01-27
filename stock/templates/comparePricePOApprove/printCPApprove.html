@@ -15,7 +15,7 @@
     size: A4 landscape;
     }
     body {
-        font-size: 4pt;
+        font-size: 9pt;
         font-family: serif;
         color: black;
         float: right;
@@ -171,28 +171,24 @@
         </table>
     </div>
     {% if cp.select_bidder %}
-    <div class="row mx-auto pd-3 less" style="height: 4px;">
-        <div class="col">
-            <b id="txtLess"></b>
+    <div class="container">
+        <div class="row pd-3 less" style="height: 4px;">
+            <div class="col-xs">
+                <b id="txtLess"></b>
+            </div>
         </div>
+        <hr class="less">
+        <div class="row pd-3" style="height: 4px;">
+            <div class="col-xs">
+                <b id="txtSelectBidder"></b>
+            </div>
+        </div>
+        <hr>        
     </div>
-    <hr class="less">
-    <div class="row mx-auto pd-3" style="height: 4px;">
-        <div class="col-6">
-            <b id="txtSelectBidder"></b>
-        </div>
-        <div class="col-2">
-            <b id="txtSelectBidderPrice"></b>
-        </div>
-        <div class="col-4">
-            <b id="txtSelectBidderSpell"></b>
-        </div>
-    </div>    
-    <hr>
     {% endif %}           
     <form action="{% url 'printCPApprove' cp.id isFromHome %}" method="post">
         {% csrf_token %}
-        <div class="row my-2">
+        <div class="row my-4">
             <div class="card-group col">
                     <div class="card" style="max-width: 15rem; max-height:6rem;">
                         <div class="card-body text-center pt-1 pb-1">
@@ -287,11 +283,8 @@
         "{% endif %}"
     "{% endfor %}"
     
-    document.getElementById("txtSelectBidder").innerHTML = "ขออนุมัติจัดซื้อจาก "+ bidderName + " เป็นเงินทั้งสิ้น";
-    document.getElementById("txtSelectBidderPrice").innerHTML = ReplaceNumberWithCommas(amount) + " บาท";
-
     var thaibath = ArabicNumberToText(amount);
-    document.getElementById("txtSelectBidderSpell").innerHTML = "(" + thaibath + ")";
+    document.getElementById("txtSelectBidder").innerHTML = "ขออนุมัติจัดซื้อจาก "+ bidderName + "&emsp;&emsp;เป็นเงินทั้งสิ้น&emsp;&emsp;" + ReplaceNumberWithCommas(amount) + " บาท&emsp;&emsp;" + "(" + thaibath + ")";
 
     calculateDiffPrice(priceSelect, index);
 

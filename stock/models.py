@@ -753,8 +753,8 @@ class PurchaseOrder(models.Model):
     approver_update = models.DateField(blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
-    cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True)
-    pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True)
+    cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True, blank = True)
+    pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True, blank = True)
     ref_no = models.CharField(max_length = 500, default = purchaseOrder_ref_number, null = True, blank = True)
     quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)

@@ -32,10 +32,8 @@
               {% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor}}<br>
               {{po.distributor.address}}<br>
               โทร : {{po.distributor.tel}}<br>
-              <h6 style="font-size:8pt">รหัสใบขอซื้อ :
-                {% for i in new_pr %}
-                  <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
-                {% endfor %}                
+              <h6 style="font-size:8pt">รหัสใบเปรียบเทียบ :
+                <b><u><a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
               </h6>
             </address>
           </div>
@@ -235,7 +233,7 @@ for(var i = 0; i < inputs.length; i++){
 //price ราคารวม, vat, รวมทั้งสิ้น
 $("#id_total_price").val("{{cpd_price.total_price}}");
 //หลังหักส่วนลดเป็นราคารวมก่อน
-$("#id_total_after_discount").val("{{cpd_price.total_price}}");
+$("#id_total_after_discount").val("{{cpd_price.total_after_discount}}");
 $("#id_discount").val("{{cpd_price.discount}}");
 $("#id_freight").val("{{cpd_price.freight}}");
 $("#id_vat").val("{{cpd_price.vat}}");
