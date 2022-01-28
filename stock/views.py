@@ -1,5 +1,7 @@
+from dis import dis
 from multiprocessing import context
 import re
+from turtle import title
 from typing import cast
 from django import forms
 from django import http
@@ -30,6 +32,8 @@ from .resources import ReceiveItemResource, DistributorResource
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
+import json
+from django.core.serializers import serialize
 
 # Create your views here.
 @login_required(login_url='signIn')
@@ -1045,7 +1049,7 @@ def createPR(request, requisition_id):
     baseUrgency = BaseUrgency.objects.all() #ระดับความเร่งด่วน
     baseUnit = BaseUnit.objects.all()
     #หา id express
-    baseProduct = Product.objects.all()
+    baseProduct = Product.objects.all().values('id', 'name')
 
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
@@ -1119,7 +1123,7 @@ def createCMorPO(request, pr_id):
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
     #หา id express
-    baseProduct = Product.objects.all()
+    baseProduct = Product.objects.all().values('id', 'name')
 
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
@@ -1210,7 +1214,7 @@ def editPR(request, pr_id):
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
     #หา id express
-    baseProduct = Product.objects.all()
+    baseProduct = Product.objects.all().values('id', 'name')
 
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
@@ -1249,7 +1253,7 @@ def showPR(request, pr_id, mode):
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
     #หา id express
-    baseProduct = Product.objects.all()
+    baseProduct = Product.objects.all().values('id', 'name')
 
     #หาจำนวนสินค้าทั้งหมด
     quantityTotal = 0
@@ -1459,7 +1463,8 @@ def editPOFromPR(request, po_id):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.filter()
+    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
+
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
     if request.method == 'POST':
@@ -1602,7 +1607,7 @@ def editPOItem(request, po_id, isFromPR):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.filter()
+    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
@@ -1853,7 +1858,7 @@ def createComparePricePOItem(request, cp_id):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.filter()
+    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     #ร้านแรก
     try:
@@ -1917,6 +1922,15 @@ def createComparePricePOItem(request, cp_id):
     }
     return render(request, 'comparePricePOItem/createComparePricePOItem.html',context)
 
+def autocompalteDistributor(request):
+    if 'term' in request.GET:
+        term = request.GET.get('term')
+        qs = Distributor.objects.filter(Q(id__icontains = term) | Q(name__icontains = term))[:10]
+        titles = list()
+        for obj in qs:
+            titles.append(obj.id +"-"+ obj.name)
+    return JsonResponse(titles, safe=False)
+
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     cp = ComparisonPrice.objects.get(id=cp_id)
 
@@ -1925,7 +1939,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.filter()
+    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
@@ -1993,7 +2007,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.filter()
+    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     numDistributor = ComparisonPriceDistributor.objects.filter(cp = cp_id).count()
@@ -2538,7 +2552,7 @@ def reApprovePR(request, pr_id):
         pr.approver_update = None
         pr.approver_user = None
         #พัสดุ
-        pr.stockman_user_id = request.user.id
+        #pr.stockman_user_id = request.user.id
         pr.stockman_update = datetime.datetime.now()
         pr.save()
 
@@ -2551,7 +2565,7 @@ def reApprovePR(request, pr_id):
             
         baseUrgency = BaseUrgency.objects.all()
         baseUnit = BaseUnit.objects.all()
-        baseProduct = Product.objects.all()
+        baseProduct = Product.objects.all().values('id', 'name')
 
         context = {
             'users' : items,

@@ -151,6 +151,17 @@ PurchaseOrderItemInlineFormset = inlineformset_factory(
     , can_delete=True
 )
 
+class PurchaseOrderReceiptForm(forms.ModelForm):
+    class Meta:
+       model = PurchaseOrder
+       fields = ('receipt_pdf',)
+       widgets = {
+        'receipt_pdf' : MyClearableFileInput,
+        }
+       labels = {
+            'receipt_pdf': _('ใบรับสินค้า'),
+        }
+
 #ใบเปรียบเทียบราคา
 class ComparisonPriceForm(forms.ModelForm):
     class Meta:

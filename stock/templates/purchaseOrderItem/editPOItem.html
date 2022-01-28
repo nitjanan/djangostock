@@ -193,7 +193,7 @@
                     <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
                     <datalist id="idDistributorList">
                     {% for results in distributorList %}
-                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit.id}}" data-vat_type="{{results.vat_type.id}}"></option>
+                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
                     {% endfor %}
                     </datalist>
                 </div>

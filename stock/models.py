@@ -761,6 +761,7 @@ class PurchaseOrder(models.Model):
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
     receive_update = models.DateField(blank=True, null=True) #วันที่รับสินค้า
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    receipt_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/receipt/RC_PO/%Y/%m/%d')
 
     class Meta:
         db_table = 'PurchaseOrder'

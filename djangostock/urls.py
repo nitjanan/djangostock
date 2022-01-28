@@ -140,6 +140,8 @@ urlpatterns = [
     path('history/incomplete/purchaseOrder/',views.viewPOHistoryIncomplete,name="viewPOHistoryIncomplete"),
     path('history/incomplete/comparePricePO/',views.viewComparePricePOHistoryIncomplete,name="viewComparePricePOHistoryIncomplete"),
 
+    path('autocompalteDistributor/',views.autocompalteDistributor,name="autocompalteDistributor"),
+
 ]
 
 if settings.DEBUG :

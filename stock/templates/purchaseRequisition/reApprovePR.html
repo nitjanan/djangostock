@@ -296,7 +296,7 @@ u.dotted {
             <select id="sel-unit" name="unit" class="select form-control" required>
               <option value="" selected="">---------</option>
               {% for unit in baseUnit %}
-              <option value="{{unit.id}}">{{unit.name}}</option>
+              <option value="{{unit.name}}">{{unit.name}}</option>
               {% endfor %}
             </select>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
@@ -350,7 +350,7 @@ u.dotted {
             <select id="form-unit" name="formUnit" class="select form-control" required>
               <option value="" selected="">---------</option>
               {% for unit in baseUnit %}
-              <option value="{{unit.id}}">{{unit.name}}</option>
+              <option value="{{unit.name}}">{{unit.name}}</option>
               {% endfor %}
             </select>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
