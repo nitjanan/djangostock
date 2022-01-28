@@ -1067,32 +1067,32 @@ def createPR(request, requisition_id):
         new_contact.branch_company = company
 
         #save id express
-        saveIdExpressPR(request)
+        bool = saveIdExpressPR(request)
+        if bool is None:
+            #save requisition ใน purchase_requisition_id
+            pr = PurchaseRequisition.objects.get(id = new_contact.pk)
+            pr.requisition = requisition
+            pr.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
+            pr.purchase_user_id = requisition.chief_approve_user_name
+            # set ให้ผู้ขอซื้ออนุมัติมาเลย
+            pr.purchase_status_id = 2
+            pr.purchase_update = datetime.datetime.now()
 
-        #save requisition ใน purchase_requisition_id 
-        pr = PurchaseRequisition.objects.get(id = new_contact.pk)
-        pr.requisition = requisition
-        pr.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
-        pr.purchase_user_id = requisition.chief_approve_user_name
-        # set ให้ผู้ขอซื้ออนุมัติมาเลย
-        pr.purchase_status_id = 2
-        pr.purchase_update = datetime.datetime.now()
+            pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
+            #พัสดุ
+            pr.stockman_user_id = request.user.id
+            pr.stockman_update = datetime.datetime.now()
+            #เจ้าหน้าที่จัดซื้อ
+            pr.organizer = requisition.organizer
 
-        pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
-        #พัสดุ
-        pr.stockman_user_id = request.user.id
-        pr.stockman_update = datetime.datetime.now()
-        #เจ้าหน้าที่จัดซื้อ
-        pr.organizer = requisition.organizer
+            pr.save()
 
-        pr.save()
-
-        #save purchase_requisition_id ใน requisition
-        obj = Requisition.objects.get(id = requisition_id)
-        obj.purchase_requisition_id = new_contact.pk
-        obj.pr_ref_no = pr.ref_no
-        obj.save()
-        return redirect('viewPR')
+            #save purchase_requisition_id ใน requisition
+            obj = Requisition.objects.get(id = requisition_id)
+            obj.purchase_requisition_id = new_contact.pk
+            obj.pr_ref_no = pr.ref_no
+            obj.save()
+            return redirect('viewPR')
 
     #context
     context = {
@@ -1304,7 +1304,7 @@ def saveIdExpressPR(request):
                                 product_item = get_object_or_404(Product, id=val_product)
                                 item.product = product_item
                             except:
-                                pass
+                                return False
                             item.save()
                     else:
                         pass
