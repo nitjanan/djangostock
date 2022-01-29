@@ -2,6 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 {% load humanize %}
+{% load crispy_forms_tags %}
 
 {% block css %}
 <style>
@@ -20,13 +21,29 @@
 <div class="container">
     <div class="row my-2">
         <div class="col-md-12">
-        <div class="invoice-title">
-          <description>
+        <div class="row">
+          <div class="col">
+            <description>
               <h4>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h4>
                57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
               <br>โทร 099-6813306 0842658115  
               <br>เลขที่ผู้เสียภาษี 0845507000045
-          </description>
+            </description>
+          </div>
+          {% if mode == 4 %}
+          <div class="col d-print-none">
+            <form  class="float-right" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="pdf">
+                  ใบรับสินค้า {{form.receipt_pdf | add_class:"form-control text-right"}}
+                </div>
+                <button type="submit" class="btn btn-primary my-1">
+                  <i class="fas fa-save"></i>
+                  บันทึก
+                </button>
+            </form>
+          </div>
+          {%endif%}
         </div>
         <hr>
         <div class="row">
@@ -195,6 +212,10 @@
 {% block javascript %}
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script type="text/javascript">
+
+$('div.pdf a').addClass('btn btn-outline-success btn-sm');
+$('div.pdf a').text('Download');
+
 $(function() {
     //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
     var amount = "{{po.amount}}";

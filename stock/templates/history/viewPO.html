@@ -55,6 +55,7 @@
                 <th scope="col">ผู้สั่งสินค้า</th>
                 <th scope="col">ลงวันที่อนุมัติ</th>
                 <th scope="col">วันที่รับสินค้า</th>
+                <th scope="col">ใบรับสินค้า</th>
             </tr>
         </thead>
         <tbody>
@@ -89,6 +90,11 @@
               {% if po.is_receive == True %}
                 {{ po.receive_update |date:"d/m/Y" }}
               {%endif%}
+            </td>
+            <td>
+              {% if po.receipt_pdf %}
+              <a href="/media/{{po.receipt_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
+              {% endif %}
             </td>
           </tr>
         {% endfor %}

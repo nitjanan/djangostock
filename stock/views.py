@@ -12,7 +12,7 @@ from django.http import request, HttpResponseRedirect, HttpResponse ,JsonRespons
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
 from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -1546,10 +1546,19 @@ def showPO(request, po_id, mode):
     page = POPageMode(mode)
     show = POShowMode(mode)
 
+    form = PurchaseOrderReceiptForm(instance=po)
+    if request.method == 'POST':
+        form = PurchaseOrderReceiptForm(request.POST, request.FILES, instance=po)
+        if form.is_valid():
+            form.save()
+            return redirect('viewPOHistory')
+
     context = {
             'po':po,
             'items':items,
             'new_pr':new_pr,
+            'form': form,
+            'mode': mode,
             page: "tab-active",
             show: "show",
     }
