@@ -192,7 +192,7 @@ def index(request, category_slug = None):
                 elif ae.codename == 'CAECPA':
                     obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max)).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max), cp__cm_type_id__isnull = True).values("cp")
                 ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
@@ -220,7 +220,7 @@ def index(request, category_slug = None):
                 elif aa.codename == 'CAACPA':
                     obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max)).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max), cp__cm_type_id__isnull = True).values("cp")
                 acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None
@@ -1062,13 +1062,12 @@ def createPR(request, requisition_id):
     #form
     form = PurchaseRequisitionForm(request.POST or None)
     if form.is_valid():
-        #save PR
-        new_contact = form.save()
-        new_contact.branch_company = company
-
         #save id express
         bool = saveIdExpressPR(request)
         if bool is None:
+            #save PR
+            new_contact = form.save()
+            new_contact.branch_company = company
             #save requisition ใน purchase_requisition_id
             pr = PurchaseRequisition.objects.get(id = new_contact.pk)
             pr.requisition = requisition
@@ -2368,7 +2367,7 @@ def printCPApprove(request, cp_id, isFromHome):
                 except:
                     pass
             else:
-                if aa.ap_amount_min <= cpd_select.amount <= aa.ap_amount_max:
+                if aa.ap_amount_min <= cpd_select.amount <= aa.ap_amount_max and cpd_select.cp.cm_type is None:
                     isApprover = True
 
 
@@ -2383,7 +2382,7 @@ def printCPApprove(request, cp_id, isFromHome):
                 except:
                     pass
             else:
-                if ae.ap_amount_min <= cpd_select.amount <= ae.ap_amount_max:
+                if ae.ap_amount_min <= cpd_select.amount <= ae.ap_amount_max and cpd_select.cp.cm_type is None:
                     isExaminer = True
 
 
