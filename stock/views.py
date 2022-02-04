@@ -1137,6 +1137,7 @@ def createCMorPO(request, pr_id):
             approver_status_id = 1,
             examiner_status_id = 1,
             branch_company = company,
+            note = pr.note,
         )
         cp.save()
 
