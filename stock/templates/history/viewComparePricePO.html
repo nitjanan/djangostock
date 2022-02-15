@@ -48,7 +48,8 @@
               <thead class="table-info">
                 <tr>
                   <th scope="col">วันที่สร้าง</th>
-                  <th scope="col">รหัสใบเปรียบเทียบ</th>
+                  <th scope="col">รหัส CM</th>
+                  <th scope="col">รหัส PR</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">ผู้จัดทำ</th>
                   <th scope="col">ลงวันที่ตรวจสอบ</th>
@@ -60,6 +61,15 @@
                 <tr>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   <th scope="row"><a href="{%url 'showComparePricePO' cp.id 4 %}">{{cp.ref_no}}</a></th>
+                  <td>
+                    {% for pr in prs %}
+                        {% if cp.id == pr.cp %}
+                          {% ifchanged pr.item__requisit__pr_ref_no a%}
+                            <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
+                          {% endifchanged %}
+                        {%endif%}
+                    {%endfor%}
+                  </td>
                   <td>
                       <ul style="list-style: none;">
                       {% for bd in bidder %}

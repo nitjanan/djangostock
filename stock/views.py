@@ -34,6 +34,7 @@ from django.db.models import Q
 from django.core.cache import cache
 import json
 from django.core.serializers import serialize
+from django.db.models import Count
 
 # Create your views here.
 @login_required(login_url='signIn')
@@ -1406,9 +1407,12 @@ def viewPO(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
+    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
+
     context = {
         'pos':dataPage,
         'filter':myFilter,
+        'prs': prs,
         'po_page': "tab-active",
         'po_show': "show",
     }
@@ -1777,6 +1781,8 @@ def viewComparePricePO(request):
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
     data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3))
 
+    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0)
+
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
@@ -1788,6 +1794,7 @@ def viewComparePricePO(request):
     dataPage = p.get_page(page)
     context = {
         'cps':dataPage,
+        'prs': prs,
         'filter':myFilter,
         'bidder':bidder,
         'cp_page': "tab-active",
@@ -2471,9 +2478,11 @@ def viewReceive(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
+    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
     context = {
         'pos':dataPage,
         'filter':myFilter,
+        'prs':prs,
         'rc_page': "tab-active",
         'rc_show': "show",
     }
@@ -2706,9 +2715,11 @@ def viewPOHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
+    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
     context = {
         'pos':dataPage,
         'filter':myFilter,
+        'prs': prs,
         'h_po_page': "tab-active",
         'h_po_show': "show",
     }
@@ -2726,10 +2737,13 @@ def viewComparePricePOHistory(request):
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+
+    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0)
     context = {
         'cps':dataPage,
         'filter':myFilter,
         'bidder':bidder,
+        'prs': prs,
         'h_cp_page': "tab-active",
         'h_cp_show': "show",
     }

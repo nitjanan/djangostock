@@ -65,7 +65,15 @@
                   <th scope="row"><a href="{%url 'showPO' po.id 1 %}">{{po.ref_no}}</a></th>
                   <td>
                     {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id 1 %}">{{po.cp.ref_no}}</a>{%endif%}
-                    {%if po.pr %}<a href="{%url 'showPR' po.pr.id 1 %}">{{po.pr.ref_no}}</a>{%endif%}
+                    {%if po.pr %}
+                      {% for pr in prs %}
+                          {% if po.id == pr.po %}
+                            {% ifchanged pr.item__requisit__pr_ref_no a%}
+                              <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
+                            {% endifchanged %}
+                          {%endif%}
+                      {%endfor%}
+                    {%endif%}
                   </td>
                   <td>{{po.distributor}}</td>
                   <td>{{po.credit}}</td>

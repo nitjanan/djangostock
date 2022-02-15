@@ -579,7 +579,7 @@ class BaseDistributorType(models.Model):
         verbose_name_plural = 'ข้อมูลชนิดของผู้จัดจำหน่าย'
 
     def __str__(self):
-        return self.id
+        return self.name
 
 class BaseDistributorGenre(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทของผู้จัดจำหน่าย")#เก็บไอดีประเภทผู้จัดจำหน่าย

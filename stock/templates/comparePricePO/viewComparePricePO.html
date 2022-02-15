@@ -46,6 +46,7 @@
               <thead class="thead-dark">
                 <tr>
                   <th scope="col">รหัส CM</th>
+                  <th scope="col">รหัส PR</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">ผู้จัดทำ</th>
                   <th scope="col">วันที่สร้าง</th>
@@ -60,6 +61,15 @@
                 <tr>
                   <th scope="row"><a href="{%url 'showComparePricePO' cp.id 1 %}">{{cp.ref_no}}</a></th>
                   <td>
+                    {% for pr in prs %}
+                        {% if cp.id == pr.cp %}
+                            {% ifchanged pr.item__requisit__pr_ref_no %}
+                              <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
+                            {% endifchanged %}
+                        {%endif%}
+                    {%endfor%}
+                  </td>
+                  <td>
                       <ul style="list-style: none;">
                       {% for bd in bidder %}
                         {% if cp.id == bd.cp.id %}
@@ -68,7 +78,7 @@
                       {% endfor %}                          
                       </ul>
                   </td>
-                  <td>{{cp.organizer}}</td>
+                  <td>{{cp.organizer.first_name}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   <td>{% if cp.select_bidder %}{{cp.select_bidder}}{%endif%}</td>
                   {% if cp.approver_status_id == 1 and cp.examiner_status_id == 1 %}
