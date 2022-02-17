@@ -2205,22 +2205,25 @@ def createPOFromComparisonPrice(request, cp_id):
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id})
     if form.is_valid():
-        new_contact = form.save(commit=False)
-        cp = ComparisonPrice.objects.get(id = new_contact.cp.id)
-        cpd = ComparisonPriceDistributor.objects.get(cp = new_contact.cp.id, distributor = cp.select_bidder)
-        new_contact.distributor = cp.select_bidder
-        new_contact.credit = cpd.credit
-        new_contact.stockman_user = cp.organizer
-        new_contact.vat_type = cpd.vat_type
-        new_contact.quotation_pdf = cpd.quotation_pdf
-        new_contact.approver_status_id = 1
-        new_contact.approver_user = cp.approver_user
-        new_contact.branch_company = company
-        new_contact.save()
+        try:
+            new_contact = form.save(commit=False)
+            cp = ComparisonPrice.objects.get(id = new_contact.cp.id)
+            cpd = ComparisonPriceDistributor.objects.get(cp = new_contact.cp.id, distributor = cp.select_bidder)
+            new_contact.distributor = cp.select_bidder
+            new_contact.credit = cpd.credit
+            new_contact.stockman_user = cp.organizer
+            new_contact.vat_type = cpd.vat_type
+            new_contact.quotation_pdf = cpd.quotation_pdf
+            new_contact.approver_status_id = 1
+            new_contact.approver_user = cp.approver_user
+            new_contact.branch_company = company
+            new_contact.save()
 
-        cp.po_ref_no = new_contact.ref_no
-        cp.save()
-        return HttpResponseRedirect(reverse('createPOItemFromComparisonPrice', args=(new_contact.pk,)))
+            cp.po_ref_no = new_contact.ref_no
+            cp.save()
+            return HttpResponseRedirect(reverse('createPOItemFromComparisonPrice', args=(new_contact.pk,)))
+        except :
+            return redirect('createPOFromComparisonPrice', cp_id = cp_id)
 
     context = {
         'form':form,
