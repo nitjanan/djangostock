@@ -2616,9 +2616,9 @@ def uploadReceive(request):
         if new_persons:
             imported_data = dataset.load(new_persons.read(),format='xlsx')
             for data in imported_data:
-                if data[0] is None and data[1] is None and data[2] is None and data[3] is None:
+                if data[1] is None and data[2] is None and data[3] is None:
                     pass
-                elif not(data[0] is None):
+                elif not(data[1] is None):
                     try:
                         po = PurchaseOrder.objects.get(ref_no = data[10])
                         po.is_receive = True
@@ -2626,7 +2626,7 @@ def uploadReceive(request):
                         po.save()
                     except PurchaseOrder.DoesNotExist:
                         pass
-                elif data[0] is None and data[1] is None and data[2] is None and not(data[3] is None):
+                elif data[1] is None and data[2] is None and not(data[3] is None):
                     #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
                     strRefNo = data[12]
                     refNo = strRefNo.split(' ')[0]
@@ -2640,7 +2640,7 @@ def uploadReceive(request):
                             item.save()
                         except RequisitionItem.DoesNotExist:
                             pass
-                    except PurchaseOrderItem.DoesNotExist:
+                    except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
                         pass
             return redirect('viewReceive')
     context = {
