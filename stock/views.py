@@ -1159,7 +1159,7 @@ def createCMorPO(request, pr_id):
                 cp = cp.id
             )
             item.save()
-        return redirect('editComparePricePOItemFromPR', cp_id = cp.id , cpd_id = cpd.id)
+        return HttpResponseRedirect(reverse('editComparePricePOItemFromPR', args=(cp.id, cpd.id)))
     if request.method=='POST' and 'btnformPO' in request.POST:
         po = PurchaseOrder.objects.create(
             stockman_user = request.user,
@@ -1182,7 +1182,7 @@ def createCMorPO(request, pr_id):
                 po_id = po.id
             )
             item.save()
-        return redirect('editPOFromPR', po_id = po.id)
+        return HttpResponseRedirect(reverse('editPOFromPR', args=(po.id,)))
 
     context = {
         'items':items,
@@ -2217,13 +2217,14 @@ def createPOFromComparisonPrice(request, cp_id):
             new_contact.approver_status_id = 1
             new_contact.approver_user = cp.approver_user
             new_contact.branch_company = company
+        except:
+            return HttpResponseRedirect(reverse('createPOFromComparisonPrice', args=(cp_id,)))
+        else:
             new_contact.save()
 
             cp.po_ref_no = new_contact.ref_no
             cp.save()
             return HttpResponseRedirect(reverse('createPOItemFromComparisonPrice', args=(new_contact.pk,)))
-        except :
-            return redirect('createPOFromComparisonPrice', cp_id = cp_id)
 
     context = {
         'form':form,
