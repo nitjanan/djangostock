@@ -2617,17 +2617,21 @@ def uploadReceive(request):
         if new_persons:
             imported_data = dataset.load(new_persons.read(),format='xlsx')
             for data in imported_data:
-                if data[1] is None and data[2] is None and data[3] is None:
-                    pass
-                elif not(data[1] is None):
+                if not(data[1] is None) and not(data[10] is None):
+                    strRefNo = data[10]
                     try:
-                        po = PurchaseOrder.objects.get(ref_no = data[10])
+                        refNo = strRefNo.split(' ')[0]
+                    except:
+                        refNo = strRefNo
+
+                    try:
+                        po = PurchaseOrder.objects.get(ref_no = refNo)
                         po.is_receive = True
                         po.receive_update = data[1]
                         po.save()
                         #เปลี่ยนเป็นแบบนี้
                         try:
-                            po_item = PurchaseOrderItem.objects.filter(po__ref_no = data[10])
+                            po_item = PurchaseOrderItem.objects.filter(po__ref_no = refNo)
                             for i in po_item: 
                                 i.is_receive = True
                                 i.save()
