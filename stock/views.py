@@ -2625,24 +2625,46 @@ def uploadReceive(request):
                         po.is_receive = True
                         po.receive_update = data[1]
                         po.save()
+                        #เปลี่ยนเป็นแบบนี้
+                        try:
+                            po_item = PurchaseOrderItem.objects.filter(po__ref_no = data[10])
+                            for i in po_item: 
+                                i.is_receive = True
+                                i.save()
+                                try:
+                                    item = RequisitionItem.objects.get(id = i.item_id)
+                                    item.is_receive = True
+                                    item.save()
+                                except RequisitionItem.DoesNotExist:
+                                    pass
+                        except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
+                            pass
+                        #เปลี่ยนเป็นแบบนี้
                     except PurchaseOrder.DoesNotExist:
                         pass
+                '''
                 elif data[1] is None and data[2] is None and not(data[3] is None):
                     #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
                     strRefNo = data[12]
-                    refNo = strRefNo.split(' ')[0]
                     try:
-                        po_item = PurchaseOrderItem.objects.get(po__ref_no = refNo, item__product__id = data[4])
-                        po_item.is_receive = True
-                        po_item.save()
+                        refNo = strRefNo.split(' ')[0]
                         try:
-                            item = RequisitionItem.objects.get(id = po_item.item_id)
-                            item.is_receive = True
-                            item.save()
-                        except RequisitionItem.DoesNotExist:
+                            po_item = PurchaseOrderItem.objects.filter(po__ref_no = refNo, item__product__id = data[4])
+                            for i in po_item: 
+                                i.is_receive = True
+                                i.save()
+                                try:
+                                    item = RequisitionItem.objects.get(id = i.item_id)
+                                    item.is_receive = True
+                                    item.save()
+                                except RequisitionItem.DoesNotExist:
+                                    pass
+                        except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
                             pass
-                    except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
-                        pass
+                    except:
+                        pass                
+                '''
+
             return redirect('viewReceive')
     context = {
         'rc_page': "tab-active",
