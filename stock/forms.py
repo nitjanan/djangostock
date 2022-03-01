@@ -78,12 +78,15 @@ class PurchaseRequisitionForm(forms.ModelForm):
 class PurchaseOrderForm(forms.ModelForm):
     class Meta:
        model = PurchaseOrder
-       fields = ('distributor','credit','shipping','vat_type','quotation_pdf')
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type','quotation_pdf')
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
+        'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         }
        labels = {
+            'ref_no': _('รหัสใบสั่งซื้อ'),
+            'created': _('วันที่สร้างใบสั่งซื้อ'),
             'distributor': _('ผู้จำหน่าย'),
             'credit': _('เครดิต'),
             'shipping': _('ขนส่งโดย'),
@@ -96,9 +99,14 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
     cp = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = ""))
     class Meta:
        model = PurchaseOrder
-       fields = ('cp','shipping')
+       fields = ('ref_no','created','cp','shipping')
+       widgets = {
+        'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
+        }
        labels = {
             'shipping': _('ขนส่งโดย'),
+            'ref_no': _('รหัสใบสั่งซื้อ'),
+            'created': _('วันที่สร้างใบสั่งซื้อ'),
         }  
 
 

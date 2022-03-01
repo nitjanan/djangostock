@@ -347,8 +347,8 @@
   });
 
   function calculateDiffPrice(priceSelect, index){
-    var priceFirst = parseFloat("{{bidder.0.total_price}}");
-    var priceSelect = parseFloat("{{bidder.1.total_price}}");
+    var priceFirst = parseFloat("{{bidder.0.total_after_discount}}");
+    var priceSelect = parseFloat("{{bidder.1.total_after_discount}}");
     var diff = priceSelect - priceFirst;
     var diffPercent = (diff/priceFirst)*100;
     if (typeof index !== "undefined" && !isNaN(diff)) {

@@ -31,6 +31,13 @@
 {% endblock %}
 {% block javascript %}
 <script>
+
+    var now = new Date();
+    var day = ("0" + now.getDate()).slice(-2);
+    var month = ("0" + (now.getMonth() + 1)).slice(-2);
+    var today = now.getFullYear()+"-"+(month)+"-"+(day) ;
+    $('#id_created').val(today);
+    
     $(".distributor" ).change(function() {
     // get data id ของ option data list
     var str = $("#id-form-distributor").val();
@@ -42,6 +49,11 @@
 
     var vat_type = $('#idDistributorList option[data-id='+id+']').attr('data-vat_type');
     $("#id_vat_type").val(vat_type);
+
+    $('form').submit(function() {
+        
+    });
+
   });
 </script>
 {% endblock %}

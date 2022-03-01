@@ -263,6 +263,9 @@ $(function() {
     var showDT = $('#idDistributorList option[data-id='+valDT+']').val();
     $('#id-form-distributor').val(showDT);
 
+
+    $('#id_created').val('{{po.created|date:"Y-m-d"}}');
+
 });
 
 $('form').submit(function() {

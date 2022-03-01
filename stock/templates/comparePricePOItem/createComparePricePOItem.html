@@ -50,27 +50,27 @@
                 <div class="col">
                     <div class="row spacer my-2">
                         <div class="col-3 offset-7 text-right">รวม</div>
-                        <div class="col-2 text-center">{{d.total_price| intcomma}}</div>
+                        <div class="col-2 text-right">{{d.total_price| intcomma}}</div>
                     </div>
                     <div class="row spacer my-2">
                         <div class="col-3 offset-7 text-right">หักส่วนลด</div>
-                        <div class="col-2 text-center">{{d.discount | intcomma}}</div>
+                        <div class="col-2 text-right">{{d.discount | intcomma}}</div>
                     </div>
                     <div class="row spacer my-2">
                         <div class="col-3 offset-7 text-right">จำนวนเงินหลังหักส่วนลด</div>
-                        <div class="col-2 text-center">{{d.total_after_discount | intcomma}}</div>
+                        <div class="col-2 text-right">{{d.total_after_discount | intcomma}}</div>
                     </div>
                     <div class="row spacer my-2">
                         <div class="col-3 offset-7 text-right">ค่าขนส่ง</div>
-                        <div class="col-2 text-center">{{d.freight | intcomma}}</div>
+                        <div class="col-2 text-right">{{d.freight | intcomma}}</div>
                     </div>
                     <div class="row spacer my-2">
                         <div class="col-3 offset-7 text-right">ภาษีมูลค่าเพิ่ม 7%</div>
-                        <div class="col-2 text-center">{{d.vat | intcomma}}</div>
+                        <div class="col-2 text-right">{{d.vat | intcomma}}</div>
                     </div>
                     <div class="row spacer my-2">
                         <div class="col-3 offset-7 text-right">รวมเป็นเงินทั้งสิ้น</div>
-                        <div class="col-2 text-center">{{d.amount | intcomma}}</div>
+                        <div class="col-2 text-right">{{d.amount | intcomma}}</div>
                     </div>
                 </div>
             </div>

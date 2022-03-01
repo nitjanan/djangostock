@@ -1638,7 +1638,14 @@ def editPOItem(request, po_id, isFromPR):
                 price.freight = 0.00
             price.save()
 
-            form.save()
+            po_form = form.save()
+            #แก้เลขที่ผูก cp po_ref_no
+            try:
+                cp = ComparisonPrice.objects.get(id = po_form.cp_id)
+                cp.po_ref_no = po_form.ref_no
+                cp.save()
+            except ComparisonPrice.DoesNotExist:
+                pass    
 
             # save po item
             instances = formset.save(commit=False)
