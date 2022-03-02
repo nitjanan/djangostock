@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <div class="container">
@@ -54,6 +55,7 @@
                   <th scope="col">เครดิต</th>
                   <th scope="col">ผู้สั่งสินค้า</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
+                  <th scope="col">ราคา</th>
                   <th scope="col" style="width:150px;">รายการสั่งซื้อ</th>
                   <th scope="col">รับสินค้า</th>
                   <th scope="col">ใบเสนอราคา</th>
@@ -79,6 +81,7 @@
                   <td>{{po.credit}}</td>
                   <td>{{po.stockman_user}}</td>
                   <td>{{po.created |date:"d/m/Y"}}</td>
+                  <td>{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
                   <td>
                     {% if po.approver_status_id == 1 %}
                       <a href="{%url 'editPOItem' po.id False%}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>

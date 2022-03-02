@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <div class="container">
@@ -52,6 +53,7 @@
                   <th scope="col">รหัส PR</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">ผู้จัดทำ</th>
+                  <th scope="col">ราคา</th>
                   <th scope="col">ลงวันที่ตรวจสอบ</th>
                   <th scope="col">ลงวันที่อนุมัติ</th>
                 </tr>
@@ -80,6 +82,13 @@
                       </ul>
                   </td>
                   <td>{{cp.organizer}}</td>
+                  <td>
+                    {% for bd in bidder %}
+                      {% if cp.id == bd.cp.id  and bd.distributor == cp.select_bidder%}
+                        {% if  bd.amount %}{{bd.amount | intcomma}}{%endif%}
+                      {% endif %}
+                    {% endfor %} 
+                  </td>
                   <td>
                     {% if cp.examiner_status.id == 1 or cp.examiner_status.id == 3%}
                       <button type="button"

@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <div class="container">
@@ -53,6 +54,7 @@
                   <th scope="col">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เครดิต</th>
                   <th scope="col">ขนส่งโดย</th>
+                  <th scope="col">ราคา</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
                   <th scope="col">ใบเสนอราคา</th>
                 </tr>
@@ -76,6 +78,7 @@
                   <td>{{po.distributor}}</td>
                   <td>{{po.credit}}</td>
                   <td>{{po.shipping}}</td>
+                  <td>{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>    
                   <td>{{po.created |date:"d/m/Y"}}</td>
                   <td>
                     {% if po.quotation_pdf %}

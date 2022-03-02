@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <div class="container">
@@ -51,6 +52,7 @@
                   <th scope="col">ผู้จัดทำ</th>
                   <th scope="col">วันที่สร้าง</th>
                   <th scope="col">ร้านที่เลือก</th>
+                  <th scope="col">ราคา</th>
                   <th scope="col">ทำรายการ</th>
                   <th scope="col">Action</th>
                   <th scope="col">ใบสั่งซื้อ</th>
@@ -81,6 +83,13 @@
                   <td>{{cp.organizer.first_name}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   <td>{% if cp.select_bidder %}{{cp.select_bidder}}{%endif%}</td>
+                  <td>
+                    {% for bd in bidder %}
+                      {% if cp.id == bd.cp.id  and bd.distributor == cp.select_bidder%}
+                        {% if  bd.amount %}{{bd.amount | intcomma}}{%endif%}
+                      {% endif %}
+                    {% endfor %} 
+                  </td>
                   {% if cp.approver_status_id == 1 and cp.examiner_status_id == 1 %}
                     <td><a href="{%url 'createComparePricePOItem' cp.id %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a></td>
                     <td>
