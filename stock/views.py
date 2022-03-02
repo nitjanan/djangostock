@@ -1060,8 +1060,9 @@ def createPR(request, requisition_id):
     for item in items:
         quantityTotal += item.quantity_pr
 
+    first_items = RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0).first()
     #form
-    form = PurchaseRequisitionForm(request.POST or None)
+    form = PurchaseRequisitionForm(request.POST or None, initial={'note': first_items.description})
     if form.is_valid():
         #save id express
         bool = saveIdExpressPR(request)
