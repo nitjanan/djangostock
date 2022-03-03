@@ -374,7 +374,7 @@ class BaseCredit(models.Model):
 
 class Requisition(models.Model):
     purchase_requisition_id =  models.IntegerField(blank=True, null=True,unique=True)
-    pr_ref_no = models.CharField(max_length = 500, null = True, blank = True)
+    pr_ref_no = models.CharField(max_length = 255, null = True, blank = True)
     name = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -394,7 +394,7 @@ class Requisition(models.Model):
         related_name='supplies_approve_user_name'
     )
     urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)
-    ref_no = models.CharField(max_length = 500, default = requisition_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, default = requisition_ref_number, null = True, blank = True)
     is_edit = models.BooleanField(default=True)
     memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
@@ -474,7 +474,7 @@ class PurchaseRequisition(models.Model):
     approver_update = models.DateField(blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     note = models.CharField(max_length=255, blank=True)
-    ref_no = models.CharField(max_length = 500, default = purchaseRequisition_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, default = purchaseRequisition_ref_number, null = True, blank = True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
 
@@ -709,7 +709,7 @@ class ComparisonPrice(models.Model):
         null=True
     )
     examiner_update = models.DateField(blank=True, null=True)
-    ref_no = models.CharField(max_length = 500, default = comparisonPrice_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, default = comparisonPrice_ref_number, null = True, blank = True)
     po_ref_no = models.CharField(max_length=255, blank = True)
     cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
@@ -756,7 +756,7 @@ class PurchaseOrder(models.Model):
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True, blank = True)
     pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True, blank = True)
-    ref_no = models.CharField(max_length = 500, default = purchaseOrder_ref_number, null = True, blank = True,unique=True)
+    ref_no = models.CharField(max_length = 255, default = purchaseOrder_ref_number, null = True, blank = True,unique=True)
     quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
@@ -842,7 +842,7 @@ class Receive(models.Model):
     receive_update = models.DateField(auto_now_add=True)
     created = models.DateField(max_length=255, blank = True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
-    ref_no = models.CharField(max_length = 500, default = receive_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, default = receive_ref_number, null = True, blank = True)
     pay = models.CharField(max_length=255, blank = True)
     due_date = models.DateField(null = True, blank = True)
     distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE, null = True)
