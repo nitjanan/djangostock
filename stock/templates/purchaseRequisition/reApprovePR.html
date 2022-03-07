@@ -137,14 +137,14 @@ u.dotted {
                 <tr id="user-{{user.id}}">
                     <td class="text-center">{{ forloop.counter }}</td>
                     <td class="text-center userProduct userData" name="product">{{user.product.id}}</td>
-                    <td class="text-center userName userData" name="name"><form class="form-inline ml-3" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
-                    <td class="text-center userDescription userData" name="description">{{user.description}}</td>
+                    <td class="userName userData" name="name"><form class="form-inline ml-3" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
+                    <td class="userDescription userData" name="description">{{user.description}}</td>
                     <td class="text-center userQuantity userData" name="quantity">{{user.quantity}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake"><b onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" style="cursor: pointer;">{{user.quantity_take}}</b></td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
                       {{user.unit}}
                     </td>
-                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
+                    <td class="userMachine userData" name="machine">{{user.machine}}</td>
                     <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
                     <td class="text-center userUrgency userData" name="urgency" data-val="{{user.urgency}}">
                       {% for bu in baseUrgency %}
@@ -569,12 +569,12 @@ function appendToUsrTable(user) {
   $("#userTable > tbody:last-child").append(`
         <tr id="user-${user.id}">
             <td class="text-center userName" name="name">${user.product}</td>
-            '<td class="text-center userName" name="name">${user.name}</td>
-            '<td class="text-center userDescription" name="description">${user.description}</td>
+            '<td class="userName" name="name">${user.name}</td>
+            '<td class="userDescription" name="description">${user.description}</td>
             '<td class="text-center userQuantity" name="quantity">${user.quantity}</td>
             '<td class="text-center userQuantityTake" name="quantityTake">0</td>
             '<td class="text-center userUnit" name="unit">${user.unit}</td>
-            '<td class="text-center userMachine" name="machine">${user.machine}</td>
+            '<td class="userMachine" name="machine">${user.machine}</td>
             '<td class="text-center userDesiredDate" name="desireddate">${user.desired_date}</td>
             '<td class="text-center userUrgency" name="urgency">${user.urgency}</td>
             '<td align="center" class="hidden-print">

@@ -138,13 +138,13 @@ u.dotted {
                   <tr>
                       <td class="text-center">{{ forloop.counter }}</td>
                       <td class="text-center">{{item.product.id}}</td>
-                      <td class="text-center" name="name">{{item.product_name}}</td>
-                      <td class="text-center" name="description">{{item.description}}</td>
+                      <td name="name">{{item.product_name}}</td>
+                      <td name="description">{{item.description}}</td>
                       <td class="text-center" name="quantity">{{item.quantity_pr}}</td>
                       <td class="text-center" name="unit">
                         {{item.unit}}
                       </td>
-                      <td class="text-center" name="machine">{{item.machine}}</td>
+                      <td name="machine">{{item.machine}}</td>
                       <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
                       <td class="text-center" name="urgency">
                         {% for bu in baseUrgency %}
