@@ -59,9 +59,10 @@
           <tr>
             <th scope="col">รหัสใบขอซื้อ</th>
             <th scope="col">รหัสใบขอเบิก</th>
+            <th scope="col">สินค้า</th>
+            <th scope="col">เร่งด่วน</th>
             <th scope="col">ชื่อผู้ขอเบิก</th>
             <th scope="col">ชื่อผู้ขอซื้อ</th>
-            <th scope="col">แผนก</th>
             <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
             <th scope="col">วันที่ขอซื้อ</th>
             <!-- <th scope="col">ความเร่งด่วน</th> -->
@@ -73,9 +74,26 @@
           <tr>
             <th scope="row"><a href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a></th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 1 %}">{{pr.requisition.ref_no}}</a></td>
+            <td>
+               {% for item in ri_not_used%}
+                  {% if item.requisition_id ==  pr.requisition.id %}
+                    <li>{{item.product_name}}</li>
+                  {% endif %}
+                {% endfor %}                
+            </td>
+            <td>
+              {% for item in ri_not_used%}
+                {% if item.requisition_id ==  pr.requisition.id %}
+                  {% for bu in baseUrgency %}
+                    {% if item.urgency == bu.id %}
+                      <li>{{bu.name}}</li>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %} 
+            </td>
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>
-            <td>{{pr.requisition.section}}</td>
             <td>{{pr.organizer}}</td>
             <td>{{pr.created |date:"d/m/Y"}}</td>
             <!-- <td class="text-center">{{pr.requisition.urgency.name}}</td> -->

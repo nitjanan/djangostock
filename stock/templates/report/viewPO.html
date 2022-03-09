@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="container my-3">
-<h3 align="center">ประวัติใบสั่งซื้อที่สำเร็จ</h3>
+<h3 align="center">รายงานใบสั่งซื้อที่สำเร็จ</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
     <form method="get">
@@ -21,8 +21,11 @@
           <div class="form-group col-md-2 mb-0">
             {{filter.form.stockman_user|as_crispy_field}}
           </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.approver_status|as_crispy_field}}
+          <div class="form-group col-md-1 mb-0">
+            {{filter.form.amount_min|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-1 mb-0">
+            {{filter.form.amount_max|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
             {{filter.form.start_created|as_crispy_field}}
@@ -40,25 +43,27 @@
         </div>
       </div>
     </form>
+    <div class="row">
+        <div class="col"><a class="btn btn-success" href="{% url 'exportExcelPO' %}?{{request.GET.urlencode}}">Export To Excel <i class="fas fa-file-excel"></i></a></div>
+    </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
       <table class="table table-bordered my-3">
-        <thead class="table-info">
+        <thead class="table-active">
             <tr>
                 <th scope="col">วันที่สั่งซื้อ</th>
                 <th scope="col">รหัสใบสั่งซื้อ</th>
                 <th scope="col">รหัส CM/รหัส PR</th>
-                <th scope="col">สินค้า</th>
                 <th scope="col">ชื่อผู้จำหน่าย</th>
                 <th scope="col">เครดิต</th>
                 <th scope="col">ผู้สั่งสินค้า</th>
+                <th scope="col" class="text-center">มูลค่าสินค้า</th>
+                <th scope="col" class="text-center">vat</th>
                 <th scope="col" class="text-center">ราคา</th>
-                <th scope="col">ลงวันที่อนุมัติ</th>
                 <th scope="col">วันที่รับสินค้า</th>
-                <th scope="col">ใบรับสินค้า</th>
             </tr>
         </thead>
         <tbody>
@@ -71,7 +76,7 @@
               {%if po.pr %}
                 {% for pr in prs %}
                   {% if po.id == pr.po %}
-                    {% ifchanged pr.item__requisit__pr_ref_no %}
+                    {% ifchanged pr.item__requisit__pr_ref_no a%}
                       <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
                     {% endifchanged %}
                   {%endif%}
@@ -79,41 +84,15 @@
               {%endif%}
             </td>
             <td>{{po.distributor}}</td>
-            <td>
-              {% for pr in prs %}
-                {% if po.id == pr.po %}
-                  <li>{{pr.item__product__name}}</li>
-                {%endif%}
-              {%endfor%}
-            </td>
             <td>{{po.credit}}</td>
             <td>{{po.stockman_user}}</td>
-            <td class="text-right">{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>         
-            <td>
-              {% if po.approver_status.id == 1 or po.approver_status.id == 3%}
-              <button type="button"
-              class="btn btn-block btn-sm
-              {% if po.approver_status.id == 1 %}
-                btn-outline-warning
-              {% elif po.approver_status.id == 2 %}
-                btn-outline-success
-              {% elif po.approver_status.id == 3 %}
-                btn-outline-danger
-              {% endif %}"
-              >{{po.approver_status}}</button>
-              {%else%}
-                {{po.approver_update |date:"d/m/Y"}}
-              {%endif%}
-            </td>
+            <td class="text-right">{% if po.total_after_discount %}{{po.total_after_discount | intcomma}}{%endif%}</td>
+            <td class="text-right">{% if po.vat %}{{po.vat | intcomma}}{%else%}0.00{%endif%}</td>
+            <td class="text-right">{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
             <td>
               {% if po.is_receive == True %}
                 {{ po.receive_update |date:"d/m/Y" }}
               {%endif%}
-            </td>
-            <td>
-              {% if po.receipt_pdf %}
-              <a href="/media/{{po.receipt_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
-              {% endif %}
             </td>
           </tr>
         {% endfor %}

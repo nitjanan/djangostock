@@ -63,6 +63,8 @@ class PurchaseOrderFilter(django_filters.FilterSet):
     distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='icontains')
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    amount_min  = django_filters.CharFilter(field_name="amount", lookup_expr='gte')
+    amount_max  = django_filters.CharFilter(field_name="amount", lookup_expr='lte')
 
     class Meta:
         model = PurchaseOrder
@@ -77,6 +79,8 @@ PurchaseOrderFilter.base_filters['start_created'].label = 'วันที่ส
 PurchaseOrderFilter.base_filters['end_created'].label = 'ถึง'
 PurchaseOrderFilter.base_filters['approver_status'].label = 'ผู้อนุมัติ'
 PurchaseOrderFilter.base_filters['stockman_user'].label = 'ผู้สั่งสินค้า'
+PurchaseOrderFilter.base_filters['amount_min'].label = 'ราคา'
+PurchaseOrderFilter.base_filters['amount_max'].label = 'ถึง'
 
 class ComparisonPriceFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))

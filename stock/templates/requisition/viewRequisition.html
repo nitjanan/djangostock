@@ -69,21 +69,13 @@
             <td>{{requisition.chief_approve_user_name}}</td>
             <td>{{requisition.organizer}}</td>
             <td>
-              {% if requisition.is_edit %}
                 <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
-                <!-- <a href="{% url 'crud_ajax' requisition.id %}" class="btn btn-success"><i class="fas fa-plus-circle"></i> เพิ่มรายการ</a> -->
-                <!-- <a href="{% url 'editRequisition' requisition.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a> -->
-              {%endif%}
             </td>
             <td>
-              {% if requisition.is_edit %}
               <a onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
-              {%endif%}
             </td>
             <td>
-              {% if requisition.memorandum_pdf %}
               <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
-              {% endif %}
             </td>
           </tr>
         {% endfor %}

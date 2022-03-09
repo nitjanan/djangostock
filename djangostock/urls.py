@@ -142,6 +142,9 @@ urlpatterns = [
 
     path('autocompalteDistributor/',views.autocompalteDistributor,name="autocompalteDistributor"),
 
+    path('report/purchaseOrder/',views.viewPOReport,name="viewPOReport"),
+    path('report/purchaseOrder/export/excel', views.exportExcelPO, name='exportExcelPO'),
+
 ]
 
 if settings.DEBUG :

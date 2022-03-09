@@ -144,6 +144,13 @@
                 </ul>
             </li>
             {% endif %}
+            {% if 'Report' in tab.name %}
+            <li class="">
+                <a href="{% url 'viewPOReport' %}" class="{{rp_po_page}}">
+                    <i class="fas fa-file-pdf"></i> Report
+                </a>
+            </li>
+            {% endif %}
         {% endfor %}
     </ul>
     {% endif %}

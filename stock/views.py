@@ -1,8 +1,12 @@
 from dis import dis
 from multiprocessing import context
+import numbers
+from pickletools import decimalnl_short
 import re
-from turtle import title
+from turtle import numinput, title
 from typing import cast
+from unicodedata import decimal, numeric
+from urllib import response
 from django import forms
 from django import http
 from django.core import paginator
@@ -35,6 +39,9 @@ from django.core.cache import cache
 import json
 from django.core.serializers import serialize
 from django.db.models import Count
+import xlwt
+from django.db.models import F, Func, Value, CharField
+from django.db.models import Sum
 
 # Create your views here.
 @login_required(login_url='signIn')
@@ -974,6 +981,7 @@ def viewPR(request):
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
 
+    ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0)
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
         data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
@@ -995,6 +1003,7 @@ def viewPR(request):
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
 
+    baseUrgency = BaseUrgency.objects.all()
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
@@ -1004,6 +1013,8 @@ def viewPR(request):
                 'prs':dataPage,
                 'filter':myFilter,
                 'isPurchasing':isPurchasing,
+                'ri_not_used':ri_not_used,
+                'baseUrgency':baseUrgency,
                 'pr_page': "tab-active",
                 'pr_show': "show",
               }
@@ -1093,7 +1104,7 @@ def createPR(request, requisition_id):
             obj.purchase_requisition_id = new_contact.pk
             obj.pr_ref_no = pr.ref_no
             obj.save()
-            return redirect('viewPR')
+            return HttpResponseRedirect(reverse('viewPR'))
 
     #context
     context = {
@@ -2753,7 +2764,7 @@ def viewPOHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
+    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','item__product__name','po')
     context = {
         'pos':dataPage,
         'filter':myFilter,
@@ -2875,3 +2886,123 @@ def viewComparePricePOHistoryIncomplete(request):
     }
 
     return render(request, 'historyIncomplete/viewComparePricePO.html',context)
+
+def viewPOReport(request):
+    data = PurchaseOrder.objects.filter(approver_status = 2)
+
+    #กรองข้อมูล
+    myFilter = PurchaseOrderFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'pos':dataPage,
+        'filter':myFilter,
+        'prs':prs,
+        'rp_po_page': "tab-active",
+        'rp_po_show': "show",
+    }
+    return render(request, "report/viewPO.html", context)
+
+def exportExcelPO(request):
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="PO_Report.xls"'
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('รายงานใบสั่งสินค้า', cell_overwrite_ok=True) # this will make a sheet named Users Data
+
+    # Sheet header, first row
+    row_num = 0
+
+    font_style = xlwt.XFStyle()
+    font_style.font.bold = True
+
+    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'เลขที่ใบขอซื้อ']
+
+    for col_num in range(len(columns)):
+        ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
+
+    # Sheet body, remaining rows
+    font_style = xlwt.XFStyle()
+    date_style = xlwt.easyxf(num_format_str='DD/MM/YYYY')
+    decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
+
+    stockman_user = request.GET.get('stockman_user') or None
+    ref_no = request.GET.get('ref_no') or None
+    distributor = request.GET.get('distributor') or None
+    amount_min = request.GET.get('amount_min') or None
+    amount_max = request.GET.get('amount_max') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    my_q = Q()
+    if stockman_user is not None:
+        my_q = Q(stockman_user = stockman_user)
+    if ref_no is not None:
+        my_q &= Q(ref_no__icontains = ref_no)
+    if distributor is not None:
+        my_q &= Q(distributor__name__icontains = distributor)
+    if start_created is not None:
+        my_q &= Q(created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(created__lte = end_created)
+    if amount_min is not None:
+        my_q &= Q(amount__gte = amount_min)
+    if amount_max is not None :
+        my_q &=Q(amount__lte = amount_max)
+
+
+    rows = PurchaseOrder.objects.filter(
+        my_q
+    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no').order_by('amount')
+
+    total_price = PurchaseOrder.objects.filter(my_q).values_list('total_price', flat=True)
+    sum_total_price = sum(total_price)
+
+    vat = PurchaseOrder.objects.filter(my_q).values_list('vat', flat=True)
+    sum_vat = sum(vat)
+
+    amount = PurchaseOrder.objects.filter(my_q).values_list('amount', flat=True)
+    sum_amount = sum(amount)
+
+    count = PurchaseOrder.objects.filter(my_q).count()
+    
+    prs = PurchaseOrderItem.objects.all()
+    for row in rows:
+        row_num += 1
+        for col_num in range(len(row)):
+            if isinstance(row[col_num], datetime.date):
+                ws.write(row_num, col_num, row[col_num], date_style)
+            elif col_num == 8 or col_num == 9 or col_num == 10:
+                ws.write(row_num, col_num, row[col_num], decimal_style)
+            else:
+                ws.write(row_num, col_num, row[col_num], font_style)
+            
+            if col_num == 12:
+                strPr = ""
+                prev_obj = None
+                for pr in prs:
+                    if row[0] == pr.po.ref_no:
+                        if prev_obj is not None and pr.item.requisit.pr_ref_no == prev_obj:
+                            pass
+                        else:
+                            strPr += str(pr.item.requisit.pr_ref_no) + ", "
+                        prev_obj = pr.item.requisit.pr_ref_no
+
+                ws.write(row_num, col_num, strPr, font_style)
+    ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
+    ws.write(row_num+1, 1, count, font_style)
+    ws.write(row_num+1, 2, "ใบ", font_style)
+    ws.write(row_num+1, 8, sum_total_price, decimal_style)
+    ws.write(row_num+1, 9, sum_vat, decimal_style)
+    ws.write(row_num+1, 10, sum_amount, decimal_style)
+                        
+    wb.save(response)
+
+    return response
