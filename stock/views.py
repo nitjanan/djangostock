@@ -2957,6 +2957,8 @@ def exportExcelPO(request):
     if amount_max is not None :
         my_q &=Q(amount__lte = amount_max)
 
+    my_q &=Q(approver_status = 2)
+
 
     rows = PurchaseOrder.objects.filter(
         my_q
