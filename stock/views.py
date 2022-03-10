@@ -2134,14 +2134,14 @@ def printComparePricePO(request, cp_id):
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
-        new_pr = dict()
-        for id in new_pr_id:
-            try:
-                pr = PurchaseRequisition.objects.get(id = id)
-                pr_ref_no += pr.ref_no + ", "
-                new_pr[pr] = pr
-            except PurchaseRequisition.DoesNotExist:
-                pass 
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            pr_ref_no += pr.ref_no + ", "
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass 
 
     cp = ComparisonPrice.objects.get(id=cp_id)
     form = CPSelectBidderForm(instance=cp)
@@ -2190,15 +2190,15 @@ def showComparePricePO(request, cp_id, mode):
         for obj in items_oldest:
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
-
-        new_pr = dict()
-        for id in new_pr_id:
-            try:
-                pr = PurchaseRequisition.objects.get(id = id)
-                pr_ref_no += pr.ref_no + ", "
-                new_pr[pr] = pr
-            except PurchaseRequisition.DoesNotExist:
-                pass
+    
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            pr_ref_no += pr.ref_no + ", "
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass
 
     page = CPPageMode(mode)
     show = CPShowMode(mode)
@@ -2424,14 +2424,14 @@ def printCPApprove(request, cp_id, isFromHome):
             if obj.item.requisit.purchase_requisition_id not in new_pr_id:
                 new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
 
-        new_pr = dict()
-        for id in new_pr_id:
-            try:
-                pr = PurchaseRequisition.objects.get(id = id)
-                pr_ref_no += pr.ref_no + ", "
-                new_pr[pr] = pr
-            except PurchaseRequisition.DoesNotExist:
-                pass
+    new_pr = dict()
+    for id in new_pr_id:
+        try:
+            pr = PurchaseRequisition.objects.get(id = id)
+            pr_ref_no += pr.ref_no + ", "
+            new_pr[pr] = pr
+        except PurchaseRequisition.DoesNotExist:
+            pass
 
     if request.method == 'POST':
         post_status = request.POST['status'] or None
