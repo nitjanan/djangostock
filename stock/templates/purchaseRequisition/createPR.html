@@ -71,7 +71,9 @@ u.dotted {
         <div class="col invoice-title text-right">
           <h5>รหัสใบขอซื้อ # {{pr.ref_no}}
           {% if requisition.memorandum_pdf %}
-            <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+            {% ifchanged requisition.memorandum_pdf %}
+              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+            {% endifchanged %}
           {% endif %}
         </h5>
       </div>

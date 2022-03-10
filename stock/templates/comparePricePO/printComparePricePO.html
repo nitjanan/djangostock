@@ -43,7 +43,9 @@
             <p style="font-size:6pt">รหัส {{cp.ref_no}}
                 {% for oldest in items_oldest %}
                     {% if oldest.item.requisit.memorandum_pdf %}
-                        <a href="/media/{{oldest.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                        {% ifchanged oldest.item.requisit.memorandum_pdf %}
+                            <a href="/media/{{oldest.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+                        {% endifchanged %}
                     {% endif %}
                 {% endfor %}
             </p>
