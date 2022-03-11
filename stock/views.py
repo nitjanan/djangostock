@@ -2964,7 +2964,7 @@ def exportExcelPO(request):
         my_q
     ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no').order_by('amount')
 
-    total_price = PurchaseOrder.objects.filter(my_q).values_list('total_price', flat=True)
+    total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
     sum_total_price = sum(total_price)
 
     vat = PurchaseOrder.objects.filter(my_q).values_list('vat', flat=True)
