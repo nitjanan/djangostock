@@ -265,8 +265,13 @@ $(function() {
     var showDT = $('#idDistributorList option[data-id='+valDT+']').val();
     $('#id-form-distributor').val(showDT);
 
-
     $('#id_created').val('{{po.created|date:"Y-m-d"}}');
+
+    //ปิดไม่ให้แก้รหัสใบสั่งซื้อหากไม่มีสิทธิ
+    "{% if not isEditPO %}"
+            $('#div_id_ref_no').hide();
+            $('#div_id_created').hide();
+     "{% endif %}"
 
 });
 

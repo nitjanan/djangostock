@@ -37,6 +37,15 @@
     var month = ("0" + (now.getMonth() + 1)).slice(-2);
     var today = now.getFullYear()+"-"+(month)+"-"+(day) ;
     $('#id_created').val(today);
+
+    //After page load
+    $(function() {
+        //ปิดไม่ให้แก้รหัสใบสั่งซื้อหากไม่มีสิทธิ
+        "{% if not isEditPO %}"
+            $('#div_id_ref_no').hide();
+            $('#div_id_created').hide();
+        "{% endif %}"
+    });
     
     $(".distributor" ).change(function() {
     // get data id ของ option data list

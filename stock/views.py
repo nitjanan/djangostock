@@ -1050,6 +1050,9 @@ def preparePR(request):
 def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
 
+def is_edit_po_id(user):
+    return user.groups.filter(name='แก้ไขรหัสใบสั่งซื้อ').exists()
+
 def createPR(request, requisition_id):
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
@@ -1627,6 +1630,10 @@ def createPOItem(request, po_id):
 def editPOItem(request, po_id, isFromPR):
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
+
+    #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
+    isEditPO = is_edit_po_id(request.user)
+
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #
@@ -1712,6 +1719,7 @@ def editPOItem(request, po_id, isFromPR):
         'isFromPR':isFromPR,
         'itemList':itemList,
         'new_pr':new_pr,
+        'isEditPO':isEditPO,
         'distributorList': distributorList,
         'heading': heading_message,
     }
@@ -2221,6 +2229,9 @@ def createPOFromComparisonPrice(request, cp_id):
     except:
         return redirect('signOut')
 
+    #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
+    isEditPO = is_edit_po_id(request.user)
+
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id})
     if form.is_valid():
@@ -2247,7 +2258,7 @@ def createPOFromComparisonPrice(request, cp_id):
 
     context = {
         'form':form,
-
+        'isEditPO':isEditPO,
         'po_page': "tab-active",
         'po_show': "show",
     }
