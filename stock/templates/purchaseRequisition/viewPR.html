@@ -79,7 +79,7 @@
                   {% if item.requisition_id ==  pr.requisition.id %}
                     <li>{{item.product_name}}</li>
                   {% endif %}
-                {% endfor %}                
+                {% endfor %}
             </td>
             <td>
               {% for item in ri_not_used%}
@@ -102,8 +102,10 @@
                 <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ PR/ใบ PO</a>
               {% else %}
                 {% if pr.approver_status_id == 1 %}
+                <div style="display: flex;">
                   <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
                   <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+                </div>
                 {% else %}
                   <button type="button"
                     class="btn btn-sm

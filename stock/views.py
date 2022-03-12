@@ -2754,9 +2754,11 @@ def viewPRHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
+    ri_not_used = RequisitionItem.objects.filter(quantity_pr__gt=0)
     context = {
                 'prs':dataPage,
                 'filter':myFilter,
+                'ri_not_used': ri_not_used,
                 'h_pr_page': "tab-active",
                 'h_pr_show': "show",
               }
