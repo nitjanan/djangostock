@@ -1053,6 +1053,9 @@ def preparePR(request):
 def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
 
+def is_supplies(user):
+    return user.groups.filter(name='พัสดุ').exists()
+
 def is_edit_po_id(user):
     return user.groups.filter(name='แก้ไขรหัสใบสั่งซื้อ').exists()
 
@@ -1286,9 +1289,14 @@ def showPR(request, pr_id, mode):
     page = PRPageMode(mode)
     show = PRShowMode(mode)
 
+    #ถ้า user login เป็นจัดซื้อ
+    isPurchasing = is_purchasing(request.user)
+    #ถ้า user login เป็นจัดซื้อ
+    isSupplies = is_supplies(request.user)
+
     # re approver แสดงเฉพาะหน้า history complete และ history incomplete เท่านั้น
     isReApprove = False
-    if mode == 4 or mode == 5:
+    if (mode == 4 or mode == 5) and (isPurchasing or isSupplies):
         isReApprove = True
 
     context = {
@@ -1579,11 +1587,20 @@ def showPO(request, po_id, mode):
             form.save()
             return redirect('viewPOHistory')
 
+    #ถ้า user login เป็นจัดซื้อ
+    isPurchasing = is_purchasing(request.user)
+    #ถ้า user login เป็นจัดซื้อ
+    isSupplies = is_supplies(request.user)
+    isUploadeReceipt = False
+    if isPurchasing or isSupplies:
+        isUploadeReceipt = True
+
     context = {
             'po':po,
             'items':items,
             'new_pr':new_pr,
             'form': form,
+            'isUploadeReceipt':isUploadeReceipt,
             'mode': mode,
             page: "tab-active",
             show: "show",

@@ -30,7 +30,7 @@
               <br>เลขที่ผู้เสียภาษี 0845507000045
             </description>
           </div>
-          {% if mode == 4 %}
+          {% if mode == 4 and isUploadeReceipt %}
           <div class="col d-print-none">
             <form  class="float-right" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
