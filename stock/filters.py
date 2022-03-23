@@ -60,7 +60,7 @@ class PurchaseOrderFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
-    distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='icontains')
+    distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='startswith')
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     amount_min  = django_filters.CharFilter(field_name="amount", lookup_expr='gte')

@@ -42,9 +42,11 @@ from django.db.models import Count
 import xlwt
 from django.db.models import F, Func, Value, CharField
 from django.db.models import Sum
+from django.views.decorators.cache import cache_control
 
 # Create your views here.
 @login_required(login_url='signIn')
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def index(request, category_slug = None):
     '''
     catalogy show สินค้า
@@ -666,6 +668,7 @@ def requisition(request):
 
     return render(request,'requisition/viewRequisition.html', context)
 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createRequisition(request):
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
@@ -1125,6 +1128,7 @@ def createPR(request, requisition_id):
     }
     return render(request,'purchaseRequisition/createPR.html', context)
 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createCMorPO(request, pr_id):
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
@@ -1171,7 +1175,9 @@ def createCMorPO(request, pr_id):
             item = ComparisonPriceItem.objects.create(
                 item_id = i,
                 bidder_id = cpd.id,
-                cp = cp.id
+                cp = cp.id,
+                quantity = ri.quantity_pr,
+                unit = ri.product.unit
             )
             item.save()
         return HttpResponseRedirect(reverse('editComparePricePOItemFromPR', args=(cp.id, cpd.id)))
@@ -1194,7 +1200,8 @@ def createCMorPO(request, pr_id):
             item = PurchaseOrderItem.objects.create(
                 item_id = i,
                 quantity = ri.quantity_pr,
-                po_id = po.id
+                po_id = po.id,
+                unit = ri.product.unit
             )
             item.save()
         return HttpResponseRedirect(reverse('editPOFromPR', args=(po.id,)))
@@ -2223,6 +2230,7 @@ def showComparePricePO(request, cp_id, mode):
     }
     return render(request, 'comparePricePO/showComparePricePO.html',context)
 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createPOFromComparisonPrice(request, cp_id):
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
@@ -2960,7 +2968,7 @@ def exportExcelPO(request):
     if ref_no is not None:
         my_q &= Q(ref_no__icontains = ref_no)
     if distributor is not None:
-        my_q &= Q(distributor__name__icontains = distributor)
+        my_q &= Q(distributor__name__startswith = distributor)
     if start_created is not None:
         my_q &= Q(created__gte = start_created)
     if end_created is not None:
