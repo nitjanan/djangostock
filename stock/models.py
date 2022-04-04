@@ -709,6 +709,7 @@ class ComparisonPrice(models.Model):
         null=True
     )
     examiner_update = models.DateField(blank=True, null=True)
+    select_bidder_update = models.DateField(blank=True, null=True)
     ref_no = models.CharField(max_length = 255, default = comparisonPrice_ref_number, null = True, blank = True)
     po_ref_no = models.CharField(max_length=255, blank = True)
     cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)

@@ -178,7 +178,7 @@ thead, tbody tr {
                             {% for cm in cms%}
                                 <tr>
                                     <th scope="row"><a href="{%url 'showComparePricePO' cm.id 2 %}">{{cm.ref_no}}</a></th>
-                                    <td>{{cm.created |date:"d/m/Y" }}</td>
+                                    <td>{% if cm.select_bidder_update %}{{cm.select_bidder_update | date:"d/m/Y"}}{% else %}{{cm.created | date:"d/m/Y"}}{% endif %}</td>
                                     <td>
                                         <a href="{% url 'printCPApprove' cm.id True %}" class="btn btn-primary btn-block btn-sm">อนุมัติ</a>
                                     </td>

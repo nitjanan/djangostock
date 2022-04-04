@@ -58,7 +58,7 @@
                     <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
                 {% endfor %}
             </h6>
-            <p style="font-size:6pt">วันที่&emsp;{{cp.created | date:"d/m/Y"}}</p>
+            <p style="font-size:6pt">วันที่&emsp;{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</p>
         </div>
     </div>
     <div class="table-responsive">

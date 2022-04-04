@@ -2183,7 +2183,10 @@ def printComparePricePO(request, cp_id):
             f_cp = form.save()
             select_bidder = ComparisonPriceDistributor.objects.get(cp = f_cp, distributor = f_cp.select_bidder)
             select_bidder.is_select = True
+            if f_cp.select_bidder:
+                f_cp.select_bidder_update = datetime.datetime.now()
             select_bidder.save()
+            f_cp.save()
             return redirect('viewComparePricePO')
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
