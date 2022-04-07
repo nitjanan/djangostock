@@ -60,9 +60,9 @@
         <tbody>
         {% for po in pos %}
           <tr>
-            <th scope="row"><a href="{%url 'showPO' po.id 5 %}">{{po.ref_no}}</a></th>
+            <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 5 %}">{{po.ref_no}}</a></th>
             <td>
-              {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id 5 %}">{{po.cp.ref_no}}</a>{%endif%}
+              {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 5 %}">{{po.cp.ref_no}}</a>{%endif%}
               {%if po.pr %}<a href="{%url 'showPR' po.pr.id 5 %}">{{po.pr.ref_no}}</a>{%endif%}
             </td>
             <td>{{po.distributor}}</td>

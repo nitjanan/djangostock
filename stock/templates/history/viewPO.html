@@ -65,9 +65,9 @@
         {% for po in pos %}
           <tr>
             <td>{{po.created |date:"d/m/Y"}}</td>
-            <th scope="row"><a href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
+            <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
             <td>
-              {%if po.cp %}<a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
+              {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
               {%if po.pr %}
                 {% for pr in prs %}
                   {% if po.id == pr.po %}

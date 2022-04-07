@@ -714,6 +714,7 @@ class ComparisonPrice(models.Model):
     po_ref_no = models.CharField(max_length=255, blank = True)
     cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    is_re_approve = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'ComparisonPrice'
@@ -764,6 +765,7 @@ class PurchaseOrder(models.Model):
     receive_update = models.DateField(blank=True, null=True) #วันที่รับสินค้า
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     receipt_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/receipt/RC_PO/%Y/%m/%d')
+    is_re_approve = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'PurchaseOrder'

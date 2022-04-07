@@ -33,7 +33,7 @@
               {{po.distributor.address}}<br>
               โทร : {{po.distributor.tel}}<br>
               <h6 style="font-size:8pt">รหัสใบเปรียบเทียบ :
-                <b><u><a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
+                <b><u><a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
               </h6>
             </address>
           </div>

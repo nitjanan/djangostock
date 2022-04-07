@@ -139,7 +139,7 @@ thead, tbody tr {
                           <tbody>
                             {% for po in pos%}
                                 <tr>
-                                    <th scope="row"><a href="{% url 'showPO' po.id 2 %}">{{po.ref_no}}</a></th>
+                                    <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{% url 'showPO' po.id 2 %}">{{po.ref_no}}</a></th>
                                     <td>{{po.created |date:"d/m/Y" }}</td>
                                       <td>
                                         {% if po.approver_status.id == 1 %}
@@ -177,7 +177,7 @@ thead, tbody tr {
                           <tbody>
                             {% for cm in cms%}
                                 <tr>
-                                    <th scope="row"><a href="{%url 'showComparePricePO' cm.id 2 %}">{{cm.ref_no}}</a></th>
+                                    <th scope="row"><a class="{% if cm.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cm.id 2 %}">{{cm.ref_no}}</a></th>
                                     <td>{% if cm.select_bidder_update %}{{cm.select_bidder_update | date:"d/m/Y"}}{% else %}{{cm.created | date:"d/m/Y"}}{% endif %}</td>
                                     <td>
                                         <a href="{% url 'printCPApprove' cm.id True %}" class="btn btn-primary btn-block btn-sm">อนุมัติ</a>

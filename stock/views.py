@@ -1059,6 +1059,13 @@ def is_supplies(user):
 def is_edit_po_id(user):
     return user.groups.filter(name='แก้ไขรหัสใบสั่งซื้อ').exists()
 
+def get_bool(str):
+    if str == 'True':
+        bol  = True
+    elif str == 'False':
+        bol =  False
+    return bol
+
 def createPR(request, requisition_id):
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
@@ -1505,7 +1512,7 @@ def editPOFromPR(request, po_id):
         form = PurchaseOrderForm(request.POST, request.FILES, instance=po)
         if form.is_valid():
             form.save()
-            return redirect('editPOItem', po_id = po_id, isFromPR = 'True')
+            return redirect('editPOItem', po_id = po_id, isFromPR = 'True', isReApprove = 'False')
 
     context = {
         'form':form,
@@ -1601,6 +1608,7 @@ def showPO(request, po_id, mode):
             'new_pr':new_pr,
             'form': form,
             'isUploadeReceipt':isUploadeReceipt,
+            'isPurchasing':isPurchasing,
             'mode': mode,
             page: "tab-active",
             show: "show",
@@ -1651,7 +1659,7 @@ def createPOItem(request, po_id):
     }
     return render(request, template_name, context)
 
-def editPOItem(request, po_id, isFromPR):
+def editPOItem(request, po_id, isFromPR, isReApprove):
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
 
@@ -1679,6 +1687,12 @@ def editPOItem(request, po_id, isFromPR):
                 price.discount = 0.00
             if not price.freight:
                 price.freight = 0.00
+
+            're approve po'
+            price.is_re_approve = get_bool(isReApprove)
+            if get_bool(isReApprove) == True:
+                price.approver_status_id = 1
+                price.approver_update = None
             price.save()
 
             po_form = form.save()
@@ -1858,7 +1872,7 @@ def createComparePricePO(request):
     form = ComparisonPriceForm(request.POST or None, initial={'organizer': request.user.id, 'approver_status':1, 'examiner_status':1})
     if form.is_valid():
         new_contact = form.save()
-        return HttpResponseRedirect(reverse('createComparePricePOItem', args=(new_contact.pk,)))
+        return HttpResponseRedirect(reverse('createComparePricePOItem', args=(new_contact.pk, 'False')))
 
     context = {
         'form':form,
@@ -1914,9 +1928,9 @@ def prepareComparePricePO(request):
         examiner_status_id = 1,
     )
     cp.save()
-    return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id,)))
+    return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id, 'False')))
 
-def createComparePricePOItem(request, cp_id):
+def createComparePricePOItem(request, cp_id, isReApprove):
 
     cp = ComparisonPrice.objects.get(id=cp_id)
 
@@ -1943,6 +1957,17 @@ def createComparePricePOItem(request, cp_id):
     if request.method == 'GET':
         bookform = CPDModelForm(request.GET or None, initial={'cp': cp_id})
         formset = CPitemFormset(queryset=ComparisonPriceItem.objects.none())
+        're approve cp'
+        cp.is_re_approve = get_bool(isReApprove)
+        if get_bool(isReApprove) == True:
+            cp.approver_user = None
+            cp.approver_status_id = 1
+            cp.approver_update = None
+            cp.examiner_user= None
+            cp.examiner_status_id = 1
+            cp.examiner_update= None
+            cp.save()
+
     elif request.method == 'POST':
         bookform = CPDModelForm(request.POST or None, request.FILES, initial={'cp': cp_id})
         formset = CPitemFormset(request.POST)
@@ -1969,7 +1994,7 @@ def createComparePricePOItem(request, cp_id):
                         r_item.save()
                     except RequisitionItem.DoesNotExist:
                         pass
-            return redirect('createComparePricePOItem', cp_id = cp_id)
+            return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
     cpd = ComparisonPriceDistributor.objects.filter(cp = cp_id)
     cp_item = ComparisonPriceItem.objects.filter(cp = cp_id)
@@ -2044,7 +2069,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
                     pass
                 obj.delete()
             formset.save_m2m()
-            return redirect('createComparePricePOItem',cp_id = cp_id)    
+            return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')    
     else:
         bookform = CPDModelForm(instance=data)
         formset = CPitemInlineFormset(instance=data)
@@ -2112,7 +2137,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                         pass   
                 obj.delete()
             formset.save_m2m()
-            return redirect('createComparePricePOItem',cp_id = cp_id)
+            return redirect('createComparePricePOItem',cp_id = cp_id, isReApprove = 'False')
     else:
         bookform = CPDModelForm(instance=data)
         formset = CPitemInlineFormset(instance=data)
@@ -2150,7 +2175,7 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
     items.delete()
     #ลบ PurchaseOrder ทีหลัง
     cpd.delete()
-    return redirect('createComparePricePOItem', cp_id = cp_id)
+    return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
 def printComparePricePO(request, cp_id):
     try:
@@ -2235,6 +2260,9 @@ def showComparePricePO(request, cp_id, mode):
         except PurchaseRequisition.DoesNotExist:
             pass
 
+    #ถ้า user login เป็นจัดซื้อ
+    isPurchasing = is_purchasing(request.user)
+
     page = CPPageMode(mode)
     show = CPShowMode(mode)
     context = {
@@ -2245,6 +2273,7 @@ def showComparePricePO(request, cp_id, mode):
             'baseSparesType':baseSparesType,
             'pr_ref_no': pr_ref_no,
             'new_pr': new_pr,
+            'isPurchasing':isPurchasing,
             page: "tab-active",
             show: "show",
     }

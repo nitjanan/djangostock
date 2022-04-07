@@ -62,7 +62,7 @@
               {% for cp in cps %}
                 <tr>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
-                  <th scope="row"><a href="{%url 'showComparePricePO' cp.id 4 %}">{{cp.ref_no}}</a></th>
+                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 4 %}">{{cp.ref_no}}</a></th>
                   <td>
                     {% for pr in prs %}
                         {% if cp.id == pr.cp %}

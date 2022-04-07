@@ -39,7 +39,7 @@
               <h6 style="font-size:8pt">
               {% if po.cp %}
                 รหัสใบเปรียบเทียบ :
-                <b><u><a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
+                <b><u><a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
               {% else %}
                 รหัสใบขอซื้อ :
                 {% for i in new_pr %}
@@ -52,6 +52,7 @@
           <div class="col-md-6 text-right">
             <address>
               <strong>ใบสั่งซื้อ
+                <b class="text-danger">***ฉบับแก้ไข</b>
                 {% for item in po_items %}
                   {% if item.item.requisit.memorandum_pdf %}
                     {% ifchanged item.item.requisit.memorandum_pdf %}

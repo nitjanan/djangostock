@@ -56,7 +56,7 @@
               <h6 style="font-size:8pt">
               {% if po.cp %}
                 รหัสใบเปรียบเทียบ :
-                <b><u><a href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
+                <b><u><a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
               {% else %}
                 รหัสใบขอซื้อ :
                 {% for i in new_pr %}
@@ -69,6 +69,9 @@
           <div class="col text-right">
             <address>
               <strong>ใบสั่งซื้อ
+                {% if po.is_re_approve == True %}
+                <b class="text-danger">***ฉบับแก้ไข</b>
+                {% endif %}
                 {% for item in items %}
                   {% if item.item.requisit.memorandum_pdf %}
                     {% ifchanged item.item.requisit.memorandum_pdf %}
@@ -207,6 +210,11 @@
                   </button>
                 </div>
             </div>
+            {% if po.approver_status_id != 1 and po.is_receive != True  and isPurchasing%}
+              <div class="row my-3 d-print-none">
+                <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+              </div>
+            {% endif %}
             <hr>
           </div>
         </div>

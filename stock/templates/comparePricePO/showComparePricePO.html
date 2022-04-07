@@ -36,7 +36,13 @@
             <img src="/media/company/STG_logo.png" class="rounded float-right" width="90" height="60"/>
         </div>
         <div class="col-4 text-center">
-            <h6 style="display: inline-block;align-items: center;">ใบเปรียบเทียบราคา</h6>{% if cp.cm_type %}&emsp;<p style="font-size:6px;display: inline-block;align-items: center;">({{cp.cm_type}})</p>{%endif%}
+            <h6 style="display: inline-block;align-items: center;">ใบเปรียบเทียบราคา</h6>
+            {% if cp.is_re_approve %}
+                <b class="text-danger">***ฉบับแก้ไข</b>
+            {% endif %}
+            {% if cp.cm_type %}
+                &emsp;<p style="font-size:6px;display: inline-block;align-items: center;">({{cp.cm_type}})</p>
+            {%endif%}
             <h6>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h6>
             <p style="font-size:12px">57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180</p>
          </div>      
@@ -241,6 +247,11 @@
           </button>
         </div>
       </div>
+      {% if cp.examiner_user_id != 1 and isPurchasing %}
+      <div class="row my-3 d-print-none">
+        <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+      </div>
+    {% endif %}
 </div>
 {% endblock%}
 {% block javascript %}

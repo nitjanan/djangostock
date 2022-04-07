@@ -59,7 +59,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row"><a href="{%url 'showComparePricePO' cp.id 2 %}">{{cp.ref_no}}</a></th>
+                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 2 %}">{{cp.ref_no}}</a></th>
                   <td>{{cp.select_bidder}}</td>
                   <td>{{cp.organizer}}</td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
