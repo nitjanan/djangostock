@@ -16,7 +16,7 @@ from django.http import request, HttpResponseRedirect, HttpResponse ,JsonRespons
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
 from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -1306,6 +1306,13 @@ def showPR(request, pr_id, mode):
     if (mode == 4 or mode == 5) and (isPurchasing or isSupplies):
         isReApprove = True
 
+    form = RequisitionMemorandumForm(instance=requisition)
+    if request.method == 'POST':
+        form = RequisitionMemorandumForm(request.POST, request.FILES, instance=requisition)
+        if form.is_valid():
+            form.save()
+            return redirect('viewPRHistory')
+
     context = {
             'items':items,
             'requisition':requisition,
@@ -1317,6 +1324,7 @@ def showPR(request, pr_id, mode):
             'create_mode': False,
             page: "tab-active",
             show: "show",
+            'form':form,
             'isReApprove': isReApprove
     }
 

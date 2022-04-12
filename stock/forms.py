@@ -170,6 +170,17 @@ class PurchaseOrderReceiptForm(forms.ModelForm):
             'receipt_pdf': _('ใบรับสินค้า'),
         }
 
+class RequisitionMemorandumForm(forms.ModelForm):
+    class Meta:
+       model = Requisition
+       fields = ('memorandum_pdf',)
+       widgets = {
+        'memorandum_pdf' : MyClearableFileInput,
+        }
+       labels = {
+            'memorandum_pdf': _('เอกสารแนบ'),
+        }
+
 #ใบเปรียบเทียบราคา
 class ComparisonPriceForm(forms.ModelForm):
     class Meta:
