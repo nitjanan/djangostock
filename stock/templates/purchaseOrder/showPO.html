@@ -70,7 +70,7 @@
             <address>
               <strong>ใบสั่งซื้อ
                 {% if po.is_re_approve == True %}
-                <b class="text-danger">***ฉบับแก้ไข</b>
+                  <b class="text-danger">***ฉบับแก้ไข</b>
                 {% endif %}
                 {% for item in items %}
                   {% if item.item.requisit.memorandum_pdf %}

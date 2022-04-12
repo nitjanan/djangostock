@@ -52,7 +52,9 @@
           <div class="col-md-6 text-right">
             <address>
               <strong>ใบสั่งซื้อ
-                <b class="text-danger">***ฉบับแก้ไข</b>
+                {% if po.is_re_approve == True %}
+                  <b class="text-danger">***ฉบับแก้ไข</b>
+                {% endif %}
                 {% for item in po_items %}
                   {% if item.item.requisit.memorandum_pdf %}
                     {% ifchanged item.item.requisit.memorandum_pdf %}
