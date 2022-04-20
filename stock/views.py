@@ -1515,9 +1515,9 @@ def editPOFromPR(request, po_id):
     distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     po = PurchaseOrder.objects.get(id=po_id)
-    form = PurchaseOrderForm(instance=po, initial={'tax': 1})
+    form = PurchaseOrderForm(instance=po)
     if request.method == 'POST':
-        form = PurchaseOrderForm(request.POST, request.FILES, instance=po, initial={'tax': 1})
+        form = PurchaseOrderForm(request.POST, request.FILES, instance=po)
         if form.is_valid():
             form.save()
             return redirect('editPOItem', po_id = po_id, isFromPR = 'True', isReApprove = 'False')
@@ -2298,7 +2298,7 @@ def createPOFromComparisonPrice(request, cp_id):
     isEditPO = is_edit_po_id(request.user)
 
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id, 'tax': 1})
+    form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id})
     if form.is_valid():
         try:
             new_contact = form.save(commit=False)

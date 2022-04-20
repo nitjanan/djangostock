@@ -662,18 +662,6 @@ class BaseDelivery(models.Model):
     def __str__(self):
         return str(self.name)
 
-class BaseTax(models.Model):
-    name = models.CharField(max_length=255, blank=True, verbose_name="เลขที่ผู้เสียภาษี")
-
-    class Meta:
-        db_table = 'BaseTax'
-        ordering=('id',)
-        verbose_name = 'เลขที่ผู้เสียภาษี'
-        verbose_name_plural = 'ข้อมูลเลขที่ผู้เสียภาษี'
-
-    def __str__(self):
-        return str(self.name)
-
 class BaseCMType(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทใบเปรียบเทียบเทียบราคา")#เก็บไอดีชนิดภาษี
     name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อประเภทใบเปรียบเทียบเทียบราคา")
@@ -778,7 +766,6 @@ class PurchaseOrder(models.Model):
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     receipt_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/receipt/RC_PO/%Y/%m/%d')
     is_re_approve = models.BooleanField(default=False)
-    tax = models.ForeignKey(BaseTax, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'PurchaseOrder'

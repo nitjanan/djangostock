@@ -78,7 +78,7 @@ class PurchaseRequisitionForm(forms.ModelForm):
 class PurchaseOrderForm(forms.ModelForm):
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'tax', 'quotation_pdf')
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'quotation_pdf')
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
@@ -92,7 +92,6 @@ class PurchaseOrderForm(forms.ModelForm):
             'shipping': _('ขนส่งโดย'),
             'vat_type': _('ชนิดภาษี'),
             'stockman_user': _('เจ้าหน้าที่จัดซื้อ'),
-            'tax': _('เลขประจำตัวผู้เสียภาษีของบริษัท'),
             'quotation_pdf': _('ใบเสนอราคา'),
         }
 
@@ -100,7 +99,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
     cp = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = ""))
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'tax')
+       fields = ('ref_no','created','cp','shipping')
        widgets = {
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         }
@@ -108,7 +107,6 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
             'shipping': _('ขนส่งโดย'),
             'ref_no': _('รหัสใบสั่งซื้อ'),
             'created': _('วันที่สร้างใบสั่งซื้อ'),
-            'tax': _('เลขประจำตัวผู้เสียภาษีของบริษัท'),
         }  
 
 
