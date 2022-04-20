@@ -75,8 +75,8 @@
                   <td>
                       <ul style="list-style: none;">
                       {% for bd in bidder %}
-                        {% if cp.id == bd.cp.id %}
-                            <li>{{bd.distributor.name}}</li>
+                        {% if cp.id == bd.cp_id %}
+                            <li>{{bd.distributor__name}}</li>
                         {% endif %}
                       {% endfor %}                          
                       </ul>
@@ -84,7 +84,7 @@
                   <td>{{cp.organizer}}</td>
                   <td>
                     {% for bd in bidder %}
-                      {% if cp.id == bd.cp.id  and bd.distributor == cp.select_bidder%}
+                      {% if cp.id == bd.cp_id  and bd.distributor__id == cp.select_bidder.id %}
                         {% if  bd.amount %}{{bd.amount | intcomma}}{%endif%}
                       {% endif %}
                     {% endfor %} 

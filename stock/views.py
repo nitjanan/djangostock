@@ -1854,13 +1854,13 @@ def viewComparePricePO(request):
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
     data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3))
 
-    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0)
+    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
 
-    bidder = ComparisonPriceDistributor.objects.all()
+    bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
@@ -2859,13 +2859,13 @@ def viewComparePricePOHistory(request):
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
 
-    bidder = ComparisonPriceDistributor.objects.all()
+    bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0)
+    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
     context = {
         'cps':dataPage,
         'filter':myFilter,
