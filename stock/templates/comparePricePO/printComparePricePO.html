@@ -39,11 +39,11 @@
             {% if cp.cm_type %}
                 &emsp;<p style="font-size:6px;display: inline-block;align-items: center;">({{cp.cm_type}})</p>
             {%endif%}
-            <h6>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h6>
-            <p style="font-size:12px">57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180</p>
+            <h6>{{cp.address_company.name_th}}</h6>
+            <p style="font-size:12px">{{cp.address_company.address}}</p>
          </div>
         <div class="col-2">
-            <img src="/media/company/logo.jpg" class="rounded float-left" width="60" height="60"/>
+            <img src="/media/{{cp.address_company.logo}}" class="rounded float-left" width="60" height="60"/>
         </div>
         <div class="col-3 text-center">
             <p style="font-size:6pt">รหัส {{cp.ref_no}}
@@ -196,6 +196,14 @@
     <hr>
     {% endif %} 
     <form method="post">
+    <div class="row my-2 hidden-print">
+            <div class="col-2">
+                {{form.address_company.label}} :
+            </div>
+            <div class="col-10">
+                {{form.address_company | add_class:"form-control"}}
+            </div>
+    </div>
     <div class="row my-3 hidden-print">
         <div class="col-2 text-danger">
             {{form.select_bidder.label}} :

@@ -32,15 +32,15 @@ u.dotted {
 <div class="container my-3">
     <div class="row my-2">
       <div class="col col-md-2">
-        <img src="/media/company/logo.jpg" class="rounded float-left" width="120" height="120"/>
+        <img src="/media/{{pr.address_company.logo}}" class="rounded float-left" width="120" height="120"/>
       </div>
       <div class="text-left col">
-          <description>
-            <strong>SILACHAI SURAT CO.,LTD</strong>
-            <br>บริษัท ศิลาชัยสุราษฎร์ จำกัด
-            <br>57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
-            <br>โทร 099-6813306 0842658115 เลขที่ผู้เสียภาษี 0845507000045 สาขา00001
-          </description>
+        <description>
+          <strong>{{pr.address_company.name_eng}}</strong>
+          <br>{{pr.address_company.name_th}}
+          <br>{{pr.address_company.address}}
+          <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
+        </description>
       </div>
       <div class="text-center col col-md-3">
         <div role="alert"  

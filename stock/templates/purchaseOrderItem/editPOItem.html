@@ -22,10 +22,10 @@
         <div class="col-md-12">
         <div class="invoice-title">
           <description>
-              <h4>บริษัท ศิลาชัยสุราษฎร์ จำกัด</h4>
-               57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180
-              <br>โทร 099-6813306 0842658115
-              <br>เลขที่ผู้เสียภาษี 0845507000045
+            <h4>{{po.address_company.name_th}}</h4>
+            {{po.address_company.address}}
+            {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
+            {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}
           </description>
         </div>
         <hr>

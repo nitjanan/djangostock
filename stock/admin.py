@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import ugettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -98,6 +98,14 @@ class BasePrefixAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
+
+class BaseAddressAdmin(ImportExportModelAdmin):
+    list_display = ['id','name_th', 'address'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+class BranchCompanyBaseAdressAdmin(ImportExportModelAdmin):
+    list_display = ['id','branch_company', 'address'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class DistributorResource(resources.ModelResource):
 
@@ -264,3 +272,5 @@ admin.site.register(BaseDelivery, BaseDeliveryAdmin)
 admin.site.register(BaseVisible, BaseVisibleAdmin)
 admin.site.register(ReceiveItem, ReceiveItemAdmin)
 admin.site.register(BaseCMType, BaseCMTypeAdmin)
+admin.site.register(BaseAddress, BaseAddressAdmin)
+admin.site.register(BranchCompanyBaseAdress, BranchCompanyBaseAdressAdmin)

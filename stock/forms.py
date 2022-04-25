@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -75,10 +75,17 @@ class PurchaseRequisitionForm(forms.ModelForm):
        model = PurchaseRequisition 
        fields = ('note',)
 
+#ใบสั่งซื้อ
 class PurchaseOrderForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'quotation_pdf')
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'quotation_pdf')
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
@@ -93,13 +100,34 @@ class PurchaseOrderForm(forms.ModelForm):
             'vat_type': _('ชนิดภาษี'),
             'stockman_user': _('เจ้าหน้าที่จัดซื้อ'),
             'quotation_pdf': _('ใบเสนอราคา'),
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
+        }
+
+class PurchaseOrderAddressCompanyForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+
+    class Meta:
+       model = PurchaseOrder
+       fields = ('address_company',)
+       labels = {
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
         }
 
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+
     cp = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = ""))
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping')
+       fields = ('ref_no','created','cp','shipping', 'address_company')
        widgets = {
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         }
@@ -107,6 +135,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
             'shipping': _('ขนส่งโดย'),
             'ref_no': _('รหัสใบสั่งซื้อ'),
             'created': _('วันที่สร้างใบสั่งซื้อ'),
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
         }  
 
 
@@ -181,6 +210,20 @@ class RequisitionMemorandumForm(forms.ModelForm):
             'memorandum_pdf': _('เอกสารแนบ'),
         }
 
+class PurchaseRequisitionAddressCompanyForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+
+    class Meta:
+       model = PurchaseRequisition
+       fields = ('address_company',)
+       labels = {
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
+        }
+
 #ใบเปรียบเทียบราคา
 class ComparisonPriceForm(forms.ModelForm):
     class Meta:
@@ -192,6 +235,20 @@ class ComparisonPriceForm(forms.ModelForm):
        }  
        labels = {
             'organizer': _('ผู้จัดทำ'),
+        }
+
+class ComparisonPriceAddressCompanyForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+    
+    class Meta:
+       model = ComparisonPrice
+       fields = ('address_company',)
+       labels = {
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
         }
 
 #แม่ ผู้จำหน่ายใบเปรียบเทียบราคา
@@ -278,9 +335,15 @@ CPitemInlineFormset = inlineformset_factory(
 )
 
 class CPSelectBidderForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+
     class Meta:
        model = ComparisonPrice
-       fields = ('select_bidder','base_spares_type','note', 'cm_type')
+       fields = ('select_bidder','base_spares_type','note', 'cm_type', 'address_company')
        widgets={
             'select_bidder': forms.HiddenInput(),#dataList
             'base_spares_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
@@ -291,6 +354,7 @@ class CPSelectBidderForm(forms.ModelForm):
             'base_spares_type': _('ชนิดอะไหล่'),
             'cm_type': _('ประเภทใบเปรียบเทียบ'),
             'note': _('หมายเหตุ'),
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
         }
 
 #ใบรับสินค้า

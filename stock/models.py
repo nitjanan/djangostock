@@ -372,6 +372,42 @@ class BaseCredit(models.Model):
         return str(self.name)
 
 
+class BaseAddress(models.Model):
+    name_th = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทไทย")
+    name_eng = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทอังกฤษ")
+    address = models.CharField(max_length=255, blank=True, null = True, verbose_name="ที่อยู่")
+    tel = models.CharField(max_length=255, blank = True, null = True, verbose_name="เบอร์โทร")
+    tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")
+    branch = models.CharField(max_length=255, blank = True, null = True, verbose_name="สาขา")
+    logo = models.ImageField(null=True, blank=True, upload_to = "company/",verbose_name="โลโก้บริษัท")
+
+    class Meta:
+        db_table = 'BaseAddress'
+        ordering=('id',)
+        verbose_name = 'ที่อยู่ตามจดทะเบียนบริษัท'
+        verbose_name_plural = 'ข้อมูลที่อยู่ตามจดทะเบียนบริษัท'
+
+    @property
+    def logo_preview(self):
+        if self.logo:
+            return mark_safe('<img src="{}" height="100" />'.format(self.logo.url))
+        return ""
+
+    def __str__(self):
+        return self.name_th + " " + self.address
+
+class BranchCompanyBaseAdress(models.Model):
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    address = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    class Meta:
+        db_table = 'BranchCompanyBaseAdress'
+        ordering=('id',)
+        verbose_name = 'บริษัทและที่อยู่ตามจดทะเบียน'
+        verbose_name_plural = 'ข้อมูลบริษัทและที่อยู่ตามจดทะเบียน'
+
+    def __str__(self):
+        return str(self.address)
+
 class Requisition(models.Model):
     purchase_requisition_id =  models.IntegerField(blank=True, null=True,unique=True)
     pr_ref_no = models.CharField(max_length = 255, null = True, blank = True)
@@ -399,6 +435,14 @@ class Requisition(models.Model):
     memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.address_company is None:
+            company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
+            self.address_company = company.address
+            
+        super(Requisition, self).save(*args, **kwargs)
 
     class Meta:
         db_table = 'Requisition'
@@ -477,6 +521,7 @@ class PurchaseRequisition(models.Model):
     ref_no = models.CharField(max_length = 255, default = purchaseRequisition_ref_number, null = True, blank = True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'PurchaseRequisition'
@@ -715,6 +760,14 @@ class ComparisonPrice(models.Model):
     cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     is_re_approve = models.BooleanField(default=False)
+    address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.address_company is None:
+            company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
+            self.address_company = company.address
+            
+        super(ComparisonPrice, self).save(*args, **kwargs)
 
     class Meta:
         db_table = 'ComparisonPrice'
@@ -766,6 +819,14 @@ class PurchaseOrder(models.Model):
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     receipt_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/receipt/RC_PO/%Y/%m/%d')
     is_re_approve = models.BooleanField(default=False)
+    address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.address_company is None:
+            company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
+            self.address_company = company.address
+            
+        super(PurchaseOrder, self).save(*args, **kwargs)
 
     class Meta:
         db_table = 'PurchaseOrder'

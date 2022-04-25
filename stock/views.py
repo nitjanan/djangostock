@@ -15,8 +15,8 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm
+from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -1097,30 +1097,37 @@ def createPR(request, requisition_id):
             #save PR
             new_contact = form.save()
             new_contact.branch_company = company
+
+            bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = company).first()
+            new_contact.address_company = bc.address
             #save requisition ใน purchase_requisition_id
-            pr = PurchaseRequisition.objects.get(id = new_contact.pk)
-            pr.requisition = requisition
-            pr.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
-            pr.purchase_user_id = requisition.chief_approve_user_name
+            new_contact.requisition = requisition
+            new_contact.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
+            new_contact.purchase_user_id = requisition.chief_approve_user_name
             # set ให้ผู้ขอซื้ออนุมัติมาเลย
-            pr.purchase_status_id = 2
-            pr.purchase_update = datetime.datetime.now()
+            new_contact.purchase_status_id = 2
+            new_contact.purchase_update = datetime.datetime.now()
 
-            pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
+            new_contact.approver_status_id = 1 #กำหนดค่าเริ่มต้น
             #พัสดุ
-            pr.stockman_user_id = request.user.id
-            pr.stockman_update = datetime.datetime.now()
+            new_contact.stockman_user_id = request.user.id
+            new_contact.stockman_update = datetime.datetime.now()
             #เจ้าหน้าที่จัดซื้อ
-            pr.organizer = requisition.organizer
+            new_contact.organizer = requisition.organizer
 
-            pr.save()
+            new_contact.save()
 
             #save purchase_requisition_id ใน requisition
             obj = Requisition.objects.get(id = requisition_id)
             obj.purchase_requisition_id = new_contact.pk
-            obj.pr_ref_no = pr.ref_no
+            obj.pr_ref_no = new_contact.ref_no
             obj.save()
             return HttpResponseRedirect(reverse('viewPR'))
+        else:
+            return HttpResponseRedirect(reverse('createPR', args=(requisition_id,)))
+
+    #ที่อยู่และหัวบริษัท
+    company = BranchCompanyBaseAdress.objects.filter(branch_company__code = "S1").first()
 
     #context
     context = {
@@ -1132,6 +1139,7 @@ def createPR(request, requisition_id):
         'form':form,
         'baseProduct':baseProduct,
         'isPurchasing':isPurchasing,
+        'company':company,
         'pr_page': "tab-active",
         'create_mode': True,
         'pr_show': "show",
@@ -1306,12 +1314,22 @@ def showPR(request, pr_id, mode):
     if (mode == 4 or mode == 5) and (isPurchasing or isSupplies):
         isReApprove = True
 
+    #ที่อยู่และหัวบริษัท
+    company = BranchCompanyBaseAdress.objects.filter(branch_company__code = "S1").first()
     form = RequisitionMemorandumForm(instance=requisition)
-    if request.method == 'POST':
+    pr_form = PurchaseRequisitionAddressCompanyForm(instance=pr)
+
+    if request.method == 'POST' and 'btnformR' in request.POST:
         form = RequisitionMemorandumForm(request.POST, request.FILES, instance=requisition)
         if form.is_valid():
             form.save()
             return redirect('viewPRHistory')
+
+    if request.method == 'POST' and 'btnformPR' in request.POST:
+        pr_form = PurchaseRequisitionAddressCompanyForm(request.POST, request.FILES, instance=pr)
+        if pr_form.is_valid():
+            pr_form.save()
+            return redirect('showPR', pr_id = pr.id , mode = mode)
 
     context = {
             'items':items,
@@ -1321,10 +1339,13 @@ def showPR(request, pr_id, mode):
             'baseUnit': baseUnit,
             'baseProduct':baseProduct,
             'pr': pr,
+            'isPurchasing': isPurchasing,
+            'isSupplies': isSupplies,
             'create_mode': False,
             page: "tab-active",
             show: "show",
             'form':form,
+            'pr_form': pr_form,
             'isReApprove': isReApprove
     }
 
@@ -1596,11 +1617,18 @@ def showPO(request, po_id, mode):
     show = POShowMode(mode)
 
     form = PurchaseOrderReceiptForm(instance=po)
-    if request.method == 'POST':
+    if request.method == 'POST' and 'btnformPOr' in request.POST:
         form = PurchaseOrderReceiptForm(request.POST, request.FILES, instance=po)
         if form.is_valid():
             form.save()
             return redirect('viewPOHistory')
+
+    poa_form = PurchaseOrderAddressCompanyForm(instance=po)
+    if request.method == 'POST' and 'btnformPOa' in request.POST:
+        poa_form = PurchaseOrderAddressCompanyForm(request.POST, request.FILES, instance=po)
+        if poa_form.is_valid():
+            poa_form.save()
+            return redirect('showPO', po_id = po_id , mode = mode)
 
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
@@ -1618,6 +1646,7 @@ def showPO(request, po_id, mode):
             'isUploadeReceipt':isUploadeReceipt,
             'isPurchasing':isPurchasing,
             'mode': mode,
+            'poa_form':poa_form,
             page: "tab-active",
             show: "show",
     }
@@ -2271,6 +2300,13 @@ def showComparePricePO(request, cp_id, mode):
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
 
+    form = ComparisonPriceAddressCompanyForm(instance=cp)
+    if request.method == 'POST':
+        form = ComparisonPriceAddressCompanyForm(request.POST, request.FILES, instance=cp)
+        if form.is_valid():
+            form.save()
+            return redirect('showComparePricePO', cp_id = cp_id , mode = mode)
+
     page = CPPageMode(mode)
     show = CPShowMode(mode)
     context = {
@@ -2282,6 +2318,7 @@ def showComparePricePO(request, cp_id, mode):
             'pr_ref_no': pr_ref_no,
             'new_pr': new_pr,
             'isPurchasing':isPurchasing,
+            'form':form,
             page: "tab-active",
             show: "show",
     }
@@ -2297,8 +2334,9 @@ def createPOFromComparisonPrice(request, cp_id):
     #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
     isEditPO = is_edit_po_id(request.user)
 
+    bc = ComparisonPrice.objects.get(id = cp_id)
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id})
+    form = PurchaseOrderFromComparisonPriceForm(request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company})
     if form.is_valid():
         try:
             new_contact = form.save(commit=False)
