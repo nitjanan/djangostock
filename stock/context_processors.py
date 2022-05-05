@@ -60,7 +60,7 @@ def approvePendingCounter(request):
             #ดึงข้อมูล PurchaseRequisition
             pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-            pending_count = len(pr_item)
+            pending_count = pr_item.count()
         except PurchaseRequisition.DoesNotExist:
             pending_count = 0
         
@@ -73,7 +73,7 @@ def approvePRCounter(request):
         #ดึงข้อมูล PurchaseRequisition
         pr_item = PurchaseRequisition.objects.all().filter(purchase_user = request.user.id, purchase_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
         #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-        pr_count = len(pr_item)
+        pr_count = pr_item.count()
     except PurchaseRequisition.DoesNotExist:
         pr_count = 0
 
@@ -266,17 +266,18 @@ def findBaseUrgency(request, id):
 def isPurchasingPRCounter(request):
     pr_count = 0
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
-    if(request.user.groups.filter(name='จัดซื้อ').exists()):
+    if(is_purchasing(request.user)):
         try:
             data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
+            requisit = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user).values("requisition")
             #เช็คว่าใช้หมดแล้วหรือเปล่า
             for pr in data:
-                ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0).count()
-                ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0).count()
+                ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0, requisit__in = requisit).count()
+                ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0, requisit__in = requisit).count()
                 if ri_is_used == ri_all:
                     #ให้เอา pr ออกจากใน list
                     data = data.exclude(id = pr.id)
-            pr_count = len(data)
+            pr_count = data.count()
         except PurchaseOrder.DoesNotExist:
             pr_count = 0
     return pr_count
@@ -289,9 +290,12 @@ def isPurchasingPR(request):
 
     return dict(is_purchasing_pr = is_purchasing_pr)
 
+def is_purchasing(user):
+    return user.groups.filter(name='จัดซื้อ').exists()
+
 def addPOCounter(request):
     cp_count = 0
-    if(request.user.groups.filter(name='จัดซื้อ').exists()):
+    if(is_purchasing(request.user)):
         try:
             cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2).count()
         except ComparisonPrice.DoesNotExist:
@@ -318,7 +322,7 @@ def purchasingAllConter(request):
 
 def receiveCounter(request):
     rc_count = 0
-    if(request.user.groups.filter(name='จัดซื้อ').exists()):
+    if(is_purchasing(request.user)):
         try:
             rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False).count()
         except PurchaseOrder.DoesNotExist:

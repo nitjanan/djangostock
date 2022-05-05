@@ -984,27 +984,27 @@ def viewPR(request):
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
 
-    ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0)
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
         data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
+        requisit = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user).values("requisition")
+        ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).values('requisition_id', 'product_name', 'urgency')
 
         #เช็คว่าใช้หมดแล้วหรือเปล่า
         for pr in data:
-            ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0).count()
-            ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0).count()
+            ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0, requisit__in = requisit).count()
+            ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0, requisit__in = requisit).count()
             if ri_is_used == ri_all:
                 #ให้เอา pr ออกจากใน list
                 data = data.exclude(id = pr.id)
     else:
         data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3))
+        requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3)).values("requisition")
+        ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).values('requisition_id', 'product_name', 'urgency')
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
     data = myFilter.qs
-
-    #ถ้า user login เป็นจัดซื้อ
-    isPurchasing = is_purchasing(request.user)
 
     baseUrgency = BaseUrgency.objects.all()
     #สร้าง page
@@ -2847,6 +2847,7 @@ def viewRequisitionHistory(request):
 
 def viewPRHistory(request):
     data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3)))
+    requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3))).values("requisition")
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -2857,7 +2858,7 @@ def viewPRHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    ri_not_used = RequisitionItem.objects.filter(quantity_pr__gt=0)
+    ri_not_used = RequisitionItem.objects.filter(quantity_pr__gt=0, requisit__in = requisit)
     context = {
                 'prs':dataPage,
                 'filter':myFilter,
