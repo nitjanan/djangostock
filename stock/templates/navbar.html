@@ -1,3 +1,4 @@
+<!--
 <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #EBF5FB;">
   <div class="container-fluid">
       <button type="button" id="sidebarCollapse" class="btn btn-info float-left">
@@ -37,14 +38,14 @@
           {%endfor%}
           </li>
           {% if request.user.is_authenticated and request.user.first_name %}
-            <!-- li class="nav-item dropdown">
+            <li class="nav-item dropdown">
               <a class="nav-link text-uppercase font-weight-bold px-3" data-toggle="dropdown">
               <i class="fas fa-user circle"></i> {{request.user.first_name}} <i class="fas fa-caret-down"></i>
               </a>
               <div class="dropdown-menu">
                 <a class="dropdown-item" href="{% url 'orderHistory' %}">ประวัติการสั่งซื้อ</a>
               </div>
-            </li -->
+            </li>
             <li class="nav-item">
               <a class="nav-link text-uppercase font-weight-bold px-3">
                 <i class="fas fa-user circle"></i> {{request.user.first_name}}
@@ -67,7 +68,7 @@
               </a>
             </li>
             {% endif %}
-          <!-- li class="nav-item">
+          <li class="nav-item">
             <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'cartdetail'%}">
               <i class="fas fa-shopping-cart"></i>
               {% if item_count > 0%}
@@ -76,8 +77,109 @@
                 0
               {% endif %}
           </a>
-        </li -->
+        </li>
       </ul>  
       </div>
   </div>
-</nav>
+</nav>  
+-->
+
+<nav class="navbar navbar-expand-md navbar-light" style="background-color: #EBF5FB;">
+  <!-- One of the primary actions on mobile is to call a business - This displays a phone button on mobile only -->
+  <button type="button" id="sidebarCollapse" class="btn btn-info" style="position: absolute;top: 1%;z-index: 1;">
+    <i class="fas fa-align-left"></i>
+  </button>
+  <div class="navbar-toggler-right float-xs-right">
+    <button class="navbar-toggler ml-5" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbarTogglerDemo02" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+            
+  </div>
+  
+  <div class="collapse navbar-collapse flex-column" id="navbar">
+    <ul class="navbar-nav ml-auto">
+      <form class="form-inline" action="{% url 'search'%}", method="GET">
+        <div class="input-group w-10 float-start">
+          <input type="text" name="title" class="form-control" placeholder="Search">
+          <div class="input-group-append">
+            <button type="submit" class="btn btn-warning"><i class="fas fa-search"></i></button>
+          </div>
+        </div>
+      </form>
+      {% for tab in visible_tab %}
+        {% if 'Admin' in tab.name %}
+          <li class="nav-item">
+            <a class="nav-link text-uppercase font-weight-bold px-3" href="/admin">
+              Admin
+            </a>
+          </li>
+        {%endif%}
+        {% if 'Category' in tab.name %}
+        <li class="nav-item dropdown"><a class="nav-link text-uppercase font-weight-bold px-3"
+          href="" data-toggle="dropdown">Category <i class="fas fa-caret-down"></i></a>
+          <div class="dropdown-menu" style="height:350px;overflow-y:auto;">
+            <a class="dropdown-item" href="{% url 'home' %}">สินค้าทั้งหมด</a>
+            {% for catagory in links %}
+            <a class="dropdown-item" href="{{catagory.get_url}}">{{catagory.name}}</a>
+            {% endfor %}
+          </div>
+        {%endif%}
+      {%endfor%}
+      </li>
+      {% if request.user.is_authenticated and request.user.first_name %}
+        <!-- li class="nav-item dropdown">
+          <a class="nav-link text-uppercase font-weight-bold px-3" data-toggle="dropdown">
+          <i class="fas fa-user circle"></i> {{request.user.first_name}} <i class="fas fa-caret-down"></i>
+          </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="{% url 'orderHistory' %}">ประวัติการสั่งซื้อ</a>
+          </div>
+        </li -->
+        <li class="nav-item">
+          <a class="nav-link text-uppercase font-weight-bold px-3">
+            <i class="fas fa-user circle"></i> {{request.user.first_name}}
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'signOut' %}">
+            Sign Out <i class="fas fa-sign-out-alt"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'signUp' %}">
+            Sign Up <i class="fas fa-user-plus"></i>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'signIn' %}">
+            Sign In <i class="fas fa-sign-in-alt"></i>
+          </a>
+        </li>
+        {% endif %}
+      <!-- li class="nav-item">
+        <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'cartdetail'%}">
+          <i class="fas fa-shopping-cart"></i>
+          {% if item_count > 0%}
+            {{item_count}}
+          {% else %}
+            0
+          {% endif %}
+      </a>
+    </li -->
+    </ul>
+    {% if request.user.is_authenticated and request.user.first_name %}
+    <div class="bg-white w-100">
+      <div class="bg-light w-100">
+        <ul id="nav-tabs" class="nav nav-tabs nav-pills flex-column flex-sm-row text-center border-0 w-100 {{colorNav}}">
+          <li class="nav-item flex-sm-fill">
+              <a id="S1" data-toggle="tab" role="tab" aria-controls="home" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('S1')">S1-ศิลาชัย</a>
+          </li>
+          <li class="nav-item flex-sm-fill">
+              <a id="D1" data-toggle="tab" role="tab" aria-controls="profile" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{D1}} {{disableTab}}" onClick="setCompany('D1')" >D1-ทักษิณโดโลไมท์</a>
+          </li>
+        </ul>
+      </div>
+  </div>
+  {%endif%}
+  </nav>

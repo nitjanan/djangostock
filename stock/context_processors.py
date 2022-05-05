@@ -264,11 +264,12 @@ def findBaseUrgency(request, id):
     return dict(base_urgen = base_urgen)
 
 def isPurchasingPRCounter(request):
+    active = request.session['company_code']
     pr_count = 0
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(request.user.groups.filter(name='จัดซื้อ').exists()):
         try:
-            data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
+            data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, branch_company__code = active)
             #เช็คว่าใช้หมดแล้วหรือเปล่า
             for pr in data:
                 ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0).count()
@@ -290,10 +291,11 @@ def isPurchasingPR(request):
     return dict(is_purchasing_pr = is_purchasing_pr)
 
 def addPOCounter(request):
+    active = request.session['company_code']
     cp_count = 0
     if(request.user.groups.filter(name='จัดซื้อ').exists()):
         try:
-            cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2).count()
+            cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2, branch_company__code = active).count()
         except ComparisonPrice.DoesNotExist:
             pass
     return cp_count
@@ -317,10 +319,11 @@ def purchasingAllConter(request):
 
 
 def receiveCounter(request):
+    active = request.session['company_code']
     rc_count = 0
     if(request.user.groups.filter(name='จัดซื้อ').exists()):
         try:
-            rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False).count()
+            rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = active).count()
         except PurchaseOrder.DoesNotExist:
             pass
     return dict(rc_count = rc_count)

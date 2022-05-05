@@ -12,7 +12,7 @@ from django import http
 from django.core import paginator
 from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
-from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse
+from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
 from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress
@@ -48,6 +48,8 @@ from django.views.decorators.cache import cache_control
 @login_required(login_url='signIn')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def index(request, category_slug = None):
+
+    active = request.session['company_code']
     '''
     catalogy show สินค้า
     '''
@@ -260,9 +262,9 @@ def index(request, category_slug = None):
             break
 
     if isHaveTab:
-        return render(request,'index.html', {'products':productperPage , 'category':categories_page})
+        return render(request,'index.html', {'products':productperPage , 'category':categories_page, active :"active show", "colorNav":"enableNav"})
     else:
-        return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm})
+        return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav"})
 
 
 def productPage(request, category_slug, product_slug):
@@ -454,6 +456,8 @@ def signInView(request):
                 return redirect('signUp')
     else:
         form = AuthenticationForm()
+
+    request.session['company_code'] = "S1"
     return render(request, 'signin.html', {'form':form,'companys':companys })
 
 def signOutView(request):
@@ -640,6 +644,8 @@ def crudRequisitionItemView(request, requisition_id):
     
 @login_required(login_url='signIn')
 def requisition(request):
+    active = request.session['company_code']
+
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
     '''
@@ -648,7 +654,7 @@ def requisition(request):
                               created__year__lte = year,
                               created__month__lte = month) | Q(purchase_requisition_id__isnull = True))   
     '''
-    data = Requisition.objects.filter(purchase_requisition_id__isnull = True)
+    data = Requisition.objects.filter(purchase_requisition_id__isnull = True, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
@@ -664,17 +670,17 @@ def requisition(request):
             'filter':myFilter,
             'requisitions_page': "tab-active",
             'requisitions_show': "show",
+            active :"active show",
+            "colorNav":"enableNav"
     }
 
     return render(request,'requisition/viewRequisition.html', context)
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createRequisition(request):
-    try:
-        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
-    except:
-        return redirect('signOut')
-
+    active = request.session['company_code']
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    
     form = RequisitionForm(request.POST or None)
     if form.is_valid():
         form = RequisitionForm(request.POST or None, request.FILES)
@@ -694,6 +700,9 @@ def createRequisition(request):
         'form':form,
         'requisitions_page': "tab-active",
         'requisitions_show': "show",
+        active :"active show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
     }
     return render(request, "requisition/createRequisition.html", context)
 
@@ -787,6 +796,7 @@ def editRequisitionItem(request, item_id):
 class CrudView(TemplateView):
     template_name = 'requisition/crud.html'
     def get_context_data(self, *args, **kwargs):
+        active = self.request.session['company_code']
         context = super().get_context_data(*args,**kwargs)
         context['users'] = RequisitionItem.objects.filter(requisition_id = self.kwargs['requisition_id'])
         requisition = Requisition.objects.get(id=self.kwargs['requisition_id'])
@@ -801,7 +811,10 @@ class CrudView(TemplateView):
         context['baseUnit'] = BaseUnit.objects.all()
         context['requisitions_page'] = "tab-active"
         context['requisitions_show'] = "show"
-        
+        context[active] = "active show"
+        context['disableTab'] = "disableTab"
+        context['colorNav'] = "disableNav"
+
         return context
 
 class CreateCrudUser(View):
@@ -913,6 +926,7 @@ class DeleteCrudUser(View):
         return JsonResponse(data)
 
 def editAllRequisition(request, requisition_id):
+    active = request.session['company_code']
     users = RequisitionItem.objects.filter(requisition_id = requisition_id)
     requisition = Requisition.objects.get(id=requisition_id)
     try:
@@ -936,7 +950,7 @@ def editAllRequisition(request, requisition_id):
                 obj.save()
             except PurchaseRequisition.DoesNotExist :
                 pass
-            return redirect('editAllRequisition', requisition_id = requisition.id)
+            return redirect('requisition')
 
     context = {
         'form':form,
@@ -947,11 +961,15 @@ def editAllRequisition(request, requisition_id):
         'baseUnit': baseUnit,
         'requisitions_page':"tab-active",
         'requisitions_show':"show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
 
     return render(request, "requisition/editAllRequisition.html", context)
 
 def showRequisition(request, requisition_id, mode):
+    active = request.session['company_code']
     items = RequisitionItem.objects.filter(requisition_id = requisition_id)
     requisition = Requisition.objects.get(id=requisition_id)
     try:
@@ -973,6 +991,9 @@ def showRequisition(request, requisition_id, mode):
         'baseUnit': baseUnit,
         page:"tab-active",
         show:"show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
 
     return render(request, "requisition/showRequisition.html", context)
@@ -980,6 +1001,7 @@ def showRequisition(request, requisition_id, mode):
 
 @login_required(login_url='signIn')
 def viewPR(request):
+    active = request.session['company_code']
 
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
@@ -987,7 +1009,7 @@ def viewPR(request):
     ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0)
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
-        data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
+        data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, branch_company__code = active)
 
         #เช็คว่าใช้หมดแล้วหรือเปล่า
         for pr in data:
@@ -997,7 +1019,7 @@ def viewPR(request):
                 #ให้เอา pr ออกจากใน list
                 data = data.exclude(id = pr.id)
     else:
-        data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3))
+        data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3) , branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -1020,13 +1042,15 @@ def viewPR(request):
                 'baseUrgency':baseUrgency,
                 'pr_page': "tab-active",
                 'pr_show': "show",
+                active :"active show",
+                "colorNav":"enableNav"
               }
 
     return render(request,'purchaseRequisition/viewPR.html',context)
 
 def preparePR(request):
-
-    requisitions = Requisition.objects.filter(purchase_requisition_id__isnull = True)
+    active = request.session['company_code']
+    requisitions = Requisition.objects.filter(purchase_requisition_id__isnull = True, branch_company__code = active)
 
     #สร้าง page
     paginator = Paginator(requisitions,10) #หมายถึงให้แสดงสินค้า 4 ต่อ 1 หน้า
@@ -1047,6 +1071,8 @@ def preparePR(request):
         'items':items,
         'pr_page': "tab-active",
         'pr_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
     }
     return render(request,'purchaseRequisition/preparePR.html', context)
 
@@ -1148,6 +1174,7 @@ def createPR(request, requisition_id):
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createCMorPO(request, pr_id):
+    active = request.session['company_code']
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     except:
@@ -1234,6 +1261,9 @@ def createCMorPO(request, pr_id):
         'pr': pr,
         'pr_page': "tab-active",
         'pr_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request,'purchaseRequisition/createCMorPO.html',context)
 
@@ -1247,6 +1277,7 @@ def removePR(request, pr_id):
     return redirect('viewPR')
 
 def editPR(request, pr_id):
+    active = request.session['company_code']
     pr = PurchaseRequisition.objects.get(id=pr_id)
     form = PurchaseRequisitionForm(instance=pr)
 
@@ -1283,10 +1314,14 @@ def editPR(request, pr_id):
         'create_mode': False,
         'pr_page': "tab-active",
         'pr_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, "purchaseRequisition/createPR.html", context)
 
 def showPR(request, pr_id, mode):
+    active = request.session['company_code']
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
@@ -1346,7 +1381,10 @@ def showPR(request, pr_id, mode):
             show: "show",
             'form':form,
             'pr_form': pr_form,
-            'isReApprove': isReApprove
+            'isReApprove': isReApprove,
+            active :"active show",
+			"disableTab":"disableTab",
+			"colorNav":"disableNav"
     }
 
     return render(request, "purchaseRequisition/showPR.html", context)
@@ -1381,7 +1419,8 @@ def saveIdExpressPR(request):
 
 @login_required(login_url='signIn')
 def viewPRApprove(request):
-    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1)| Q(approver_status_id = 1) & ~Q(purchase_status_id = 3))
+    active = request.session['company_code']
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1)| Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -1397,11 +1436,14 @@ def viewPRApprove(request):
                 'filter':myFilter,
                 'ap_pr_page': "tab-active",
                 'ap_pr_show': "show",
+                active :"active show",
+                "colorNav":"enableNav"
               }
 
     return render(request,'purchaseRequisitionApprove/viewPRApprove.html',context)
 
 def editPRApprove(request, pr_id, isFromHome):
+    active = request.session['company_code']
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
@@ -1434,6 +1476,9 @@ def editPRApprove(request, pr_id, isFromHome):
         'isFromHome':isFromHome,
         'ap_pr_page': "tab-active",
         'ap_pr_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
 
     if request.method == 'POST':
@@ -1462,7 +1507,8 @@ def editPRApprove(request, pr_id, isFromHome):
 
 @login_required(login_url='signIn')
 def viewPO(request):
-    data = PurchaseOrder.objects.filter(Q(approver_status_id = 1) | Q(is_receive = False) & ~Q(approver_status_id = 3))
+    active = request.session['company_code']
+    data = PurchaseOrder.objects.filter(Q(approver_status_id = 1) | Q(is_receive = False) & ~Q(approver_status_id = 3), branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -1473,7 +1519,7 @@ def viewPO(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
+    prs = PurchaseOrderItem.objects.filter(po__in=data).values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
 
     context = {
         'pos':dataPage,
@@ -1481,6 +1527,8 @@ def viewPO(request):
         'prs': prs,
         'po_page': "tab-active",
         'po_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
     }
     return render(request, "purchaseOrder/viewPO.html", context)
 
@@ -1530,7 +1578,7 @@ def editPO(request, po_id):
     return render(request, "purchaseOrder/createPO.html", context)
 
 def editPOFromPR(request, po_id):
-    #
+    active = request.session['company_code']
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
@@ -1548,6 +1596,9 @@ def editPOFromPR(request, po_id):
         'distributorList': distributorList,
         'po_page': "tab-active",
         'po_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
 
     return render(request, "purchaseOrder/createPO.html", context)
@@ -1596,6 +1647,7 @@ def removePO(request, po_id):
     return redirect('viewPO')
 
 def showPO(request, po_id, mode):
+    active = request.session['company_code']
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
 
@@ -1649,6 +1701,9 @@ def showPO(request, po_id, mode):
             'poa_form':poa_form,
             page: "tab-active",
             show: "show",
+            active :"active show",
+			"disableTab":"disableTab",
+			"colorNav":"disableNav"
     }
     return render(request, 'purchaseOrder/showPO.html',context)
 
@@ -1697,6 +1752,7 @@ def createPOItem(request, po_id):
     return render(request, template_name, context)
 
 def editPOItem(request, po_id, isFromPR, isReApprove):
+    active = request.session['company_code']
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
 
@@ -1797,13 +1853,16 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'isEditPO':isEditPO,
         'distributorList': distributorList,
         'heading': heading_message,
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, template_name, context)
 
 @login_required(login_url='signIn')
 def viewPOApprove(request):
-
-    data = PurchaseOrder.objects.filter(approver_status_id = 1, amount__isnull = False, amount__gt = 0)
+    active = request.session['company_code']
+    data = PurchaseOrder.objects.filter(approver_status_id = 1, amount__isnull = False, amount__gt = 0, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -1819,11 +1878,14 @@ def viewPOApprove(request):
                 'filter':myFilter,
                 'ap_po_page': "tab-active",
                 'ap_po_show': "show",
+                active :"active show",
+                "colorNav":"enableNav"
               }
 
     return render(request,'purchaseOrderApprove/viewPOApprove.html',context)
 
 def editPOApprove(request, po_id, isFromHome):
+    active = request.session['company_code']
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
     new_pr_id = dict()
@@ -1875,13 +1937,18 @@ def editPOApprove(request, po_id, isFromHome):
                 'new_pr':new_pr,
                 'ap_po_page': "tab-active",
                 'ap_po_show': "show",
+                active :"active show",
+			    "disableTab":"disableTab",
+			    "colorNav":"disableNav"
     }
     return render(request, 'purchaseOrderApprove/editPOApprove.html',context)
 
 @login_required(login_url='signIn')
 def viewComparePricePO(request):
+    active = request.session['company_code']
+
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
-    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3))
+    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) , branch_company__code = active)
 
     prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
 
@@ -1901,6 +1968,8 @@ def viewComparePricePO(request):
         'bidder':bidder,
         'cp_page': "tab-active",
         'cp_show': "show",
+        active :"active show",
+        "colorNav":"enableNav",
     }
 
     return render(request, 'comparePricePO/viewComparePricePO.html',context)
@@ -1968,7 +2037,7 @@ def prepareComparePricePO(request):
     return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id, 'False')))
 
 def createComparePricePOItem(request, cp_id, isReApprove):
-
+    active = request.session['company_code']
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
@@ -2048,6 +2117,9 @@ def createComparePricePOItem(request, cp_id, isReApprove):
         'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, 'comparePricePOItem/createComparePricePOItem.html',context)
 
@@ -2061,6 +2133,7 @@ def autocompalteDistributor(request):
     return JsonResponse(titles, safe=False)
 
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
+    active = request.session['company_code']
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
@@ -2125,10 +2198,14 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
         'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, 'comparePricePOItem/editComparePricePOItemFromPR.html',context)
 
 def editComparePricePOItem(request, cp_id , cpd_id):
+    active = request.session['company_code']
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
@@ -2193,6 +2270,9 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, 'comparePricePOItem/editComparePricePOItem.html',context)
 
@@ -2215,6 +2295,7 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
     return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
 def printComparePricePO(request, cp_id):
+    active = request.session['company_code']
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -2265,10 +2346,14 @@ def printComparePricePO(request, cp_id):
         'baseSparesType' : baseSparesType,
         'cp_page': "tab-active",
         'cp_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, 'comparePricePO/printComparePricePO.html',context)
 
 def showComparePricePO(request, cp_id, mode):
+    active = request.session['company_code']
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -2321,15 +2406,17 @@ def showComparePricePO(request, cp_id, mode):
             'form':form,
             page: "tab-active",
             show: "show",
+            active :"active show",
+			"disableTab":"disableTab",
+			"colorNav":"disableNav"
     }
     return render(request, 'comparePricePO/showComparePricePO.html',context)
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createPOFromComparisonPrice(request, cp_id):
-    try:
-        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
-    except:
-        return redirect('signOut')
+    active = request.session['company_code']
+    company = BaseBranchCompany.objects.get(code = active)
+
 
     #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
     isEditPO = is_edit_po_id(request.user)
@@ -2364,11 +2451,16 @@ def createPOFromComparisonPrice(request, cp_id):
         'isEditPO':isEditPO,
         'po_page': "tab-active",
         'po_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
 
     return render(request, "purchaseOrder/createPO.html", context)
 
 def createPOItemFromComparisonPrice(request, po_id):
+    active = request.session['company_code']
+
     template_name = 'purchaseOrderItem/createPOItemFromComparisonPrice.html'
     heading_message = 'Model Formset Demo'
     #ดึง item ที่ทำใบ po แล้ว
@@ -2427,18 +2519,22 @@ def createPOItemFromComparisonPrice(request, po_id):
         'itemList':itemList,
         'new_pr':new_pr,
         'heading': heading_message,
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, template_name, context)
 
 @login_required(login_url='signIn')
 def viewCPApprove(request):
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3), select_bidder_id__isnull = False)
+    active = request.session['company_code']
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3), select_bidder_id__isnull = False, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
 
-    bidder = ComparisonPriceDistributor.objects.all()
+    bidder = ComparisonPriceDistributor.objects.filter(cp__in=data)
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
@@ -2449,10 +2545,13 @@ def viewCPApprove(request):
         'bidder':bidder,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
     }
     return render(request, "comparePricePOApprove/viewCPApprove.html",context)
 
 def printCPApprove(request, cp_id, isFromHome):
+    active = request.session['company_code']
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -2585,6 +2684,9 @@ def printCPApprove(request, cp_id, isFromHome):
         'isFromHome': isFromHome,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, 'comparePricePOApprove/printCPApprove.html',context)
 
@@ -2604,7 +2706,8 @@ def searchItemExpress(request):
     return JsonResponse(data)
 
 def viewReceive(request):
-    data = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False)
+    active = request.session['company_code']
+    data = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -2615,13 +2718,15 @@ def viewReceive(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
+    prs = PurchaseOrderItem.objects.filter(po__in=data).values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
     context = {
         'pos':dataPage,
         'filter':myFilter,
         'prs':prs,
         'rc_page': "tab-active",
         'rc_show': "show",
+        active :"active show",
+        "colorNav":"enableNav",
     }
     return render(request, 'receive/viewReceive.html',context)
 
@@ -2743,6 +2848,7 @@ def export(request):
     return response
 
 def uploadReceive(request):
+    active = request.session['company_code']
     if request.method == 'POST':
         dataset = Dataset()
         new_persons = request.FILES.get('myfile', False)
@@ -2806,6 +2912,9 @@ def uploadReceive(request):
     context = {
         'rc_page': "tab-active",
         'rc_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request, 'receive/uploadReceive.html',context)
 
@@ -2822,10 +2931,11 @@ def showReceive(request, rc_id):
     return render(request, 'receive/showReceive.html',context)
 
 def viewRequisitionHistory(request):
+    active = request.session['company_code']
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
     #data = Requisition.objects.filter(created__year__lte = year,created__month__lt = month, purchase_requisition_id__isnull = False)
-    data = Requisition.objects.filter(purchase_requisition_id__isnull = False)
+    data = Requisition.objects.filter(purchase_requisition_id__isnull = False, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
@@ -2841,12 +2951,15 @@ def viewRequisitionHistory(request):
             'filter':myFilter,
             'h_requisitions_page': "tab-active",
             'h_requisitions_show': "show",
+            active :"active show",
+            "colorNav":"enableNav"
     }
 
     return render(request,'history/viewRequisition.html', context)
 
 def viewPRHistory(request):
-    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3)))
+    active = request.session['company_code']
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3)), branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -2864,12 +2977,15 @@ def viewPRHistory(request):
                 'ri_not_used': ri_not_used,
                 'h_pr_page': "tab-active",
                 'h_pr_show': "show",
+                active :"active show",
+                "colorNav":"enableNav"
               }
 
     return render(request,'history/viewPR.html',context)
 
 def viewPOHistory(request):
-    data = PurchaseOrder.objects.filter(Q(~Q(approver_status_id = 1), is_receive = True) | Q(approver_status_id = 3))
+    active = request.session['company_code']
+    data = PurchaseOrder.objects.filter(Q(~Q(approver_status_id = 1), is_receive = True) | Q(approver_status_id = 3), branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -2880,18 +2996,21 @@ def viewPOHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','item__product__name','po')
+    prs = PurchaseOrderItem.objects.filter(po__in=data).values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','item__product__name','po')
     context = {
         'pos':dataPage,
         'filter':myFilter,
         'prs': prs,
         'h_po_page': "tab-active",
         'h_po_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
     }
     return render(request, "history/viewPO.html", context)
 
 def viewComparePricePOHistory(request):
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) | Q(examiner_status_id = 3) | Q(approver_status_id = 3))
+    active = request.session['company_code']
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) | Q(examiner_status_id = 3) | Q(approver_status_id = 3), branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
@@ -2911,6 +3030,8 @@ def viewComparePricePOHistory(request):
         'prs': prs,
         'h_cp_page': "tab-active",
         'h_cp_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
     }
 
     return render(request, 'history/viewComparePricePO.html',context)
@@ -3004,7 +3125,8 @@ def viewComparePricePOHistoryIncomplete(request):
     return render(request, 'historyIncomplete/viewComparePricePO.html',context)
 
 def viewPOReport(request):
-    data = PurchaseOrder.objects.filter(approver_status = 2)
+    active = request.session['company_code']
+    data = PurchaseOrder.objects.filter(approver_status = 2, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -3023,6 +3145,8 @@ def viewPOReport(request):
         'prs':prs,
         'rp_po_page': "tab-active",
         'rp_po_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
     }
     return render(request, "report/viewPO.html", context)
 
@@ -3124,3 +3248,13 @@ def exportExcelPO(request):
     wb.save(response)
 
     return response
+
+def setSessionCompany(request):
+    name = request.GET.get('title', None)
+    request.session['company_code'] = name
+    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    request.session['company'] = company.affiliated.name_sh
+    data = {
+        'instance': request.session['company_code'],
+    }
+    return JsonResponse(data)
