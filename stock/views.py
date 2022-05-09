@@ -986,21 +986,13 @@ def viewPR(request):
 
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
-        data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
-        requisit = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user).values("requisition")
-        ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).values('requisition_id', 'product_name', 'urgency')
-
-        #เช็คว่าใช้หมดแล้วหรือเปล่า
-        for pr in data:
-            ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0, requisit__in = requisit).count()
-            ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0, requisit__in = requisit).count()
-            if ri_is_used == ri_all:
-                #ให้เอา pr ออกจากใน list
-                data = data.exclude(id = pr.id)
+        data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user , is_complete = 0)
+        requisit = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, is_complete = 0).values("requisition")
+        ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).defer('requisition_id', 'product_name', 'urgency')
     else:
-        data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3))
-        requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3)).values("requisition")
-        ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).values('requisition_id', 'product_name', 'urgency')
+        data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), is_complete = 0)
+        requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), is_complete = 0).values("requisition")
+        ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).defer('requisition_id', 'product_name', 'urgency')
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -1578,6 +1570,15 @@ def removePO(request, po_id):
             d_item = RequisitionItem.objects.get(id = obj.item.id)
             d_item.is_used = False
             d_item.save()
+            #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+            check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+            if check_item:
+                try:
+                    pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                    pr.is_complete = False
+                    pr.save()
+                except:
+                    pass
         except RequisitionItem.DoesNotExist:
             pass
 
@@ -1749,6 +1750,15 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                     r_item = RequisitionItem.objects.get(id = instance.item.id)
                     r_item.is_used = True
                     r_item.save()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
+                    if not check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                            pr.is_complete = True
+                            pr.save()
+                        except:
+                            pass
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
@@ -1756,6 +1766,15 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                     d_item = RequisitionItem.objects.get(id = obj.item.id)
                     d_item.is_used = False
                     d_item.save()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                    if check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                            pr.is_complete = False
+                            pr.save()
+                        except:
+                            pass
                 except RequisitionItem.DoesNotExist:
                     pass
                 obj.delete()
@@ -1947,6 +1966,15 @@ def removeComparePricePO(request, cp_id):
             d_item = RequisitionItem.objects.get(id = obj.item.id)
             d_item.is_used = False
             d_item.save()
+            #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+            check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+            if check_item:
+                try:
+                    pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                    pr.is_complete = False
+                    pr.save()
+                except:
+                    pass
         except RequisitionItem.DoesNotExist:
             pass
     items.delete()
@@ -2029,6 +2057,15 @@ def createComparePricePOItem(request, cp_id, isReApprove):
                         r_item = RequisitionItem.objects.get(id = cpi.item.id)
                         r_item.is_used = True
                         r_item.save()
+                        #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                        check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
+                        if not check_item:
+                            try:
+                                pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                                pr.is_complete = True
+                                pr.save()
+                            except:
+                                pass
                     except RequisitionItem.DoesNotExist:
                         pass
             return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
@@ -2095,6 +2132,15 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
                     r_item = RequisitionItem.objects.get(id = instance.item.id)
                     r_item.is_used = True
                     r_item.save()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
+                    if not check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                            pr.is_complete = True
+                            pr.save()
+                        except:
+                            pass
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
@@ -2102,6 +2148,15 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
                     d_item = RequisitionItem.objects.get(id = obj.item.id)
                     d_item.is_used = False
                     d_item.save()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                    if check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                            pr.is_complete = False
+                            pr.save()
+                        except:
+                            pass
                 except RequisitionItem.DoesNotExist:
                     pass
                 obj.delete()
@@ -2162,6 +2217,15 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                     r_item = RequisitionItem.objects.get(id = instance.item.id)
                     r_item.is_used = True
                     r_item.save()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
+                    if not check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                            pr.is_complete = True
+                            pr.save()
+                        except:
+                            pass
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
@@ -2170,6 +2234,15 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                         d_item = RequisitionItem.objects.get(id = obj.item.id)
                         d_item.is_used = False
                         d_item.save()
+                        #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                        check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                        if check_item:
+                            try:
+                                pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                                pr.is_complete = False
+                                pr.save()
+                            except:
+                                pass
                     except RequisitionItem.DoesNotExist:
                         pass   
                 obj.delete()
@@ -2207,6 +2280,15 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
                 d_item = RequisitionItem.objects.get(id = obj.item.id)
                 d_item.is_used = False
                 d_item.save()
+                #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                if check_item:
+                    try:
+                        pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                        pr.is_complete = False
+                        pr.save()
+                    except:
+                        pass
             except RequisitionItem.DoesNotExist:
                 pass  
     items.delete()

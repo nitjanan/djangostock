@@ -522,6 +522,7 @@ class PurchaseRequisition(models.Model):
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    is_complete = models.BooleanField(default=False) #ทำรายการขอซื้อหมดแล้ว
 
     class Meta:
         db_table = 'PurchaseRequisition'

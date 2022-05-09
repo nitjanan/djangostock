@@ -268,16 +268,7 @@ def isPurchasingPRCounter(request):
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(is_purchasing(request.user)):
         try:
-            data =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user)
-            requisit = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user).values("requisition")
-            #เช็คว่าใช้หมดแล้วหรือเปล่า
-            for pr in data:
-                ri_is_used = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, is_used = True, quantity_pr__gt=0, requisit__in = requisit).count()
-                ri_all = RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0, requisit__in = requisit).count()
-                if ri_is_used == ri_all:
-                    #ให้เอา pr ออกจากใน list
-                    data = data.exclude(id = pr.id)
-            pr_count = data.count()
+            pr_count =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, is_complete = 0).count()
         except PurchaseOrder.DoesNotExist:
             pr_count = 0
     return pr_count
