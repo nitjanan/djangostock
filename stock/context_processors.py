@@ -1,4 +1,4 @@
-from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
@@ -13,6 +13,15 @@ def userVisibleTab(request):
         visible_tab = None
 
     return dict(visible_tab = visible_tab)
+
+def companyVisibleTab(request):
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
+    except:
+        company_tab = None
+
+    return dict(company_tab = company_tab)
 
 #หมวดหมู่สินค้าที่ navbar
 def menu_link(request):
@@ -43,6 +52,7 @@ def counter(request):
 #ใบขอซื้อ
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสิทธิอนุมัติ
 def approvePendingCounter(request):
+    active = request.session['company_code']
     pending_count = 0
     #get permission with position login
     try:
@@ -54,11 +64,15 @@ def approvePendingCounter(request):
         isPermiss  = False
 
     #ถ้าเป็นผู้อนุมัติ
+    try:
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code = active).exists()
+    except:
+        pass
 
-    if(isPermiss):
+    if(isPermiss and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1, branch_company__code = active) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
             pending_count = pr_item.count()
         except PurchaseRequisition.DoesNotExist:
@@ -68,10 +82,11 @@ def approvePendingCounter(request):
 
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีขอซื้อ
 def approvePRCounter(request):
+    active = request.session['company_code']
     pr_count = 0
     try:
         #ดึงข้อมูล PurchaseRequisition
-        pr_item = PurchaseRequisition.objects.all().filter(purchase_user = request.user.id, purchase_status = 1) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        pr_item = PurchaseRequisition.objects.all().filter(purchase_user = request.user.id, purchase_status = 1, branch_company__code = active) #หาสถานะรอดำเนินการของผู้อนุมัติ
         #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
         pr_count = pr_item.count()
     except PurchaseRequisition.DoesNotExist:
@@ -81,6 +96,7 @@ def approvePRCounter(request):
 
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสั่งซื้อ
 def approvePOCounter(request):
+    active = request.session['company_code']
     po_count = 0
     #get permission with position login
     try:
@@ -91,12 +107,16 @@ def approvePOCounter(request):
     except:
         isPermiss  = False
 
+    try:
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code = active).exists()
+    except:
+        pass
     po_item = None
     #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
-    if isPermiss:
+    if isPermiss and in_company:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code = active) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
@@ -111,7 +131,7 @@ def approvePOCounter(request):
     if request.user.is_authenticated:
         try:
             #ดึงข้อมูล PurchaseOrder
-            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code = active) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             cm_po_item = None
     
@@ -155,6 +175,7 @@ def allApproveCPCounter(request):
 
 #หาจำนวนสถานะรอดำเนินการในใบเปรียบเทียบราคาของผู้อนุมัติและผู้ตรวจสอบ
 def approveCPAllCounter(request):
+    active = request.session['company_code']
     cm_count = 0
     #ผู้ตรวจสอบ
     try:
@@ -164,8 +185,13 @@ def approveCPAllCounter(request):
     except:
         isPermissAE = None
 
+    try:
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code = active).exists()
+    except:
+        pass
+
     pmAE = []
-    if(isPermissAE):
+    if(isPermissAE and in_company):
         for i in isPermissAE:
             obj = BasePermission.objects.get(id = i['base_permission'])
             pmAE.append(obj)
@@ -178,22 +204,22 @@ def approveCPAllCounter(request):
         isPermissAA = None
 
     pmAA = []
-    if(isPermissAA):
+    if(isPermissAA and in_company):
         for i in isPermissAA:
             obj = BasePermission.objects.get(id = i['base_permission'])
             pmAA.append(obj)
 
     ecm_item = []
     #ถ้าเป็นผู้ตรวจสอบ
-    if(isPermissAE):
+    if(isPermissAE and in_company):
         try:
             for ae in pmAE:
                 if ae.codename == 'CAECPD':
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False, cp__branch_company__code = active).values("cp")
                 elif ae.codename == 'CAECPA':
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False, cp__branch_company__code = active).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max), cp__cm_type_id__isnull = True).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = active).values("cp")
                 ecm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             ecm_item = None
@@ -213,15 +239,15 @@ def approveCPAllCounter(request):
 
     acm_item = []
     #ถ้าเป็นผู้อนุมัติ
-    if(isPermissAA):
+    if(isPermissAA and in_company):
         try:
             for aa in pmAA:
                 if aa.codename == 'CAACPD':
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False, cp__branch_company__code = active).values("cp")
                 elif aa.codename == 'CAACPA':
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False, cp__branch_company__code = active).values("cp")
                 else:
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max), cp__cm_type_id__isnull = True).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = active).values("cp")
                 acm_item.append(obj)
         except ComparisonPriceDistributor.DoesNotExist:
             acm_item = None
@@ -264,11 +290,12 @@ def findBaseUrgency(request, id):
     return dict(base_urgen = base_urgen)
 
 def isPurchasingPRCounter(request):
+    active = request.session['company_code']
     pr_count = 0
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(is_purchasing(request.user)):
         try:
-            pr_count =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, is_complete = 0).count()
+            pr_count =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, is_complete = 0, branch_company__code = active).count()
         except PurchaseOrder.DoesNotExist:
             pr_count = 0
     return pr_count
@@ -285,10 +312,11 @@ def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
 
 def addPOCounter(request):
+    active = request.session['company_code']
     cp_count = 0
     if(is_purchasing(request.user)):
         try:
-            cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2).count()
+            cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2, branch_company__code = active).count()
         except ComparisonPrice.DoesNotExist:
             pass
     return cp_count
@@ -312,10 +340,11 @@ def purchasingAllConter(request):
 
 
 def receiveCounter(request):
+    active = request.session['company_code']
     rc_count = 0
     if(is_purchasing(request.user)):
         try:
-            rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False).count()
+            rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = active).count()
         except PurchaseOrder.DoesNotExist:
             pass
     return dict(rc_count = rc_count)

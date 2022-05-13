@@ -71,7 +71,7 @@ urlpatterns = [
     path('ajax/crud/create/<int:requisition_id>',  login_required(views.CreateCrudUser.as_view()), name='crud_ajax_create'),
     path('ajax/crud/update/<int:requisition_id>',  login_required(views.UpdateCrudUser.as_view()), name='crud_ajax_update'),
     path('ajax/crud/delete/',  views.DeleteCrudUser.as_view(), name='crud_ajax_delete'),
-    path('requisitionItem/editAll/<int:requisition_id>',  views.editAllRequisition, name='editAllRequisition'),
+    path('requisitionItem/editAll/<int:requisition_id>', views.editAllRequisition, name='editAllRequisition'),
 
     path('purchaseRequisition/',views.viewPR,name="viewPR"),
     path('purchaseRequisition/prepare',views.preparePR,name="preparePR"),
@@ -119,6 +119,7 @@ urlpatterns = [
     path('comparePricePOApprove/print/<int:cp_id>/<str:isFromHome>',views.printCPApprove,name="printCPApprove"),
 
     path('searchItemExpress', views.searchItemExpress, name="searchItemExpress"),
+    path('setSessionCompany', views.setSessionCompany, name="setSessionCompany"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),

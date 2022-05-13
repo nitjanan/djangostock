@@ -38,6 +38,68 @@
             background: #fff;
             color: #7386D5;
         }
+
+        /* ดับเบิ้ลแท็ป */
+
+        .navbar {
+            padding:0rem;
+            margin-bottom:2rem;
+        }
+
+        .dropdown .dropdown-menu {
+            border-radius:0;
+        }
+
+
+        @media (min-width: 768px) {  
+            .dropdown:hover .dropdown-menu {
+                display: block;
+                margin-top: 0;
+                border-radius:0;
+            }
+        }
+
+        .fixed-top{
+            padding: 20px 0 20px 8px;
+        }
+        .fixed-top .navbar-nav li a{
+            font-size: 19px;
+            color: white !important;
+            transition: .5s ease-in-out;
+        }
+        .fixed-top .navbar-nav li a:hover{
+            color: yellow !important;
+        }
+
+        @media screen  and (max-width:767px){
+            .navbar-dark{
+                background-color: orange !important;
+            }
+
+        }
+
+        #main-bar{
+            position: absolute;
+            width: 100%;
+            top: 7%;
+            position: fixed;
+            z-index: 1;
+        }
+        #main-bar .nav-item{
+            margin-left: 10px;
+            font-size: 17px;
+        }
+
+        .disableTab{
+            pointer-events:none;
+        }
+
+        .disableNav{
+            background-color: #EBEDEF;
+        }
+        .enableNav{
+            background-color: #c1e0f3;
+        }
     </style>
 
     {% block css %}
@@ -70,11 +132,23 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
-    <script>
+    <!-- As A jQuery Plugin -->
+    <script src="{% static 'js/bootstrap-nav-paginator.jquery.min.js' %}"></script>
+
+    <!-- As A Vanilla JS Plugin -->
+    <!--script src="{% static 'js/bootstrap-nav-paginator.min.js' %}"></script-->
+	<script>
+        
         $(document).ready(function () {
             $('#sidebarCollapse').on('click', function () {
                 $('#sidebar').toggleClass('active');
             });
+
+            // As A jQuery Plugin
+            $("#nav-tabs").BsNavPaginator(5, "nav-link");
+
+            // As A Vanilla JS Plugin
+            //document.querySelector("#nav-tabs").BsNavPaginator(5, "nav-link");
         });
 
         $(document).ready(function () {
@@ -91,6 +165,43 @@
                 
             });
         });
+
+        $(document).ready(function(){
+            $(window).scroll(function(){
+            var scroll = $(window).scrollTop();
+            if(scroll > 280){
+                $(".navbar-dark").css("background" , "orange");
+            }
+            else{
+                $(".navbar-dark").css("background" , "transparent");
+            }
+            });
+        });
+
+        function setCompany(name){
+            var titleInput = name;
+            if (titleInput) {
+                // Create Ajax Call
+                $.ajax({
+                    url: '{% url "setSessionCompany" %}',
+                    data: {
+                        'title': titleInput,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                    if (data.instance) {
+                        location.reload();
+                        e.preventDefault();
+                    }else{
+                    }
+                    }
+                });
+            } else {
+            
+            }
+            return false;
+        }
+
     </script>
 {% block javascript %}
 
