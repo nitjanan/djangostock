@@ -48,6 +48,7 @@ from django.views.decorators.cache import cache_control
 @login_required(login_url='signIn')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def index(request, category_slug = None):
+    print("testttttttttttt")
     active =  request.session['company_code']
     
     '''
