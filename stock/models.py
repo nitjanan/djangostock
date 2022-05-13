@@ -15,13 +15,13 @@ from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
 import pytz
 
-def requisition_ref_number():
+def requisition_ref_number(branch_company):
     #tz = pytz.timezone('Asia/Bangkok')
     today = datetime.datetime.now()
     year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'QS1'+ YM
+    format = 'Q'+ str(branch_company) + YM
 
     try:
         last_no = Requisition.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -44,12 +44,12 @@ def requisition_ref_number():
     new_no = format + str(formatted)
     return new_no
 
-def purchaseRequisition_ref_number():
+def purchaseRequisition_ref_number(branch_company):
     today = datetime.datetime.now()
     year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'RS1'+ YM
+    format = 'R'+ str(branch_company) + YM
 
     try:
         last_no = PurchaseRequisition.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -72,12 +72,12 @@ def purchaseRequisition_ref_number():
     new_no = format + str(formatted)
     return new_no
 
-def comparisonPrice_ref_number():
+def comparisonPrice_ref_number(branch_company):
     today = datetime.datetime.now()
     year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'CS1'+ YM
+    format = 'C'+ str(branch_company) + YM
 
     try:
         last_no = ComparisonPrice.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -100,12 +100,12 @@ def comparisonPrice_ref_number():
     new_no = format + str(formatted)
     return new_no
 
-def purchaseOrder_ref_number():
+def purchaseOrder_ref_number(branch_company):
     today = datetime.datetime.now()
     year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = 'S1'+ YM
+    format = str(branch_company) + YM
 
     try:
         last_no = PurchaseOrder.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -430,7 +430,7 @@ class Requisition(models.Model):
         related_name='supplies_approve_user_name'
     )
     urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)
-    ref_no = models.CharField(max_length = 255, default = requisition_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, null = True, blank = True)
     is_edit = models.BooleanField(default=True)
     memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
@@ -441,7 +441,8 @@ class Requisition(models.Model):
         if self.address_company is None:
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
             self.address_company = company.address
-            
+        if self.ref_no is None:
+            self.ref_no = requisition_ref_number(self.branch_company)
         super(Requisition, self).save(*args, **kwargs)
 
     class Meta:
@@ -518,11 +519,16 @@ class PurchaseRequisition(models.Model):
     approver_update = models.DateField(blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     note = models.CharField(max_length=255, blank=True)
-    ref_no = models.CharField(max_length = 255, default = purchaseRequisition_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, null = True, blank = True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     is_complete = models.BooleanField(default=False) #ทำรายการขอซื้อหมดแล้ว
+
+    def save(self, *args, **kwargs):
+        if self.ref_no is None:
+            self.ref_no = purchaseRequisition_ref_number(self.branch_company)
+        super(PurchaseRequisition, self).save(*args, **kwargs)
 
     class Meta:
         db_table = 'PurchaseRequisition'
@@ -601,6 +607,7 @@ class UserProfile(models.Model):
     department = models.ForeignKey(BaseDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนก")
     signature = models.ImageField(null=True, blank=True, upload_to = "signature/",verbose_name="ลายเซ็น")
     visible = models.ManyToManyField(BaseVisible,verbose_name="การมองเห็นแท็ปการใช้งาน")
+    branch_company = models.ManyToManyField(BaseBranchCompany,verbose_name="การมองเห็นแท็ปบริษัท")
 
     class Meta:
         verbose_name = 'ผู้ใช้และตำแหน่งงาน'
@@ -756,7 +763,7 @@ class ComparisonPrice(models.Model):
     )
     examiner_update = models.DateField(blank=True, null=True)
     select_bidder_update = models.DateField(blank=True, null=True)
-    ref_no = models.CharField(max_length = 255, default = comparisonPrice_ref_number, null = True, blank = True)
+    ref_no = models.CharField(max_length = 255, null = True, blank = True)
     po_ref_no = models.CharField(max_length=255, blank = True)
     cm_type = models.ForeignKey(BaseCMType,on_delete=models.CASCADE, null=True, blank=True)
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
@@ -767,6 +774,8 @@ class ComparisonPrice(models.Model):
         if self.address_company is None:
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
             self.address_company = company.address
+        if self.ref_no is None:
+            self.ref_no = comparisonPrice_ref_number(self.branch_company)
             
         super(ComparisonPrice, self).save(*args, **kwargs)
 
@@ -812,7 +821,7 @@ class PurchaseOrder(models.Model):
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True, blank = True)
     pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True, blank = True)
-    ref_no = models.CharField(max_length = 255, default = purchaseOrder_ref_number, null = True, blank = True,unique=True)
+    ref_no = models.CharField(max_length = 255, null = True, blank = True,unique=True)
     quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
@@ -826,6 +835,8 @@ class PurchaseOrder(models.Model):
         if self.address_company is None:
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
             self.address_company = company.address
+        if self.ref_no is None:
+            self.ref_no = purchaseOrder_ref_number(self.branch_company)
             
         super(PurchaseOrder, self).save(*args, **kwargs)
 

@@ -94,6 +94,7 @@ TEMPLATES = [
                 'stock.context_processors.purchasingAllConter',
                 'stock.context_processors.addPOAll',
                 'stock.context_processors.receiveCounter',
+                'stock.context_processors.companyVisibleTab',
             ],
 
         },

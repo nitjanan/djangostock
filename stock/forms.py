@@ -33,21 +33,25 @@ class UserProfileForm(forms.ModelForm):
         fields = ('position','department')
 
 class RequisitionForm(forms.ModelForm):
-    chief_approve_user_name = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
-    organizer = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    def __init__(self,request,*args,**kwargs):
+        super (RequisitionForm,self).__init__(*args,**kwargs)
+        self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.filter(userprofile__branch_company__code = request.session['company_code']))
+        self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน', userprofile__branch_company__code = request.session['company_code']))
+        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+
     class Meta:
         model = Requisition
-        fields = ('name','chief_approve_user_name','organizer','urgency', 'memorandum_pdf',) #สร้าง auto อ้างอิงจากฟิลด์ใน db
+        fields = ('name','chief_approve_user_name','organizer','urgency', 'memorandum_pdf','branch_company') #สร้าง auto อ้างอิงจากฟิลด์ใน db
         widgets = {
         'urgency': forms.HiddenInput(),
         'memorandum_pdf' : MyClearableFileInput,
+        'branch_company': forms.HiddenInput(),
         }
         labels = {
-            'name': _('ชื่อผู้ขอตั้งเบิก'),
             'section': _('แผนก'),
             'urgency': _('ระดับความเร่งด่วน'),
             'memorandum_pdf': _('ใบบันทึกข้อความ'),
-        } 
+        }
 
 class RequisitionItemForm(forms.ModelForm):
     class Meta:
@@ -73,7 +77,10 @@ RequisitionItemModelFormset = modelformset_factory(
 class PurchaseRequisitionForm(forms.ModelForm):
     class Meta:
        model = PurchaseRequisition 
-       fields = ('note',)
+       fields = ('note', 'branch_company')
+       widgets = {
+        'branch_company': forms.HiddenInput(),
+       }
 
 #ใบสั่งซื้อ
 class PurchaseOrderForm(forms.ModelForm):
@@ -118,13 +125,12 @@ class PurchaseOrderAddressCompanyForm(forms.ModelForm):
         }
 
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-       super().__init__(*args, **kwargs)
-       if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+    def __init__(self,request,*args,**kwargs):
+        super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
+        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
+        self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+        self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session['company_code']))
 
-    cp = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = ""))
     class Meta:
        model = PurchaseOrder
        fields = ('ref_no','created','cp','shipping', 'address_company')

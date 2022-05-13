@@ -171,14 +171,20 @@
     {% if request.user.is_authenticated and request.user.first_name %}
     <div class="bg-white w-100">
       <div class="bg-light w-100">
-        <ul id="nav-tabs" class="nav nav-tabs nav-pills flex-column flex-sm-row text-center border-0 w-100 {{colorNav}}">
-          <li class="nav-item flex-sm-fill">
-              <a id="S1" data-toggle="tab" role="tab" aria-controls="home" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('S1')">S1-ศิลาชัย</a>
-          </li>
-          <li class="nav-item flex-sm-fill">
-              <a id="D1" data-toggle="tab" role="tab" aria-controls="profile" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{D1}} {{disableTab}}" onClick="setCompany('D1')" >D1-ทักษิณโดโลไมท์</a>
-          </li>
-        </ul>
+            <ul id="nav-tabs" class="nav nav-tabs nav-pills flex-column flex-sm-row text-center border-0 w-100 {{colorNav}}">
+              {% for tab in company_tab %}
+                {% if 'S1' in tab.code %}
+                  <li class="nav-item flex-sm-fill">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">S1-ศิลาชัย</a>
+                  </li>
+                {%endif%}
+                {% if 'D1' in tab.code %}
+                  <li class="nav-item flex-sm-fill">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{D1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >D1-ทักษิณโดโลไมท์</a>
+                  </li>
+                {%endif%}
+              {%endfor%}
+            </ul>
       </div>
   </div>
   {%endif%}
