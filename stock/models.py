@@ -526,6 +526,9 @@ class PurchaseRequisition(models.Model):
     is_complete = models.BooleanField(default=False) #ทำรายการขอซื้อหมดแล้ว
 
     def save(self, *args, **kwargs):
+        if self.address_company is None:
+            company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
+            self.address_company = company.address
         if self.ref_no is None:
             self.ref_no = purchaseRequisition_ref_number(self.branch_company)
         super(PurchaseRequisition, self).save(*args, **kwargs)

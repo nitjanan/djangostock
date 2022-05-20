@@ -48,8 +48,13 @@ from django.views.decorators.cache import cache_control
 @login_required(login_url='signIn')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def index(request, category_slug = None):
-    print("testttttttttttt")
-    active =  request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        user_profile = UserProfile.objects.get(user = request.user.id)
+        company = BaseBranchCompany.objects.filter(userprofile = user_profile).first()
+        active = company.code
+        request.session['company'] = company.affiliated.name_sh
     
     '''
     catalogy show สินค้า
@@ -458,9 +463,9 @@ def signInView(request):
                 return redirect('signUp')
     else:
         form = AuthenticationForm()
-    
-    request.session['company_code'] = ""
-    request.session['company'] = ""
+        company = BaseBranchCompany.objects.first()
+        request.session['company_code'] = company.code
+        request.session['company'] = company.name
 
     return render(request, 'signin.html', {'form':form,})
 
@@ -1116,8 +1121,6 @@ def createPR(request, requisition_id):
             #save PR
             new_contact = form.save()
 
-            bc = BranchCompanyBaseAdress.objects.get(branch_company__code = active)
-            new_contact.address_company = bc.address
             #save requisition ใน purchase_requisition_id
             new_contact.requisition = requisition
             new_contact.purchase_status_id = 1 #กำหนดค่าเริ่มต้น
@@ -3053,11 +3056,11 @@ def viewPRHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    ri_not_used = RequisitionItem.objects.filter(quantity_pr__gt=0, requisit__in = requisit)
+    ri = RequisitionItem.objects.filter(quantity_pr__gt=0, requisit__in = requisit)
     context = {
                 'prs':dataPage,
                 'filter':myFilter,
-                'ri_not_used': ri_not_used,
+                'ri': ri,
                 'h_pr_page': "tab-active",
                 'h_pr_show': "show",
                 active :"active show",

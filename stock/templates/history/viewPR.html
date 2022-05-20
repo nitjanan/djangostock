@@ -43,6 +43,7 @@
 </div>
 <div class="card div-shadow">
   <div class="card-body">
+    <span class="text-success">* รายการที่ดำเนินการเปรียบเทียบราคาหรือทำการสั่งซื้อแล้ว</span>
     <div class="table-responsive">
       <table class="table table-bordered my-3">
         <thead class="table-info">
@@ -65,15 +66,15 @@
             <th scope="row"><a href="{% url 'showPR' pr.id 4 %}">{{pr.ref_no}}</a></th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 4 %}">{{pr.requisition.ref_no}}</a></td>
             <td>
-                {% for item in ri_not_used%}
+                {% for item in ri%}
                   {% if item.requisition_id ==  pr.requisition.id %}
-                    <li>{{item.product_name}}</li>
+                    {% if item.is_used %}<li class="text-success">{{item.product_name}}</li>{%else%}<li>{{item.product_name}}</li>{%endif%}
                   {% endif %}
                 {% endfor %}
             </td>
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>
-            <td>{{pr.organizer}}</td>
+            <td>{{pr.organizer.first_name}}</td>
             <td>
               {% if pr.purchase_status.id == 1 or pr.purchase_status.id == 3%}
               <button type="button"

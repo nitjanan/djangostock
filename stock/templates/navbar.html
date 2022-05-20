@@ -174,15 +174,25 @@
             <ul id="nav-tabs" class="nav nav-tabs nav-pills flex-column flex-sm-row text-center border-0 w-100 {{colorNav}}">
               {% for tab in company_tab %}
                 {% if 'S1' in tab.code %}
-                  <li class="nav-item flex-sm-fill">
-                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">S1-ศิลาชัย</a>
+                  <li class="nav-item flex-sm-fill pointer">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}</a>
                   </li>
                 {%endif%}
                 {% if 'D1' in tab.code %}
-                  <li class="nav-item flex-sm-fill">
-                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{D1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >D1-ทักษิณโดโลไมท์</a>
+                  <li class="nav-item flex-sm-fill pointer">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{D1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
                   </li>
                 {%endif%}
+                {% if 'I1' in tab.code %}
+                <li class="nav-item flex-sm-fill pointer">
+                  <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{I1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
+                </li>
+              {%endif%}
+              {% if 'U1' in tab.code %}
+                <li class="nav-item flex-sm-fill pointer">
+                  <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{U1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
+                </li>
+              {%endif%}
               {%endfor%}
             </ul>
       </div>

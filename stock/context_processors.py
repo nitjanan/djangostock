@@ -52,7 +52,10 @@ def counter(request):
 #ใบขอซื้อ
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสิทธิอนุมัติ
 def approvePendingCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
     pending_count = 0
     #get permission with position login
     try:
@@ -82,7 +85,11 @@ def approvePendingCounter(request):
 
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีขอซื้อ
 def approvePRCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
     pr_count = 0
     try:
         #ดึงข้อมูล PurchaseRequisition
@@ -96,7 +103,11 @@ def approvePRCounter(request):
 
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสั่งซื้อ
 def approvePOCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
     po_count = 0
     #get permission with position login
     try:
@@ -175,7 +186,11 @@ def allApproveCPCounter(request):
 
 #หาจำนวนสถานะรอดำเนินการในใบเปรียบเทียบราคาของผู้อนุมัติและผู้ตรวจสอบ
 def approveCPAllCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
     cm_count = 0
     #ผู้ตรวจสอบ
     try:
@@ -290,7 +305,11 @@ def findBaseUrgency(request, id):
     return dict(base_urgen = base_urgen)
 
 def isPurchasingPRCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
     pr_count = 0
     #ถ้าเป็นเจ้าหน้าที่จัดซื้อ
     if(is_purchasing(request.user)):
@@ -312,7 +331,11 @@ def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
 
 def addPOCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
     cp_count = 0
     if(is_purchasing(request.user)):
         try:
@@ -340,7 +363,11 @@ def purchasingAllConter(request):
 
 
 def receiveCounter(request):
-    active = request.session['company_code']
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
     rc_count = 0
     if(is_purchasing(request.user)):
         try:
