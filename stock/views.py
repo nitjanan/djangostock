@@ -1576,7 +1576,7 @@ def editPOFromPR(request, po_id):
     active = request.session['company_code']
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
+    #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
@@ -1585,10 +1585,10 @@ def editPOFromPR(request, po_id):
         if form.is_valid():
             form.save()
             return redirect('editPOItem', po_id = po_id, isFromPR = 'True', isReApprove = 'False')
-
+        
+    #'distributorList': distributorList,
     context = {
         'form':form,
-        'distributorList': distributorList,
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",
@@ -1768,7 +1768,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
+    #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
@@ -1861,6 +1861,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         except PurchaseRequisition.DoesNotExist:
             pass
 
+    #'distributorList': distributorList,
     context = {
         'po':po,
         'po_items':po_items,
@@ -1873,7 +1874,6 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'itemList':itemList,
         'new_pr':new_pr,
         'isEditPO':isEditPO,
-        'distributorList': distributorList,
         'heading': heading_message,
         active :"active show",
 		"disableTab":"disableTab",
@@ -2076,7 +2076,7 @@ def createComparePricePOItem(request, cp_id, isReApprove):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
+    #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     #ร้านแรก
     try:
@@ -2145,6 +2145,7 @@ def createComparePricePOItem(request, cp_id, isReApprove):
     cpd = ComparisonPriceDistributor.objects.filter(cp = cp_id)
     cp_item = ComparisonPriceItem.objects.filter(cp = cp_id)
     
+    #'distributorList': distributorList,
     context = {
         'link_cp_id':cp_id,
         'cpd':cpd,
@@ -2154,7 +2155,6 @@ def createComparePricePOItem(request, cp_id, isReApprove):
         'itemList': itemList,
         'bookform': bookform,
         'formset': formset,
-        'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
         active :"active show",
@@ -2166,11 +2166,33 @@ def createComparePricePOItem(request, cp_id, isReApprove):
 def autocompalteDistributor(request):
     if 'term' in request.GET:
         term = request.GET.get('term')
-        qs = Distributor.objects.filter(Q(id__icontains = term) | Q(name__icontains = term))[:10]
+        qs = Distributor.objects.filter(Q(id__icontains = term) | Q(name__icontains = term))[:15]
         titles = list()
         for obj in qs:
             titles.append(obj.id +"-"+ obj.name)
     return JsonResponse(titles, safe=False)
+
+def searchDataDistributor(request):
+    if 'id_distributor' in request.GET:
+        id = request.GET.get('id_distributor')
+        qs = Distributor.objects.get(id = id)
+
+    data = {
+        'credit': qs.credit.id,
+        'vat_type': qs.vat_type.id,
+    }
+    return JsonResponse(data)
+
+def setDataDistributor(request):
+    print('kkkkkkkkkkkkkkkkkkkkk')
+    if 'id_distributor' in request.GET:
+        id = request.GET.get('id_distributor')
+        qs = Distributor.objects.get(id = id)
+        val = qs.id + "-" + qs.name
+    data = {
+        'val': val,
+    }
+    return JsonResponse(data)
 
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     active = request.session['company_code']
@@ -2181,7 +2203,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
+    #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
@@ -2245,6 +2267,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     cpd = ComparisonPriceDistributor.objects.filter(cp = cp_id)
     cp_item = ComparisonPriceItem.objects.filter(cp = cp_id)
 
+    #'distributorList': distributorList,
     context = {
         'link_cp_id' : cp_id,
         'link_cpd_id' : cpd_id,
@@ -2253,7 +2276,6 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
-        'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
         active :"active show",
@@ -2271,7 +2293,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
+    #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
     data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     numDistributor = ComparisonPriceDistributor.objects.filter(cp = cp_id).count()
@@ -2335,6 +2357,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     cpd = ComparisonPriceDistributor.objects.filter(cp = cp_id)
     cp_item = ComparisonPriceItem.objects.filter(cp = cp_id)
 
+    #'distributorList': distributorList,
     context = {
         'link_cp_id' : cp_id,
         'link_cpd_id' : cpd_id,
@@ -2343,7 +2366,6 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         'itemList':itemList,
         'bookform': bookform,
         'formset': formset,
-        'distributorList': distributorList,
         'cp_page': "tab-active",
         'cp_show': "show",
         active :"active show",

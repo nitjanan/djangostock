@@ -120,6 +120,8 @@ urlpatterns = [
 
     path('searchItemExpress', views.searchItemExpress, name="searchItemExpress"),
     path('setSessionCompany', views.setSessionCompany, name="setSessionCompany"),
+    path('searchDataDistributor', views.searchDataDistributor, name="searchDataDistributor"),
+    path('setDataDistributor', views.setDataDistributor, name="setDataDistributor"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),

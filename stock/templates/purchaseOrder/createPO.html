@@ -10,12 +10,13 @@
                 {% if form.distributor.label %}
                 <label>{{ form.distributor.label }}</label>
                 <div>
-                    <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
-                    <datalist id="idDistributorList">
+                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">
+                    <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                    <datalist-- id="idDistributorList">
                     {% for results in distributorList %}
                         <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
                     {% endfor %}
-                    </datalist>
+                    </datalist-->
                 </div>
                 {% endif %}
                 <p>{{ form | crispy}}</p>
@@ -30,6 +31,10 @@
 </div>
 {% endblock %}
 {% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 <script>
 
     var now = new Date();
@@ -46,8 +51,45 @@
             $('#div_id_created').hide();
         "{% endif %}"
     });
+
+$(function () {
+    $("#id-form-distributor").autocomplete({
+        source: '{% url "autocompalteDistributor" %}',
+        minLength: 1,
+    });
+});
+
+function searchDataDistributor(){
+    if($('#id-form-distributor').val() != ""){
+        var str = $('#id-form-distributor').val();
+        var items = str.split( "-" );
+        var idInput = items[0];
+        // Create Ajax Call
+        if(idInput){
+            //set id_distributor
+            $("#id_distributor").val(idInput);
+            $.ajax({
+            url: '{% url "searchDataDistributor" %}',
+            data: {
+                    'id_distributor': idInput,
+                },
+            dataType: 'json',
+            success: function (data) {
+                if (data.credit) {
+                    //set id_credit , id_vat_type
+                    $("#id_credit").val(data.credit);
+                    $("#id_vat_type").val(data.vat_type);
+                }
+            }
+            });
+        }
+        return false;
+    }
+
+  }
     
-    $(".distributor" ).change(function() {
+/*
+$(".distributor" ).change(function() {
     // get data id ของ option data list
     var str = $("#id-form-distributor").val();
     var items = str.split( "-" );
@@ -63,6 +105,7 @@
         
     });
 
-  });
+});
+*/
 </script>
 {% endblock %}

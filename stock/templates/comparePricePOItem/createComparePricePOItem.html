@@ -88,13 +88,13 @@
                                 <label>{{bookform.distributor.label}}</label>&ensp;
                                 {{bookform.cp}}
                                 {{bookform.distributor}}
-                                <!-- input type="text" name="distributor" id="distributor" class="form-control eiei" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"-->
-                                <input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
-                                <datalist id="idDistributorList">
+                                <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">
+                                <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                                <datalist-- id="idDistributorList">
                                 {% for results in distributorList %}
                                     <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
                                 {% endfor %}
-                                </datalist>
+                                </datalist-->
                             </div>
                         </div>
                         <div class="col-3">
@@ -606,12 +606,43 @@ $("input.mask").each((i,ele)=>{
 })
 
 $(function () {
-        $("#distributor").autocomplete({
-            source: '{% url "autocompalteDistributor" %}',
-            minLength: 1,
-        });
+    $("#id-form-distributor").autocomplete({
+        source: '{% url "autocompalteDistributor" %}',
+        minLength: 1,
     });
+});
 
+function searchDataDistributor(){
+    if($('#id-form-distributor').val() != ""){
+        var str = $('#id-form-distributor').val();
+        var items = str.split( "-" );
+        var idInput = items[0];
+        // Create Ajax Call
+        if(idInput){
+            //set id_distributor
+            $("#id_distributor").val(idInput);
+
+            $.ajax({
+            url: '{% url "searchDataDistributor" %}',
+            data: {
+                    'id_distributor': idInput,
+                },
+            dataType: 'json',
+            success: function (data) {
+                if (data.credit) {
+                    //set id_credit , id_vat_type
+                    $("#id_credit").val(data.credit);
+                    $("#id_vat_type").val(data.vat_type);
+                }
+            }
+            });
+        }
+        return false;
+    }
+
+  }
+
+/*
 $(".distributor" ).change(function() {
     // get data id ของ option data list
     var str = $("#id-form-distributor").val();
@@ -625,6 +656,7 @@ $(".distributor" ).change(function() {
     $("#id_vat_type").val(vat_type);
   });
 
+*/
 </script>
 
 {% endblock %}
