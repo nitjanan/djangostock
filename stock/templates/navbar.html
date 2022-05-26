@@ -184,15 +184,20 @@
                   </li>
                 {%endif%}
                 {% if 'I1' in tab.code %}
-                <li class="nav-item flex-sm-fill pointer">
-                  <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{I1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
-                </li>
-              {%endif%}
-              {% if 'U1' in tab.code %}
-                <li class="nav-item flex-sm-fill pointer">
-                  <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{U1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
-                </li>
-              {%endif%}
+                  <li class="nav-item flex-sm-fill pointer">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{I1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
+                  </li>
+                {%endif%}
+                {% if 'U1' in tab.code %}
+                  <li class="nav-item flex-sm-fill pointer">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{U1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
+                  </li>
+                {%endif%}
+                {% if 'T1' in tab.code %}
+                  <li class="nav-item flex-sm-fill pointer">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="false" class="nav-link border-0 text-uppercase font-weight-bold {{T1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')" >{{tab.code}}-{{tab.name}}</a>
+                  </li>
+                {%endif%}
               {%endfor%}
             </ul>
       </div>
