@@ -725,10 +725,10 @@ def removeRequisition(request, id):
 
 def editRequisition(request, id):
     requisition = Requisition.objects.get(id=id)
-    form = RequisitionForm(instance=requisition)
+    form = RequisitionForm(request, instance=requisition)
 
     if request.method == 'POST':
-        form = RequisitionForm(request.POST, request.FILES, instance=requisition)
+        form = RequisitionForm(request, request.POST, request.FILES, instance=requisition)
         if form.is_valid():
             new_contact = form.save()
             try :
@@ -946,10 +946,10 @@ def editAllRequisition(request, requisition_id):
     baseUnit = BaseUnit.objects.all()
 
     #form save
-    form = RequisitionForm(instance=requisition)
+    form = RequisitionForm(request, instance=requisition)
 
     if request.method == 'POST':
-        form = RequisitionForm(request.POST, request.FILES , instance=requisition)
+        form = RequisitionForm(request, request.POST, request.FILES , instance=requisition)
         if form.is_valid():
             new_contact =  form.save()
             try :
@@ -2431,6 +2431,14 @@ def printComparePricePO(request, cp_id):
         form = CPSelectBidderForm(request.POST, instance=cp)
         if form.is_valid():
             f_cp = form.save()
+            
+            #เปลี่ยนทุกร้านค้าให้ไม่เลือกก่อน
+            all_bidder = ComparisonPriceDistributor.objects.filter(cp = f_cp)
+            for bd in all_bidder:
+                bd.is_select = False
+                bd.save()
+
+            #set ร้านค้าที่เลือก
             select_bidder = ComparisonPriceDistributor.objects.get(cp = f_cp, distributor = f_cp.select_bidder)
             select_bidder.is_select = True
             if f_cp.select_bidder:
