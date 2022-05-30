@@ -35,9 +35,13 @@ class UserProfileForm(forms.ModelForm):
 class RequisitionForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (RequisitionForm,self).__init__(*args,**kwargs)
-        self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.filter(userprofile__branch_company__code = request.session['company_code']))
-        self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน', userprofile__branch_company__code = request.session['company_code']))
-        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        #เปลี่ยนการจัดกลุ่มเป็นแบบอื่นเพราะมีเคสที่ใช้เงื่อนไขนี้ไม่ได้
+        #self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.filter(userprofile__branch_company__code = request.session['company_code']))
+        #self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน', userprofile__branch_company__code = request.session['company_code']))
+        #self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.all())
+        self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
+        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ'))
 
     class Meta:
         model = Requisition
