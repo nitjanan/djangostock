@@ -173,6 +173,11 @@
       <div class="bg-light w-100">
             <ul id="nav-tabs" class="nav nav-tabs nav-pills flex-column flex-sm-row text-center border-0 w-100 {{colorNav}}">
               {% for tab in company_tab %}
+                {% if 'ALL' in tab.code %}
+                <li class="nav-item flex-sm-fill pointer">
+                  <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{ALL}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}</a>
+                </li>
+                {%endif%}
                 {% if 'S1' in tab.code %}
                   <li class="nav-item flex-sm-fill pointer">
                     <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}</a>
