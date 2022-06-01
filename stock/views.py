@@ -3303,7 +3303,7 @@ def exportExcelPO(request):
     company_in = findCompanyIn(request)
 
     response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="PO_Report.xls"'
+    response['Content-Disposition'] = 'attachment; filename="PO_Report_"'+active+'".xls"'
 
     wb = xlwt.Workbook(encoding='utf-8')
     ws = wb.add_sheet('รายงานใบสั่งสินค้า', cell_overwrite_ok=True) # this will make a sheet named Users Data
@@ -3314,7 +3314,7 @@ def exportExcelPO(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'เลขที่ใบขอซื้อ']
+    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'เลขที่ใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -3353,7 +3353,7 @@ def exportExcelPO(request):
 
     rows = PurchaseOrder.objects.filter(
         my_q
-    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no').order_by('amount')
+    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no', 'note', 'note', 'note', 'note').order_by('amount')
 
     total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
     sum_total_price = sum(total_price)
@@ -3388,8 +3388,28 @@ def exportExcelPO(request):
                         else:
                             strPr += str(pr.item.requisit.pr_ref_no) + ", "
                         prev_obj = pr.item.requisit.pr_ref_no
-
                 ws.write(row_num, col_num, strPr, font_style)
+            
+
+            strPrItem = ""
+            strPrMachine = ""
+            strPrDesired = ""
+            strPrUrgency = ""
+            for pr in prs:
+                if row[0] == pr.po.ref_no:
+                    strPrItem += str(pr.item.product.name) + ", "
+                    strPrMachine += str(pr.item.machine) + ", "
+                    strPrDesired += str(pr.item.desired_date) + ", "
+                    try:
+                        ug = BaseUrgency.objects.get(id = pr.item.urgency)
+                        strPrUrgency += str(ug.name) + ", "
+                    except:
+                        pass
+            ws.write(row_num, 13, strPrItem, font_style)
+            ws.write(row_num, 14, strPrMachine, font_style)
+            ws.write(row_num, 15, strPrDesired, date_style)
+            ws.write(row_num, 16, strPrUrgency, font_style)
+
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 1, count, font_style)
     ws.write(row_num+1, 2, "ใบ", font_style)
