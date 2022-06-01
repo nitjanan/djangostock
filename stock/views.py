@@ -1184,6 +1184,9 @@ def createPR(request, requisition_id):
         'pr_page': "tab-active",
         'create_mode': True,
         'pr_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
     }
     return render(request,'purchaseRequisition/createPR.html', context)
 
@@ -3390,7 +3393,6 @@ def exportExcelPO(request):
                         prev_obj = pr.item.requisit.pr_ref_no
                 ws.write(row_num, col_num, strPr, font_style)
             
-
             strPrItem = ""
             strPrMachine = ""
             strPrDesired = ""
