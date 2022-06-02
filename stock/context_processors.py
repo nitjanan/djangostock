@@ -34,6 +34,11 @@ def companyVisibleTab(request):
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
         company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
+        
+        #ถ้าเป็นจัดซื้อ
+        if is_purchasing(request.user):
+            for i in company_tab:
+                setAlertCompanyTab(request, i.code)
     except:
         company_tab = None
 
@@ -413,5 +418,30 @@ def receiveCounter(request):
             pass
     return dict(rc_count = rc_count)
 
-        
+def setAlertCompanyTab(request, tab):
+    if tab == "ALL":
+        request.session['NUM_ALL'] = findAll(request, tab)
+    elif tab == "S1":
+        request.session['NUM_S1'] = findAll(request, tab)
+    elif tab == "D1":
+        request.session['NUM_D1'] = findAll(request, tab)
+    elif tab == "I1":
+        request.session['NUM_I1'] = findAll(request, tab)
+    elif tab == "U1":
+        request.session['NUM_U1'] = findAll(request, tab)
+    elif tab == "T1":
+        request.session['NUM_T1'] = findAll(request, tab)
+    return 
 
+
+def findAll(request, tab):
+    try:
+        cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2, branch_company__code = tab).count()
+    except ComparisonPrice.DoesNotExist:
+        cp_count = 0
+
+    try:
+        pr_count =  PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, is_complete = 0, branch_company__code = tab).count()
+    except PurchaseOrder.DoesNotExist:
+        pr_count = 0
+    return cp_count + pr_count

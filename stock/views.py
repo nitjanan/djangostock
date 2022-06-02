@@ -1131,9 +1131,14 @@ def createPR(request, requisition_id):
     for item in items:
         quantityTotal += item.quantity_pr
 
-    first_items = RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0).first()
+    try:
+        first_items = RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0).first()
+        description = first_items.description
+    except:
+        description = ""
+        
     #form
-    form = PurchaseRequisitionForm(request.POST or None, initial={'note': first_items.description, 'branch_company': company})
+    form = PurchaseRequisitionForm(request.POST or None, initial={'note': description, 'branch_company': company})
     if form.is_valid():
         #save id express
         bool = saveIdExpressPR(request)
@@ -2209,7 +2214,6 @@ def searchDataDistributor(request):
     return JsonResponse(data)
 
 def setDataDistributor(request):
-    print('kkkkkkkkkkkkkkkkkkkkk')
     if 'id_distributor' in request.GET:
         id = request.GET.get('id_distributor')
         qs = Distributor.objects.get(id = id)
