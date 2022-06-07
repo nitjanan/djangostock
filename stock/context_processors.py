@@ -34,11 +34,16 @@ def companyVisibleTab(request):
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
         company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
-        
+        company_code = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
+
         #ถ้าเป็นจัดซื้อ
         if is_purchasing(request.user):
+                for i in company_tab:
+                    setAlertPurchasingCompanyTab(request, i.code)
+        elif is_approve(request.user):
             for i in company_tab:
-                setAlertCompanyTab(request, i.code)
+                setAlertApproveCompanyTab(request, i.code, company_code)
+        
     except:
         company_tab = None
 
@@ -336,6 +341,7 @@ def approveAllCounter(request):
         return {} #รีเทริ์นค่าเปล่า
     else:
         ap_all = pd_count + pr_count + po_count + cm_count
+
     return dict(ap_all = ap_all)
 
 
@@ -371,6 +377,9 @@ def isPurchasingPR(request):
 
 def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
+
+def is_approve(user):
+    return user.groups.filter(name='ผู้อนุมัติ').exists()
 
 def addPOCounter(request):
     try:
@@ -418,23 +427,21 @@ def receiveCounter(request):
             pass
     return dict(rc_count = rc_count)
 
-def setAlertCompanyTab(request, tab):
-    if tab == "ALL":
-        request.session['NUM_ALL'] = findAll(request, tab)
-    elif tab == "S1":
-        request.session['NUM_S1'] = findAll(request, tab)
+def setAlertPurchasingCompanyTab(request, tab):
+    if tab == "S1":
+        request.session['NUM_S1'] = findAllPurchasingAlert(request, tab)
     elif tab == "D1":
-        request.session['NUM_D1'] = findAll(request, tab)
+        request.session['NUM_D1'] = findAllPurchasingAlert(request, tab)
     elif tab == "I1":
-        request.session['NUM_I1'] = findAll(request, tab)
+        request.session['NUM_I1'] = findAllPurchasingAlert(request, tab)
     elif tab == "U1":
-        request.session['NUM_U1'] = findAll(request, tab)
+        request.session['NUM_U1'] = findAllPurchasingAlert(request, tab)
     elif tab == "T1":
-        request.session['NUM_T1'] = findAll(request, tab)
+        request.session['NUM_T1'] = findAllPurchasingAlert(request, tab)
     return 
 
 
-def findAll(request, tab):
+def findAllPurchasingAlert(request, tab):
     try:
         cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2, branch_company__code = tab).count()
     except ComparisonPrice.DoesNotExist:
@@ -445,3 +452,175 @@ def findAll(request, tab):
     except PurchaseOrder.DoesNotExist:
         pr_count = 0
     return cp_count + pr_count
+
+
+def setAlertApproveCompanyTab(request, tab, company_code):
+    code = BaseBranchCompany.objects.filter(code = tab).values('code')
+    if tab == "S1":
+        request.session['NUM_S1'] = findAllApproveAlert(request, code)
+    elif tab == "D1":
+        request.session['NUM_D1'] = findAllApproveAlert(request, code)
+    elif tab == "I1":
+        request.session['NUM_I1'] = findAllApproveAlert(request, code)
+    elif tab == "U1":
+        request.session['NUM_U1'] = findAllApproveAlert(request, code)
+    elif tab == "T1":
+        request.session['NUM_T1'] = findAllApproveAlert(request, code)
+    elif tab == "ALL":
+        request.session['NUM_ALL'] = findAllApproveAlert(request, company_code)
+    return 
+
+def findAllApproveAlert(request, tab):
+    #get permission with position login
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CAAPR')
+        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
+    except:
+        isPermiss  = False
+
+    if(isPermiss):
+        try:
+            #ดึงข้อมูล PurchaseRequisition
+            pending_count = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = tab).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseRequisition.DoesNotExist:
+            pending_count = 0
+	#################################
+    try:
+        #ดึงข้อมูล PurchaseRequisition
+        pr_count = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__in = tab).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
+        #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+    except PurchaseRequisition.DoesNotExist:
+        pr_count = 0
+		
+    
+	#################################
+	
+	    #get permission with position login
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CAAPO')
+        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
+    except:
+        isPermiss  = False
+
+    po_item = None
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if isPermiss:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            po_item = None
+
+    new_po = dict()
+    if po_item:
+        for obj in po_item:
+            if obj not in new_po:
+                new_po[obj] = obj
+
+    #เคสที่ดึงมาจากใบเปรียบเทียบมีชื่อคนอนุมัติอยู่แล้ว
+    cm_po_item = None
+    if request.user.is_authenticated:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            cm_po_item = None
+    
+    if cm_po_item:
+        for obj in cm_po_item:
+            if obj not in new_po:
+                new_po[obj] = obj
+                
+    po_count  =  len(new_po)
+	
+	########################################
+	#ผู้ตรวจสอบ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA'])
+        isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+    except:
+        isPermissAE = None
+
+    pmAE = []
+    if(isPermissAE):
+        for i in isPermissAE:
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAE.append(obj)
+
+    #ผู้อนุมัติ
+    try:
+        permiss = BasePermission.objects.filter(codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA'])
+        isPermissAA = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4','CAACPD','CAACPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
+    except:
+        isPermissAA = None
+
+    pmAA = []
+    if(isPermissAA):
+        for i in isPermissAA:
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
+
+    ecm_item = []
+    #ถ้าเป็นผู้ตรวจสอบ
+    if(isPermissAE):
+        try:
+            for ae in pmAE:
+                if ae.codename == 'CAECPD':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False, cp__branch_company__code__in = tab).values("cp")
+                elif ae.codename == 'CAECPA':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False, cp__branch_company__code__in = tab).values("cp")
+                else:
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(ae.ap_amount_min, ae.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code__in = tab).values("cp")
+                ecm_item.append(obj)
+        except ComparisonPriceDistributor.DoesNotExist:
+            ecm_item = None
+
+    ecp = []
+    new_cm = dict()
+    try:
+        for item in ecm_item:
+            ecp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if ecp:
+                for obj in ecp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
+    except:
+        pass
+
+
+    acm_item = []
+    #ถ้าเป็นผู้อนุมัติ
+    if(isPermissAA):
+        try:
+            for aa in pmAA:
+                if aa.codename == 'CAACPD':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 1, cp__select_bidder_id__isnull = False, cp__branch_company__code__in = tab).values("cp")
+                elif aa.codename == 'CAACPA':
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__cm_type = 2, cp__select_bidder_id__isnull = False, cp__branch_company__code__in = tab).values("cp")
+                else:
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 1, cp__select_bidder_id__isnull = False, is_select = True, amount__range=(aa.ap_amount_min, aa.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code__in = tab).values("cp")
+                acm_item.append(obj)
+        except ComparisonPriceDistributor.DoesNotExist:
+            acm_item = None
+
+    acp = []
+    try:
+        for item in acm_item:
+            acp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if acp:
+                for obj in acp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
+    except:
+        pass
+
+    cm_count =  len(new_cm)
+
+
+    return pending_count + pr_count + po_count + cm_count
