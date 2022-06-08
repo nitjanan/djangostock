@@ -69,7 +69,8 @@
                 <table class="table">
                     <thead>
                     <tr>
-                        <th scope="col" class="w-25">รหัสสินค้า/รายละเอียด</th>
+                        <th scope="col">รหัสสินค้า</th>
+                        <th scope="col">รายละเอียด</th>
                         <th scope="col">จำนวน</th>
                         <th scope="col" class="w-25">หน่วย</th>
                         <th scope="col">หน่วยละ</th>
@@ -95,7 +96,7 @@
                               <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
                             {% endfor %}
                           </datalist>
-                          {{form.quantity}} {{form.unit | add_class:"form-control"}} {{form.unit_price}} {{form.price}}
+                          {{form.description| add_class:"form-control description"}} {{form.quantity}} {{form.unit | add_class:"form-control"}} {{form.unit_price}} {{form.price}}
                           <div class="input-group-append text-right">
                               <button class="btn btn-success add-form-row hidden-print">+</button>
                           </div>
@@ -215,6 +216,7 @@ for (let i = 1; i < len; i++) {
 //set ค่าตามผู้จำหน่ายแรกสุดที่ได้สร้าง
 "{% for it in cp_item %}"
         $("#id_form-{{forloop.counter0}}-item").val("{{it.item.id}}");
+        $("#id_form-{{forloop.counter0}}-description").val("{{it.description}}");
         $("#id_form-{{forloop.counter0}}-quantity").val("{{it.quantity}}");
         $("#id_form-{{forloop.counter0}}-unit").val("{{it.unit.id}}");
         $("#id_form-{{forloop.counter0}}-unit_price").val("{{it.unit_price}}");

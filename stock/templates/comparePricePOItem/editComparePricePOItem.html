@@ -16,7 +16,8 @@
         </li>
         <li class="list-group-item">
             <div class="row">
-                <div class="col">สินค้า</div>
+                <div class="col-2">สินค้า</div>
+                <div class="col">รายละเอียด</div>
                 <div class="col">จำนวน</div>
                 <div class="col">หน่วย</div>
                 <div class="col">เกรด/ยี่ห้อ</div>
@@ -28,7 +29,8 @@
             {% if d.id == it.bidder.id%}
                 <li class="list-group-item">
                     <div class="row">
-                        <div class="col">{% if it.item %}{{it.item}}{% endif %}</div>
+                        <div class="col-2">{% if it.item %}{{it.item}}{% endif %}</div>
+                        <div class="col">{% if it.description %}{{it.description}}{% endif %}</div>
                         <div class="col">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
                         <div class="col">{% if it.unit %}{{it.unit}}{% endif %}</div>
                         <div class="col">{% if it.brand %}{{it.brand}}{% endif %}</div>
@@ -137,6 +139,7 @@
                                 <option data-id="{{results.id}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" data-show="{{results.product.id}} {{results.product}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
                               {% endfor %}
                             </datalist>
+                            {{form.description | add_class:"form-control"}}
                             {{form.quantity | add_class:"form-control quantity"}}
                             {{form.unit | add_class:"form-control"}}
                             {{form.brand | add_class:"form-control"}}

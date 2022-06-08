@@ -2225,12 +2225,11 @@ def setDataDistributor(request):
 
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     active = request.session['company_code']
-    cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    #
-    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    
+    #company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
@@ -2288,7 +2287,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
                     pass
                 obj.delete()
             formset.save_m2m()
-            return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')    
+            return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
     else:
         bookform = CPDModelForm(instance=data)
         formset = CPitemInlineFormset(instance=data)

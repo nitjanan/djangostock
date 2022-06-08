@@ -120,7 +120,7 @@
             {% for oldest in items_oldest %}
                 <tr>
                     <th scope="row" class="text-center">{{forloop.counter}}</th>
-                    <td>{{oldest.item}}</td>
+                    <td>{{oldest.item}} <b class="text-success">{{oldest.description}}</b></td>
                     <td class="text-right">{{oldest.quantity}}</td>
                     <td class="text-center">{{oldest.unit}}</td>
                         {% for it in itemName %}

@@ -480,6 +480,9 @@ def findAllApproveAlert(request, tab):
     except:
         isPermiss  = False
 
+    pending_count = 0
+    pr_count = 0
+
     if(isPermiss):
         try:
             #ดึงข้อมูล PurchaseRequisition
@@ -490,7 +493,7 @@ def findAllApproveAlert(request, tab):
 	#################################
     try:
         #ดึงข้อมูล PurchaseRequisition
-        pr_count = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__in = tab).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
+        pr_count = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__code__in = tab).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
         #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
     except PurchaseRequisition.DoesNotExist:
         pr_count = 0
@@ -512,7 +515,7 @@ def findAllApproveAlert(request, tab):
     if isPermiss:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
@@ -527,7 +530,7 @@ def findAllApproveAlert(request, tab):
     if request.user.is_authenticated:
         try:
             #ดึงข้อมูล PurchaseOrder
-            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            cm_po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             cm_po_item = None
     
@@ -621,6 +624,5 @@ def findAllApproveAlert(request, tab):
         pass
 
     cm_count =  len(new_cm)
-
 
     return pending_count + pr_count + po_count + cm_count

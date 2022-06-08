@@ -860,6 +860,7 @@ class PurchaseOrderItem(models.Model):
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
+    description = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = 'PurchaseOrderItem'
@@ -896,6 +897,7 @@ class ComparisonPriceItem(models.Model):
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     bidder =  models.ForeignKey(ComparisonPriceDistributor,on_delete=models.CASCADE, null=True)
     cp =  models.IntegerField(null=True, blank=True)
+    description = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = 'ComparisonPriceItem'
