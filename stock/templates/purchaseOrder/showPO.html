@@ -229,7 +229,7 @@
                   </button>
                 </div>
             </div>
-            {% if po.approver_status_id != 1 and po.is_receive != True  and isPurchasing%}
+            {% if po.approver_status_id != 1 and isPurchasing%}
               <div class="row my-3 d-print-none">
                 <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
               </div>
