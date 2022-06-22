@@ -2984,6 +2984,19 @@ def reApprovePR(request, pr_id):
 
         return render(request, "purchaseRequisition/reApprovePR.html", context)
 
+def closePR(request, pr_id):
+    pr = PurchaseRequisition.objects.get(id = pr_id)
+    requisition = Requisition.objects.get(purchase_requisition_id = pr_id)
+    r_items = RequisitionItem.objects.filter(requisit = requisition.id)
+    #set pr ทำรายการสำเร็จ
+    pr.is_complete = True
+    pr.save()
+    #set รายการสินค้า นำไปใช้แล้ว
+    for i in r_items:
+        i.is_used = True
+        i.save()
+    return redirect('viewPR')
+
 def export(request):
     person_resource = DistributorResource()
     dataset = person_resource.export()
