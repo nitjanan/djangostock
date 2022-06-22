@@ -121,7 +121,7 @@
                 <tr>
                     <th scope="row" class="text-center">{{forloop.counter}}</th>
                     <td>{{oldest.item}} <b class="text-success">{{oldest.description}}</b></td>
-                    <td class="text-right">{{oldest.quantity}}</td>
+                    <td class="text-right">{{oldest.quantity |floatformat:"-4"}}</td>
                     <td class="text-center">{{oldest.unit}}</td>
                         {% for it in itemName %}
                             {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}

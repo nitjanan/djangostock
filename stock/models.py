@@ -456,7 +456,7 @@ class RequisitionItem(models.Model):
     requisition_id = models.IntegerField()
     product_name = models.CharField(max_length=255,blank=True)
     description = models.TextField(blank=True) #เป็นค่าว่างได้
-    quantity = models.IntegerField()
+    quantity = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
     machine = models.CharField(max_length=255,blank=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
@@ -465,8 +465,8 @@ class RequisitionItem(models.Model):
     urgency = models.IntegerField(blank=True, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True, blank=True)
-    quantity_pr = models.IntegerField()
-    quantity_take = models.IntegerField()
+    quantity_pr = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
+    quantity_take = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
     is_used = models.BooleanField(default=False)#สถานะที่บอกว่านำไปใช้ใน pr หรือ cm หรือยัง
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
 
@@ -853,7 +853,7 @@ class PurchaseOrder(models.Model):
 class PurchaseOrderItem(models.Model):
     po = models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE, null=True)
     item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
-    quantity = models.IntegerField(null=True, blank=True)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
@@ -888,7 +888,7 @@ class ComparisonPriceDistributor(models.Model):
 
 class ComparisonPriceItem(models.Model):
     item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
-    quantity = models.IntegerField(null=True, blank=True)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
     brand = models.CharField(max_length=255, blank=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)

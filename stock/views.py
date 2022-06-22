@@ -866,7 +866,7 @@ class CreateCrudUser(View):
         try:
             if(not quantityTake1):
                 quantityTake1 = 0
-            quantityPQ  = int(quantity1) - int(quantityTake1)
+            quantityPQ  = float(quantity1) - float(quantityTake1)
         except:
             quantityPQ = 0
 
@@ -916,7 +916,7 @@ class UpdateCrudUser(View):
             product_item = None
 
         try:
-            quantityPQ  = int(quantity1) - int(quantityTake1)
+            quantityPQ  = float(quantity1) - float(quantityTake1)
         except:
             quantityPQ = 0
 

@@ -167,7 +167,7 @@ u.dotted {
                     <td class="text-center">{{item.product.id}}</td>
                     <td name="name">{{item.product_name}}</td>
                     <td name="description">{{item.description}}</td>
-                    <td class="text-center" name="quantity">{{item.quantity_pr}}</td>
+                    <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
                     <td class="text-center" name="unit">
                       {{item.unit}}
                     </td>

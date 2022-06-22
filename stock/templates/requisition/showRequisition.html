@@ -114,8 +114,8 @@
                     <td class="text-center">{{ forloop.counter }}</td>
                     <td class="text-center userName userData" name="name">{{item.product_name}}</td>
                     <td class="text-center userDescription userData" name="description">{{item.description}}</td>
-                    <td class="text-center userQuantity userData" name="quantity">{{item.quantity}}</td>
-                    <td class="text-center userQuantityTake userData" name="quantityTake">{{item.quantity_take}}</td>
+                    <td class="text-center userQuantity userData" name="quantity">{{item.quantity |floatformat:"-4"}}</td>
+                    <td class="text-center userQuantityTake userData" name="quantityTake">{{item.quantity_take |floatformat:"-4"}}</td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{item.unit}}">
                       {{item.unit}}
                     </td>

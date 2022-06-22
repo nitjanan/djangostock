@@ -63,7 +63,7 @@
                 <tr id="item-{{item.id}}">
                   <td class=" itemProductName itemData" name="product-name" >{{item.product_name}}</td>
                   <td class="text-center itemDescription itemData" name="description">{{item.description}}</td>
-                  <td class="text-center itemQuantity itemData" name="quantity">{{item.quantity}}</td>
+                  <td class="text-center itemQuantity itemData" name="quantity">{{item.quantity |floatformat:"-4"}}</td>
                   <td class="text-center itemMachine itemData" name="machine">{{item.machine}}</td>
                   <td class="text-center itemDesiredDate itemData" name="desired-date">{{item.desired_date | date:"d M Y"}}</td>
                   <td class="text-right">
