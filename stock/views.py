@@ -2566,7 +2566,7 @@ def createPOFromComparisonPrice(request, cp_id):
 
     bc = ComparisonPrice.objects.get(id = cp_id)
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company})
+    form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : bc.approver_user})
     if form.is_valid():
         try:
             new_contact = form.save(commit=False)
@@ -2578,7 +2578,7 @@ def createPOFromComparisonPrice(request, cp_id):
             new_contact.vat_type = cpd.vat_type
             new_contact.quotation_pdf = cpd.quotation_pdf
             new_contact.approver_status_id = 1
-            new_contact.approver_user = cp.approver_user
+            #new_contact.approver_user = cp.approver_user
             new_contact.branch_company = company
         except:
             return HttpResponseRedirect(reverse('createPOFromComparisonPrice', args=(cp_id,)))

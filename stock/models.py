@@ -811,7 +811,8 @@ class PurchaseOrder(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='approver_user_po',
-        null=True
+        null=True,
+        blank=True
     )
     approver_status = models.ForeignKey(
         BaseApproveStatus,

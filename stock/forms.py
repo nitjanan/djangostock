@@ -96,7 +96,7 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'quotation_pdf')
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'quotation_pdf')
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
@@ -112,6 +112,7 @@ class PurchaseOrderForm(forms.ModelForm):
             'stockman_user': _('เจ้าหน้าที่จัดซื้อ'),
             'quotation_pdf': _('ใบเสนอราคา'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
+            'approver_user': _('ผู้อนุมัติใบสั่งซื้อ'),
         }
 
 class PurchaseOrderAddressCompanyForm(forms.ModelForm):
@@ -133,12 +134,13 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
         bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
         self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
-        self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session['company_code']))
+        #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session['company_code']))
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company')
+       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user')
        widgets = {
+        'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         }
        labels = {
@@ -146,6 +148,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
             'ref_no': _('รหัสใบสั่งซื้อ'),
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
+            'approver_user': _('ผู้อนุมัติใบสั่งซื้อ'),
         }  
 
 
