@@ -1117,7 +1117,11 @@ def createPR(request, requisition_id):
     company = BaseBranchCompany.objects.get(code = active)
 
     items= RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0)
-    requisition = Requisition.objects.get(id=requisition_id)
+    try:
+        requisition = Requisition.objects.get(id=requisition_id, purchase_requisition_id__isnull = True)
+    except:
+        return redirect('preparePR')
+
     baseUrgency = BaseUrgency.objects.all() #ระดับความเร่งด่วน
     baseUnit = BaseUnit.objects.all()
     #หา id express
