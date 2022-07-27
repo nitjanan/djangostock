@@ -709,6 +709,7 @@ def requisition(request):
 def createRequisition(request):
     active = request.session['company_code']
     company = BaseBranchCompany.objects.get(code = active)
+    requestName = User.objects.all()
     
     form = RequisitionForm(request, request.POST or None, initial={'branch_company': company})
     if form.is_valid():
@@ -726,6 +727,7 @@ def createRequisition(request):
 
     context = {
         'form':form,
+        'requestName':requestName,
         'requisitions_page': "tab-active",
         'requisitions_show': "show",
         active :"active show",
@@ -965,6 +967,7 @@ def editAllRequisition(request, requisition_id):
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
 
+    requestName = User.objects.all()
     #form save
     form = RequisitionForm(request, instance=requisition)
 
@@ -987,6 +990,7 @@ def editAllRequisition(request, requisition_id):
         'pr': pr,
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,
+        'requestName':requestName,
         'requisitions_page':"tab-active",
         'requisitions_show':"show",
         active :"active show",

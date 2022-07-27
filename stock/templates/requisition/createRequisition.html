@@ -8,6 +8,15 @@
     <div class="card bg-light">
         <div class="card-body">
             <form method="post" enctype="multipart/form-data">
+                <label for="id_name" class=" requiredField">
+                    ชื่อผู้ขอตั้งเบิก<span class="asteriskField">*</span>
+                </label>
+                <input id="rName" name="rName" type="text" list="idRequestNameList" class="form-control" Placeholder="ค้นหาชื่อผู้ขอตั้งเบิก ..." class="form-control" autocomplete="off" required>
+                <datalist id="idRequestNameList">
+                    {% for results in requestName %}
+                        <option data-id="{{results.id}}" value="{{results.first_name}} {{results.last_name}}"></option>
+                    {% endfor %}
+                </datalist>
                 <p>{{ form | crispy}}</p> 
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary hidden-print">
@@ -19,4 +28,16 @@
       </div>
 </div>
 
+{% endblock%}
+{% block javascript %}
+<script>
+ $("#rName" ).change(function() {
+    // get data id ของ option data list
+    var val = $("#rName").val();
+    var id = $("#idRequestNameList option[value='"+val+"']").attr('data-id');
+
+    //set value to form.item
+    $("#id_name").val(id);
+  });
+</script>
 {% endblock%}

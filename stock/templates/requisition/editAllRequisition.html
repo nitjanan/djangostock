@@ -181,6 +181,15 @@
   <div class="card bg-light my-3 hidden-print">
     <div class="card-body">
         <form method="post" enctype ="multipart/form-data">
+            <label for="id_name" class=" requiredField">
+                ชื่อผู้ขอตั้งเบิก<span class="asteriskField">*</span>
+            </label>
+            <input id="rName" name="rName" type="text" list="idRequestNameList" class="form-control" Placeholder="ค้นหาชื่อผู้ขอตั้งเบิก ..." class="form-control" autocomplete="off" required>
+            <datalist id="idRequestNameList">
+                {% for results in requestName %}
+                    <option data-id="{{results.id}}" value="{{results.first_name}} {{results.last_name}}"></option>
+                {% endfor %}
+            </datalist>
             <p>{{ form | crispy}}</p>
             {% csrf_token %}
               <button type="submit" class="btn btn-warning hidden-print">
@@ -314,6 +323,14 @@
 <script>
 $('div#div_id_memorandum_pdf a').addClass('btn btn-outline-success btn-sm');
 $('div#div_id_memorandum_pdf a').text('Download');
+
+$(function() {
+    //get datalist to set input
+    var idName = $("#id_name").val();
+    var val = $('#idRequestNameList option[data-id='+idName+']').val();
+    //set value to form.item
+    $("#rName").val(val);
+}); 
 
 function searchProduct(name){
     var titleInput = name;
@@ -562,5 +579,15 @@ function selectedUrgency(name, id){
     
   }
 }
+
+$("#rName" ).change(function() {
+    // get data id ของ option data list
+    var val = $("#rName").val();
+    var id = $("#idRequestNameList option[value='"+val+"']").attr('data-id');
+
+    //set value to form.item
+    $("#id_name").val(id);
+});
+
 </script> 
 {% endblock %}
