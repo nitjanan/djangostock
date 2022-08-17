@@ -43,7 +43,7 @@ class RequisitionForm(forms.ModelForm):
         #เปลี่ยนเป็นการค้นหาชื่อแทน
         # self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.all())
         self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
-        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ'))
+        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
 
     class Meta:
         model = Requisition
@@ -96,7 +96,7 @@ class PurchaseOrderForm(forms.ModelForm):
        if self.instance.branch_company is not None:
            bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
            self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
-           self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = self.instance.branch_company))
+           self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = self.instance.branch_company) , required=False)
 
     class Meta:
        model = PurchaseOrder
@@ -137,7 +137,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
         bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
         self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
-        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session['company_code']))
+        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session['company_code']), required=False)
         #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session['company_code']))
 
     class Meta:

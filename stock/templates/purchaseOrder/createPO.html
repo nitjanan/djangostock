@@ -50,6 +50,11 @@
             $('#div_id_ref_no').hide();
             $('#div_id_created').hide();
         "{% endif %}"
+
+        //ปิดไม่ให้แก้ผู้อนุมัติใบสั่งซื้อหากไม่มีสิทธิ
+        "{% if not isEditApproverUserPO %}"
+            $('#div_id_approver_user').hide();
+        "{% endif %}"
     });
 
 $(function () {

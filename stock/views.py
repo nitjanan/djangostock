@@ -1109,6 +1109,9 @@ def is_supplies(user):
 def is_edit_po_id(user):
     return user.groups.filter(name='แก้ไขรหัสใบสั่งซื้อ').exists()
 
+def is_edit_approver_user_po(user):
+    return user.groups.filter(name='แก้ไขผู้อนุมัติใบสั่งซื้อ').exists()
+
 def get_bool(str):
     if str == 'True':
         bol  = True
@@ -1800,6 +1803,9 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
     isEditPO = is_edit_po_id(request.user)
 
+    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
+    isEditApproverUserPO = is_edit_approver_user_po(request.user)
+
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #
@@ -1911,6 +1917,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'itemList':itemList,
         'new_pr':new_pr,
         'isEditPO':isEditPO,
+        'isEditApproverUserPO':isEditApproverUserPO,
         'heading': heading_message,
         active :"active show",
 		"disableTab":"disableTab",
@@ -2366,7 +2373,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                             pass
                 except RequisitionItem.DoesNotExist:
                     pass
-                
+
             for obj in formset.deleted_objects:
                 try:
                     d_item = RequisitionItem.objects.get(id = obj.item.id)
@@ -2572,6 +2579,9 @@ def createPOFromComparisonPrice(request, cp_id):
     #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
     isEditPO = is_edit_po_id(request.user)
 
+    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
+    isEditApproverUserPO = is_edit_approver_user_po(request.user)
+
     bc = ComparisonPrice.objects.get(id = cp_id)
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : bc.approver_user})
@@ -2600,6 +2610,7 @@ def createPOFromComparisonPrice(request, cp_id):
     context = {
         'form':form,
         'isEditPO':isEditPO,
+        'isEditApproverUserPO':isEditApproverUserPO,
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",
