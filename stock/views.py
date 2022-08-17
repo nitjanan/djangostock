@@ -2366,23 +2366,23 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                             pass
                 except RequisitionItem.DoesNotExist:
                     pass
+                
             for obj in formset.deleted_objects:
-                if numDistributor == 1:
-                    try:
-                        d_item = RequisitionItem.objects.get(id = obj.item.id)
-                        d_item.is_used = False
-                        d_item.save()
-                        #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
-                        check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
-                        if check_item:
-                            try:
-                                pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
-                                pr.is_complete = False
-                                pr.save()
-                            except:
-                                pass
-                    except RequisitionItem.DoesNotExist:
-                        pass   
+                try:
+                    d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    d_item.is_used = False
+                    d_item.save()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                    if check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                            pr.is_complete = False
+                            pr.save()
+                        except:
+                            pass
+                except RequisitionItem.DoesNotExist:
+                    pass   
                 obj.delete()
             formset.save_m2m()
             return redirect('createComparePricePOItem',cp_id = cp_id, isReApprove = 'False')

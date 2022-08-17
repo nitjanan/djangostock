@@ -137,7 +137,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
         bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
         self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
-        self.fields['approver_user'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session['company_code']))
+        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session['company_code']))
         #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session['company_code']))
 
     class Meta:
