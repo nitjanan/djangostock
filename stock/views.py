@@ -1149,7 +1149,7 @@ def createPR(request, requisition_id):
         description = ""
         
     #form
-    form = PurchaseRequisitionForm(request.POST or None, initial={'note': description, 'branch_company': company})
+    form = PurchaseRequisitionForm(request, request.POST or None, initial={'note': description, 'branch_company': company, 'organizer': requisition.organizer,})
     if form.is_valid():
         #save id express
         bool = saveIdExpressPR(request)
@@ -1169,14 +1169,13 @@ def createPR(request, requisition_id):
             #พัสดุ
             new_contact.stockman_user_id = request.user.id
             new_contact.stockman_update = datetime.datetime.now()
-            #เจ้าหน้าที่จัดซื้อ
-            new_contact.organizer = requisition.organizer
 
             new_contact.save()
 
             #save purchase_requisition_id ใน requisition
             obj = Requisition.objects.get(id = requisition_id)
             obj.purchase_requisition_id = new_contact.pk
+            obj.organizer = new_contact.organizer
             obj.pr_ref_no = new_contact.ref_no
             obj.save()
             return HttpResponseRedirect(reverse('viewPR'))
@@ -1313,7 +1312,7 @@ def removePR(request, pr_id):
 def editPR(request, pr_id):
     active = request.session['company_code']
     pr = PurchaseRequisition.objects.get(id=pr_id)
-    form = PurchaseRequisitionForm(instance=pr)
+    form = PurchaseRequisitionForm(request, instance=pr)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=pr.requisition.id)
@@ -1328,7 +1327,7 @@ def editPR(request, pr_id):
         quantityTotal += item.quantity_pr
 
     if request.method == 'POST':
-        form = PurchaseRequisitionForm(request.POST, instance=pr)
+        form = PurchaseRequisitionForm(request, request.POST, instance=pr)
         if form.is_valid():
             new_contact = form.save()
             #save id express
