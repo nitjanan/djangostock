@@ -1806,8 +1806,10 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     isEditApproverUserPO = is_edit_approver_user_po(request.user)
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    #
+    #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
+    itemList = PurchaseOrderItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(po__id = po_id)
+    
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
@@ -2116,7 +2118,9 @@ def createComparePricePOItem(request, cp_id, isReApprove):
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp_id)
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
@@ -2241,7 +2245,9 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     active = request.session['company_code']
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp_id)
     
     #company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
@@ -2331,7 +2337,9 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp_id)
     #
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
@@ -2624,12 +2632,15 @@ def createPOItemFromComparisonPrice(request, po_id):
 
     template_name = 'purchaseOrderItem/createPOItemFromComparisonPrice.html'
     heading_message = 'Model Formset Demo'
-    #ดึง item ที่ทำใบ po แล้ว
-    itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-
     po_data = PurchaseOrder.objects.get(id=po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
     cp = ComparisonPrice.objects.get(id = po_data.cp.id)
+
+    #ดึง item ที่ทำใบ po แล้ว
+    #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
+    #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp.id)
+
     cp_item = ComparisonPriceItem.objects.filter(cp = po_data.cp.id, bidder__distributor = po_data.cp.select_bidder)
     cpd_price = ComparisonPriceDistributor.objects.get(cp = po_data.cp.id, distributor = po_data.cp.select_bidder)
     if request.method == 'GET':

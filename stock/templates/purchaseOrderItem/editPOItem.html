@@ -107,9 +107,14 @@
                         {{form.id}} 
                         {{form.item}}
                         <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
-                        <datalist id="idExpressList">
+                        <!--datalist id="idExpressList">
                           {% for results in itemList %}
                             <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
+                          {% endfor %}
+                        </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
+                        <datalist id="idExpressList">
+                          {% for results in itemList %}
+                            <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product__name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product__name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.item__product__unit__id}}"></option>
                           {% endfor %}
                         </datalist>
                         {{form.description|add_class:"form-control"}} {{form.quantity }} {{form.unit| add_class:"form-control"}} {{form.unit_price}} {{form.price}} {{ form.DELETE| add_class:"del"}}
