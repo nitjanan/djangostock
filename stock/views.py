@@ -1,3 +1,4 @@
+from decimal import Decimal
 from dis import dis
 from multiprocessing import context
 import numbers
@@ -31,7 +32,7 @@ from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisiti
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from .resources import ReceiveItemResource, DistributorResource
 from tablib import Dataset
 from django.db.models import Q
@@ -43,6 +44,7 @@ import xlwt
 from django.db.models import F, Func, Value, CharField
 from django.db.models import Sum
 from django.views.decorators.cache import cache_control
+from decimal import Decimal
 
 def findCompanyIn(request):
     code = request.session['company_code']
@@ -1112,6 +1114,39 @@ def is_edit_po_id(user):
 def is_edit_approver_user_po(user):
     return user.groups.filter(name='แก้ไขผู้อนุมัติใบสั่งซื้อ').exists()
 
+def calculateSumQuantityCPItem(r_item, cp):
+    quantity_cp_item = None
+    #ค้นหาจำนวนสินค้าในใบเปรียบเทียบเพื่อดูว่าดึงสินค้าจากใบขอซื้อไปใช้หมดหรือยัง
+    cp_item_query = ComparisonPriceItem.objects.filter(item = r_item, cp = cp)
+    quantity_cp_item = cp_item_query.aggregate(Sum('quantity'))
+    sum_cp_item = quantity_cp_item['quantity__sum'] if cp_item_query else Decimal(0.00)
+    return sum_cp_item
+
+def calculateSumQuantityPOItem(r_item, po):
+    quantity_po_item = None
+    #ค้นหาจำนวนสินค้าในใบสั่งซื้อเพื่อดูว่าดึงสินค้าจากใบขอซื้อไปใช้หมดหรือยัง
+    po_item_query = PurchaseOrderItem.objects.filter(item = r_item, po = po, po__cp__isnull = True)
+    quantity_po_item = po_item_query.aggregate(Sum('quantity'))
+    sum_po_item = quantity_po_item['quantity__sum'] if po_item_query else Decimal(0.00)
+    return sum_po_item
+
+
+def calculateSumQuantityCPAndPOItem(r_item):
+    quantity_cp_item = None
+    quantity_po_item = None
+
+    #ค้นหาจำนวนสินค้าในใบเปรียบเทียบเพื่อดูว่าดึงสินค้าจากใบขอซื้อไปใช้หมดหรือยัง
+    cp_item_query = ComparisonPriceItem.objects.filter(item = r_item).order_by('-quantity').values('cp').distinct()
+    quantity_cp_item = cp_item_query.aggregate(Sum('quantity'))
+    sum_cp_item = quantity_cp_item['quantity__sum'] if cp_item_query else Decimal(0.00)
+
+    #ค้นหาจำนวนสินค้าในใบสั่งซื้อเพื่อดูว่าดึงสินค้าจากใบขอซื้อไปใช้หมดหรือยัง
+    po_item_query = PurchaseOrderItem.objects.filter(item = r_item, po__cp__isnull = True).values('po').distinct()
+    quantity_po_item = po_item_query.aggregate(Sum('quantity'))
+    sum_po_item = quantity_po_item['quantity__sum'] if po_item_query else Decimal(0.00)
+
+    return sum_cp_item + sum_po_item
+
 def get_bool(str):
     if str == 'True':
         bol  = True
@@ -1216,6 +1251,13 @@ def createCMorPO(request, pr_id):
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
+    
+    #หาจำนวนของที่ซื้อไปแล้ว
+    itemUseQuantity = []
+    for i in items:
+        quantity = calculateSumQuantityCPAndPOItem(i)
+        itemUseQuantity.append(quantity)
+
     requisition = Requisition.objects.get(id=pr.requisition.id)
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
@@ -1247,17 +1289,26 @@ def createCMorPO(request, pr_id):
         for i in listItem:
             #บอกสถานะว่าใช้ไปใน CM หรือ PR แล้ว
             ri = RequisitionItem.objects.get(id = i)
-            ri.is_used = True
+            #ri.is_used = True
+            #ri.save()
+            #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+            sum_po_cp = calculateSumQuantityCPAndPOItem(ri)
+            remain = ri.quantity_pr - sum_po_cp
+
+            #save จำนวนสินค้าที่ใช้ไปแล้ว
+            ri.quantity_used = sum_po_cp
             ri.save()
 
+            #สร้าง ComparisonPriceItem ใหม่
             item = ComparisonPriceItem.objects.create(
                 item_id = i,
                 bidder_id = cpd.id,
                 cp = cp.id,
-                quantity = ri.quantity_pr,
+                quantity = remain,
                 unit = ri.product.unit
             )
             item.save()
+
         return HttpResponseRedirect(reverse('editComparePricePOItemFromPR', args=(cp.id, cpd.id)))
     if request.method=='POST' and 'btnformPO' in request.POST:
         po = PurchaseOrder.objects.create(
@@ -1272,12 +1323,20 @@ def createCMorPO(request, pr_id):
         for i in listItem:
             #บอกสถานะว่าใช้ไปใน CM หรือ PR แล้ว
             ri = RequisitionItem.objects.get(id = i)
-            ri.is_used = True
-            ri.save()
+            #ri.is_used = True
+            #ri.save()
+            #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+            sum_po_cp = calculateSumQuantityCPAndPOItem(ri)
+            remain = ri.quantity_pr - sum_po_cp
 
+            #save จำนวนสินค้าที่ใช้ไปแล้ว
+            ri.quantity_used = sum_po_cp
+            ri.save()
+            
+            #สร้าง PurchaseOrderItem ใหม่
             item = PurchaseOrderItem.objects.create(
                 item_id = i,
-                quantity = ri.quantity_pr,
+                quantity = remain,
                 po_id = po.id,
                 unit = ri.product.unit
             )
@@ -1286,6 +1345,7 @@ def createCMorPO(request, pr_id):
 
     context = {
         'items':items,
+        'itemUseQuantity': itemUseQuantity,
         'requisition':requisition,
         'quantityTotal': quantityTotal,
         'baseUrgency': baseUrgency,
@@ -1661,17 +1721,32 @@ def removePO(request, po_id):
     for obj in items:
         try:
             d_item = RequisitionItem.objects.get(id = obj.item.id)
-            d_item.is_used = False
-            d_item.save()
-            #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
-            check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
-            if check_item:
-                try:
-                    pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
-                    pr.is_complete = False
-                    pr.save()
-                except:
-                    pass
+            #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+            po_sum_quantity = calculateSumQuantityPOItem(obj.item, po)
+            sum_po_cp = calculateSumQuantityCPAndPOItem(obj.item)
+            remain = d_item.quantity_pr - (sum_po_cp - po_sum_quantity)
+
+            #save จำนวนสินค้าที่ใช้ไปแล้ว
+            d_item.quantity_used = sum_po_cp - po_sum_quantity
+
+            if remain <= 0:
+                d_item.is_used = True
+                d_item.save()
+                #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                if check_item:
+                    try:
+                        pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                        pr.is_complete = True
+                        pr.save()
+                    except:
+                        pass
+            else:
+                d_item.is_used = False
+                d_item.save()
+                pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                pr.is_complete = False
+                pr.save()
         except RequisitionItem.DoesNotExist:
             pass
 
@@ -1851,22 +1926,36 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 instance.save()
                 try:
                     r_item = RequisitionItem.objects.get(id = instance.item.id)
-                    r_item.is_used = True
-                    r_item.save()
-                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
-                    check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
-                    if not check_item:
-                        try:
-                            pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
-                            pr.is_complete = True
-                            pr.save()
-                        except:
-                            pass
+                    #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+                    sum_po_cp = calculateSumQuantityCPAndPOItem(instance.item)
+                    remain = r_item.quantity_pr - sum_po_cp
+
+                    r_item.quantity_used = sum_po_cp
+
+                    if remain <= 0:
+                        r_item.is_used = True
+                        r_item.save()
+                        #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                        check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
+                        if not check_item:
+                            try:
+                                pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                                pr.is_complete = True
+                                pr.save()
+                            except:
+                                pass
+                    else:
+                        r_item.is_used = False
+                        r_item.save()
+                        pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                        pr.is_complete = False
+                        pr.save()
                 except RequisitionItem.DoesNotExist:
                     pass
             for obj in formset.deleted_objects:
                 try:
                     d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    d_item.quantity_used = calculateSumQuantityCPAndPOItem(obj.item) - obj.quantity
                     d_item.is_used = False
                     d_item.save()
                     #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
@@ -2082,8 +2171,20 @@ def removeComparePricePO(request, cp_id):
     for obj in items:
         try:
             d_item = RequisitionItem.objects.get(id = obj.item.id)
-            d_item.is_used = False
-            d_item.save()
+            #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+            cp_sum_quantity = calculateSumQuantityCPItem(obj.item, cp_id)
+            sum_po_cp = calculateSumQuantityCPAndPOItem(obj.item)
+            remain = d_item.quantity_pr - (sum_po_cp - cp_sum_quantity)
+
+            d_item.quantity_used = sum_po_cp - cp_sum_quantity
+
+            if remain <= 0:
+                d_item.is_used = True
+                d_item.save()
+            else:
+                d_item.is_used = False
+                d_item.save()
+
             #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
             check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
             if check_item:
@@ -2175,8 +2276,19 @@ def createComparePricePOItem(request, cp_id, isReApprove):
                     #ตัดสินค้าหน้า PR
                     try:
                         r_item = RequisitionItem.objects.get(id = cpi.item.id)
-                        r_item.is_used = True
-                        r_item.save()
+                        #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+                        sum_po_cp = calculateSumQuantityCPAndPOItem(cpi.item)
+                        remain = r_item.quantity_pr - sum_po_cp
+
+                        r_item.quantity_used = sum_po_cp
+
+                        if remain <= 0:
+                            r_item.is_used = True
+                            r_item.save()
+                        else:
+                            r_item.is_used = False
+                            r_item.save()
+
                         #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
                         check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
                         if not check_item:
@@ -2247,7 +2359,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
-    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp_id)
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product__name', 'item__requisit__pr_ref_no', 'quantity', 'item__product__unit__id').filter(cp = cp_id)
     
     #company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
@@ -2276,8 +2388,19 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
                 #ตัดสินค้าหน้า PR
                 try:
                     r_item = RequisitionItem.objects.get(id = instance.item.id)
-                    r_item.is_used = True
-                    r_item.save()
+                    #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+                    sum_po_cp = calculateSumQuantityCPAndPOItem(instance.item)
+                    remain = r_item.quantity_pr - sum_po_cp
+
+                    r_item.quantity_used = sum_po_cp
+
+                    if remain <= 0:
+                        r_item.is_used = True
+                        r_item.save()
+                    else:
+                        r_item.is_used = False
+                        r_item.save()
+                    
                     #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
                     check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
                     if not check_item:
@@ -2292,6 +2415,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
             for obj in formset.deleted_objects:
                 try:
                     d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    d_item.quantity_used = calculateSumQuantityCPAndPOItem(obj.item) - obj.quantity
                     d_item.is_used = False
                     d_item.save()
                     #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
@@ -2367,23 +2491,36 @@ def editComparePricePOItem(request, cp_id , cpd_id):
                 #ตัดสินค้าหน้า PR
                 try:
                     r_item = RequisitionItem.objects.get(id = instance.item.id)
-                    r_item.is_used = True
-                    r_item.save()
-                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
-                    check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
-                    if not check_item:
-                        try:
-                            pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
-                            pr.is_complete = True
-                            pr.save()
-                        except:
-                            pass
+                    #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+                    sum_po_cp = calculateSumQuantityCPAndPOItem(instance.item)
+                    remain = r_item.quantity_pr - sum_po_cp
+
+                    if remain <= 0:
+                        r_item.is_used = True
+                        r_item.save()
+                        #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                        check_item = RequisitionItem.objects.filter(requisit = r_item.requisit, is_used = False).distinct()
+                        if not check_item:
+                            try:
+                                pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                                pr.is_complete = True
+                                pr.save()
+                            except:
+                                pass
+                    else:
+                        r_item.is_used = False
+                        r_item.save()
+                        pr = PurchaseRequisition.objects.get(requisition = r_item.requisit)
+                        pr.is_complete = False
+                        pr.save()
+                        
                 except RequisitionItem.DoesNotExist:
                     pass
 
             for obj in formset.deleted_objects:
                 try:
                     d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    d_item.quantity_used = calculateSumQuantityCPAndPOItem(obj.item) - obj.quantity
                     d_item.is_used = False
                     d_item.save()
                     #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
@@ -2433,8 +2570,18 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
         for obj in items:
             try:
                 d_item = RequisitionItem.objects.get(id = obj.item.id)
-                d_item.is_used = False
-                d_item.save()
+                #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+                cp_sum_quantity = calculateSumQuantityCPItem(obj.item, cp_id)
+                sum_po_cp = calculateSumQuantityCPAndPOItem(obj.item)
+                remain = d_item.quantity_pr - (sum_po_cp - cp_sum_quantity)
+
+                if remain <= 0:
+                    d_item.is_used = True
+                    d_item.save()
+                else:
+                    d_item.is_used = False
+                    d_item.save()
+
                 #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
                 check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
                 if check_item:

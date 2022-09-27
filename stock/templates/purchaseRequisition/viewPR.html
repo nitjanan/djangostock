@@ -100,7 +100,7 @@
             <td colspan="2">
               {% if isPurchasing %}
               <div style="display: flex;">
-                <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ PR/ใบ PO</a>
+                <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ CM/ใบ PO</a>
                 <a href="{% url 'closePR' pr.id %}" onclick="return confirm('คุณต้องการปิดรายการนี้หรือไม่ ?\n *** รายการใบขอซื้อจะไปอยู่หน้า History ใช้ในกรณี\n 1. ดึงสินค้าไปทำรายการแล้ว แต่ระบบไม่นำใบขอซื้อออกอัตโนมัติ\n 2. รายการใบขอซื้อที่ไม่ต้องการซื้อแล้ว')" class="btn btn-secondary btn-sm">ปิดรายการ</a>             
               </div>
               {% else %}

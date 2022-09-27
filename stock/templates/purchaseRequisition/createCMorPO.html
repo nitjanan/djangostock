@@ -127,12 +127,12 @@ u.dotted {
                       <td class="text-center"><strong>รายการ</strong></td>
                       <td class="text-center"><strong>วัตุประสงค์/เหตุผล</strong></td>
                       <td class="text-center"><strong>จำนวน</strong></td>
+                      <td class="text-center text-success"><strong>ซื้อแล้ว</strong></td>
                       <td class="text-center"><strong>หน่วย</strong></td>
                       <td class="text-center"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
                       <td class="text-center"><strong>วันที่ต้องการ</strong></td>
                       <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                      <td class="text-center"><strong>เลือก</strong></td>
-                      
+                      <td class="text-center text-primary"><strong>เลือก</strong></td>          
                   </tr>
                 </thead>
                 <tbody>
@@ -143,6 +143,13 @@ u.dotted {
                       <td name="name">{{item.product_name}}</td>
                       <td name="description">{{item.description}}</td>
                       <td class="text-center" name="quantity">{{item.quantity_pr | floatformat:"-4"}}</td>
+                      <td class="text-center text-success" name="used">
+                        {% for q in itemUseQuantity%}
+                          {% if forloop.counter == forloop.parentloop.counter %}
+                            {{q | floatformat:"-4"}}
+                          {%endif%}
+                        {% endfor %}
+                      </td>
                       <td class="text-center" name="unit">
                         {{item.unit}}
                       </td>

@@ -467,6 +467,7 @@ class RequisitionItem(models.Model):
     requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True, blank=True)
     quantity_pr = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
     quantity_take = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
+    quantity_used = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True, default = 0.0)#จำนวนสินค้าที่ดึงไปทำแล้ว
     is_used = models.BooleanField(default=False)#สถานะที่บอกว่านำไปใช้ใน pr หรือ cm หรือยัง
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
 
