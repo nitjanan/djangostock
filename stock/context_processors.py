@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.db.models import Prefetch
 from django.db import connection
 from collections import Counter
+from django.contrib.auth.decorators import login_required
 
 def findCompanyIn(request):
     active = request.session['company_code']
@@ -238,7 +239,8 @@ def approveCPAllCounter(request):
     except:
         company_in = ""
 
-    cm_count = 0
+
+    ''' สิทธิใบเปรียบเทียบแบบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
@@ -324,6 +326,41 @@ def approveCPAllCounter(request):
                         new_cm[obj] = obj
     except:
         pass
+    '''
+    
+    cm_count = 0
+    new_cm = dict()
+
+    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    ecm_item = []
+    try:
+        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, examiner_user = request.user, branch_company__code__in = company_in)
+    except :
+        ecm_item = None
+
+
+    try:
+        for obj in ecm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+    except:
+        pass
+
+
+    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    acm_item = []
+    try:
+        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
+    except :
+        acm_item = None
+        
+    try:
+        for obj in acm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+    except:
+        pass
+    
 
     cm_count =  len(new_cm)
     return cm_count
@@ -486,6 +523,8 @@ def findAllApproveAlert(request, tab):
 
     pending_count = 0
     pr_count = 0
+    po_count = 0
+    cm_count = 0
 
     if(isPermiss):
         try:
@@ -545,6 +584,8 @@ def findAllApproveAlert(request, tab):
                 
     po_count  =  len(new_po)
 	
+
+    ''' สิทธิการอนุมัติใบเปรียบเทียบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
 	########################################
 	#ผู้ตรวจสอบ
     try:
@@ -624,6 +665,37 @@ def findAllApproveAlert(request, tab):
                 for obj in acp:
                     if obj not in new_cm:
                         new_cm[obj] = obj
+    except:
+        pass
+    '''
+
+    new_cm = dict()
+    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    ecm_item = []
+    try:
+        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, examiner_user = request.user, branch_company__code__in = tab)
+    except ComparisonPrice.DoesNotExist:
+        ecm_item = None
+
+    try:
+        for obj in ecm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+    except:
+        pass
+
+
+    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    acm_item = []
+    try:
+        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = tab)
+    except ComparisonPrice.DoesNotExist:
+        acm_item = None
+        
+    try:
+        for obj in acm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
     except:
         pass
 

@@ -4,7 +4,8 @@ from multiprocessing import context
 import numbers
 from pickletools import decimalnl_short
 import re
-from turtle import numinput, title
+from tkinter import N
+from turtle import numinput, position, title
 from typing import cast
 from unicodedata import decimal, numeric
 from urllib import response
@@ -194,6 +195,7 @@ def index(request, category_slug = None):
             if obj not in new_po:
                 new_po[obj] = obj
 
+    ''' อนุมัติใบเปรียบเทียบแบบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
     #ผู้ตรวจสอบ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
@@ -272,6 +274,39 @@ def index(request, category_slug = None):
                 for obj in acp:
                     if obj not in new_cm:
                         new_cm[obj] = obj
+    except:
+        pass
+
+    '''
+
+    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    ecm_item = []
+    try:
+        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, examiner_user = request.user, branch_company__code__in = company_in)
+    except ComparisonPrice.DoesNotExist:
+        ecm_item = None
+
+    new_cm = dict()
+
+    try:
+        for obj in ecm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+    except:
+        pass
+
+
+    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    acm_item = []
+    try:
+        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
+    except ComparisonPrice.DoesNotExist:
+        acm_item = None
+        
+    try:
+        for obj in acm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
     except:
         pass
 
@@ -1113,6 +1148,56 @@ def is_edit_po_id(user):
 
 def is_edit_approver_user_po(user):
     return user.groups.filter(name='แก้ไขผู้อนุมัติใบสั่งซื้อ').exists()
+
+def searchExaminerAndApproverUser(request):
+    if 'select_bidder_id' in request.GET and 'cp_id' in request.GET:
+        select_bidder_id = request.GET.get('select_bidder_id')
+        cp_id = request.GET.get('cp_id')
+        cm_type =  request.GET.get('cm_type')
+
+        cpd = ComparisonPriceDistributor.objects.get(distributor__id = select_bidder_id, cp = cp_id)
+
+        user_examiner =  findExaminerUserComparisonPrice(request, cpd.id, cm_type)
+        user_approve = findApproveUserComparisonPrice(request, cpd.id, cm_type)
+        
+    data = {
+        'user_examiner_list': list(user_examiner),
+        'user_approve_list': list(user_approve),
+    }
+    
+    return JsonResponse(data)
+
+def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
+    active = request.session['company_code']
+    cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
+    if cm_type == '1' or cm_type == '2':
+        if cm_type == '1':
+            permiss = BasePermission.objects.get(codename = 'CAECPD')
+        elif cm_type == '2':
+            permiss = BasePermission.objects.get(codename = 'CAECPA')
+        position = PositionBasePermission.objects.filter(base_permission = permiss.id).values('position_id')
+    else:
+        permiss = BasePermission.objects.filter(ap_amount_min__lte = cpd.amount , ap_amount_max__gte = cpd.amount, codename__in = ['CAECP1','CAECP2','CAECP3','CAECP4']).values('id')
+        position = PositionBasePermission.objects.filter(base_permission__in = permiss).values('position_id')
+    user = UserProfile.objects.filter(position__in = position, branch_company__code = active).values('user__id', 'user__first_name','user__last_name')
+
+    return user
+
+def findApproveUserComparisonPrice(request, cpd_id, cm_type):
+    active = request.session['company_code']
+    cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
+    if cm_type == '1' or cm_type == '2':
+        if cm_type == '1':
+            permiss = BasePermission.objects.get(codename = 'CAACPD')
+        elif cm_type == '2':
+            permiss = BasePermission.objects.get(codename = 'CAACPA')
+        position = PositionBasePermission.objects.filter(base_permission = permiss.id).values('position_id')
+    else: 
+        permiss = BasePermission.objects.filter(ap_amount_min__lte = cpd.amount , ap_amount_max__gte = cpd.amount, codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).values('id')
+        position = PositionBasePermission.objects.filter(base_permission__in = permiss).values('position_id')
+    user = UserProfile.objects.filter(position__in = position, branch_company__code = active).values('user__id', 'user__first_name','user__last_name')
+
+    return user
 
 def calculateSumQuantityCPItem(r_item, cp):
     quantity_cp_item = None
@@ -2105,7 +2190,7 @@ def viewComparePricePO(request):
     active = request.session['company_code']
 
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
-    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) , branch_company__code = active)
+    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), branch_company__code = active)
 
     prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
 
@@ -2887,6 +2972,29 @@ def printCPApprove(request, cp_id, isFromHome):
     isApprover = False
     isExaminer = False
 
+
+    try:
+        cpd_select = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
+    except ComparisonPriceDistributor.DoesNotExist:
+        cpd_select = None
+
+
+    try:
+        ex_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, examiner_status = 1, examiner_user = request.user)
+        if(ex_item):
+            isExaminer = True
+    except ComparisonPrice.DoesNotExist:
+        ex_item = None
+
+    try:
+        ap_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, approver_status = 1, approver_user = request.user)
+        if(ap_item):
+            isApprover = True
+    except ComparisonPrice.DoesNotExist:
+        ap_item = None
+
+
+    ''' ผู้ตรวจสอบและผู้อนุมัติใบเปรียบเทียบราคาแบบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
     #get permission with position login
     #ผู้ตรวจสอบ
     try:
@@ -2915,10 +3023,6 @@ def printCPApprove(request, cp_id, isFromHome):
             obj = BasePermission.objects.get(id = i['base_permission'])
             pmAA.append(obj)
 
-    try:
-        cpd_select = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
-    except ComparisonPriceDistributor.DoesNotExist:
-        cpd_select = None
 
     if isPermissAA and cpd_select:
         for aa in pmAA:
@@ -2949,6 +3053,7 @@ def printCPApprove(request, cp_id, isFromHome):
                 if ae.ap_amount_min <= cpd_select.amount <= ae.ap_amount_max and cpd_select.cp.cm_type is None:
                     isExaminer = True
 
+    '''
 
     pr_ref_no = ""
     new_pr_id = dict()

@@ -206,12 +206,12 @@
                             ผู้ตรวจสอบ
                             {% if cp.examiner_status.id == 3 %}
                                 <br>{{cp.examiner_status.name}}
-                            {% else %}
+                            {% elif cp.examiner_status.id == 2 %}
                                 {% if cp.examiner_user %}
                                 <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.examiner_user}} )<br>
                                     {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
-                                {% endif %}                          
+                                {% endif %}
                             {% endif %}
 
                         </div>
@@ -221,7 +221,7 @@
                             ผู้อนุมัติ
                             {% if cp.approver_status.id == 3 %}
                                 <br>{{cp.approver_status.name}}
-                            {% else %}
+                            {% elif cp.approver_status.id == 2 %}
                                 {% if cp.approver_user %}
                                 <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.approver_user}} )<br>

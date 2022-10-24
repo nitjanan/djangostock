@@ -211,7 +211,7 @@
                             {% if cp.examiner_status.id == 3 %}
                                 <br>{{cp.examiner_status.name}}
                             {% elif cp.select_bidder %}
-                                {% if cp.examiner_user %}
+                                {% if cp.examiner_status.id == 2 %}
                                 <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.examiner_user}} )<br>
                                     {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
@@ -230,7 +230,7 @@
                             {% if cp.approver_status.id == 3 %}
                                 <br>{{cp.approver_status.name}}
                             {% else %}
-                                {% if cp.approver_user %}
+                                {% if cp.approver_status.id == 2 %}
                                 <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.approver_user}} )<br>
                                     {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}

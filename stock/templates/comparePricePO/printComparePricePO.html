@@ -265,29 +265,13 @@
                 <div class="card">
                     <div class="card-body text-center pt-1 pb-1">
                         ผู้ตรวจสอบ
-                        {% if cp.examiner_status.id == 3 %}
-                            <br>{{cp.examiner_status.name}}
-                        {% else %}
-                            {% if cp.examiner_user %}
-                            <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                                ( {{cp.examiner_user}} )<br>
-                                {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
-                            {% endif %}                          
-                        {% endif %}
+                        {{form.examiner_user | add_class:"form-control is-invalid"}}
                     </div>
                 </div>
                 <div class="card">
                     <div class="card-body text-center pt-1 pb-1">
                         ผู้อนุมัติ
-                        {% if cp.approver_status.id == 3 %}
-                            <br>{{cp.approver_status.name}}
-                        {% else %}
-                            {% if cp.approver_user %}
-                            <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                                ( {{cp.approver_user}} )<br>
-                                {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
-                            {% endif %}                         
-                        {% endif %}
+                        {{form.approver_user | add_class:"form-control is-invalid"}}
                     </div>
                 </div>
         </div>        
@@ -339,7 +323,15 @@
 
     calculateDiffPrice(priceSelect, index);
 
-}); 
+    //set examiner_user and approver_user
+    searchExaminerAndApproverUser();
+
+});
+
+$('input[type=radio][name=cm_type]').change(function() {
+    searchExaminerAndApproverUser();
+});
+
  $(".express" ).change(function() {
     // get data id ของ option data list
     var val = $("#express").val();
@@ -360,6 +352,16 @@
     }
     //คำนวนราคาที่แตกต่าง
     calculateDiffPrice(priceSelect, index);
+
+    //หาผู้ตรวจสอบและผู้อนุมัติใบเปรียบเทียบราคา
+    searchExaminerAndApproverUser();
+  });
+
+  $(".express").blur(function() {
+    if($('#id_select_bidder').val() == ""){
+        $("#id_examiner_user").find('option').not(':first').remove();
+        $("#id_approver_user").find('option').not(':first').remove();
+    }
   });
 
   function calculateDiffPrice(priceSelect, index){
@@ -372,13 +374,61 @@
     }
   }
 
-  function ReplaceNumberWithCommas(num) {
+    function ReplaceNumberWithCommas(num) {
         const options = { 
         minimumFractionDigits: 2,
         maximumFractionDigits: 2 
         };
         const formatted = Number(num).toLocaleString('en', options);
         return formatted;
+    }
+
+    function searchExaminerAndApproverUser(){
+        var tempExaminer = $("#id_examiner_user").val();
+        var tempApprover = $("#id_approver_user").val();
+
+        if($('#id_select_bidder').val() != ""){
+            var idInput = $('#id_select_bidder').val();
+            var cmType = $("#id_cm_type :radio:checked").val();
+
+            // Create Ajax Call
+            if(idInput){
+                //set id_distributor
+                $.ajax({
+                url: '{% url "searchExaminerAndApproverUser" %}',
+                data: {
+                        'select_bidder_id': idInput,
+                        'cp_id': "{{cp.id}}",
+                        'cm_type': cmType,
+                    },
+                dataType: 'json',
+                success: function (data) {
+                    if (data.user_examiner_list) {
+                            $("#id_examiner_user").find('option').not(':first').remove();
+                            //set option 
+                            for(var i = 0; i < data.user_examiner_list.length; i++){
+                                $("#id_examiner_user").append(new Option(data.user_examiner_list[i].user__first_name + " " + data.user_examiner_list[i].user__last_name, data.user_examiner_list[i].user__id));
+                            }
+                    }
+
+                    if (data.user_approve_list) {
+                            $("#id_approver_user").find('option').not(':first').remove();
+                            //set option 
+                            for(var i = 0; i < data.user_approve_list.length; i++){
+                                $("#id_approver_user").append(new Option(data.user_approve_list[i].user__first_name + " " + data.user_approve_list[i].user__last_name, data.user_approve_list[i].user__id));
+                            }
+                    }
+
+                    $('#id_examiner_user option[value="'+tempExaminer +'"]').attr('selected','selected');
+                    $('#id_approver_user option[value="'+tempApprover +'"]').attr('selected','selected');
+                }
+                });
+            }
+            return false;
+        }else{
+            $("#id_examiner_user").find('option').not(':first').remove();
+            $("#id_approver_user").find('option').not(':first').remove();
+        }
     }
 
 </script>
