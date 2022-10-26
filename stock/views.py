@@ -115,27 +115,30 @@ def index(request, category_slug = None):
         company_in = findCompanyIn(request)
     except:
         company_in = BaseBranchCompany.objects.filter(code = active).values('code')
-    
+
     #ใบขอซื้อ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPR')
-        isPermiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        #แบบเก่า
+        #permiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        isPermiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR', branch_company__code__in = company_in).values('branch_company__code')
     except:
         isPermiss_pr  = False
 
     try:
-        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code = active).exists()
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code__in = isPermiss_pr).exists()
     except:
         pass
+
 
     #ถ้าเป็นผู้อนุมัติ
     pr_item_ap = None
     if(isPermiss_pr and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseRequisition.DoesNotExist:
             pass
@@ -146,23 +149,25 @@ def index(request, category_slug = None):
             if obj not in new_pr:
                 new_pr[obj] = obj
 
+    '''เปลี่ยน flow ผู้มีสิทธิขอซื้อไม่ต้องกดอนุมัติ
     try:
         #ดึงข้อมูล PurchaseRequisition
-        pr_item_pc = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+        pr_item_pc = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
     except PurchaseRequisition.DoesNotExist:
         pr_item_pc = None
 
     if pr_item_pc:
         for obj in pr_item_pc:
             if obj not in new_pr:
-                new_pr[obj] = obj
+                new_pr[obj] = obj    
+    '''
 
     #ใบสั่งซื้อ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPO')
-        isPermiss_po = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        isPermiss_po = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO', branch_company__code__in = company_in).values('branch_company__code')
     except:
         isPermiss_po  = False
 
@@ -171,7 +176,7 @@ def index(request, category_slug = None):
     if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
 
@@ -1169,32 +1174,44 @@ def searchExaminerAndApproverUser(request):
 
 def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
     active = request.session['company_code']
+
+    try:
+        company_in = findCompanyIn(request)
+    except:
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
+
     cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if cm_type == '1' or cm_type == '2':
         if cm_type == '1':
             permiss = BasePermission.objects.get(codename = 'CAECPD')
         elif cm_type == '2':
             permiss = BasePermission.objects.get(codename = 'CAECPA')
-        position = PositionBasePermission.objects.filter(base_permission = permiss.id).values('position_id')
+        position = PositionBasePermission.objects.filter(base_permission = permiss.id, branch_company__code__in = company_in).values('position_id')
     else:
         permiss = BasePermission.objects.filter(ap_amount_min__lte = cpd.amount , ap_amount_max__gte = cpd.amount, codename__in = ['CAECP1','CAECP2','CAECP3','CAECP4']).values('id')
-        position = PositionBasePermission.objects.filter(base_permission__in = permiss).values('position_id')
+        position = PositionBasePermission.objects.filter(base_permission__in = permiss, branch_company__code__in = company_in).values('position_id')
     user = UserProfile.objects.filter(position__in = position, branch_company__code = active).values('user__id', 'user__first_name','user__last_name')
 
     return user
 
 def findApproveUserComparisonPrice(request, cpd_id, cm_type):
     active = request.session['company_code']
+
+    try:
+        company_in = findCompanyIn(request)
+    except:
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
+
     cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if cm_type == '1' or cm_type == '2':
         if cm_type == '1':
             permiss = BasePermission.objects.get(codename = 'CAACPD')
         elif cm_type == '2':
             permiss = BasePermission.objects.get(codename = 'CAACPA')
-        position = PositionBasePermission.objects.filter(base_permission = permiss.id).values('position_id')
+        position = PositionBasePermission.objects.filter(base_permission = permiss.id, branch_company__code__in = company_in).values('position_id')
     else: 
         permiss = BasePermission.objects.filter(ap_amount_min__lte = cpd.amount , ap_amount_max__gte = cpd.amount, codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).values('id')
-        position = PositionBasePermission.objects.filter(base_permission__in = permiss).values('position_id')
+        position = PositionBasePermission.objects.filter(base_permission__in = permiss, branch_company__code__in = company_in).values('position_id')
     user = UserProfile.objects.filter(position__in = position, branch_company__code = active).values('user__id', 'user__first_name','user__last_name')
 
     return user
@@ -1623,6 +1640,12 @@ def viewPRApprove(request):
 
 def editPRApprove(request, pr_id, isFromHome):
     active = request.session['company_code']
+
+    try:
+        company_in = findCompanyIn(request)
+    except:
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
+
     pr = PurchaseRequisition.objects.get(id=pr_id)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
@@ -1640,9 +1663,26 @@ def editPRApprove(request, pr_id, isFromHome):
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPR')
-        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        permiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR', branch_company__code__in = company_in).values('branch_company__code')
     except:
-        isPermiss  = False
+        permiss_pr  = None
+
+    try:
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code__in = permiss_pr).exists()
+    except:
+        pass
+
+
+    #ถ้าเป็นผู้อนุมัติ
+    isPermiss = False
+    if(permiss_pr and in_company):
+        try:
+            #ดึงข้อมูล PurchaseRequisition
+            isPermiss = PurchaseRequisition.objects.filter(id = pr_id, branch_company__code__in = permiss_pr).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseRequisition.DoesNotExist:
+            isPermiss = False
+
 
     context = {
         'items':items,
@@ -2128,6 +2168,12 @@ def viewPOApprove(request):
 
 def editPOApprove(request, po_id, isFromHome):
     active = request.session['company_code']
+
+    try:
+        company_in = findCompanyIn(request)
+    except:
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
+
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po)
     new_pr_id = dict()
@@ -2149,14 +2195,42 @@ def editPOApprove(request, po_id, isFromHome):
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPO')
-        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        permiss_po = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO', branch_company__code__in = company_in).values('branch_company__code')
     except:
-        isPermiss  = False
+        permiss_po  = None
 
-    if isPermiss and not po.approver_user:
-        isPermiss  = True
-    elif po.approver_user == request.user:
-        isPermiss  = True
+
+    #ใบสั่งซื้อที่ fix ตามสิทธิ
+    isPermiss = False
+    isPermiss_po1 = False
+    isPermiss_po2 = False
+
+    #เคสที่ดึงมาจากใบเปรียบเทียบมีชื่อคนอนุมัติอยู่แล้ว
+    if request.user.is_authenticated:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            isPermiss_po1 = PurchaseOrder.objects.filter(id = po_id, approver_user = request.user, branch_company__code__in = company_in).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            pass
+
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if permiss_po:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            isPermiss_po2 = PurchaseOrder.objects.filter(id = po_id, branch_company__code__in = permiss_po).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseOrder.DoesNotExist:
+            pass
+
+    if isPermiss_po1 or isPermiss_po2:
+        isPermiss = True
+
+    '''
+    if po_item:
+        if permiss_po and not po_item.approver_user:
+            isPermiss  = True
+        elif po_item.approver_user == request.user:
+            isPermiss  = True    
+    '''
 
     if request.method == 'POST':
         post_status = request.POST['status'] or None

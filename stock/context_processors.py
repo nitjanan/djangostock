@@ -84,39 +84,43 @@ def approvePendingCounter(request):
     except:
         active = ""
     
+    pending_count = 0
+    #หาหน้าต่างการมองเห็นบริษัททั้งหมดของ user
     try:
         company_in = findCompanyIn(request)
     except:
-        company_in = ""
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
 
-    pending_count = 0
-    #get permission with position login
+    #ใบขอซื้อ
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPR')
-        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        isPermiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR', branch_company__code__in = company_in).values('branch_company__code')
     except:
-        isPermiss  = False
+        isPermiss_pr  = False
 
-    #ถ้าเป็นผู้อนุมัติ
     try:
-        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code = active).exists()
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code__in = isPermiss_pr).exists()
     except:
         pass
 
-    if(isPermiss and in_company):
+
+    #ถ้าเป็นผู้อนุมัติ
+    pr_item_ap = None
+    if(isPermiss_pr and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pr_item = PurchaseRequisition.objects.all().filter(purchase_status = 2, approver_status = 1, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-            pending_count = pr_item.count()
+            pending_count = pr_item_ap.count()
         except PurchaseRequisition.DoesNotExist:
-            pending_count = 0
+            pass
         
     return pending_count
 
-#หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีขอซื้อ
+#เปลี่ยน flow ผู้มีสิทธิขอซื้อไม่ต้องกดอนุมัติ
+#หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสิทธิขอซื้อ
 def approvePRCounter(request):
     try:
         active = request.session['company_code']
@@ -149,7 +153,7 @@ def approvePOCounter(request):
     try:
         company_in = findCompanyIn(request)
     except:
-        company_in = ""
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
 
     po_count = 0
     #get permission with position login
@@ -157,12 +161,12 @@ def approvePOCounter(request):
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPO')
-        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO', branch_company__code__in = company_in).values('branch_company__code')
     except:
         isPermiss  = False
 
     try:
-        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code = active).exists()
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code__in = isPermiss).exists()
     except:
         pass
     po_item = None
@@ -170,7 +174,7 @@ def approvePOCounter(request):
     if isPermiss and in_company:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = isPermiss) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
@@ -210,7 +214,7 @@ def allApprovePOCounter(request):
 def allApprovePRCounter(request):
     all_pr_ap = 0
     pd_count = approvePendingCounter(request)
-    pr_count = approvePRCounter(request)
+    pr_count = 0 #approvePRCounter(request)
 
     if 'admin' in request.path:
         return {} #รีเทริ์นค่าเปล่า
@@ -370,7 +374,7 @@ def approveCPAllCounter(request):
 def approveAllCounter(request):
     ap_all = 0
     pd_count = approvePendingCounter(request)
-    pr_count = approvePRCounter(request)
+    pr_count = 0 #approvePRCounter(request)
     po_count = approvePOCounter(request)
     cm_count = approveCPAllCounter(request)
 
@@ -477,6 +481,10 @@ def setAlertPurchasingCompanyTab(request, tab):
         request.session['NUM_G1'] = findAllPurchasingAlert(request, tab)
     elif tab == "R1":
         request.session['NUM_R1'] = findAllPurchasingAlert(request, tab)
+    elif tab == "M1":
+        request.session['NUM_M1'] = findAllPurchasingAlert(request, tab)
+    elif tab == "P1":
+        request.session['NUM_P1'] = findAllPurchasingAlert(request, tab)
     return 
 
 
@@ -507,58 +515,69 @@ def setAlertApproveCompanyTab(request, tab, company_code):
         request.session['NUM_G1'] = findAllApproveAlert(request, code)
     elif tab == "R1":
         request.session['NUM_R1'] = findAllApproveAlert(request, code)
+    elif tab == "M1":
+        request.session['NUM_M1'] = findAllApproveAlert(request, code)
+    elif tab == "P1":
+        request.session['NUM_P1'] = findAllApproveAlert(request, code)
     elif tab == "ALL":
         request.session['NUM_ALL'] = findAllApproveAlert(request, company_code)
     return 
 
 def findAllApproveAlert(request, tab):
-    #get permission with position login
-    try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
-
-        permiss = BasePermission.objects.filter(codename ='CAAPR')
-        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR').prefetch_related(Prefetch('base_permission', queryset=permiss))
-    except:
-        isPermiss  = False
-
     pending_count = 0
     pr_count = 0
     po_count = 0
     cm_count = 0
 
-    if(isPermiss):
+    #get permission with position login
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CAAPR')
+        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR', branch_company__code__in = tab).values('branch_company__code')
+    except:
+        isPermiss  = False
+
+    try:
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code__in = isPermiss).exists()
+    except:
+        pass
+
+    if(isPermiss and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pending_count = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = tab).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pending_count = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = isPermiss).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseRequisition.DoesNotExist:
             pending_count = 0
+
+	#เปลี่ยน flow ผู้มีสิทธิขอซื้อไม่ต้องกดอนุมัติ
+    '''
+        try:
+            #ดึงข้อมูล PurchaseRequisition
+            pr_count = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__code__in = isPermiss).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
+        except PurchaseRequisition.DoesNotExist:
+            pr_count = 0    
+    '''
+
 	#################################
-    try:
-        #ดึงข้อมูล PurchaseRequisition
-        pr_count = PurchaseRequisition.objects.filter(purchase_user = request.user.id, purchase_status = 1, branch_company__code__in = tab).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
-        #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
-    except PurchaseRequisition.DoesNotExist:
-        pr_count = 0
-		
-    
-	#################################
-	
-	    #get permission with position login
+
+	#get permission with position login
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
 
         permiss = BasePermission.objects.filter(codename ='CAAPO')
-        isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO').prefetch_related(Prefetch('base_permission', queryset=permiss))
+        isPermiss_po = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO', branch_company__code__in = tab).values('branch_company__code')
     except:
-        isPermiss  = False
+        isPermiss_po  = False
 
     po_item = None
     #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
-    if isPermiss:
+    if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
