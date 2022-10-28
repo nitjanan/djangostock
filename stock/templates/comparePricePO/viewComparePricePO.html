@@ -54,7 +54,6 @@
                   <th scope="col">ร้านที่เลือก</th>
                   <th scope="col">ราคา</th>
                   <th scope="col">ทำรายการ</th>
-                  <th scope="col">Action</th>
                   <th scope="col">ใบสั่งซื้อ</th>
                 </tr>
               </thead>
@@ -91,8 +90,7 @@
                     {% endfor %} 
                   </td>
                   {% if cp.approver_status_id == 1 and cp.examiner_status_id == 1 %}
-                    <td><a href="{%url 'createComparePricePOItem' cp.id False %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a></td>
-                    <td>
+                    <td><a href="{%url 'createComparePricePOItem' cp.id False %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a>
                         <!-- a href="{% url 'editComparePricePO' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a -->
                         <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removeComparePricePO' cp.id %}" class="btn btn-danger btn-sm" style="width:90px"><i class="fas fa-trash-alt"></i> ลบ</a>
                     </td>
@@ -108,8 +106,6 @@
                         btn-outline-danger
                       {% endif %}" style="width:90px"
                       >{{cp.examiner_status}}</button>
-                    </td>
-                    <td>
                       <button type="button"
                       class="btn btn-block btn-sm
                       {% if cp.approver_status.id == 1 %}
@@ -120,11 +116,29 @@
                         btn-outline-danger
                       {% endif %}" style="width:90px"
                       >{{cp.approver_status}}</button>
+                      {% if cp.is_special_approve_cm %}
+                        <button type="button"
+                        class="btn btn-block btn-sm
+                        {% if cp.special_approver_status.id == 1 %}
+                          btn-outline-warning
+                        {% elif cp.special_approver_status.id == 2 %}
+                          btn-outline-success
+                        {% elif cp.special_approver_status.id == 3 %}
+                          btn-outline-danger
+                        {% endif %}" style="width:90px"
+                        >{{cp.special_approver_status}}</button>
+                      {% endif %}
                     </td>
                   {% endif %}
                   <td>
-                    {% if cp.select_bidder and cp.po_ref_no == "" and cp.examiner_status.id == 2 and cp.approver_status.id == 2 %}
-                      <a href="{%url 'createPOFromComparisonPrice' cp.id %}" class="btn btn-primary btn-sm"><i class="fas fa-plus-square"></i> สร้างใบสั่งซื้อ</a></td>
+                    {% if cp.is_special_approve_cm %}
+                      {% if cp.select_bidder and cp.po_ref_no == "" and cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 2%}
+                      <a href="{%url 'createPOFromComparisonPrice' cp.id %}" class="btn btn-primary btn-sm"><i class="fas fa-plus-square"></i> สร้าง</a></td>
+                      {% endif %}
+                    {%else%}
+                      {% if cp.select_bidder and cp.po_ref_no == "" and cp.examiner_status.id == 2 and cp.approver_status.id == 2 %}
+                        <a href="{%url 'createPOFromComparisonPrice' cp.id %}" class="btn btn-primary btn-sm"><i class="fas fa-plus-square"></i> สร้าง</a></td>
+                      {% endif %}
                     {% endif %}
                   </td>
                 </tr>

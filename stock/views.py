@@ -301,7 +301,7 @@ def index(request, category_slug = None):
         pass
 
 
-    #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
+    #ถ้าเป็นผู้อนุมัติ ใบเปรียบเทียบ
     acm_item = []
     try:
         acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
@@ -315,6 +315,59 @@ def index(request, category_slug = None):
     except:
         pass
 
+    #ถ้าเป็นผู้อนุมัติพิเศษ ใบเปรียบเทียบ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CASCP')
+        isPermiss_scp = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CASCP', branch_company__code__in = company_in).values('branch_company__code', 'base_permission')
+    except:
+        isPermiss_scp  = None
+
+    pmAA = []
+    if(isPermiss_scp):
+        for i in isPermiss_scp:
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
+
+    cpd_item = []
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if isPermiss_scp:
+        for aa in isPermiss_scp:
+            for pm in pmAA:
+                try:
+                    #ดึงข้อมูล PurchaseOrder
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
+                    cpd_item.append(obj)
+                except ComparisonPriceDistributor.DoesNotExist:
+                    pass
+    
+    scp = []
+    try:
+        for item in cpd_item:
+            scp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if scp:
+                for obj in scp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
+    except:
+        pass
+
+    '''
+    scm_item = []
+    try:
+        scm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 2, special_approver_status = 1, branch_company__code__in = company_in)
+    except ComparisonPrice.DoesNotExist:
+        scm_item = None
+        
+    try:
+        for obj in scm_item:
+            if obj not in new_cm:
+                new_cm[obj] = obj
+    except:
+        pass
+    
+    '''
 
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
@@ -1153,6 +1206,10 @@ def is_edit_po_id(user):
 
 def is_edit_approver_user_po(user):
     return user.groups.filter(name='แก้ไขผู้อนุมัติใบสั่งซื้อ').exists()
+
+def is_special_approver_cp(cp_id):
+    bp = BasePermission.objects.get(codename='CASCP')
+    return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
 
 def searchExaminerAndApproverUser(request):
     if 'select_bidder_id' in request.GET and 'cp_id' in request.GET:
@@ -2264,7 +2321,7 @@ def viewComparePricePO(request):
     active = request.session['company_code']
 
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
-    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), branch_company__code = active)
+    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) & ~Q(special_approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), branch_company__code = active)
 
     prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
 
@@ -2405,12 +2462,21 @@ def createComparePricePOItem(request, cp_id, isReApprove):
         're approve cp'
         cp.is_re_approve = get_bool(isReApprove)
         if get_bool(isReApprove) == True:
-            cp.approver_user = None
             cp.approver_status_id = 1
             cp.approver_update = None
-            cp.examiner_user= None
+
             cp.examiner_status_id = 1
             cp.examiner_update= None
+            #ถ้าเป็นแบบพิเศษยอดเกิน 200,000
+            if cp.is_special_approve_cm:
+                cp.special_approver_user = None
+                cp.special_approver_status_id = 1
+                cp.special_approver_update = None
+            else:
+                cp.special_approver_user = None
+                cp.special_approver_status_id = 4
+                cp.special_approver_update = None
+
             cp.save()
 
     elif request.method == 'POST':
@@ -2797,9 +2863,21 @@ def printComparePricePO(request, cp_id):
             #set ร้านค้าที่เลือก
             select_bidder = ComparisonPriceDistributor.objects.get(cp = f_cp, distributor = f_cp.select_bidder)
             select_bidder.is_select = True
+            #save
+            select_bidder.save()
+
             if f_cp.select_bidder:
                 f_cp.select_bidder_update = datetime.datetime.now()
-            select_bidder.save()
+
+            #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 2 คนหรือไม่ ถ้าเป็นให้ set special_approver_status เป็นรอดำเนินการ
+            isSpecialCP = is_special_approver_cp(cp.id)
+            if isSpecialCP:
+                f_cp.special_approver_status_id = 1
+                f_cp.is_special_approve_cm = True
+            else:
+                f_cp.special_approver_status_id = 4
+                f_cp.is_special_approve_cm = False
+            #save
             f_cp.save()
             return redirect('viewComparePricePO')
 
@@ -2836,6 +2914,9 @@ def showComparePricePO(request, cp_id, mode):
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
     itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount')
+
+    #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 2 คนหรือไม่
+    isSpecialCP = is_special_approver_cp(cp_id)
 
     pr_ref_no = ""
     new_pr_id = dict()
@@ -2874,6 +2955,7 @@ def showComparePricePO(request, cp_id, mode):
             'pr_ref_no': pr_ref_no,
             'new_pr': new_pr,
             'isPurchasing':isPurchasing,
+            'isSpecialCP':isSpecialCP,
             'form':form,
             page: "tab-active",
             show: "show",
@@ -2896,8 +2978,15 @@ def createPOFromComparisonPrice(request, cp_id):
     isEditApproverUserPO = is_edit_approver_user_po(request.user)
 
     bc = ComparisonPrice.objects.get(id = cp_id)
+
+    #ถ้าเป็นยอดเกิน 200,000 เปลี่ยนคนอนุมัติ
+    if bc.is_special_approve_cm:
+        approver_user = bc.special_approver_user
+    else:
+        approver_user = bc.approver_user
+
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : bc.approver_user})
+    form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : approver_user})
     if form.is_valid():
         try:
             new_contact = form.save(commit=False)
@@ -3031,6 +3120,12 @@ def viewCPApprove(request):
 
 def printCPApprove(request, cp_id, isFromHome):
     active = request.session['company_code']
+
+    try:
+        company_in = findCompanyIn(request)
+    except:
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
+
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -3045,7 +3140,10 @@ def printCPApprove(request, cp_id, isFromHome):
 
     isApprover = False
     isExaminer = False
+    isApproverSpecial = False
 
+    #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 3 คนหรือไม่เพื่อทำ form อนุมัติแบบอนุมัติ 3
+    isSpecialCP = is_special_approver_cp(cp_id)
 
     try:
         cpd_select = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
@@ -3066,6 +3164,31 @@ def printCPApprove(request, cp_id, isFromHome):
             isApprover = True
     except ComparisonPrice.DoesNotExist:
         ap_item = None
+
+    #หาว่าเป็นคนที่มีสิทธิอนุมัติคนที่ 2 ในใบเปรียบเทียบนี้หรือไม่
+    #get permission with position login
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CASCP')
+        permiss_cm = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CASCP', branch_company__code__in = company_in).values('branch_company__code')
+    except:
+        permiss_cm  = None
+
+    try:
+        in_company = BaseBranchCompany.objects.filter(userprofile = user_profile, code__in = permiss_cm).exists()
+    except:
+        pass
+
+    #ใบสั่งซื้อที่ fix ตามสิทธิ
+
+    #เคสที่ดึงมาจากใบเปรียบเทียบมีชื่อคนอนุมัติอยู่แล้ว
+    if permiss_cm and in_company:
+        try:
+            #ดึงข้อมูล PurchaseOrder
+            isApproverSpecial = ComparisonPrice.objects.filter(id = cp_id, examiner_status = 2, approver_status = 2, special_approver_status = 1, is_special_approve_cm = True, branch_company__code__in = permiss_cm).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+        except ComparisonPrice.DoesNotExist:
+            pass
 
 
     ''' ผู้ตรวจสอบและผู้อนุมัติใบเปรียบเทียบราคาแบบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
@@ -3167,6 +3290,10 @@ def printCPApprove(request, cp_id, isFromHome):
             obj.examiner_status = status
             obj.examiner_user_id = request.user.id
             obj.examiner_update = datetime.datetime.now()
+        elif(isApproverSpecial):
+            obj.special_approver_status = status
+            obj.special_approver_user_id = request.user.id
+            obj.special_approver_update = datetime.datetime.now()
         obj.save()
         return redirect('printCPApprove', cp_id = cp_id, isFromHome = isFromHome)
 
@@ -3181,6 +3308,8 @@ def printCPApprove(request, cp_id, isFromHome):
         'isApprover': isApprover,
         'isExaminer': isExaminer,
         'isFromHome': isFromHome,
+        'isApproverSpecial': isApproverSpecial,
+        'isSpecialCP':isSpecialCP,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",
         active :"active show",
@@ -3531,7 +3660,7 @@ def viewComparePricePOHistory(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) | Q(examiner_status_id = 3) | Q(approver_status_id = 3), branch_company__code__in = company_in)
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) | Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3), branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)

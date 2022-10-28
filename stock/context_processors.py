@@ -241,7 +241,7 @@ def approveCPAllCounter(request):
     try:
         company_in = findCompanyIn(request)
     except:
-        company_in = ""
+        company_in = BaseBranchCompany.objects.filter(code = active).values('code')
 
 
     ''' สิทธิใบเปรียบเทียบแบบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
@@ -362,6 +362,45 @@ def approveCPAllCounter(request):
         for obj in acm_item:
             if obj not in new_cm:
                 new_cm[obj] = obj
+    except:
+        pass
+
+    #ถ้าเป็นผู้อนุมัติพิเศษ ใบเปรียบเทียบ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CASCP')
+        isPermiss_scp = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CASCP', branch_company__code__in = company_in).values('branch_company__code', 'base_permission')
+    except:
+        isPermiss_scp  = None
+
+    pmAA = []
+    if(isPermiss_scp):
+        for i in isPermiss_scp:
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
+
+
+    cpd_item = []
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if isPermiss_scp:
+        for aa in isPermiss_scp:
+            for pm in pmAA:
+                try:
+                    #ดึงข้อมูล PurchaseOrder
+                    obj = ComparisonPriceDistributor.objects.filter(cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
+                    cpd_item.append(obj)
+                except ComparisonPriceDistributor.DoesNotExist:
+                    pass
+    
+    scp = []
+    try:
+        for item in cpd_item:
+            scp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if scp:
+                for obj in scp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
     except:
         pass
     
@@ -715,6 +754,45 @@ def findAllApproveAlert(request, tab):
         for obj in acm_item:
             if obj not in new_cm:
                 new_cm[obj] = obj
+    except:
+        pass
+
+    #ถ้าเป็นผู้อนุมัติพิเศษ ใบเปรียบเทียบ
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+
+        permiss = BasePermission.objects.filter(codename ='CASCP')
+        isPermiss_scp = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CASCP', branch_company__code__in = tab).values('branch_company__code', 'base_permission')
+    except:
+        isPermiss_scp  = None
+
+    pmAA = []
+    if(isPermiss_scp):
+        for i in isPermiss_scp:
+            obj = BasePermission.objects.get(id = i['base_permission'])
+            pmAA.append(obj)
+
+
+    cpd_item = []
+    #ถ้าเป็นผู้อนุมัติที่มีสิทธิ
+    if isPermiss_scp:
+        for aa in isPermiss_scp:
+            for pm in pmAA:
+                try:
+                    #ดึงข้อมูล PurchaseOrder
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
+                    cpd_item.append(obj)
+                except ComparisonPriceDistributor.DoesNotExist:
+                    pass
+    
+    scp = []
+    try:
+        for item in cpd_item:
+            scp = ComparisonPrice.objects.filter(pk__in = item).distinct()
+            if scp:
+                for obj in scp:
+                    if obj not in new_cm:
+                        new_cm[obj] = obj
     except:
         pass
 

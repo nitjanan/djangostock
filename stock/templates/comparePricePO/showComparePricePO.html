@@ -194,7 +194,7 @@
     {% endif %}
         <div class="row my-2">
             <div class="card-group col">
-                    <div class="card" style="max-width: 15rem;">
+                    <div class="card" style="max-width: 13rem;">
                         <div class="card-body text-center pt-1 pb-1">
                         ผู้จัดทำ <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                         ( {{cp.organizer}} )<br>
@@ -226,10 +226,26 @@
                                 <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.approver_user}} )<br>
                                     {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
-                                {% endif %}                         
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
+                    {% if isSpecialCP %}
+                        <div class="card">
+                            <div class="card-body text-center pt-1 pb-1">
+                                ผู้อนุมัติ
+                                {% if cp.special_approver_status.id == 3 %}
+                                    <br>{{cp.special_approver_status.name}}
+                                {% elif cp.special_approver_status.id == 2 %}
+                                    {% if cp.special_approver_user %}
+                                    <img src="/media/{{cp.special_approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
+                                        ( {{cp.special_approver_user}} )<br>
+                                        {{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| date:"d/m/Y"}}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {%endif%}
             </div>        
         </div>
     <div class="row">
@@ -247,7 +263,7 @@
           </button>
         </div>
       </div>
-      {% if cp.examiner_user_id != 1 and isPurchasing %}
+      {% if cp.examiner_status_id != 1 and isPurchasing %}
       <div class="row my-3 d-print-none">
         <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
       </div>

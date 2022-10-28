@@ -766,7 +766,22 @@ class ComparisonPrice(models.Model):
         related_name='cp_examiner_status',
         null=True
     )
-    examiner_update = models.DateField(blank=True, null=True)
+    examiner_update = models.DateField(blank=True, null=True)  
+    special_approver_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='cp_special_approver_user',
+        null=True,
+        blank=True
+    )
+    special_approver_status = models.ForeignKey(
+        BaseApproveStatus,
+        on_delete=models.CASCADE,
+        related_name='cp_special_approver_status',
+        null=True
+    )
+    special_approver_update = models.DateField(blank=True, null=True)
+    is_special_approve_cm = models.BooleanField(default=False)
     select_bidder_update = models.DateField(blank=True, null=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
     po_ref_no = models.CharField(max_length=255, blank = True)
