@@ -161,6 +161,21 @@ def get_first_name(self):
     return self.first_name + " " + self.last_name
 User.add_to_class("__str__", get_first_name)
 
+class BaseIsoCode(models.Model):
+    r_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบขอเบิก")
+    pr_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบขอซื้อ")
+    cm_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบเปรียบเทียบ")
+    po_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบสั่งซื้อ")
+
+    class Meta:
+        db_table = 'BaseIsoCode'
+        ordering=('id',)
+        verbose_name = 'รหัส iso'
+        verbose_name_plural = 'ข้อมูลรหัส iso'
+    
+    def __str__(self):
+        return str(self.id)
+
 class BaseAffiliatedCompany(models.Model):
     name = models.CharField(max_length=255,unique=True, verbose_name="โค้ดบริษัท")
     name_sh = models.CharField(max_length=255, blank=True, null = True, verbose_name="ชื่อบริษัทย่อ")
@@ -171,6 +186,7 @@ class BaseAffiliatedCompany(models.Model):
     tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")
     branch = models.CharField(max_length=255, blank = True, null = True, verbose_name="สาขา")
     logo = models.ImageField(null=True, blank=True, upload_to = "company/",verbose_name="โลโก้บริษัท")
+    iso_code = models.ForeignKey(BaseIsoCode, on_delete=models.CASCADE, blank = True, null = True, verbose_name="รหัส iso")
 
     class Meta:
         db_table = 'BaseAffiliatedCompany'

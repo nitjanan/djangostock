@@ -17,7 +17,7 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -867,6 +867,9 @@ def createRequisitionItem(request, requisition_id):
     template_name = 'requisitionItem/createRequisitionItem.html'
     heading_message = 'Model Formset Demo'
 
+    active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     requisition = Requisition.objects.get(id=requisition_id)
 
     formset = RequisitionItemModelFormset(request.POST or None, queryset=RequisitionItem.objects.none())
@@ -889,6 +892,7 @@ def createRequisitionItem(request, requisition_id):
         'requisition':requisition,
         'po_page': "tab-active",
         'po_show': "show",
+        'bc': bc,
         'formset': formset,
         'heading': heading_message,
     }
@@ -922,6 +926,8 @@ class CrudView(TemplateView):
     template_name = 'requisition/crud.html'
     def get_context_data(self, *args, **kwargs):
         active = self.request.session['company_code']
+
+        bc = BaseBranchCompany.objects.get(code = active)
         context = super().get_context_data(*args,**kwargs)
         context['users'] = RequisitionItem.objects.filter(requisition_id = self.kwargs['requisition_id'])
         requisition = Requisition.objects.get(id=self.kwargs['requisition_id'])
@@ -936,6 +942,7 @@ class CrudView(TemplateView):
         context['baseUnit'] = BaseUnit.objects.all()
         context['requisitions_page'] = "tab-active"
         context['requisitions_show'] = "show"
+        context['bc'] = bc
         context[active] = "active show"
         context['disableTab'] = "disableTab"
         context['colorNav'] = "disableNav"
@@ -1052,6 +1059,7 @@ class DeleteCrudUser(View):
 
 def editAllRequisition(request, requisition_id):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
     users = RequisitionItem.objects.filter(requisition_id = requisition_id)
     requisition = Requisition.objects.get(id=requisition_id)
     try:
@@ -1086,6 +1094,7 @@ def editAllRequisition(request, requisition_id):
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,
         'requestName':requestName,
+        'bc':bc,
         'requisitions_page':"tab-active",
         'requisitions_show':"show",
         active :"active show",
@@ -1097,6 +1106,8 @@ def editAllRequisition(request, requisition_id):
 
 def showRequisition(request, requisition_id, mode):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     items = RequisitionItem.objects.filter(requisition_id = requisition_id)
     requisition = Requisition.objects.get(id=requisition_id)
     try:
@@ -1116,6 +1127,7 @@ def showRequisition(request, requisition_id, mode):
         'pr': pr,
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,
+        'bc':bc,
         page:"tab-active",
         show:"show",
         active :"active show",
@@ -1315,6 +1327,8 @@ def get_bool(str):
 
 def createPR(request, requisition_id):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     company = BaseBranchCompany.objects.get(code = active)
 
     items= RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0)
@@ -1390,6 +1404,7 @@ def createPR(request, requisition_id):
         'baseProduct':baseProduct,
         'isPurchasing':isPurchasing,
         'company':company,
+        'bc':bc,
         'pr_page': "tab-active",
         'create_mode': True,
         'pr_show': "show",
@@ -1402,6 +1417,8 @@ def createPR(request, requisition_id):
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createCMorPO(request, pr_id):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     try:
         company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     except:
@@ -1511,6 +1528,7 @@ def createCMorPO(request, pr_id):
         'baseUnit': baseUnit,
         'baseProduct':baseProduct,        
         'pr': pr,
+        'bc': bc,
         'pr_page': "tab-active",
         'pr_show': "show",
         active :"active show",
@@ -1574,7 +1592,9 @@ def editPR(request, pr_id):
 
 def showPR(request, pr_id, mode):
     active = request.session['company_code']
+
     pr = PurchaseRequisition.objects.get(id=pr_id)
+    bc = BaseBranchCompany.objects.get(code = pr.branch_company)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=pr.requisition.id)
@@ -1628,6 +1648,7 @@ def showPR(request, pr_id, mode):
             'pr': pr,
             'isPurchasing': isPurchasing,
             'isSupplies': isSupplies,
+            'bc':bc,
             'create_mode': False,
             page: "tab-active",
             show: "show",
@@ -1704,6 +1725,7 @@ def editPRApprove(request, pr_id, isFromHome):
         company_in = BaseBranchCompany.objects.filter(code = active).values('code')
 
     pr = PurchaseRequisition.objects.get(id=pr_id)
+    bc = BaseBranchCompany.objects.get(code = pr.branch_company)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
     requisition = Requisition.objects.get(id=pr.requisition.id)
@@ -1750,6 +1772,7 @@ def editPRApprove(request, pr_id, isFromHome):
         'pr':pr,
         'isPermiss':isPermiss,
         'isFromHome':isFromHome,
+        'bc':bc,
         'ap_pr_page': "tab-active",
         'ap_pr_show': "show",
         active :"active show",
@@ -1948,7 +1971,10 @@ def removePO(request, po_id):
 
 def showPO(request, po_id, mode):
     active = request.session['company_code']
+
     po = PurchaseOrder.objects.get(id = po_id)
+    bc = BaseBranchCompany.objects.get(code = po.branch_company)
+
     items = PurchaseOrderItem.objects.filter(po = po)
 
     new_pr_id = dict()
@@ -1999,6 +2025,7 @@ def showPO(request, po_id, mode):
             'isPurchasing':isPurchasing,
             'mode': mode,
             'poa_form':poa_form,
+            'bc':bc,
             page: "tab-active",
             show: "show",
             active :"active show",
@@ -2010,6 +2037,10 @@ def showPO(request, po_id, mode):
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
+
+    active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     #ดึง item ที่ทำใบ po แล้ว
     itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
 
@@ -2044,6 +2075,7 @@ def createPOItem(request, po_id):
         'po':po,
         'po_page': "tab-active",
         'po_show': "show",
+        'bc':bc,
         'formset': formset,
         'price_form': price_form,
         'itemList':itemList,
@@ -2053,6 +2085,8 @@ def createPOItem(request, po_id):
 
 def editPOItem(request, po_id, isFromPR, isReApprove):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
 
@@ -2190,6 +2224,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'new_pr':new_pr,
         'isEditPO':isEditPO,
         'isEditApproverUserPO':isEditApproverUserPO,
+        'bc':bc,
         'heading': heading_message,
         active :"active show",
 		"disableTab":"disableTab",
@@ -2232,6 +2267,8 @@ def editPOApprove(request, po_id, isFromHome):
         company_in = BaseBranchCompany.objects.filter(code = active).values('code')
 
     po = PurchaseOrder.objects.get(id = po_id)
+    bc = BaseBranchCompany.objects.get(code = po.branch_company)
+
     items = PurchaseOrderItem.objects.filter(po = po)
     new_pr_id = dict()
     if items:
@@ -2308,6 +2345,7 @@ def editPOApprove(request, po_id, isFromHome):
                 'isPermiss':isPermiss,
                 'isFromHome':isFromHome,
                 'new_pr':new_pr,
+                'bc':bc,
                 'ap_po_page': "tab-active",
                 'ap_po_show': "show",
                 active :"active show",
@@ -2825,6 +2863,8 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
 
 def printComparePricePO(request, cp_id):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
+
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -2893,6 +2933,7 @@ def printComparePricePO(request, cp_id):
         'new_pr': new_pr,
         'form':form,
         'baseSparesType' : baseSparesType,
+        'bc':bc,
         'cp_page': "tab-active",
         'cp_show': "show",
         active :"active show",
@@ -2910,6 +2951,8 @@ def showComparePricePO(request, cp_id, mode):
         items_oldest = None
 
     cp = ComparisonPrice.objects.get(id=cp_id)
+    bc = BaseBranchCompany.objects.get(code = cp.branch_company)
+
     baseSparesType = BaseSparesType.objects.all()
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
@@ -2957,6 +3000,7 @@ def showComparePricePO(request, cp_id, mode):
             'isPurchasing':isPurchasing,
             'isSpecialCP':isSpecialCP,
             'form':form,
+            'bc':bc,
             page: "tab-active",
             show: "show",
             active :"active show",
@@ -3024,6 +3068,7 @@ def createPOFromComparisonPrice(request, cp_id):
 
 def createPOItemFromComparisonPrice(request, po_id):
     active = request.session['company_code']
+    bc = BaseBranchCompany.objects.get(code = active)
 
     template_name = 'purchaseOrderItem/createPOItemFromComparisonPrice.html'
     heading_message = 'Model Formset Demo'
@@ -3086,6 +3131,7 @@ def createPOItemFromComparisonPrice(request, po_id):
         'itemList':itemList,
         'new_pr':new_pr,
         'heading': heading_message,
+        'bc':bc,
         active :"active show",
 		"disableTab":"disableTab",
 		"colorNav":"disableNav"
@@ -3133,6 +3179,8 @@ def printCPApprove(request, cp_id, isFromHome):
         items_oldest = None
 
     cp = ComparisonPrice.objects.get(id=cp_id)
+    bc = BaseBranchCompany.objects.get(code = cp.branch_company)
+
     baseSparesType = BaseSparesType.objects.all()
 
     bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount')
@@ -3310,6 +3358,7 @@ def printCPApprove(request, cp_id, isFromHome):
         'isFromHome': isFromHome,
         'isApproverSpecial': isApproverSpecial,
         'isSpecialCP':isSpecialCP,
+        'bc':bc,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",
         active :"active show",
@@ -3434,6 +3483,9 @@ def editReceiveItem(request, rc_id):
     return render(request, 'receiveItem/editReceiveItem.html',context)
 
 def reApprovePR(request, pr_id):
+        active = request.session['company_code']
+        bc = BaseBranchCompany.objects.get(code = active)
+
         pr = PurchaseRequisition.objects.get(id = pr_id)
 
         pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
@@ -3462,6 +3514,7 @@ def reApprovePR(request, pr_id):
             'baseUrgency' : baseUrgency,
             'baseUnit' : baseUnit,
             'baseProduct' : baseProduct,
+            'bc':bc,
             'pr_page': "tab-active",
             'pr_show': "show",
         }

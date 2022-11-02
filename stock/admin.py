@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import ugettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -55,6 +55,10 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 class BaseApproveStatusAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+class BaseIsoCodeAdmin(ImportExportModelAdmin):
+    list_display = ['id','r_code','pr_code','cm_code','po_code'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseUrgencyAdmin(ImportExportModelAdmin):
@@ -274,3 +278,4 @@ admin.site.register(ReceiveItem, ReceiveItemAdmin)
 admin.site.register(BaseCMType, BaseCMTypeAdmin)
 admin.site.register(BaseAddress, BaseAddressAdmin)
 admin.site.register(BranchCompanyBaseAdress, BranchCompanyBaseAdressAdmin)
+admin.site.register(BaseIsoCode, BaseIsoCodeAdmin)
