@@ -406,7 +406,7 @@ $(".unit-price, .quantity")
     var unitPrice = $('#id_form-' + suffix + '-unit_price').val();
 
     price = parseFloat(quantity) * parseFloat(unitPrice);
-    $('#id_form-' + suffix + '-price').val(price);
+    $('#id_form-' + suffix + '-price').val(price.toFixed(2));
     
     // format ทศนิยม 2 และ 0 ตำแหน่ง
     $('#id_form-' + suffix + '-unit_price').val(parseFloat($('#id_form-' + suffix + '-unit_price').val()).toFixed(2));
