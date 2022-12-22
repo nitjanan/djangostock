@@ -46,6 +46,8 @@ from django.db.models import F, Func, Value, CharField
 from django.db.models import Sum
 from django.views.decorators.cache import cache_control
 from decimal import Decimal
+import pandas as pd
+from django_pandas.io import read_frame
 
 def findCompanyIn(request):
     code = request.session['company_code']
@@ -3853,6 +3855,66 @@ def viewPOReport(request):
         "colorNav":"enableNav"
     }
     return render(request, "report/viewPO.html", context)
+
+''' export excel by pandas
+def exportExcelPO(request):
+
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    stockman_user = request.GET.get('stockman_user') or None
+    ref_no = request.GET.get('ref_no') or None
+    distributor = request.GET.get('distributor') or None
+    amount_min = request.GET.get('amount_min') or None
+    amount_max = request.GET.get('amount_max') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    my_q = Q()
+    if stockman_user is not None:
+        my_q = Q(stockman_user = stockman_user)
+    if ref_no is not None:
+        my_q &= Q(ref_no__icontains = ref_no)
+    if distributor is not None:
+        my_q &= Q(distributor__name__startswith = distributor)
+    if start_created is not None:
+        my_q &= Q(created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(created__lte = end_created)
+    if amount_min is not None:
+        my_q &= Q(amount__gte = amount_min)
+    if amount_max is not None :
+        my_q &=Q(amount__lte = amount_max)
+
+    my_q &=Q(approver_status = 2)
+    my_q &=Q(branch_company__code__in = company_in)
+
+    qs = PurchaseOrder.objects.filter(
+        my_q
+    ).values('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no', 'branch_company__code', 'branch_company__code', 'branch_company__code', 'branch_company__code').order_by('amount')
+
+    
+    total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
+    sum_total_price = sum(total_price)
+
+    vat = PurchaseOrder.objects.filter(my_q).values_list('vat', flat=True)
+    sum_vat = sum(vat)
+
+    amount = PurchaseOrder.objects.filter(my_q).values_list('amount', flat=True)
+    sum_amount = sum(amount)
+
+    count = PurchaseOrder.objects.filter(my_q).count()
+    
+    po = PurchaseOrder.objects.filter(my_q)    
+
+
+    df = pd.DataFrame(qs)
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="filename.xlsx"'                                        
+    df.to_excel(response)
+
+    return response
+'''
 
 def exportExcelPO(request):
     active = request.session['company_code']
