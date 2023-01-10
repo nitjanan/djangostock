@@ -3856,66 +3856,6 @@ def viewPOReport(request):
     }
     return render(request, "report/viewPO.html", context)
 
-''' export excel by pandas
-def exportExcelPO(request):
-
-    active = request.session['company_code']
-    company_in = findCompanyIn(request)
-
-    stockman_user = request.GET.get('stockman_user') or None
-    ref_no = request.GET.get('ref_no') or None
-    distributor = request.GET.get('distributor') or None
-    amount_min = request.GET.get('amount_min') or None
-    amount_max = request.GET.get('amount_max') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-
-    my_q = Q()
-    if stockman_user is not None:
-        my_q = Q(stockman_user = stockman_user)
-    if ref_no is not None:
-        my_q &= Q(ref_no__icontains = ref_no)
-    if distributor is not None:
-        my_q &= Q(distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(created__lte = end_created)
-    if amount_min is not None:
-        my_q &= Q(amount__gte = amount_min)
-    if amount_max is not None :
-        my_q &=Q(amount__lte = amount_max)
-
-    my_q &=Q(approver_status = 2)
-    my_q &=Q(branch_company__code__in = company_in)
-
-    qs = PurchaseOrder.objects.filter(
-        my_q
-    ).values('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no', 'branch_company__code', 'branch_company__code', 'branch_company__code', 'branch_company__code').order_by('amount')
-
-    
-    total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
-    sum_total_price = sum(total_price)
-
-    vat = PurchaseOrder.objects.filter(my_q).values_list('vat', flat=True)
-    sum_vat = sum(vat)
-
-    amount = PurchaseOrder.objects.filter(my_q).values_list('amount', flat=True)
-    sum_amount = sum(amount)
-
-    count = PurchaseOrder.objects.filter(my_q).count()
-    
-    po = PurchaseOrder.objects.filter(my_q)    
-
-
-    df = pd.DataFrame(qs)
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="filename.xlsx"'                                        
-    df.to_excel(response)
-
-    return response
-'''
-
 def exportExcelPO(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -3971,7 +3911,7 @@ def exportExcelPO(request):
 
     rows = PurchaseOrder.objects.filter(
         my_q
-    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no', 'note', 'note', 'note', 'note').order_by('amount')
+    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no', 'branch_company', 'branch_company', 'branch_company', 'branch_company').order_by('amount')
 
     total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
     sum_total_price = sum(total_price)
@@ -3984,8 +3924,10 @@ def exportExcelPO(request):
 
     count = PurchaseOrder.objects.filter(my_q).count()
     
-    po = PurchaseOrder.objects.filter(my_q)
-    prs = PurchaseOrderItem.objects.filter(po__in = po)
+    #หารายละเอียดของสินค้าที่ออกใบสั่งซื้อ
+    po = PurchaseOrder.objects.filter(my_q).order_by('amount')
+    po_items = PurchaseOrderItem.objects.filter(po__in = po).values('po__ref_no', 'item__requisit__pr_ref_no', 'item__product__name', 'item__machine', 'item__desired_date', 'item__urgency').order_by('po__amount')
+
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
@@ -3996,32 +3938,22 @@ def exportExcelPO(request):
             else:
                 ws.write(row_num, col_num, row[col_num], font_style)
             
-            if col_num == 12:
-                strPr = ""
-                prev_obj = None
-                for pr in prs:
-                    if row[0] == pr.po.ref_no:
-                        if prev_obj is not None and pr.item.requisit.pr_ref_no == prev_obj:
-                            pass
-                        else:
-                            strPr += str(pr.item.requisit.pr_ref_no) + ", "
-                        prev_obj = pr.item.requisit.pr_ref_no
-                ws.write(row_num, col_num, strPr, font_style)
-            
+            strPr = ""
             strPrItem = ""
             strPrMachine = ""
             strPrDesired = ""
             strPrUrgency = ""
-            for pr in prs:
-                if row[0] == pr.po.ref_no:
-                    strPrItem += str(pr.item.product.name) + ", "
-                    strPrMachine += str(pr.item.machine) + ", "
-                    strPrDesired += str(pr.item.desired_date) + ", "
-                    try:
-                        ug = BaseUrgency.objects.get(id = pr.item.urgency)
-                        strPrUrgency += str(ug.name) + ", "
-                    except:
-                        pass
+
+            # loop po item
+            for item in po_items:
+                if row[0] == item['po__ref_no']:
+                    strPr = str(item['item__requisit__pr_ref_no'])
+                    strPrItem = " ".join([strPrItem, str(item['item__product__name']), ", "])
+                    strPrMachine = " ".join([strPrMachine, str(item['item__machine']), ", "])
+                    strPrDesired = str(item['item__desired_date'])
+                    strPrUrgency = str(item['item__urgency'])
+
+            ws.write(row_num, 12, strPr, font_style)
             ws.write(row_num, 13, strPrItem, font_style)
             ws.write(row_num, 14, strPrMachine, font_style)
             ws.write(row_num, 15, strPrDesired, date_style)
@@ -4033,6 +3965,19 @@ def exportExcelPO(request):
     ws.write(row_num+1, 8, sum_total_price, decimal_style)
     ws.write(row_num+1, 9, sum_vat, decimal_style)
     ws.write(row_num+1, 10, sum_amount, decimal_style)
+
+    ws.write(row_num+3, 0, "ระดับความเร่งด่วน", font_style)
+    ws.write(row_num+3, 1, "1 = A", font_style)
+    ws.write(row_num+3, 2, "ภายใน 48 ชม.", font_style)
+
+    ws.write(row_num+4, 1, "2 = B", font_style)
+    ws.write(row_num+4, 2, "3-5 วัน", font_style)
+
+    ws.write(row_num+5, 1, "3 = C", font_style)
+    ws.write(row_num+5, 2, "7 วัน", font_style)
+
+    ws.write(row_num+6, 1, "4 = D", font_style)
+    ws.write(row_num+6, 2, "15 วัน", font_style)
                         
     wb.save(response)
 
