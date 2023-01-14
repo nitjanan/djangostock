@@ -3859,7 +3859,7 @@ def viewPOReport(request):
 def viewPOItemReport(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    data = PurchaseOrderItem.objects.filter(po__approver_status = 2, po__branch_company__code__in = company_in)
+    data = PurchaseOrderItem.objects.filter(po__approver_status = 2, po__branch_company__code__in = company_in).order_by('-po__created')
 
     #กรองข้อมูล
     myFilter = PurchaseOrderItemFilter(request.GET, queryset = data)
