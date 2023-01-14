@@ -146,9 +146,17 @@
             {% endif %}
             {% if 'Report' in tab.name %}
             <li class="">
-                <a href="{% url 'viewPOReport' %}" class="{{rp_po_page}}">
+                <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-file-pdf"></i> Report
                 </a>
+                <ul class="collapse list-unstyled {{rp_po_show}} {{rp_poi_show}}" id="reportSubmenu">
+                    <li>
+                        <a class="{{rp_po_page}}" href="{% url 'viewPOReport' %}">รายงานใบสั่งซื้อที่สำเร็จ</a>
+                    </li>                
+                    <li>
+                        <a class="{{rp_poi_page}}" href="{% url 'viewPOItemReport' %}">รายงานตามสินค้าที่สั่งซื้อ</a>
+                    </li>
+                </ul>
             </li>
             {% endif %}
         {% endfor %}

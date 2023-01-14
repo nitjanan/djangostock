@@ -236,9 +236,9 @@ class PurchaseOrderAdmin(RelatedFieldAdmin):
     list_display = ('ref_no', 'cp__ref_no','distributor', 'stockman_user')
     search_fields = ('ref_no', 'cp__ref_no','distributor__name', 'stockman_user__first_name')
 
-class PurchaseOrderItemAdmin(RelatedFieldAdmin):
-    list_display = ('po__ref_no', 'item__product__id', 'item__product__name')
-    search_fields = ('po__ref_no', 'item__product__id', 'item__product__name')
+class PurchaseOrderItemAdmin(ImportExportModelAdmin):
+    list_display = ['po', 'item']
+    search_fields = ['po__ref_no', 'item__product__id', 'item__product__name']
 
     
 admin.site.register(Category, CategoryAdmin)

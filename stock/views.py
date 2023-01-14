@@ -29,7 +29,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -40,7 +40,7 @@ from django.db.models import Q
 from django.core.cache import cache
 import json
 from django.core.serializers import serialize
-from django.db.models import Count
+from django.db.models import Count, Avg
 import xlwt
 from django.db.models import F, Func, Value, CharField
 from django.db.models import Sum
@@ -178,7 +178,7 @@ def index(request, category_slug = None):
     if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
 
@@ -3856,6 +3856,30 @@ def viewPOReport(request):
     }
     return render(request, "report/viewPO.html", context)
 
+def viewPOItemReport(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+    data = PurchaseOrderItem.objects.filter(po__approver_status = 2, po__branch_company__code__in = company_in)
+
+    #กรองข้อมูล
+    myFilter = PurchaseOrderItemFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'po_item':dataPage,
+        'filter':myFilter,
+        'rp_poi_page': "tab-active",
+        'rp_poi_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "report/viewPOItem.html", context)
+
 def exportExcelPO(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -3952,6 +3976,9 @@ def exportExcelPO(request):
                     strPrMachine = " ".join([strPrMachine, str(item['item__machine']), ", "])
                     strPrDesired = str(item['item__desired_date'])
                     strPrUrgency = str(item['item__urgency'])
+            #remove , in last item
+            strPrItem = strPrItem[:-2]
+            strPrMachine = strPrMachine[:-2]
 
             ws.write(row_num, 12, strPr, font_style)
             ws.write(row_num, 13, strPrItem, font_style)
@@ -3979,6 +4006,196 @@ def exportExcelPO(request):
     ws.write(row_num+6, 1, "4 = D", font_style)
     ws.write(row_num+6, 2, "15 วัน", font_style)
                         
+    wb.save(response)
+
+    return response
+
+def exportExcelSummaryByProductValue(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="Report_Product_By_Value"'+active+'".xls"'
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('รายงานสรุปตามมูลค่าสินค้า', cell_overwrite_ok=True) # this will make a sheet named Users Data
+
+    # Sheet header, first row
+    row_num = 0
+
+    font_style = xlwt.XFStyle()
+    font_style.font.bold = True
+
+    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ']
+
+    for col_num in range(len(columns)):
+        ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
+
+    # Sheet body, remaining rows
+    font_style = xlwt.XFStyle()
+    decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
+
+    item_product_id_from = request.GET.get('item_product_id_from') or None
+    item_product_id_to = request.GET.get('item_product_id_to') or None
+    item_product_name = request.GET.get('item_product_name') or None
+    distributor = request.GET.get('distributor') or None
+    stockman_user = request.GET.get('stockman_user') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+    unit_price_min = request.GET.get('unit_price_min') or None
+    unit_price_max = request.GET.get('unit_price_max') or None
+    category = request.GET.get('category') or None
+
+    my_q = Q()
+    if item_product_id_from is not None:
+        my_q = Q(item__product_id__gte = item_product_id_from)
+    if item_product_id_to is not None:
+        my_q &= Q(item__product_id__lte = item_product_id_to)
+    if item_product_name is not None:
+        my_q &= Q(item__product_name__icontains = item_product_name)
+    if stockman_user is not None:
+        my_q &= Q(po__stockman_user = stockman_user)
+    if category is not None:
+        my_q &= Q(item__product__category = category)
+    if distributor is not None:
+        my_q &= Q(po__distributor__name__startswith = distributor)
+    if start_created is not None:
+        my_q &= Q(po__created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(po__created__lte = end_created)
+    if unit_price_min is not None:
+        my_q &= Q(unit_price__gte = unit_price_min)
+    if unit_price_max is not None :
+        my_q &=Q(unit_price__lte = unit_price_max)
+
+    my_q &=Q(po__approver_status = 2)
+    my_q &=Q(po__branch_company__code__in = company_in)
+
+    rows = PurchaseOrderItem.objects.filter(
+        my_q
+    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price')).order_by('-total_price')
+
+    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price')
+
+    total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
+    sum_total_price = total_price['price__sum']
+    
+    for row in rows:
+        row_num += 1
+        for col_num in range(len(row)):
+            if col_num > 3:
+                ws.write(row_num, col_num, row[col_num], decimal_style)
+            else:
+                ws.write(row_num, col_num, row[col_num], font_style)
+
+
+        strUnitPrice = ""
+
+        # loop po item
+        for item in po_items:
+            if row[0] == item['item__product_id']:
+                strUnitPrice = " ".join([strUnitPrice, str(item['unit_price']), ", "])
+        #remove , in last item
+        strUnitPrice = strUnitPrice[:-2]
+        ws.write(row_num, 3, strUnitPrice, decimal_style)
+
+    ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
+    ws.write(row_num+1, 7, sum_total_price, decimal_style)
+
+    wb.save(response)
+
+    return response
+
+def exportExcelSummaryByProductFrequently(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="Report_Product_By_Frequently"'+active+'".xls"'
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('รายงานสรุปตามจำนวนครั้งที่ซื้อ', cell_overwrite_ok=True) # this will make a sheet named Users Data
+
+    # Sheet header, first row
+    row_num = 0
+
+    font_style = xlwt.XFStyle()
+    font_style.font.bold = True
+
+    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ']
+
+    for col_num in range(len(columns)):
+        ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
+
+    # Sheet body, remaining rows
+    font_style = xlwt.XFStyle()
+    decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
+
+    item_product_id_from = request.GET.get('item_product_id_from') or None
+    item_product_id_to = request.GET.get('item_product_id_to') or None
+    item_product_name = request.GET.get('item_product_name') or None
+    distributor = request.GET.get('distributor') or None
+    stockman_user = request.GET.get('stockman_user') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+    unit_price_min = request.GET.get('unit_price_min') or None
+    unit_price_max = request.GET.get('unit_price_max') or None
+    category = request.GET.get('category') or None
+
+    my_q = Q()
+    if item_product_id_from is not None:
+        my_q = Q(item__product_id__gte = item_product_id_from)
+    if item_product_id_to is not None:
+        my_q &= Q(item__product_id__lte = item_product_id_to)
+    if item_product_name is not None:
+        my_q &= Q(item__product_name__icontains = item_product_name)
+    if stockman_user is not None:
+        my_q &= Q(po__stockman_user = stockman_user)
+    if category is not None:
+        my_q &= Q(item__product__category = category)
+    if distributor is not None:
+        my_q &= Q(po__distributor__name__startswith = distributor)
+    if start_created is not None:
+        my_q &= Q(po__created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(po__created__lte = end_created)
+    if unit_price_min is not None:
+        my_q &= Q(unit_price__gte = unit_price_min)
+    if unit_price_max is not None :
+        my_q &=Q(unit_price__lte = unit_price_max)
+
+    my_q &=Q(po__approver_status = 2)
+    my_q &=Q(po__branch_company__code__in = company_in)
+
+    rows = PurchaseOrderItem.objects.filter(
+        my_q
+    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price')).order_by('-count')
+
+    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price')
+
+    total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
+    sum_total_price = total_price['price__sum']
+    
+    for row in rows:
+        row_num += 1
+        for col_num in range(len(row)):
+            if col_num > 3:
+                ws.write(row_num, col_num, row[col_num], decimal_style)
+            else:
+                ws.write(row_num, col_num, row[col_num], font_style)
+
+        strUnitPrice = ""
+        # loop po item
+        for item in po_items:
+            if row[0] == item['item__product_id']:
+                strUnitPrice = " ".join([strUnitPrice, str(item['unit_price']), ", "])
+        #remove , in last item
+        strUnitPrice = strUnitPrice[:-2]
+        ws.write(row_num, 3, strUnitPrice, decimal_style)
+
+    ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
+    ws.write(row_num+1, 7, sum_total_price, decimal_style)
+
     wb.save(response)
 
     return response

@@ -82,6 +82,33 @@ PurchaseOrderFilter.base_filters['stockman_user'].label = 'ผู้สั่ง
 PurchaseOrderFilter.base_filters['amount_min'].label = 'ราคา'
 PurchaseOrderFilter.base_filters['amount_max'].label = 'ถึง'
 
+class PurchaseOrderItemFilter(django_filters.FilterSet):
+    item_product_id_from  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='gte')
+    item_product_id_to  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='lte')
+    item_product_name = django_filters.CharFilter(field_name="item__product_name", lookup_expr='icontains')
+    start_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
+    end_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
+    distributor  = django_filters.CharFilter(field_name="po__distributor__name", lookup_expr='startswith')
+    stockman_user = django_filters.ModelChoiceFilter(field_name="po__stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    unit_price_min  = django_filters.CharFilter(field_name="unit_price", lookup_expr='gte')
+    unit_price_max  = django_filters.CharFilter(field_name="unit_price", lookup_expr='lte')
+    category = django_filters.ModelChoiceFilter(field_name="item__product__category__name", queryset= Category.objects.all())
+
+    class Meta:
+        model = PurchaseOrderItem
+        fields = ('item__product_id', 'item__product_name','po__created','po__distributor__name','po__stockman_user', 'unit_price', 'item__product__category__name')
+
+PurchaseOrderItemFilter.base_filters['item_product_id_from'].label = 'รหัสสินค้าจาก'
+PurchaseOrderItemFilter.base_filters['item_product_id_to'].label = 'ถึง'
+PurchaseOrderItemFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
+PurchaseOrderItemFilter.base_filters['start_created'].label = 'วันที่สั่งซื้อ'
+PurchaseOrderItemFilter.base_filters['end_created'].label = 'ถึง'
+PurchaseOrderItemFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
+PurchaseOrderItemFilter.base_filters['stockman_user'].label = 'ผู้สั่งสินค้า'
+PurchaseOrderItemFilter.base_filters['unit_price_min'].label = 'ราคาต่อหน่วยจาก'
+PurchaseOrderItemFilter.base_filters['unit_price_max'].label = 'ถึง'
+PurchaseOrderItemFilter.base_filters['category'].label = 'หมวดหมู่สินค้า'
+
 class ComparisonPriceFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))

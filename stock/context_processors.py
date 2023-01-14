@@ -174,7 +174,7 @@ def approvePOCounter(request):
     if isPermiss and in_company:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = isPermiss) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
@@ -616,7 +616,7 @@ def findAllApproveAlert(request, tab):
     if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 

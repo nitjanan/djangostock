@@ -1,0 +1,145 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
+
+{% block content %}
+<div class="container my-3">
+<h3 align="center">รายงานตามสินค้าที่สั่งซื้อ</h3>
+<div class="card my-3 bg-light div-shadow">
+  <div class="card-body">
+    <form method="get">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group col-md-2 mb-0">
+            {{ filter.form.item_product_id_from|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{ filter.form.item_product_id_to|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.item_product_name|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.category|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.unit_price_min|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.unit_price_max|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{filter.form.distributor|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{filter.form.stockman_user|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.start_created|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.end_created|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-1 mb-0">
+          <div>
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div class="row">
+        <div class="col">
+          <a class="btn" style="background-color:#5CB881;color:white;" href="{% url 'exportExcelSummaryByProductValue' %}?{{request.GET.urlencode}}">รายงานสรุปตามมูลค่าสินค้า <i class="fas fa-file-excel"></i></a>
+          <a class="btn" style="background-color:#5CB899;color:white;" href="{% url 'exportExcelSummaryByProductFrequently' %}?{{request.GET.urlencode}}">รายงานสรุปตามจำนวนครั้งที่สั่งซื้อ <i class="fas fa-file-excel"></i></a>
+        </div>
+    </div>
+  </div>
+</div>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered my-3">
+        <thead class="table-active">
+            <tr>
+                <th scope="col">วันที่สั่งซื้อ</th>
+                <th scope="col">รหัสสินค้า</th>
+                <th scope="col">ชื่อสินค้า</th>
+                <th scope="col" class="text-center">ราคาต่อหน่วย</th>
+                <th scope="col" class="text-center">ใบขอเบิก</th>
+                <th scope="col" class="text-center">ใบขอซื้อ</th>
+                <th scope="col" class="text-center">ใบเปรียบเทียบ</th>
+                <th scope="col" class="text-center">ใบสั่งซื้อ</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in po_item %}
+          <tr>
+            <td>{{item.po.created |date:"d/m/Y"}}</td>
+            <td>{{item.item.product.id}}</td>
+            <td>{{item.item.product.name}}</td>
+            <td class="text-right">{{item.unit_price}}</td>
+            <th scope="row"><a href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></th>
+            <th scope="row"><a href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></th>
+            <th scope="row">{% if item.po.cp.ref_no %}<a class="{% if item.po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' item.po.cp.id 4 %}">{{item.po.cp.ref_no}}</a>{%endif%}</th>
+            <th scope="row"><a class="{% if item.po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' item.po.id 4 %}">{{item.po.ref_no}}</a></th>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+      <br/>
+      <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if po_item.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="{% my_url po_item.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if po_item.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="{% my_url po_item.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in po_item.paginator.page_range %}
+            {% if po_item.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > po_item.number|add:'-5' and i < po_item.number|add:'5' %}
+                 <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if po_item.paginator.num_pages > po_item.number|add:'4' %}
+           <li class="page-item"><a class="page-link" href="{% my_url po_item.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% if po_item.has_next %}
+            <li class="page-item">
+            <a class="page-link"  href="{% my_url po_item.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}

@@ -149,6 +149,9 @@ urlpatterns = [
 
     path('report/purchaseOrder/',views.viewPOReport,name="viewPOReport"),
     path('report/purchaseOrder/export/excel', views.exportExcelPO, name='exportExcelPO'),
+    path('report/purchaseOrder/item',views.viewPOItemReport,name="viewPOItemReport"),
+    path('report/purchaseOrderItem/export/excel/by/value', views.exportExcelSummaryByProductValue, name='exportExcelSummaryByProductValue'),
+    path('report/purchaseOrderItem/export/excel/by/frequently', views.exportExcelSummaryByProductFrequently, name='exportExcelSummaryByProductFrequently'),
 
 ]
 
