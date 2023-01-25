@@ -4200,6 +4200,37 @@ def exportExcelSummaryByProductFrequently(request):
 
     return response
 
+#ค้นหารายการสินค้าที่สั่งซื้อ 5 รายการล่าสุด
+def searchLastPoItem(request):
+    strName = "<table class='table table-striped'><thead class = 'thead-dark'><tr><th>เลขที่</th><th>วันที่</th><th>ราคาต่อหน่วย</th><th>จากร้าน</th><th>ซื้อโดย</th></thead></tr>"
+    item = request.GET.getlist('itemList[]', None)
+    
+    product = RequisitionItem.objects.filter(id__in = item).values('product__id')
+    count = 0
+
+    for pd in product:
+        try:
+            po_item = PurchaseOrderItem.objects.filter(item__product__id = pd['product__id'], unit_price__isnull = False , po__approver_status = 2).order_by('-po__created')[:5]
+
+            strName = ''.join([strName, "<tr class='bg-info text-white'><td colspan='5'><b>" + po_item[0].item.product.id + " : "+ po_item[0].item.product.name +"</b></td></tr>"])
+            index = 1
+            if po_item:
+                for i in po_item:
+                    strName = ''.join([strName, "<tr>"])
+                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ str(i.po.created) + "</td><td>"+ f'{i.unit_price:,}' + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"])
+                    strName = ''.join([strName, "</tr>"])
+                    index += 1
+            count += 1            
+        except IndexError or PurchaseOrderItem.DoesNotExist:
+            pass
+
+    strName = ''.join([strName, "</table>"])
+
+    data = {
+        'instance': strName,
+    }
+    return JsonResponse(data)
+
 def setSessionCompany(request):
     name = request.GET.get('title', None)
     request.session['company_code'] = name

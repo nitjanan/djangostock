@@ -124,6 +124,7 @@ urlpatterns = [
     path('searchDataDistributor', views.searchDataDistributor, name="searchDataDistributor"),
     path('searchExaminerAndApproverUser', views.searchExaminerAndApproverUser, name="searchExaminerAndApproverUser"),
     path('setDataDistributor', views.setDataDistributor, name="setDataDistributor"),
+    path('searchLastPoItem', views.searchLastPoItem, name="searchLastPoItem"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),

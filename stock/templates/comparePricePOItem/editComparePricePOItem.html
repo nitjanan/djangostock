@@ -4,6 +4,16 @@
 {% load crispy_forms_tags %}
 {% load humanize %}
 
+{% block css %}
+<style>
+
+.verybigmodal {
+    max-width: 80%;
+}
+
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h3 align="center">ใบเปรียบเทียบราคา</h3>
@@ -118,7 +128,11 @@
             <div class="card-body">
                 <div class="row form-row spacer">
                     <div style="width: 20px;">ที่</div>
-                    <div class="col">สินค้า</div>
+                    <form class="form-inline ml-3" id="search" method="GET">
+                        <div class="col" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                            สินค้า <i class="fas fa-list text-danger d-print-none"></i>
+                        </div>
+                    </form>
                     <div class="col">รายละเอียด</div>
                     <div class="col">จำนวน</div>
                     <div class="col">หน่วย</div>
@@ -244,6 +258,20 @@
     <div class="row my-4">
         <div class="col">
             <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn bg-success text-white float-right">Next <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+    <!-- Modal Search-->
+    <div class="modal fade" id="myEdit" role="dialog">
+        <div class="modal-dialog modal-lg verybigmodal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="pShowSearch"></p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -634,6 +662,42 @@ function setDataDistributor(){
         return false;
     }
 
+}
+
+function searchLastPoItem(){
+    var itemList = [];
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val()){
+            itemList.push($("#id_comparisonpriceitem_set-"+i+"-item").val());
+        }
+    }
+
+    if (itemList) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "searchLastPoItem" %}',
+            data: { itemList },
+            dataType: 'json',
+            success: function (data) {
+              if (data.instance) {
+                openModal(data.instance);
+                e.preventDefault();
+              }else{
+                $("#pShowSearch").html('ไม่พบรายการที่สั่งซื้อล่าสุด');
+              }
+            }
+        });
+    } else {
+      
+    }
+    return false;
+}
+
+
+function openModal(instance) {
+  $("#pShowSearch").html(instance);
+  $('#myEdit').modal('show');
 }
 
   /*

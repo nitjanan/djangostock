@@ -13,7 +13,9 @@
   input.del[type=checkbox] {
    display: none;
   }
-  
+  .verybigmodal {
+        max-width: 80%;
+  }
 </style>
 {% endblock %}
 {% block content %}
@@ -84,7 +86,11 @@
                 <table class="table">
                     <thead>
                     <tr>
-                        <th scope="col">รหัสสินค้า</th>
+                        <form class="form-inline ml-3" id="search" method="GET">
+                          <th scope="col" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                            รหัสสินค้า <i class="fas fa-list text-danger d-print-none"></i>
+                          </th>
+                        </form>
                         <th scope="col">รายละเอียด</th>
                         <th scope="col">จำนวน</th>
                         <th scope="col" class="w-25">หน่วย</th>
@@ -241,6 +247,20 @@
         </div>
       </div>
     </div>
+    <!-- Modal Search-->
+    <div class="modal fade" id="myEdit" role="dialog">
+      <div class="modal-dialog modal-lg verybigmodal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="pShowSearch"></p>
+          </div>
+          </div>
+      </div>
+    </div>
 </div>
 {% endblock%}
 {% block javascript %}
@@ -380,6 +400,7 @@ $(".unit-price, .quantity")
     // format ทศนิยม 2 และ 0 ตำแหน่ง
     $('#id_purchaseorderitem_set-' + suffix + '-unit_price').val(parseFloat($('#id_purchaseorderitem_set-' + suffix + '-unit_price').val()).toFixed(2));
     $('#id_purchaseorderitem_set-' + suffix + '-quantity').val(parseFloat($('#id_purchaseorderitem_set-' + suffix + '-quantity').val()).toFixed(4));
+    $('#id_purchaseorderitem_set-' + suffix + '-price').val(parseFloat($('#id_purchaseorderitem_set-' + suffix + '-price').val()).toFixed(2));
 
     //คำนวนค่าทั้งหมด
     calculateAll();
@@ -632,6 +653,42 @@ function setDataDistributor(){
         return false;
     }
 
+}
+
+function searchLastPoItem(){
+    var itemList = [];
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val()){
+            itemList.push($("#id_purchaseorderitem_set-"+i+"-item").val());
+        }
+    }
+
+    if (itemList) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "searchLastPoItem" %}',
+            data: { itemList },
+            dataType: 'json',
+            success: function (data) {
+              if (data.instance) {
+                openModal(data.instance);
+                e.preventDefault();
+              }else{
+                $("#pShowSearch").html('ไม่พบรายการที่สั่งซื้อล่าสุด');
+              }
+            }
+        });
+    } else {
+
+    }
+    return false;
+}
+
+
+function openModal(instance) {
+  $("#pShowSearch").html(instance);
+  $('#myEdit').modal('show');
 }
 
 /*

@@ -9,8 +9,10 @@
       display: none;
     }
   }
-  
-  </style>
+  .verybigmodal {
+        max-width: 80%;
+  }
+</style>
 {% endblock %}
 {% block content %}
 <div class="container">
@@ -69,7 +71,11 @@
                 <table class="table">
                     <thead>
                     <tr>
-                        <th scope="col">รหัสสินค้า</th>
+                        <form class="form-inline ml-3" id="search" method="GET">
+                            <th scope="col" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                              รหัสสินค้า <i class="fas fa-list text-danger d-print-none"></i>
+                            </th>
+                        </form>
                         <th scope="col">รายละเอียด</th>
                         <th scope="col">จำนวน</th>
                         <th scope="col" class="w-25">หน่วย</th>
@@ -199,10 +205,23 @@
         </div>
       </div>
     </div>
+    <!-- Modal Search-->
+    <div class="modal fade" id="myEdit" role="dialog">
+      <div class="modal-dialog modal-lg verybigmodal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p id="pShowSearch"></p>
+          </div>
+          </div>
+      </div>
+    </div>
 </div>
 {% endblock%}
 {% block javascript %}
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script type="text/javascript">
 
@@ -326,6 +345,7 @@ $(".unit-price, .quantity")
     // format ทศนิยม 2 และ 0 ตำแหน่ง
     $('#id_form-' + suffix + '-unit_price').val(parseFloat($('#id_form-' + suffix + '-unit_price').val()).toFixed(2));
     $('#id_form-' + suffix + '-quantity').val(parseFloat($('#id_form-' + suffix + '-quantity').val()).toFixed(4));
+    $('#id_form-' + suffix + '-price').val(parseFloat($('#id_form-' + suffix + '-price').val()).toFixed(2));
 
     //คำนวนค่าทั้งหมด
     calculateAll();
@@ -497,10 +517,43 @@ $(".express").change(function() {
       $("#id_form-"+suffix+"-quantity").val("");
       $("#id_form-"+suffix+"-unit").val("");
     }
-
-    
   });
-</script>
+
+  function searchLastPoItem(){
+    var itemList = [];
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        if($(inputs[i]).val()){
+            itemList.push($("#id_form-"+i+"-item").val());
+        }
+    }
+
+    if (itemList) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "searchLastPoItem" %}',
+            data: { itemList },
+            dataType: 'json',
+            success: function (data) {
+              if (data.instance) {
+                openModal(data.instance);
+                e.preventDefault();
+              }else{
+                $("#pShowSearch").html('ไม่พบรายการที่สั่งซื้อล่าสุด');
+              }
+            }
+        });
+    } else {
+
+    }
+    return false;
+}
+
+
+function openModal(instance) {
+  $("#pShowSearch").html(instance);
+  $('#myEdit').modal('show');
+}
 
 </script>
 {% endblock%}
