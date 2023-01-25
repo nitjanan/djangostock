@@ -219,10 +219,6 @@
                         {% if po.approver_status_id == 2 %}
                           <img src="/media/{{po.approver_user.userprofile.signature}}" width="160" height="75" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
                           <p class="line75">{{po.approver_user}}</p>
-                        {% else %}
-                          <u class="dotted">
-                            #{{po.approver_status}}
-                          </u>
                         {% endif %}
                     </p>
                 </div>
