@@ -48,6 +48,7 @@ from django.views.decorators.cache import cache_control
 from decimal import Decimal
 import pandas as pd
 from django_pandas.io import read_frame
+from django.db.models.functions import Round
 
 def findCompanyIn(request):
     code = request.session['company_code']
@@ -4026,7 +4027,7 @@ def exportExcelSummaryByProductValue(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ']
+    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ', 'ความเร่งด่วนเฉลี่ย']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -4073,7 +4074,7 @@ def exportExcelSummaryByProductValue(request):
 
     rows = PurchaseOrderItem.objects.filter(
         my_q
-    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price')).order_by('-total_price')
+    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
 
     po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price')
 
@@ -4101,6 +4102,19 @@ def exportExcelSummaryByProductValue(request):
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 7, sum_total_price, decimal_style)
+
+    ws.write(row_num+3, 0, "ระดับความเร่งด่วน", font_style)
+    ws.write(row_num+3, 1, "1.00 = A", font_style)
+    ws.write(row_num+3, 2, "ภายใน 48 ชม.", font_style)
+
+    ws.write(row_num+4, 1, "2.00 = B", font_style)
+    ws.write(row_num+4, 2, "3-5 วัน", font_style)
+
+    ws.write(row_num+5, 1, "3.00 = C", font_style)
+    ws.write(row_num+5, 2, "7 วัน", font_style)
+
+    ws.write(row_num+6, 1, "4.00 = D", font_style)
+    ws.write(row_num+6, 2, "15 วัน", font_style)
 
     wb.save(response)
 
@@ -4122,7 +4136,7 @@ def exportExcelSummaryByProductFrequently(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ']
+    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ', 'ความเร่งด่วนเฉลี่ย']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -4169,7 +4183,7 @@ def exportExcelSummaryByProductFrequently(request):
 
     rows = PurchaseOrderItem.objects.filter(
         my_q
-    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price')).order_by('-count')
+    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
 
     po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price')
 
@@ -4195,6 +4209,19 @@ def exportExcelSummaryByProductFrequently(request):
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 7, sum_total_price, decimal_style)
+
+    ws.write(row_num+3, 0, "ระดับความเร่งด่วน", font_style)
+    ws.write(row_num+3, 1, "1.00 = A", font_style)
+    ws.write(row_num+3, 2, "ภายใน 48 ชม.", font_style)
+
+    ws.write(row_num+4, 1, "2.00 = B", font_style)
+    ws.write(row_num+4, 2, "3-5 วัน", font_style)
+
+    ws.write(row_num+5, 1, "3.00 = C", font_style)
+    ws.write(row_num+5, 2, "7 วัน", font_style)
+
+    ws.write(row_num+6, 1, "4.00 = D", font_style)
+    ws.write(row_num+6, 2, "15 วัน", font_style)
 
     wb.save(response)
 
