@@ -1222,6 +1222,10 @@ def is_edit_po_id(user):
 def is_edit_approver_user_po(user):
     return user.groups.filter(name='แก้ไขผู้อนุมัติใบสั่งซื้อ').exists()
 
+#ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด
+def is_view_report_all(user):
+    return user.groups.filter(name='ดูรายงานของบริษัททั้งหมด').exists()
+
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
     return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
@@ -3932,7 +3936,12 @@ def exportExcelPO(request):
         my_q &=Q(amount__lte = amount_max)
 
     my_q &=Q(approver_status = 2)
-    my_q &=Q(branch_company__code__in = company_in)
+
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(branch_company__code__in = company_in)
 
     rows = PurchaseOrder.objects.filter(
         my_q
@@ -4070,7 +4079,12 @@ def exportExcelSummaryByProductValue(request):
         my_q &=Q(unit_price__lte = unit_price_max)
 
     my_q &=Q(po__approver_status = 2)
-    my_q &=Q(po__branch_company__code__in = company_in)
+
+    #ถ้ามีสิทธิดูรายงานทั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(po__branch_company__code__in = company_in)
 
     rows = PurchaseOrderItem.objects.filter(
         my_q
@@ -4179,7 +4193,12 @@ def exportExcelSummaryByProductFrequently(request):
         my_q &=Q(unit_price__lte = unit_price_max)
 
     my_q &=Q(po__approver_status = 2)
-    my_q &=Q(po__branch_company__code__in = company_in)
+
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(po__branch_company__code__in = company_in)
 
     rows = PurchaseOrderItem.objects.filter(
         my_q
