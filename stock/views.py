@@ -4036,7 +4036,7 @@ def exportExcelSummaryByProductValue(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ', 'ความเร่งด่วนเฉลี่ย']
+    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ', 'ความเร่งด่วนเฉลี่ย', 'ใช้ในระบบงาน']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -4048,6 +4048,7 @@ def exportExcelSummaryByProductValue(request):
     item_product_id_from = request.GET.get('item_product_id_from') or None
     item_product_id_to = request.GET.get('item_product_id_to') or None
     item_product_name = request.GET.get('item_product_name') or None
+    item_machine = request.GET.get('item_machine') or None
     distributor = request.GET.get('distributor') or None
     stockman_user = request.GET.get('stockman_user') or None
     start_created = request.GET.get('start_created') or None
@@ -4077,6 +4078,8 @@ def exportExcelSummaryByProductValue(request):
         my_q &= Q(unit_price__gte = unit_price_min)
     if unit_price_max is not None :
         my_q &=Q(unit_price__lte = unit_price_max)
+    if item_machine is not None :
+        my_q &=Q(item__machine__icontains = item_machine)
 
     my_q &=Q(po__approver_status = 2)
 
@@ -4090,7 +4093,7 @@ def exportExcelSummaryByProductValue(request):
         my_q
     ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price')
+    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price','item__machine')
 
     total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
@@ -4105,14 +4108,18 @@ def exportExcelSummaryByProductValue(request):
 
 
         strUnitPrice = ""
+        strMachine = ""
 
         # loop po item
         for item in po_items:
             if row[0] == item['item__product_id']:
                 strUnitPrice = " ".join([strUnitPrice, str(item['unit_price']), ", "])
+                strMachine = " ".join([strMachine, str(item['item__machine']), ", "])
         #remove , in last item
         strUnitPrice = strUnitPrice[:-2]
+        strMachine = strMachine[:-2]
         ws.write(row_num, 3, strUnitPrice, decimal_style)
+        ws.write(row_num, 9, strMachine, font_style)
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 7, sum_total_price, decimal_style)
@@ -4150,7 +4157,7 @@ def exportExcelSummaryByProductFrequently(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ', 'ความเร่งด่วนเฉลี่ย']
+    columns = ['รหัสสินค้า', 'รายละเอียด', 'หน่วยนับ', 'ราคาต่อหน่วย','ราคาเฉลี่ยต่อหน่วย', 'จำนวนครั่งที่สั่งซื้อ', 'ปริมาณซื้อสุทธิ', 'รวมมูลค่าซื้อ', 'ความเร่งด่วนเฉลี่ย', 'ใช้ในระบบงาน']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -4162,6 +4169,7 @@ def exportExcelSummaryByProductFrequently(request):
     item_product_id_from = request.GET.get('item_product_id_from') or None
     item_product_id_to = request.GET.get('item_product_id_to') or None
     item_product_name = request.GET.get('item_product_name') or None
+    item_machine = request.GET.get('item_machine') or None
     distributor = request.GET.get('distributor') or None
     stockman_user = request.GET.get('stockman_user') or None
     start_created = request.GET.get('start_created') or None
@@ -4191,6 +4199,8 @@ def exportExcelSummaryByProductFrequently(request):
         my_q &= Q(unit_price__gte = unit_price_min)
     if unit_price_max is not None :
         my_q &=Q(unit_price__lte = unit_price_max)
+    if item_machine is not None :
+        my_q &=Q(item__machine__icontains = item_machine)
 
     my_q &=Q(po__approver_status = 2)
 
@@ -4204,7 +4214,7 @@ def exportExcelSummaryByProductFrequently(request):
         my_q
     ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price')
+    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price','item__machine')
 
     total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
@@ -4218,13 +4228,19 @@ def exportExcelSummaryByProductFrequently(request):
                 ws.write(row_num, col_num, row[col_num], font_style)
 
         strUnitPrice = ""
+        strMachine = ""
+
         # loop po item
         for item in po_items:
             if row[0] == item['item__product_id']:
                 strUnitPrice = " ".join([strUnitPrice, str(item['unit_price']), ", "])
+                strMachine = " ".join([strMachine, str(item['item__machine']), ", "])
         #remove , in last item
         strUnitPrice = strUnitPrice[:-2]
+        strMachine = strMachine[:-2]
+        
         ws.write(row_num, 3, strUnitPrice, decimal_style)
+        ws.write(row_num, 9, strMachine, font_style)
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 7, sum_total_price, decimal_style)

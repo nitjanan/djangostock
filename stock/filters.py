@@ -86,6 +86,7 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
     item_product_id_from  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='gte')
     item_product_id_to  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='lte')
     item_product_name = django_filters.CharFilter(field_name="item__product_name", lookup_expr='icontains')
+    item_machine = django_filters.CharFilter(field_name="item__machine", lookup_expr='icontains')
     start_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     distributor  = django_filters.CharFilter(field_name="po__distributor__name", lookup_expr='startswith')
@@ -101,6 +102,7 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
 PurchaseOrderItemFilter.base_filters['item_product_id_from'].label = 'รหัสสินค้าจาก'
 PurchaseOrderItemFilter.base_filters['item_product_id_to'].label = 'ถึง'
 PurchaseOrderItemFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
+PurchaseOrderItemFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน'
 PurchaseOrderItemFilter.base_filters['start_created'].label = 'วันที่สั่งซื้อ'
 PurchaseOrderItemFilter.base_filters['end_created'].label = 'ถึง'
 PurchaseOrderItemFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
