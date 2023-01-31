@@ -25,6 +25,10 @@ u.dotted {
   text-decoration: none;
 }
 
+.verybigmodal {
+    max-width: 80%;
+}
+
 </style>
 {% endblock %}
 
@@ -115,7 +119,11 @@ u.dotted {
               <thead>
                 <tr>
                     <td class="text-center"><strong>ลำดับที่</strong></td>
-                    <td class="text-center"><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
+                    <form class="form-inline ml-3" id="search" method="GET">
+                      <td class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                        <strong>รหัสวัสดุ/อุปกรณ์ <i class="fas fa-list text-danger d-print-none"></i></strong>
+                      </td>
+                    </form>
                     <td class="text-center"><strong>รายการ</strong></td>
                     <td class="text-center"><strong>วัตุประสงค์/เหตุผล</strong></td>
                     <td class="text-center"><strong>จำนวน</strong></td>
@@ -291,4 +299,55 @@ u.dotted {
     </div>
   </div>
   </div>
+  	<!-- Modal Search-->
+    <div class="modal fade" id="myEdit" role="dialog">
+      <div class="modal-dialog modal-lg verybigmodal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p id="pShowSearch"></p>
+            </div>
+          </div>
+      </div>
+    </div>
+{% endblock %}
+{% block javascript %}
+<script type="text/javascript">
+//ค้นหา 5 รายการล่าสุด
+function searchLastPoItem(){
+    var itemList = [];
+
+    "{% for it in items %}"
+        itemList.push('{{it.id}}');
+    "{% endfor %}"
+
+    if (itemList) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "searchLastPoItem" %}',
+            data: { itemList },
+            dataType: 'json',
+            success: function (data) {
+              if (data.instance) {
+                openModal(data.instance);
+                e.preventDefault();
+              }else{
+                $("#pShowSearch").html('ไม่พบรายการที่สั่งซื้อล่าสุด');
+              }
+            }
+        });
+    } else {
+      
+    }
+    return false;
+}
+
+function openModal(instance) {
+  $("#pShowSearch").html(instance);
+  $('#myEdit').modal('show');
+}
+</script>
 {% endblock %}

@@ -4282,9 +4282,9 @@ def searchLastPoItem(request):
                     strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ str(i.po.created) + "</td><td>"+ f'{i.unit_price:,}' + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"])
                     strName = ''.join([strName, "</tr>"])
                     index += 1
-            count += 1            
+            count += 1
         except IndexError or PurchaseOrderItem.DoesNotExist:
-            pass
+            strName = ''.join([strName, "<tr><td class='alert alert-warning' colspan='5'><b>ไม่มีรายการ "+pd['product__id']+" ที่ซื้อล่าสุด</b></td></tr>"])
 
     strName = ''.join([strName, "</table>"])
 
