@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -85,10 +85,13 @@ class PurchaseRequisitionForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseRequisitionForm,self).__init__(*args,**kwargs)
         self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        position = PositionBasePermission.objects.filter(base_permission__codename='CAAPR', branch_company__code = request.session['company_code']).values('position_id')
+        user_profile = UserProfile.objects.filter(position__in = position, branch_company__code = request.session['company_code']).values('user__id')
+        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบขอซื้อ', queryset = User.objects.filter(id__in = user_profile))
 
     class Meta:
        model = PurchaseRequisition 
-       fields = ('note', 'branch_company', 'organizer')
+       fields = ('note', 'branch_company', 'organizer', 'approver_user')
        widgets = {
         'branch_company': forms.HiddenInput(),
        }

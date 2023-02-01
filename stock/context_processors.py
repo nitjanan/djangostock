@@ -111,7 +111,7 @@ def approvePendingCounter(request):
     if(isPermiss_pr and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
             pending_count = pr_item_ap.count()
         except PurchaseRequisition.DoesNotExist:
@@ -585,7 +585,7 @@ def findAllApproveAlert(request, tab):
     if(isPermiss and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pending_count = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, branch_company__code__in = isPermiss).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pending_count = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = isPermiss).count() #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseRequisition.DoesNotExist:
             pending_count = 0

@@ -202,6 +202,10 @@ u.dotted {
             <div class="col-2 text-danger">{{ form.organizer.label}}</div>
             <div class="col">{{ form.organizer | add_class:"form-control is-invalid" }}</div>
           </div>
+          <div class="row my-2">
+            <div class="col-2 text-danger">{{ form.approver_user.label}}</div>
+            <div class="col">{{ form.approver_user | add_class:"form-control is-invalid" }}</div>
+          </div>
           <div class="row">
             <div class="card-group col">
               <div class="card col">
