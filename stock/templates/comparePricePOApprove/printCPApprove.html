@@ -226,8 +226,8 @@
                                 {% endif %}
                                 {% if cp.examiner_status.id == 1 and isExaminer %}
                                     <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                 {% endif %}
                             {% endif %}
                         </div>
@@ -245,12 +245,12 @@
                                 {% endif %}
                                 {% if isApprover and isExaminer and cp.examiner_status.id == 1%}
                                     <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                 {% elif cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
                                     <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                 {% endif %}                           
                             {% endif %}
                         </div>
@@ -269,8 +269,8 @@
                                     {% endif %}
                                 {% elif cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 1 and isApproverSpecial%}
                                     <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn-sm hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn-sm hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                                 {% endif %}
                             </div>
                         </div>

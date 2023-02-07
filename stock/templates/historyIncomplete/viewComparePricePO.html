@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <div class="container">
@@ -50,7 +51,8 @@
                   <th scope="col">รหัสใบเปรียบเทียบ</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
                   <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
-                  <th scope="col">วันที่สั่งซื้อ</th>
+                  <th scope="col">ราคา</th>
+                  <th scope="col">วันที่สร้าง</th>
                   <th scope="col">ผู้ตรวจสอบ</th>
                   <th scope="col">ผู้อนุมัติ</th>
                 </tr>
@@ -60,15 +62,22 @@
                 <tr>
                   <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 5 %}">{{cp.ref_no}}</a></th>
                   <td>
-                      <ul style="list-style: none;">
+                    <ul style="list-style: none;">
                       {% for bd in bidder %}
-                        {% if cp.id == bd.cp.id %}
-                            <li>{{bd.distributor.name}}</li>
+                        {% if cp.id == bd.cp_id %}
+                            <li>{{bd.distributor__name}}</li>
                         {% endif %}
-                      {% endfor %}                          
+                      {% endfor %}
                       </ul>
                   </td>
                   <td>{{cp.organizer}}</td>
+                  <td>
+                    {% for bd in bidder %}
+                    {% if cp.id == bd.cp_id  and bd.distributor__id == cp.select_bidder.id %}
+                      {% if  bd.amount %}{{bd.amount | intcomma}}{%endif%}
+                    {% endif %}
+                    {% endfor %} 
+                  </td>
                   <td>{{cp.created |date:"d/m/Y"}}</td>
                   <td>
                     <button type="button"
@@ -93,6 +102,19 @@
                       btn-outline-danger
                     {% endif %}"
                     >{{cp.approver_status}}</button>
+                    <br>
+                    {% if cp.special_approver_status.id != 4 %}
+                    <button type="button"
+                      class="btn btn-block btn-sm
+                      {% if cp.special_approver_status.id == 1 %}
+                        btn-outline-warning
+                      {% elif cp.special_approver_status.id == 2 %}
+                        btn-outline-success
+                      {% elif cp.special_approver_status.id == 3 %}
+                        btn-outline-danger
+                      {% endif %}"
+                    >{{cp.special_approver_status}}</button>
+                    {%endif%}
                   </td>
                 </tr>
               {% endfor %}

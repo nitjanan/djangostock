@@ -18,7 +18,7 @@ from django.http import request, HttpResponseRedirect, HttpResponse ,JsonRespons
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
 from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -1814,7 +1814,7 @@ def editPRApprove(request, pr_id, isFromHome):
 @login_required(login_url='signIn')
 def viewPO(request):
     active = request.session['company_code']
-    data = PurchaseOrder.objects.filter(Q(approver_status_id = 1) | Q(is_receive = False) & ~Q(approver_status_id = 3), branch_company__code = active)
+    data = PurchaseOrder.objects.filter(Q(approver_status_id = 1) | Q(is_receive = False) & ~Q(approver_status_id = 3), is_cancel = False, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -2015,6 +2015,16 @@ def showPO(request, po_id, mode):
             poa_form.save()
             return redirect('showPO', po_id = po_id , mode = mode)
 
+    cancel_form = PurchaseOrderCancelForm(instance=po)
+    if request.method == 'POST' and 'btnformCancelPO' in request.POST:
+        cancel_form = PurchaseOrderCancelForm(request.POST, instance=po)
+        if cancel_form.is_valid():
+            cc = cancel_form.save(commit=False)
+            if cc.cancel_reason is not None:
+                cc.is_cancel = True
+            cc.save()
+            return redirect('showPO', po_id = po_id , mode = mode)
+
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
     #ถ้า user login เป็นจัดซื้อ
@@ -2032,6 +2042,7 @@ def showPO(request, po_id, mode):
             'isPurchasing':isPurchasing,
             'mode': mode,
             'poa_form':poa_form,
+            'cancel_form':cancel_form,
             'bc':bc,
             page: "tab-active",
             show: "show",
@@ -2130,8 +2141,12 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             're approve po'
             price.is_re_approve = get_bool(isReApprove)
             if get_bool(isReApprove) == True:
+                #เปิดให้ผู้อนุมัติ อนุมัติรายการใหม่
                 price.approver_status_id = 1
                 price.approver_update = None
+                #เปลี่ยนสถานะยกเลิก เป็นรายการปกติ
+                price.is_cancel = False
+                price.cancel_reason = None
             price.save()
 
             po_form = form.save()
@@ -3391,7 +3406,7 @@ def searchItemExpress(request):
 
 def viewReceive(request):
     active = request.session['company_code']
-    data = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = active)
+    data = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, is_cancel = False, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -3664,8 +3679,8 @@ def viewPRHistory(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
     
-    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3)), branch_company__code__in = company_in)
-    requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2) | Q(Q(purchase_status_id = 3) | Q(approver_status_id = 3))).values("requisition")
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2), branch_company__code__in = company_in)
+    requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2)).values("requisition")
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -3693,7 +3708,7 @@ def viewPOHistory(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    data = PurchaseOrder.objects.filter(Q(~Q(approver_status_id = 1), is_receive = True) | Q(approver_status_id = 3), branch_company__code__in = company_in)
+    data = PurchaseOrder.objects.filter(Q(~Q(approver_status_id = 1), is_receive = True), is_cancel = False, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -3720,7 +3735,7 @@ def viewComparePricePOHistory(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) | Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3), branch_company__code__in = company_in)
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) & ~Q(special_approver_status_id = 3) & ~Q(special_approver_status_id = 1) , branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
@@ -3748,6 +3763,7 @@ def viewComparePricePOHistory(request):
 
 #Incomplate
 def viewRequisitionHistoryIncomplete(request):
+    active = request.session['company_code']
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
     #data = Requisition.objects.filter(created__year__lte = year,created__month__lt = month, purchase_requisition_id__isnull = False)
@@ -3767,12 +3783,17 @@ def viewRequisitionHistoryIncomplete(request):
             'filter':myFilter,
             'h_i_requisitions_page': "tab-active",
             'h_i_requisitions_show': "show",
+             active :"active show",
+            "colorNav":"enableNav"
     }
 
     return render(request,'historyIncomplete/viewRequisition.html', context)
 
 def viewPRHistoryIncomplete(request):
-    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 3) | Q(approver_status_id = 3))
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 3) | Q(approver_status_id = 3), branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -3788,12 +3809,17 @@ def viewPRHistoryIncomplete(request):
                 'filter':myFilter,
                 'h_i_pr_page': "tab-active",
                 'h_i_pr_show': "show",
+                active :"active show",
+                "colorNav":"enableNav"
               }
 
     return render(request,'historyIncomplete/viewPR.html',context)
 
 def viewPOHistoryIncomplete(request):
-    data = PurchaseOrder.objects.filter(approver_status_id = 3)
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    data = PurchaseOrder.objects.filter(Q(approver_status_id = 3) | Q(is_cancel = True), branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -3809,17 +3835,22 @@ def viewPOHistoryIncomplete(request):
         'filter':myFilter,
         'h_i_po_page': "tab-active",
         'h_i_po_show': "show",
+         active :"active show",
+         "colorNav":"enableNav"
     }
     return render(request, "historyIncomplete/viewPO.html", context)
 
 def viewComparePricePOHistoryIncomplete(request):
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 3) | Q(approver_status_id = 3))
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3), branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
 
-    bidder = ComparisonPriceDistributor.objects.all()
+    bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
@@ -3830,6 +3861,8 @@ def viewComparePricePOHistoryIncomplete(request):
         'bidder':bidder,
         'h_i_cp_page': "tab-active",
         'h_i_cp_show': "show",
+         active :"active show",
+         "colorNav":"enableNav"
     }
 
     return render(request, 'historyIncomplete/viewComparePricePO.html',context)
@@ -4264,7 +4297,7 @@ def exportExcelSummaryByProductFrequently(request):
 
 #ค้นหารายการสินค้าที่สั่งซื้อ 5 รายการล่าสุด
 def searchLastPoItem(request):
-    strName = "<table class='table table-striped'><thead class = 'thead-dark'><tr><th>เลขที่</th><th>วันที่</th><th>ราคาต่อหน่วย</th><th>จากร้าน</th><th>ซื้อโดย</th></thead></tr>"
+    strName = "<table class='table table-striped'><thead class = 'thead-dark'><tr><th>เลขที่</th><th>วันที่</th><th>ราคาต่อหน่วย</th><th>เกรด/ยี่ห้อ</th><th>จากร้าน</th><th>ซื้อโดย</th></thead></tr>"
     item = request.GET.getlist('itemList[]', None)
     
     product = RequisitionItem.objects.filter(id__in = item).values('product__id')
@@ -4274,17 +4307,24 @@ def searchLastPoItem(request):
         try:
             po_item = PurchaseOrderItem.objects.filter(item__product__id = pd['product__id'], unit_price__isnull = False , po__approver_status = 2).order_by('-po__created')[:5]
 
-            strName = ''.join([strName, "<tr class='bg-info text-white'><td colspan='5'><b>" + po_item[0].item.product.id + " : "+ po_item[0].item.product.name +"</b></td></tr>"])
+            strName = ''.join([strName, "<tr class='bg-info text-white'><td colspan='6'><b>" + po_item[0].item.product.id + " : "+ po_item[0].item.product.name +"</b></td></tr>"])
             index = 1
             if po_item:
                 for i in po_item:
+
+                    if i.po.cp:
+                        cp_item = ComparisonPriceItem.objects.filter(item = i.item, cp = i.po.cp.id , bidder__is_select = True)
+                        brand = cp_item[0].brand
+                    else:
+                        brand = ''   
+
                     strName = ''.join([strName, "<tr>"])
-                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ str(i.po.created) + "</td><td>"+ f'{i.unit_price:,}' + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"])
+                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ i.po.created.strftime("%d/%m/%Y") + "</td><td>"+ f'{i.unit_price:,}'  + "</td><td>" + str(brand) + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"])
                     strName = ''.join([strName, "</tr>"])
                     index += 1
             count += 1
         except IndexError or PurchaseOrderItem.DoesNotExist:
-            strName = ''.join([strName, "<tr><td class='alert alert-warning' colspan='5'><b>ไม่มีรายการ "+pd['product__id']+" ที่ซื้อล่าสุด</b></td></tr>"])
+            strName = ''.join([strName, "<tr><td class='alert alert-warning' colspan='6'><b>ไม่มีรายการ "+pd['product__id']+" ที่ซื้อล่าสุด</b></td></tr>"])
 
     strName = ''.join([strName, "</table>"])
 

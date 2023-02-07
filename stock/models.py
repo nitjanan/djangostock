@@ -867,6 +867,8 @@ class PurchaseOrder(models.Model):
     receipt_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/receipt/RC_PO/%Y/%m/%d')
     is_re_approve = models.BooleanField(default=False)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    cancel_reason = models.CharField(max_length=255, blank = True, null = True)
+    is_cancel = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

@@ -32,6 +32,10 @@
         <div class="row">
           <div class="col">
             <description>
+              {% if po.is_cancel %}
+                <h3 class="text-danger">ยกเลิก</h3>
+                <h4 class="text-danger">({{po.cancel_reason}})</h4>
+              {%endif%}
               <h4>{{po.address_company.name_th}}{% if isUploadeReceipt %}   <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h4>
               {{po.address_company.address}}
               {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
@@ -45,12 +49,14 @@
                     <div class="pdf">
                       ใบรับสินค้า {{form.receipt_pdf | add_class:"form-control text-right"}}
                     </div>
+                    <!-- แก้ไขที่อยู่หัวรายงาน -->
                     <button type="submit" name="btnformPOr" class="btn btn-primary my-1">
                       <i class="fas fa-save"></i>
                       บันทึก
                     </button>
                   </div>
                   {%endif%}
+                  <!-- แก้ไขที่อยู่หัวรายงาน -->
                   <div class="modal fade" id="addressCompany" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                       <div class="modal-content">
@@ -65,7 +71,7 @@
                         </div>
                         <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
-                          <button type="submit"  name="btnformPOa" class="btn btn-primary">บันทึกการแก้ไข</button>
+                          <button type="submit"  name="btnformPOa" class="btn btn-primary" onclick="">บันทึกการแก้ไข</button>
                         </div>
                       </div>
                     </div>
@@ -232,22 +238,52 @@
                 </div>
                 <div class="float-right">
                   <h6>{{bc.affiliated.iso_code.po_code|safe}}</h6>
-                  <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="window.print();">
-                      <i class="fas fa-print"></i>
-                      ปริ้นใบสั่งซื้อ
-                  </button>
                 </div>
-            </div>
-            {% if po.approver_status_id != 1 and isPurchasing%}
-              <div class="row my-3 d-print-none">
-                <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
               </div>
-            {% endif %}
+              <div class="row my-3 d-print-none">
+                {% if po.approver_status_id != 1 and isPurchasing%}
+                <div class="col">
+                  <!-- ขอเปลี่ยนแปลงรายละเอียกรายการ -->
+                  <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+                  <!-- ขอยกเลิกรายการ -->
+                  <button type="button" class="btn btn-danger d-print-none" data-toggle="modal" data-target="#cancelPO"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+                </div>
+                {% endif %}
+                <div class="col text-right">
+                  <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="window.print();">
+                    <i class="fas fa-print"></i>
+                    ปริ้นใบสั่งซื้อ
+                </button>
+                </div>
+              </div>
             <hr>
           </div>
         </div>
       </div>
     </div>
+    <form  method="POST">
+      {% csrf_token %}
+      <!-- เหตุผลยกเลิกรายการ po -->
+      <div class="modal fade" id="cancelPO" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header alert alert-danger">
+                <h5 class="modal-title" id="exampleModalLongTitle">เหตุผลที่ยกเลิกรายการ</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                {{cancel_form.cancel_reason | add_class:"form-control is-invalid"}}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                <button type="submit"  name="btnformCancelPO" class="btn btn-primary">บันทึกการยกเลิก</button>
+              </div>
+          </div>
+        </div>
+      </div>
+    </form>
 </div>
 <!-- Modal Search-->
 <div class="modal fade" id="myEdit" role="dialog">

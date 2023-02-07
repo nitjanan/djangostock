@@ -139,6 +139,12 @@ class PurchaseOrderAddressCompanyForm(forms.ModelForm):
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
         }
 
+class PurchaseOrderCancelForm(forms.ModelForm):
+    cancel_reason = forms.CharField(max_length=100, required=True, label='เหตุผลการยกเลิกรายการ')
+    class Meta:
+       model = PurchaseOrder
+       fields = ('cancel_reason',)
+
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)

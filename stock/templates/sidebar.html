@@ -121,11 +121,11 @@
                 </ul>
             </li>
             {% endif %}
-            {% if 'History Incomplete' in tab.name %}
+            {% if 'Incomplete' in tab.name %}
             <li class="">
                 <a href="{% if request.user.is_authenticated %}#historyIncompleteSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if h_i_requisitions_page or h_i_pr_page or h_i_po_page or h_i_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-times-circle"></i>
-                    History Incomplete
+                    Incomplete
                 </a>
                 <ul class="collapse list-unstyled {{h_i_requisitions_show}} {{h_i_pr_show}} {{h_i_po_show}} {{h_i_cp_show}}" id="historyIncompleteSubmenu">
                     <!--ซ่อนก่อนเพราะไม่มีการอนุมัติในใบขอเบิก-->
@@ -162,12 +162,9 @@
         {% endfor %}
     </ul>
     {% endif %}
-    <!-- ul class="list-unstyled CTAs">
+    <!--ul class="list-unstyled CTAs">
         <li>
-            <a href="https://bootstrapious.com/tutorial/files/sidebar.zip" class="download">Download source</a>
+            <a href="https://bootstrapious.com/tutorial/files/sidebar.zip" class="download text-center">รายการอัพเดทล่าสุด</a>
         </li>
-        <li>
-            <a href="https://bootstrapious.com/p/bootstrap-sidebar" class="article">Back to article</a>
-        </li>
-    </ul -->
+    </ul-->
 </nav>
