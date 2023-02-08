@@ -3968,7 +3968,7 @@ def exportExcelPO(request):
     if amount_max is not None :
         my_q &=Q(amount__lte = amount_max)
 
-    my_q &=Q(approver_status = 2)
+    my_q &=Q(approver_status = 2, is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
@@ -4114,7 +4114,7 @@ def exportExcelSummaryByProductValue(request):
     if item_machine is not None :
         my_q &=Q(item__machine__icontains = item_machine)
 
-    my_q &=Q(po__approver_status = 2)
+    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานทั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
@@ -4235,7 +4235,7 @@ def exportExcelSummaryByProductFrequently(request):
     if item_machine is not None :
         my_q &=Q(item__machine__icontains = item_machine)
 
-    my_q &=Q(po__approver_status = 2)
+    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':

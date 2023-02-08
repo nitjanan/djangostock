@@ -1,4 +1,4 @@
-from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
@@ -799,3 +799,11 @@ def findAllApproveAlert(request, tab):
     cm_count =  len(new_cm)
 
     return pending_count + pr_count + po_count + cm_count
+
+def document(request):
+    try:
+        document = Document.objects.filter().order_by('-id')[0]
+    except:
+        document = None
+
+    return dict(document = document)

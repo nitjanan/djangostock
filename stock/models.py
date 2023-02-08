@@ -983,5 +983,9 @@ class ReceiveItem(models.Model):
         db_table = 'ReceiveItem'
         ordering=('id',)
 
+class Document(models.Model):
+    doc_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/document/')
 
-
+    class Meta:
+        db_table = 'Document'
+        ordering=('id',)
