@@ -805,6 +805,7 @@ class ComparisonPrice(models.Model):
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     is_re_approve = models.BooleanField(default=False)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    amount_diff = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ราคาที่เทียบกันระหว่างร้านที่ 1 และ 2
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

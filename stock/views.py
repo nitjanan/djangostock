@@ -63,6 +63,16 @@ def findCompanyIn(request):
         company_in = BaseBranchCompany.objects.filter(code = code).values('code')
     return company_in
 
+def days_between(d1, d2):
+    d1 = datetime.datetime.strptime(str(d1), "%Y-%m-%d").date()
+    d2 = datetime.datetime.strptime(str(d2), "%Y-%m-%d").date()
+    return abs((d2 - d1).days)
+
+def convertDateBEtoBC(strDateBE):
+    strYear = str(int(strDateBE[:4]) - 543)
+    strDateBC = strYear + "-" + strDateBE[5:7] + "-" + strDateBE[8:10]
+    return strDateBC
+
 # Create your views here.
 @login_required(login_url='signIn')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
@@ -3934,7 +3944,7 @@ def exportExcelPO(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'เลขที่ใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน']
+    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'รายการที่ 1 ถูกกว่ารายการที่ 2 (ก่อน vat)', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -3978,7 +3988,7 @@ def exportExcelPO(request):
 
     rows = PurchaseOrder.objects.filter(
         my_q
-    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount','total_after_discount','vat' ,'amount','stockman_user__first_name', 'pr__ref_no', 'branch_company', 'branch_company', 'branch_company', 'branch_company').order_by('amount')
+    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount', 'total_after_discount','vat' ,'amount','stockman_user__first_name','cp__amount_diff').annotate(variance=F('total_price')-F('total_after_discount')).order_by('amount')
 
     total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
     sum_total_price = sum(total_price)
@@ -3993,14 +4003,17 @@ def exportExcelPO(request):
     
     #หารายละเอียดของสินค้าที่ออกใบสั่งซื้อ
     po = PurchaseOrder.objects.filter(my_q).order_by('amount')
-    po_items = PurchaseOrderItem.objects.filter(po__in = po).values('po__ref_no', 'item__requisit__pr_ref_no', 'item__product__name', 'item__machine', 'item__desired_date', 'item__urgency').order_by('po__amount')
+    po_items = PurchaseOrderItem.objects.filter(po__in = po).values('po__ref_no', 'item__requisit__pr_ref_no', 'item__product__name', 'item__machine', 'item__desired_date', 'item__urgency', 'item__requisit').order_by('po__amount')
+    
+    po_items_temp = PurchaseOrderItem.objects.filter(po__in = po).values('item__requisit').order_by('po__amount')
+    pr = PurchaseRequisition.objects.filter(requisition__in = po_items_temp).values('ref_no', 'approver_update')
 
     for row in rows:
         row_num += 1
         for col_num in range(len(row)):
             if isinstance(row[col_num], datetime.date):
                 ws.write(row_num, col_num, row[col_num], date_style)
-            elif col_num == 8 or col_num == 9 or col_num == 10:
+            elif col_num == 8 or col_num == 9 or col_num == 10 or col_num == 12 or col_num == 13:
                 ws.write(row_num, col_num, row[col_num], decimal_style)
             else:
                 ws.write(row_num, col_num, row[col_num], font_style)
@@ -4017,17 +4030,32 @@ def exportExcelPO(request):
                     strPr = str(item['item__requisit__pr_ref_no'])
                     strPrItem = " ".join([strPrItem, str(item['item__product__name']), ", "])
                     strPrMachine = " ".join([strPrMachine, str(item['item__machine']), ", "])
-                    strPrDesired = str(item['item__desired_date'])
+                    strPrDesired = item['item__desired_date']
                     strPrUrgency = str(item['item__urgency'])
             #remove , in last item
             strPrItem = strPrItem[:-2]
             strPrMachine = strPrMachine[:-2]
 
-            ws.write(row_num, 12, strPr, font_style)
-            ws.write(row_num, 13, strPrItem, font_style)
-            ws.write(row_num, 14, strPrMachine, font_style)
-            ws.write(row_num, 15, strPrDesired, date_style)
-            ws.write(row_num, 16, strPrUrgency, font_style)
+            strApproverUpdate = None
+            strDateDiff = ""
+            for p in pr:
+                if strPr == p['ref_no']:
+                    strApproverUpdate = p['approver_update']
+
+            strTempReceiveUpdate = ""
+            if row[4]:
+                strTempReceiveUpdate = str(row[4])
+                strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
+                strDateDiff = str(days_between(strApproverUpdate, strReceiveUpdate)) + " วัน"
+            
+            ws.write(row_num, 14, strPr, font_style)
+            ws.write(row_num, 15, strApproverUpdate, date_style)
+            ws.write(row_num, 16, strPrItem, font_style)
+            ws.write(row_num, 17, strPrMachine, font_style)
+            ws.write(row_num, 18, strPrDesired, date_style)
+            ws.write(row_num, 19, strPrUrgency, font_style)
+            ws.write(row_num, 20, strDateDiff, font_style)            
+            
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 1, count, font_style)
@@ -4048,6 +4076,8 @@ def exportExcelPO(request):
 
     ws.write(row_num+6, 1, "4 = D", font_style)
     ws.write(row_num+6, 2, "15 วัน", font_style)
+
+    ws.write(row_num+7, 0, "*** ระยะเวลาในการซื้อ คือ วันที่รับสินค้าเทียบกับวันที่อนุมัติใบขอซื้อ", font_style)
                         
     wb.save(response)
 

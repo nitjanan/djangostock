@@ -219,7 +219,15 @@
                 </datalist>
             {% csrf_token %}
         </div>
-    </div>  
+    </div>
+    <div class="row my-2 hidden-print">
+        <div class="col-2">
+            {{form.amount_diff.label}} :
+        </div>
+        <div class="col-10">
+            {{form.amount_diff | add_class:"form-control"}}
+        </div>
+    </div>
     <div class="row my-2 hidden-print">
         <div class="col-2">
             {{form.note.label}} :
@@ -371,6 +379,8 @@ $('input[type=radio][name=cm_type]').change(function() {
     var diffPercent = (diff/priceFirst)*100;
     if (typeof index !== "undefined" && !isNaN(diff)) {
         document.getElementById("txtLess").innerHTML = "รายการที่ 1 ถูกกว่ารายการที่ 2 (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ ReplaceNumberWithCommas(diff) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+diffPercent.toFixed(2)+"%";
+        //เก็บราคาที่แตกต่างระหว่างร้าน 1 และร้าน 2
+        $('#id_amount_diff').val(diff);
     }
   }
 

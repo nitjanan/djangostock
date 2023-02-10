@@ -224,9 +224,9 @@ class ComparisonPriceAdmin(RelatedFieldAdmin):
     list_display = ('ref_no','po_ref_no','select_bidder','organizer')
     search_fields = ('ref_no','po_ref_no','select_bidder__name','organizer__first_name')
 
-class ComparisonPriceDistributorAdmin(RelatedFieldAdmin):
-    list_display = ('cp__ref_no','distributor')
-    search_fields = ('cp__ref_no','distributor__name')
+class ComparisonPriceDistributorAdmin(ImportExportModelAdmin):
+    list_display = ['cp','distributor']
+    search_fields = ['cp__ref_no','distributor__name']
 
 class ComparisonPriceItemAdmin(RelatedFieldAdmin):
     list_display = ('bidder__cp__ref_no','bidder__distributor__name','item__product__id', 'item__product__name')

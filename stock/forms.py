@@ -372,7 +372,7 @@ class CPSelectBidderForm(forms.ModelForm):
 
     class Meta:
        model = ComparisonPrice
-       fields = ('select_bidder','base_spares_type','note', 'cm_type', 'address_company', 'examiner_user', 'approver_user')
+       fields = ('select_bidder','base_spares_type','note', 'cm_type', 'address_company', 'examiner_user', 'approver_user', 'amount_diff')
        widgets={
             'select_bidder': forms.HiddenInput(),#dataList
             'base_spares_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
