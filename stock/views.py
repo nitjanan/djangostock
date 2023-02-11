@@ -42,7 +42,7 @@ import json
 from django.core.serializers import serialize
 from django.db.models import Count, Avg
 import xlwt
-from django.db.models import F, Func, Value, CharField
+from django.db.models import F, Func, Value, CharField,When, Q, Case
 from django.db.models import Sum
 from django.views.decorators.cache import cache_control
 from decimal import Decimal
@@ -3944,7 +3944,7 @@ def exportExcelPO(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'รายการที่ 1 ถูกกว่ารายการที่ 2 (ก่อน vat)', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ']
+    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย','วันที่กำหนดรับของ', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'ราคาส่วนต่าง/ส่วนลดใบเปรียบเทียบ', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -3988,7 +3988,12 @@ def exportExcelPO(request):
 
     rows = PurchaseOrder.objects.filter(
         my_q
-    ).values_list('ref_no', 'created', 'distributor', 'distributor__name', 'receive_update', 'credit__name', 'vat_type__id','discount', 'total_after_discount','vat' ,'amount','stockman_user__first_name','cp__amount_diff').annotate(variance=F('total_price')-F('total_after_discount')).order_by('amount')
+    ).values_list('ref_no', 'created', 'distributor', 'distributor__name','due_receive_update', 'receive_update', 'credit__name', 'vat_type__id','discount', 'total_after_discount','vat' ,'amount','stockman_user__first_name','cp__amount_diff').annotate(
+        save_price=Case(
+			When(vat_type_id = 1, then= F('total_price')- (F('total_after_discount') + F('vat'))),
+			When(vat_type_id = 0, then= F('total_price')-F('total_after_discount')),
+			When(vat_type_id = 2, then= F('total_price')-F('total_after_discount')),
+			)).order_by('amount')
 
     total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
     sum_total_price = sum(total_price)
@@ -4013,7 +4018,7 @@ def exportExcelPO(request):
         for col_num in range(len(row)):
             if isinstance(row[col_num], datetime.date):
                 ws.write(row_num, col_num, row[col_num], date_style)
-            elif col_num == 8 or col_num == 9 or col_num == 10 or col_num == 12 or col_num == 13:
+            elif col_num == 9 or col_num == 10 or col_num == 11 or col_num == 13 or col_num == 14:
                 ws.write(row_num, col_num, row[col_num], decimal_style)
             else:
                 ws.write(row_num, col_num, row[col_num], font_style)
@@ -4043,26 +4048,25 @@ def exportExcelPO(request):
                     strApproverUpdate = p['approver_update']
 
             strTempReceiveUpdate = ""
-            if row[4]:
-                strTempReceiveUpdate = str(row[4])
+            if row[5]:
+                strTempReceiveUpdate = str(row[5])
                 strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
                 strDateDiff = str(days_between(strApproverUpdate, strReceiveUpdate)) + " วัน"
             
-            ws.write(row_num, 14, strPr, font_style)
-            ws.write(row_num, 15, strApproverUpdate, date_style)
-            ws.write(row_num, 16, strPrItem, font_style)
-            ws.write(row_num, 17, strPrMachine, font_style)
-            ws.write(row_num, 18, strPrDesired, date_style)
-            ws.write(row_num, 19, strPrUrgency, font_style)
-            ws.write(row_num, 20, strDateDiff, font_style)            
-            
+            ws.write(row_num, 15, strPr, font_style)
+            ws.write(row_num, 16, strApproverUpdate, date_style)
+            ws.write(row_num, 17, strPrItem, font_style)
+            ws.write(row_num, 18, strPrMachine, font_style)
+            ws.write(row_num, 19, strPrDesired, date_style)
+            ws.write(row_num, 20, strPrUrgency, font_style)
+            ws.write(row_num, 21, strDateDiff, font_style)
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 1, count, font_style)
     ws.write(row_num+1, 2, "ใบ", font_style)
-    ws.write(row_num+1, 8, sum_total_price, decimal_style)
-    ws.write(row_num+1, 9, sum_vat, decimal_style)
-    ws.write(row_num+1, 10, sum_amount, decimal_style)
+    ws.write(row_num+1, 9, sum_total_price, decimal_style)
+    ws.write(row_num+1, 10, sum_vat, decimal_style)
+    ws.write(row_num+1, 11, sum_amount, decimal_style)
 
     ws.write(row_num+3, 0, "ระดับความเร่งด่วน", font_style)
     ws.write(row_num+3, 1, "1 = A", font_style)

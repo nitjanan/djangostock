@@ -196,6 +196,15 @@
     <hr>
     {% endif %} 
     <form method="post">
+    <!-- ถ้ามีร้านค้ามากกว่า 1 ร้านให้ปิด form -->
+    <div class="row my-2 hidden-print {% if bidder.count > 1 %}d-none{%endif%}">
+        <div class="col-2 text-success">
+            {{form.amount_diff.label}} :
+        </div>
+        <div class="col-10">
+            {{form.amount_diff | add_class:"form-control is-valid"}}
+        </div>
+    </div>
     <div class="row my-2 hidden-print">
             <div class="col-2">
                 {{form.address_company.label}} :
@@ -218,14 +227,6 @@
                   {% endfor %}
                 </datalist>
             {% csrf_token %}
-        </div>
-    </div>
-    <div class="row my-2 hidden-print">
-        <div class="col-2">
-            {{form.amount_diff.label}} :
-        </div>
-        <div class="col-10">
-            {{form.amount_diff | add_class:"form-control"}}
         </div>
     </div>
     <div class="row my-2 hidden-print">
@@ -329,8 +330,13 @@
         document.getElementById("txtSelectBidderSpell").innerHTML = "(" + thaibath + ")";
     }
 
-    calculateDiffPrice(priceSelect, index);
-
+    //ถ้ามีมากกว่า 1 ร้านให้คิดราคาส่วนต่าง/ส่วนลด
+    if('{{bidder.count}}' > 1){
+        calculateDiffPrice(priceSelect, index);
+    }else{
+        calculateDiffPriceOnlyOneDistributor();
+    }
+    
     //set examiner_user and approver_user
     searchExaminerAndApproverUser();
 
@@ -439,6 +445,22 @@ $('input[type=radio][name=cm_type]').change(function() {
             $("#id_examiner_user").find('option').not(':first').remove();
             $("#id_approver_user").find('option').not(':first').remove();
         }
+    }
+
+    //ถ้ามีมากกว่า 1 ร้านให้คิดราคาส่วนต่าง/ส่วนลด
+    $("#id_amount_diff").change(function() {
+        calculateDiffPriceOnlyOneDistributor();
+    });
+
+    //คำนวนราคาส่วนต่าง/ส่วนลด
+    function calculateDiffPriceOnlyOneDistributor(){
+        var priceFirst = parseFloat("{{bidder.0.total_after_discount}}");
+        var diffPercent = ($("#id_amount_diff" ).val()/priceFirst)*100;
+
+        if (!isNaN(diffPercent) && $("#id_amount_diff" ).val() != "")
+            document.getElementById("txtLess").innerHTML = "ราคาส่วนต่าง/ส่วนลด (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ ReplaceNumberWithCommas($("#id_amount_diff" ).val()) + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+ diffPercent.toFixed(2) +"%";
+        else
+            document.getElementById("txtLess").innerHTML = "";
     }
 
 </script>

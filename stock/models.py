@@ -870,6 +870,7 @@ class PurchaseOrder(models.Model):
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
     is_cancel = models.BooleanField(default=False)
+    due_receive_update = models.DateField(blank=True, null=True) #วันที่กำหนดรับของ
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

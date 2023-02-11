@@ -302,6 +302,7 @@ $(function() {
     setDataDistributor();
 
     $('#id_created').val('{{po.created|date:"Y-m-d"}}');
+    $('#id_due_receive_update').val('{{po.due_receive_update|date:"Y-m-d"}}');
 
     //ปิดไม่ให้แก้รหัสใบสั่งซื้อหากไม่มีสิทธิ
     "{% if not isEditPO %}"

@@ -337,9 +337,13 @@
     var thaibath = ArabicNumberToText(amount);
     document.getElementById("txtSelectBidder").innerHTML = "ขออนุมัติจัดซื้อจาก "+ bidderName + "&emsp;&emsp;เป็นเงินทั้งสิ้น&emsp;&emsp;" + ReplaceNumberWithCommas(amount) + " บาท&emsp;&emsp;" + "(" + thaibath + ")";
 
-    calculateDiffPrice(priceSelect, index);
+    //ถ้ามีมากกว่า 1 ร้านให้คิดราคาส่วนต่าง/ส่วนลด
+    if('{{bidder.count}}' > 1){
+        calculateDiffPrice(priceSelect, index);
+    }else{
+        calculateDiffPriceOnlyOneDistributor();
+    }
     
-
 }); 
 
   function calculateDiffPrice(priceSelect, index){
@@ -395,5 +399,16 @@ function openModal(instance) {
   $("#pShowSearch").html(instance);
   $('#myEdit').modal('show');
 }
+
+//ถ้ามีมากกว่า 1 ร้านให้คิดราคาส่วนต่าง/ส่วนลด
+function calculateDiffPriceOnlyOneDistributor(){
+    var priceFirst = parseFloat("{{bidder.0.total_after_discount}}");
+    var diffPercent = ("{{cp.amount_diff}}"/priceFirst)*100;
+    if (!isNaN(diffPercent))
+        document.getElementById("txtLess").innerHTML = "ราคาส่วนต่าง/ส่วนลด (ก่อน vat)&emsp;&emsp;&emsp;&emsp;"+ ReplaceNumberWithCommas("{{cp.amount_diff}}") + "&emsp;&emsp;&emsp;&emsp;คิดเป็น&emsp;&emsp;&emsp;&emsp;"+ diffPercent.toFixed(2) +"%";
+    else
+        $(".less").remove();
+}
+
 </script>
 {% endblock %}

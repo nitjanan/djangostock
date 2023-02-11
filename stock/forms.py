@@ -107,11 +107,12 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'quotation_pdf')
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf')
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
+        'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
         }
        labels = {
             'ref_no': _('รหัสใบสั่งซื้อ'),
@@ -123,6 +124,7 @@ class PurchaseOrderForm(forms.ModelForm):
             'stockman_user': _('เจ้าหน้าที่จัดซื้อ'),
             'quotation_pdf': _('ใบเสนอราคา'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
+            'due_receive_update': _('วันที่กำหนดรับของ'),
         }
 
 class PurchaseOrderAddressCompanyForm(forms.ModelForm):
@@ -155,17 +157,19 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user')
+       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update')
        widgets = {
         'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
+        'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
         }
        labels = {
             'shipping': _('ขนส่งโดย'),
             'ref_no': _('รหัสใบสั่งซื้อ'),
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
-        }  
+            'due_receive_update': _('วันที่กำหนดรับของ'),
+        }
 
 
 class PurchaseOrderPriceForm(forms.ModelForm):
@@ -384,6 +388,7 @@ class CPSelectBidderForm(forms.ModelForm):
             'cm_type': _('ประเภทใบเปรียบเทียบ'),
             'note': _('หมายเหตุ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
+            'amount_diff': _('ราคาส่วนต่าง/ส่วนลด'),
         }
 
 #ใบรับสินค้า
