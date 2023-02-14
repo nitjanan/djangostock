@@ -1,6 +1,7 @@
 {% extends 'layouts.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load widget_tweaks %}
 
 {% block css %}
 <style>
@@ -180,14 +181,23 @@ u.dotted {
               </tbody>
             </table>
           </div>
+          <form method="post">
+            {% csrf_token %}
+          <div class="row my-2">
+            <div class="col-2 text-danger">{{ form_pr.organizer.label}}</div>
+            <div class="col">{{ form_pr.organizer | add_class:"form-control is-invalid" }}</div>
+          </div>
+          <div class="row my-2">
+            <div class="col-2 text-danger">{{ form_pr.approver_user.label}}</div>
+            <div class="col">{{ form_pr.approver_user | add_class:"form-control is-invalid" }}</div>
+          </div>
           <div class="row">
             <div class="card-group col">
               <div class="card col">
                 <div class="card-body">
                   <strong>หมายเหตุ: </strong>
-                  <u class="dotted">
-                    {{ pr.note }}
-                  </u>
+                    {{ form_pr.note | add_class:"form-control" }}
+                    {{ form_pr.branch_company }}
                 </div>
               </div>
               <div class="card col-4">
@@ -259,7 +269,14 @@ u.dotted {
             <h6>{{bc.affiliated.iso_code.pr_code|safe}}</h6>
           </div>
           <div class="row my-2">
-            <div class="col-6 offset-6 text-right">
+            <div class="col">
+              <button type="submit" class="btn btn-primary hidden-print">
+                <i class="fas fa-save"></i>
+                  บันทึก
+              </button>
+            </div>
+          </form>
+            <div class="col-6 col-md-2 text-right">
               <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
                 <i class="fas fa-print"></i>
                 ปริ้นใบขอซื้อ

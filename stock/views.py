@@ -3522,10 +3522,11 @@ def reApprovePR(request, pr_id):
 
         pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
         pr.approver_update = None
-        pr.approver_user = None
+        
         #พัสดุ
         #pr.stockman_user_id = request.user.id
         pr.stockman_update = datetime.datetime.now()
+        pr.is_complete = False
         pr.save()
 
         items = RequisitionItem.objects.filter(requisit = pr.requisition)
@@ -3539,6 +3540,14 @@ def reApprovePR(request, pr_id):
         baseUnit = BaseUnit.objects.all()
         baseProduct = Product.objects.all().values('id', 'name')
 
+        #form
+        form_pr = PurchaseRequisitionForm(request, instance=pr)
+        if request.method == 'POST':
+            form_pr = PurchaseRequisitionForm(request, request.POST, instance=pr)
+            if form_pr.is_valid():
+                form_pr.save()
+                return HttpResponseRedirect(reverse('viewPR'))
+
         context = {
             'users' : items,
             'requisition' : requisition,
@@ -3547,8 +3556,12 @@ def reApprovePR(request, pr_id):
             'baseUnit' : baseUnit,
             'baseProduct' : baseProduct,
             'bc':bc,
+            'form_pr':form_pr,
             'pr_page': "tab-active",
             'pr_show': "show",
+            active :"active show",
+            "disableTab":"disableTab",
+            "colorNav":"disableNav"
         }
 
         return render(request, "purchaseRequisition/reApprovePR.html", context)
