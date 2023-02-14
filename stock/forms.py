@@ -381,6 +381,7 @@ class CPSelectBidderForm(forms.ModelForm):
             'select_bidder': forms.HiddenInput(),#dataList
             'base_spares_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
             'cm_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
+            'amount_diff': forms.HiddenInput(),
        }
        labels = {
             'select_bidder': _('เลือกผู้จัดจำหน่าย'),
