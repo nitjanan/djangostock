@@ -68,6 +68,11 @@ def days_between(d1, d2):
     d2 = datetime.datetime.strptime(str(d2), "%Y-%m-%d").date()
     return abs((d2 - d1).days)
 
+def days_between_nagative(d1, d2):
+    d1 = datetime.datetime.strptime(str(d1), "%Y-%m-%d").date()
+    d2 = datetime.datetime.strptime(str(d2), "%Y-%m-%d").date()
+    return (d2 - d1).days
+
 def convertDateBEtoBC(strDateBE):
     strYear = str(int(strDateBE[:4]) - 543)
     strDateBC = strYear + "-" + strDateBE[5:7] + "-" + strDateBE[8:10]
@@ -3957,7 +3962,7 @@ def exportExcelPO(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย','วันที่กำหนดรับของ', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'ราคาส่วนต่างใบเปรียบเทียบ', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ']
+    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย','วันที่กำหนดรับของ', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'ราคาส่วนต่างใบเปรียบเทียบ', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ','ความล่าช้าในการรับของ']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -4055,16 +4060,19 @@ def exportExcelPO(request):
             strPrMachine = strPrMachine[:-2]
 
             strApproverUpdate = None
-            strDateDiff = ""
+            strDateDiff = None
             for p in pr:
                 if strPr == p['ref_no']:
                     strApproverUpdate = p['approver_update']
 
-            strTempReceiveUpdate = ""
+            strTempReceiveUpdate = None
+            strDateDelay = None
             if row[5]:
                 strTempReceiveUpdate = str(row[5])
                 strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
                 strDateDiff = str(days_between(strApproverUpdate, strReceiveUpdate)) + " วัน"
+                if row[4]:
+                    strDateDelay = str(days_between_nagative(strReceiveUpdate, row[4])) + " วัน"
             
             ws.write(row_num, 15, strPr, font_style)
             ws.write(row_num, 16, strApproverUpdate, date_style)
@@ -4073,6 +4081,7 @@ def exportExcelPO(request):
             ws.write(row_num, 19, strPrDesired, date_style)
             ws.write(row_num, 20, strPrUrgency, font_style)
             ws.write(row_num, 21, strDateDiff, font_style)
+            ws.write(row_num, 22, strDateDelay, font_style)
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 1, count, font_style)
