@@ -1017,7 +1017,7 @@ class RateDistributor(models.Model):
     safety_rate = models.IntegerField(null=True, blank=True)#การจัดการสิ่งแวดล้อม/ความปลอดภัย
     total_rate = models.IntegerField(null=True, blank=True)#รวมคะแนน
     grade = models.ForeignKey(BaseGrade,on_delete=models.CASCADE, null = True)#เกรด
-    counsel = models.CharField(max_length=500, blank=True, null = True)
+    counsel = models.TextField(blank=True, null = True)
     organizer_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
