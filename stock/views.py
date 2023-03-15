@@ -17,8 +17,8 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import ugettext
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -43,7 +43,7 @@ from django.core.serializers import serialize
 from django.db.models import Count, Avg
 import xlwt
 from django.db.models import F, Func, Value, CharField,When, Q, Case
-from django.db.models import Sum
+from django.db.models import Sum, IntegerField
 from django.views.decorators.cache import cache_control
 from decimal import Decimal
 import pandas as pd
@@ -73,10 +73,50 @@ def days_between_nagative(d1, d2):
     d2 = datetime.datetime.strptime(str(d2), "%Y-%m-%d").date()
     return (d2 - d1).days
 
+def years_between(d1, d2):
+    d1 = datetime.datetime.strptime(str(d1), "%Y-%m-%d").date()
+    d2 = datetime.datetime.strptime(str(d2), "%Y-%m-%d").date()
+    return abs(d2.year - d1.year)
+
 def convertDateBEtoBC(strDateBE):
     strYear = str(int(strDateBE[:4]) - 543)
     strDateBC = strYear + "-" + strDateBE[5:7] + "-" + strDateBE[8:10]
     return strDateBC
+
+def calculateDurationRate(receive_update, due_receive_update):
+    dateDelay = days_between_nagative(receive_update, due_receive_update)
+    duration_rate = None
+
+    if dateDelay < -30:
+        duration_rate = 1
+    elif -30 <= dateDelay <= -8:
+        duration_rate = 2
+    elif -7 <= dateDelay <= -1:
+        duration_rate = 3
+    elif dateDelay >= 0:
+        duration_rate = 4
+    return duration_rate
+
+def calculateTotalRate(price_rate, quantity_rate, duration_rate, service_rate, safety_rate):
+    total_rate  = None
+    total_rate = (price_rate*5) + (quantity_rate*5) + (duration_rate*5) + (service_rate*5) + (safety_rate*5)
+    return total_rate
+
+def calculateGradeRate(total_rate):
+    grade_rate = None
+
+    if 90 <= total_rate <= 100:
+        grade_rate = 1
+    elif 80 <= total_rate <= 89:
+        grade_rate = 2
+    elif 70 <= total_rate <= 79:
+        grade_rate = 3
+    elif 60 <= total_rate <= 69:
+        grade_rate = 4
+    elif total_rate < 60:
+        grade_rate = 5
+
+    return grade_rate
 
 # Create your views here.
 @login_required(login_url='signIn')
@@ -1906,15 +1946,24 @@ def editPOFromPR(request, po_id):
 
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
+    form_rate = RateDistributorForm()
+
     if request.method == 'POST':
         form = PurchaseOrderForm(request.POST, request.FILES, instance=po)
-        if form.is_valid():
+        form_rate = RateDistributorForm(request.POST or None)
+        if form.is_valid() and form_rate.is_valid():
             form.save()
+            rate_contact = form_rate.save(commit=False)
+            rate_contact.po = po
+            rate_contact.organizer_user = po.stockman_user
+            if rate_contact.price_rate and rate_contact.quantity_rate and rate_contact.service_rate and rate_contact.safety_rate:
+                rate_contact.save()
             return redirect('editPOItem', po_id = po_id, isFromPR = 'True', isReApprove = 'False')
         
     #'distributorList': distributorList,
     context = {
         'form':form,
+        'form_rate':form_rate,
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",
@@ -1985,6 +2034,13 @@ def removePO(request, po_id):
         cp.po_ref_no = ""
         cp.save()
     except (ComparisonPrice.DoesNotExist, AttributeError):
+        pass
+
+    #ลบรายการประเมินร้านค้าที่ผูกไว้
+    try:
+        rd = RateDistributor.objects.get(po = po)
+        rd.delete()
+    except (RateDistributor.DoesNotExist, AttributeError):
         pass
 
     #ลบ PurchaseOrder ทีหลัง
@@ -2643,6 +2699,24 @@ def searchDataDistributor(request):
     }
     return JsonResponse(data)
 
+def getRateDistributor(request):
+    if 'id_distributor' in request.GET:
+        id = request.GET.get('id_distributor')
+
+        rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = id, counsel__isnull = False).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
+        num_grade_all = RateDistributor.objects.filter(distributor = id).count()
+        ratings = RateDistributor.objects.filter(distributor = id).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
+
+        is_had_buy = PurchaseOrder.objects.filter(distributor = id, stockman_user = request.user).exists()
+
+    data = {
+        'rate_counsel':list(rate_counsel),
+        'ratings':ratings,
+        'num_grade_all':num_grade_all,
+        'is_had_buy':is_had_buy,
+    }
+    return JsonResponse(data)
+
 def setDataDistributor(request):
     if 'id_distributor' in request.GET:
         id = request.GET.get('id_distributor')
@@ -3066,9 +3140,18 @@ def createPOFromComparisonPrice(request, cp_id):
     else:
         approver_user = bc.approver_user
 
+    #ประเมินร้านค้า
+    rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = bc.select_bidder, counsel__isnull = False).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
+    num_grade_all = RateDistributor.objects.filter(distributor = bc.select_bidder).count()
+    ratings = RateDistributor.objects.filter(distributor = bc.select_bidder).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
+
+    #หาว่าเจ้าหน้าที่จัดซื้อคนนี้เคยซื้อร้านนี้หรือไม่
+    is_had_buy = PurchaseOrder.objects.filter(distributor = bc.select_bidder, stockman_user = request.user).exists()
+
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : approver_user})
-    if form.is_valid():
+    form_rate = RateDistributorForm(request.POST or None, initial={'distributor': bc.select_bidder})
+    if form.is_valid() and form_rate.is_valid():
         try:
             new_contact = form.save(commit=False)
             cp = ComparisonPrice.objects.get(id = new_contact.cp.id)
@@ -3081,10 +3164,17 @@ def createPOFromComparisonPrice(request, cp_id):
             new_contact.approver_status_id = 1
             #new_contact.approver_user = cp.approver_user
             new_contact.branch_company = company
+
+            rate_contact = form_rate.save(commit=False)
+            rate_contact.organizer_user = cp.organizer
+            rate_contact.distributor = cp.select_bidder
+            rate_contact.po = new_contact
         except:
             return HttpResponseRedirect(reverse('createPOFromComparisonPrice', args=(cp_id,)))
         else:
             new_contact.save()
+            if is_had_buy:
+                rate_contact.save()
 
             cp.po_ref_no = new_contact.ref_no
             cp.save()
@@ -3092,8 +3182,14 @@ def createPOFromComparisonPrice(request, cp_id):
 
     context = {
         'form':form,
+        'form_rate':form_rate,
         'isEditPO':isEditPO,
         'isEditApproverUserPO':isEditApproverUserPO,
+        'cp':bc,
+        'rate_counsel':rate_counsel,
+        'num_grade_all':num_grade_all,
+        'ratings':ratings,
+        'is_had_buy':is_had_buy,
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",
@@ -3612,6 +3708,29 @@ def uploadReceive(request):
                         po.is_receive = True
                         po.receive_update = data[1]
                         po.save()
+
+                        try:
+                            rd = RateDistributor.objects.get(po = po)
+                            #คำนวน rating (duration_rate) ระยะเวลาที่รับจริง - วันที่กำหนดรับของ
+                            #ถ้าปีห่างกันมากกว่าแสดงว่าปีเป็น คศ และ พศ ให้ทำการแปลงเป็นคศ ก่อน
+
+                            if years_between(po.due_receive_update, str(data[1].strftime("%Y-%m-%d"))) > 500:
+                                durationRate = calculateDurationRate(convertDateBEtoBC(str(data[1].strftime("%Y-%m-%d"))), po.due_receive_update)
+                            else:
+                                durationRate = calculateDurationRate(str(data[1].strftime("%Y-%m-%d")), po.due_receive_update)
+ 
+                            #คำนวน rating (total_rate)
+                            totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
+                            #คำนวน grade rate
+                            grade_rate = calculateGradeRate(totalRate)
+
+                            rd.duration_rate = durationRate
+                            rd.total_rate = totalRate
+                            rd.grade_id = grade_rate
+                            rd.save()
+                        except RateDistributor.DoesNotExist:
+                            pass
+
                         #เปลี่ยนเป็นแบบนี้
                         try:
                             po_item = PurchaseOrderItem.objects.filter(po__ref_no = refNo)
@@ -4067,12 +4186,16 @@ def exportExcelPO(request):
 
             strTempReceiveUpdate = None
             strDateDelay = None
-            if row[5]:
+            if row[5] and strApproverUpdate:
                 strTempReceiveUpdate = str(row[5])
                 strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
                 strDateDiff = str(days_between(strApproverUpdate, strReceiveUpdate)) + " วัน"
                 if row[4]:
-                    strDateDelay = str(days_between_nagative(strReceiveUpdate, row[4])) + " วัน"
+                    if years_between(row[4], strTempReceiveUpdate) > 500:
+                        strDateDelay = str(days_between_nagative(strReceiveUpdate, row[4])) + " วัน"
+                    else:
+                        strDateDelay = str(days_between_nagative(strTempReceiveUpdate, row[4])) + " วัน"                    
+
             
             ws.write(row_num, 15, strPr, font_style)
             ws.write(row_num, 16, strApproverUpdate, date_style)

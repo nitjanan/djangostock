@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
 import pytz
+import os
 
 def requisition_ref_number(branch_company):
     #tz = pytz.timezone('Asia/Bangkok')
@@ -241,6 +242,18 @@ class BaseDepartment(models.Model):
 
     def __str__(self):
         return self.name
+    
+class BaseGrade(models.Model):
+    name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อเกรด")
+
+    class Meta:
+        db_table = 'BaseGrade'
+        ordering=('name',)
+        verbose_name = 'เกรด'
+        verbose_name_plural = 'ข้อมูลเกรด'
+
+    def __str__(self):
+        return str(self.name)
 
 class Category(models.Model):
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อหมวดหมู่สินค้า") #ชื่อโหมดที่ไม่ซ้ำกัน
@@ -987,7 +1000,33 @@ class ReceiveItem(models.Model):
 
 class Document(models.Model):
     doc_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/document/')
-
+    
     class Meta:
         db_table = 'Document'
+        ordering=('id',)
+    
+    def filename(self):
+        return os.path.basename(self.doc_pdf.name)
+
+class RateDistributor(models.Model):
+    distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE, null = True)
+    price_rate = models.IntegerField(null=True, blank=True)#ราคา
+    quantity_rate = models.IntegerField(null=True, blank=True)#คุณภาพงาน
+    duration_rate = models.IntegerField(null=True, blank=True)#ระยะเวลา
+    service_rate = models.IntegerField(null=True, blank=True)#การบริการ
+    safety_rate = models.IntegerField(null=True, blank=True)#การจัดการสิ่งแวดล้อม/ความปลอดภัย
+    total_rate = models.IntegerField(null=True, blank=True)#รวมคะแนน
+    grade = models.ForeignKey(BaseGrade,on_delete=models.CASCADE, null = True)#เกรด
+    counsel = models.CharField(max_length=500, blank=True, null = True)
+    organizer_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='rate_organizer_user',
+        null=True
+    )#ผู้ประเมิน
+    organizer_update = models.DateField(auto_now=True)#วันที่ประเมิน
+    po = models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE,null = True,blank = True)#ผูกกับใบสั่งซื้อ
+
+    class Meta:
+        db_table = 'RateDistributor'
         ordering=('id',)

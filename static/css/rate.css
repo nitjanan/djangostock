@@ -1,0 +1,343 @@
+.review-card{
+    height: 785px;
+}
+
+.block-q{
+    height: 200px;
+    overflow-y: scroll;
+}
+
+.block-q-none{
+    height: 200px;
+}
+
+.block-q::-webkit-scrollbar {
+    width: 10px;
+}
+
+.block-q::-webkit-scrollbar-track {
+box-shadow: inset 0 0 5px grey; 
+border-radius: 10px;
+}
+
+/* Handle */
+.block-q::-webkit-scrollbar-thumb {
+background: grey; 
+border-radius: 10px;
+}
+
+/* Handle on hover */
+.block-q::-webkit-scrollbar-thumb:hover {
+background: grey; 
+}
+
+hr.ln {
+    border: 3px solid grey;
+    border-radius: 5px;
+}
+.con{
+position: relative;
+width: 350px;
+background: white;
+padding: 20px 10px;
+border: 1px solid #444;
+border-radius: 5px;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-direction: column;
+height: 785px;
+}
+
+.con .text{
+font-size: 25px;
+color: #666;
+font-weight: 500;
+}
+
+.con .star-widget input{
+display: none;
+}
+
+.star-widget label{
+font-size: 40px;
+color: #444;
+padding: 10px;
+float: right;
+transition: all 0.2s ease;
+}
+
+/* price rate */
+input[name="rate-price"]:not(:checked) ~ label:hover,
+input[name="rate-price"]:not(:checked) ~ label:hover ~ label{
+color: #fd4;
+}
+input[name="rate-price"]:checked ~ label{
+color: #fd4;
+}
+
+input#rate-price-4:checked ~ label{
+color: #fe7;
+text-shadow: 0 0 20px #952;
+}
+#rate-price-1:checked ~ .text-rate-price:before{
+content: "ค่อนข้างแพง";
+}
+#rate-price-2:checked ~ .text-rate-price:before{
+content: "ไม่แตกต่างจากที่อื่น";
+}
+#rate-price-3:checked ~ .text-rate-price:before{
+content: "ราคาคุ้มค่าตามผลงาน";
+}
+#rate-price-4:checked ~ .text-rate-price:before{
+content: "ความพึงพอใจมาก";
+}
+
+.text-rate-price{
+width: 100%;
+font-size: 20px;
+color: #fd4;
+font-weight: 500;
+text-align: center;
+transition: all 0.2s ease;
+}
+
+/*
+.con .text-rate-price{
+display: none;
+}
+*/
+input:checked ~ .text-rate-price{
+display: block;
+}
+
+/* quantity rate */
+input[name="rate-quantity"]:not(:checked) ~ label:hover,
+input[name="rate-quantity"]:not(:checked) ~ label:hover ~ label{
+color: #fd4;
+}
+input[name="rate-quantity"]:checked ~ label{
+color: #fd4;
+}
+
+input#rate-quantity-4:checked ~ label{
+color: #fe7;
+text-shadow: 0 0 20px #952;
+}
+#rate-quantity-1:checked ~ .text-rate-quantity:before{
+content: "ต้องแก้ไขหลายจุด";
+}
+#rate-quantity-2:checked ~ .text-rate-quantity:before{
+content: "ไม่ตรงตามสเปค";
+}
+#rate-quantity-3:checked ~ .text-rate-quantity:before{
+content: "ใช้งานได้ดีแต่มีตำหนิ";
+}
+#rate-quantity-4:checked ~ .text-rate-quantity:before{
+content: "ใช้งานได้ดี/งานเรียบร้อย";
+}
+input:checked ~ .text-rate-quantity{
+display: block;
+}
+
+.text-rate-quantity{
+width: 100%;
+font-size: 20px;
+color: #fd4;
+font-weight: 500;
+text-align: center;
+transition: all 0.2s ease;
+}
+
+/*
+.con .text-rate-quantity{
+display: none;
+}
+*/
+
+input:checked ~ .text-rate-quantity{
+display: block;
+}
+
+/* service rate */
+input[name="rate-service"]:not(:checked) ~ label:hover,
+input[name="rate-service"]:not(:checked) ~ label:hover ~ label{
+color: #fd4;
+}
+input[name="rate-service"]:checked ~ label{
+color: #fd4;
+}
+
+input#rate-service-4:checked ~ label{
+color: #fe7;
+text-shadow: 0 0 20px #952;
+}
+#rate-service-1:checked ~ .text-rate-service:before{
+content: "ไม่ให้ความร่วมมือ/ปิดบังข้อมูล";
+}
+#rate-service-2:checked ~ .text-rate-service:before{
+content: "ให้ข้อมูล/เสนอราคาผิดพลาด";
+}
+#rate-service-3:checked ~ .text-rate-service:before{
+content: "ให้ข้อมูล/เสนอราคาล่าช้า";
+}
+#rate-service-4:checked ~ .text-rate-service:before{
+content: "ให้ข้อมูล/แนะนำดี งานราบรื่น";
+}
+input:checked ~ .text-rate-service{
+display: block;
+}
+
+.text-rate-service{
+width: 100%;
+font-size: 20px;
+color: #fd4;
+font-weight: 500;
+text-align: center;
+transition: all 0.2s ease;
+}
+
+/*
+.con .text-rate-service{
+display: none;
+}
+*/
+
+input:checked ~ .text-rate-service{
+display: block;
+}
+
+/* safety rate */
+input[name="rate-safety"]:not(:checked) ~ label:hover,
+input[name="rate-safety"]:not(:checked) ~ label:hover ~ label{
+color: #fd4;
+}
+input[name="rate-safety"]:checked ~ label{
+color: #fd4;
+}
+
+input#rate-safety-4:checked ~ label{
+color: #fe7;
+text-shadow: 0 0 20px #952;
+}
+#rate-safety-1:checked ~ .text-rate-safety:before{
+content: "ความเสี่ยงสูง";
+}
+#rate-safety-2:checked ~ .text-rate-safety:before{
+content: "มีผลกระทบนอกขอบเขต";
+}
+#rate-safety-3:checked ~ .text-rate-safety:before{
+content: "มีผลกระทบในขอบเขต";
+}
+#rate-safety-4:checked ~ .text-rate-safety:before{
+content: "มีการจัดการอย่างดี";
+}
+input:checked ~ .text-rate-safety{
+display: block;
+}
+
+.text-rate-safety{
+width: 100%;
+font-size: 20px;
+color: #fd4;
+font-weight: 500;
+text-align: center;
+transition: all 0.2s ease;
+}
+
+/*
+.con .text-rate-safety{
+display: none;
+}
+*/
+
+input:checked ~ .text-rate-safety{
+display: block;
+}
+
+/* rating bar */
+.rating-bar .bar-item{
+    display: flex;
+    text-align:center;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+.rating-bar .star{
+    margin-left: 3px;
+    width: 5%;
+}
+
+.rating-bar .percent{
+    color: blue;
+    flex-shrink: 0;
+    width: 8%;
+    text-align: right;
+}
+
+.rating-bar .progress{
+    flex-grow: 1;
+    margin: 0 10px;
+    height: 8px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #f5f8ff;
+}
+
+.rating-bar .progress-line{
+    height: 100%;
+    width: 0%;
+    transition: all 0.4s ease-in;
+    background-color: #fd1;
+}
+.rating-bar .icon{
+    color: #fd1;
+}
+
+/* rating star new*/
+    .stars-outer {
+        position: relative;
+        display: inline-block;
+    }
+  
+  .stars-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 0;
+  }
+  
+  .stars-outer::before {
+    content: "\f005 \f005 \f005 \f005";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 950;
+    color: #ccc;
+  }
+  
+  .stars-inner::before {
+    content: "\f005 \f005 \f005 \f005";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 950;
+    color: #f8ce0b;
+  }
+
+  .avg{
+    color: blue;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .number-rating{
+    color: blue;
+  }
+
+
+  
+  
+
+
+
+
+
+

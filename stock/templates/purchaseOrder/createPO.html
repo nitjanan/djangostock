@@ -1,16 +1,21 @@
 {% extends 'layouts.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block content %}
+<link rel="stylesheet" type='text/css' href="{% static '/css/rate.css' %}">
 <div class="container my-3">
     <h2 align="center">ใบสั่งซื้อ</h2>
+    <h4>รายละเอียดใบสั่งซื้อ</h4>
     <div class="card bg-light">
         <div class="card-body">
             <form method="post" enctype="multipart/form-data">
                 {% if form.distributor.label %}
                 <label>{{ form.distributor.label }}</label>
                 <div>
-                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">
+                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control"
+                        Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"
+                        onfocusout="searchDataDistributor();getRateDistributor();">
                     <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
                     <datalist-- id="idDistributorList">
                     {% for results in distributorList %}
@@ -21,14 +26,230 @@
                 {% endif %}
                 <p>{{ form | crispy}}</p>
                 {% csrf_token %}
-                <button type="submit" class="btn btn-primary hidden-print">
-                    <i class="fas fa-save"></i>
-                    บันทึก
-                </button>
-            </form>
         </div>
     </div>
+    <div id="rate_distributor" class="{%if not is_had_buy%}d-none{%endif%}">
+        <hr class="ln">
+        <h4>ประเมินร้านค้า</h4>
+        <div class="card bg-light border-warning">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-4">
+                        <div class="con">
+                            <h5>ราคา</h5>
+                            <div class="star-widget">
+                                <input type="radio" name="rate-price" id="rate-price-4" value="4">
+                                <label for="rate-price-4" class="fas fa-star"></label>
+                                <input type="radio" name="rate-price" id="rate-price-3" value="3">
+                                <label for="rate-price-3" class="fas fa-star"></label>
+                                <input type="radio" name="rate-price" id="rate-price-2" value="2">
+                                <label for="rate-price-2" class="fas fa-star"></label>
+                                <input type="radio" name="rate-price" id="rate-price-1" value="1">
+                                <label for="rate-price-1" class="fas fa-star"></label>
+                                <span class="text-rate-price"></span>
+                            </div>
+                            <br><br>
+                            <h5>คุณภาพงาน</h5>
+                            <div class="star-widget">
+                                <input type="radio" name="rate-quantity" id="rate-quantity-4" value="4">
+                                <label for="rate-quantity-4" class="fas fa-star"></label>
+                                <input type="radio" name="rate-quantity" id="rate-quantity-3" value="3">
+                                <label for="rate-quantity-3" class="fas fa-star"></label>
+                                <input type="radio" name="rate-quantity" id="rate-quantity-2" value="2">
+                                <label for="rate-quantity-2" class="fas fa-star"></label>
+                                <input type="radio" name="rate-quantity" id="rate-quantity-1" value="1">
+                                <label for="rate-quantity-1" class="fas fa-star"></label>
+                                <span class="text-rate-quantity"></span>
+                            </div>
+                            <br><br>
+                            <h5>การบริการ</h5>
+                            <div class="star-widget">
+                                <input type="radio" name="rate-service" id="rate-service-4" value="4">
+                                <label for="rate-service-4" class="fas fa-star"></label>
+                                <input type="radio" name="rate-service" id="rate-service-3" value="3">
+                                <label for="rate-service-3" class="fas fa-star"></label>
+                                <input type="radio" name="rate-service" id="rate-service-2" value="2">
+                                <label for="rate-service-2" class="fas fa-star"></label>
+                                <input type="radio" name="rate-service" id="rate-service-1" value="1">
+                                <label for="rate-service-1" class="fas fa-star"></label>
+                                <span class="text-rate-service"></span>
+                            </div>
+                            <br><br>
+                            <h5>การจัดการสิ่งแวดล้อม/ความปลอดภัย</h5>
+                            <div class="star-widget">
+                                <input type="radio" name="rate-safety" id="rate-safety-4" value="4">
+                                <label for="rate-safety-4" class="fas fa-star"></label>
+                                <input type="radio" name="rate-safety" id="rate-safety-3" value="3">
+                                <label for="rate-safety-3" class="fas fa-star"></label>
+                                <input type="radio" name="rate-safety" id="rate-safety-2" value="2">
+                                <label for="rate-safety-2" class="fas fa-star"></label>
+                                <input type="radio" name="rate-safety" id="rate-safety-1" value="1">
+                                <label for="rate-safety-1" class="fas fa-star"></label>
+                                <span class="text-rate-safety"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card review-card">
+                            <div class="card-header alert-primary">
+                                <h4 class="text-center">Reviews</h4>
+                            </div>
+                            <div class="card-body">
+                                <h3 id="name_distributor">{{cp.select_bidder}}</h3>
+                                <div class="row">
+                                    <div class="col"><span class="avg">0.0</span> OUT OF 100 
+                                        <!-- Button trigger modal help -->
+                                        <a data-toggle="modal" class="cursor-pointer" data-target="#helpModalCenter">
+                                            <i class="fas fa-question-circle text-danger"></i>
+                                        </a>
+                                    </div>
+                                    <div class="col"><p id="num_ratings" class="text-right">{{num_grade_all}} ratings</p> </div>                
+                                </div>
+                                <!-- start new rating bar -->
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                    <tr class="avg_price_rate">
+                                        <td>ราคา</td>
+                                        <td>
+                                        <div class="stars-outer ml-5">
+                                            <div class="stars-inner"></div>
+                                        </div>
+                                        <span class="number-rating ml-2"></span>
+                                        </td>
+                                    </tr>
+                                    <tr class="avg_quantity_rate">
+                                        <td>คุณภาพงาน</td>
+                                        <td>
+                                            <div class="stars-outer ml-5">
+                                                <div class="stars-inner"></div>
+                                            </div>
+                                            <span class="number-rating ml-2"></span>
+                                        </td>
+                                    </tr>
+                                    <tr class="avg_service_rate">
+                                        <td>การบริการ</td>
+                                        <td>
+                                            <div class="stars-outer ml-5">
+                                                <div class="stars-inner"></div>
+                                            </div>
+                                            <span class="number-rating ml-2"></span>
+                                        </td>
+                                    </tr>
+                                    <tr class="avg_safety_rate">
+                                        <td>การจัดการสิ่งแวดล้อม/ความปลอดภัย</td>
+                                        <td>
+                                            <div class="stars-outer ml-5">
+                                                <div class="stars-inner"></div>
+                                            </div>
+                                            <span class="number-rating ml-2"></span>
+                                        </td>
+                                    </tr>
+                                    <tr class="avg_duration_rate">
+                                        <td>ระยะเวลา</td>
+                                        <td>
+                                            <div class="stars-outer ml-5">
+                                                <div class="stars-inner"></div>
+                                            </div>
+                                            <span class="number-rating ml-2"></span>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                                <!-- end new rating bar -->
+                                <hr>
+                                {% if rate_counsel%}
+                                <div class="blockquote mb-0 block-q">
+                                    {% for cs in rate_counsel %}
+                                    <h5>{{cs.organizer_user__first_name}} {{cs.organizer_user__last_name}}</h5>
+                                    <footer class="blockquote-footer">{{cs.counsel}}</footer>
+                                    <p style="font-size:13px;">{{cs.organizer_update}}</p>
+                                    {% endfor %}
+                                </div>
+                                {%else%}
+                                <div id="block-q-none" class="blockquote mb-0 block-q-none">
+                                    <div id="in-block-q-none">
+                                        <footer class="blockquote-footer">ไม่มีข้อเสนอแนะ</footer>
+                                    </div>
+                                </div>
+                                {%endif%}
+                                <div id="f-rate">
+                                    <h6 class="my-3 text-primary">{{ form_rate | crispy}}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <button type="submit" class="btn btn-primary hidden-print btn-lg">
+        <i class="fas fa-save"></i>
+        บันทึก
+    </button>
 </div>
+<!-- Modal -->
+<div class="modal fade" id="helpModalCenter" tabindex="-1" role="dialog" aria-labelledby="helpModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="helpModalLongTitle"><i class="fas fa-question-circle text-danger"></i> ข้อเสนอแนะ</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th scope="col">คะแนนรวม</th>
+                    <th scope="col">เกรด</th>
+                    <th scope="col">ระดับ</th>
+                    <th scope="col">รายละเอียด</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">90-100</th>
+                    <td>เกรด A</td>
+                    <td>ผ่านระดับดีมาก</td>
+                    <td>มีชื่ออยู่ในทะเบียนรายชื่อผู้ขาย</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">80-100</th>
+                    <td>เกรด B</td>
+                    <td>ผ่านระดับดี</td>
+                    <td>มีชื่ออยู่ในทะเบียนรายชื่อผู้ขาย</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">70-79</th>
+                    <td>เกรด C</td>
+                    <td>ผ่านระดับพอใช้</td>
+                    <td>แจ้งผลเพื่อปรับปรุง</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">60-69</th>
+                    <td>เกรด D</td>
+                    <td>ควรปรับปรุง</td>
+                    <td>ออก CAR ให้ดำเนินการแก้ไข</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">น้อยกว่า 60</th>
+                    <td>เกรด F</td>
+                    <td>ยกเลิกซื้อ</td>
+                    <td>คัดซื้อออกจาก APL หรือพิจารณาโดยผู้บริหาร</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h6 class="text-danger">*ระยะเวลา จะคำนวนจากวันที่กำหนดรับของเทียบกับวันที่รับของจริง ซึ่งจะนำข้อมูลมาจากระบบ express</h6>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
 {% endblock %}
 {% block javascript %}
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
@@ -40,77 +261,287 @@
     var now = new Date();
     var day = ("0" + now.getDate()).slice(-2);
     var month = ("0" + (now.getMonth() + 1)).slice(-2);
-    var today = now.getFullYear()+"-"+(month)+"-"+(day) ;
+    var today = now.getFullYear() + "-" + (month) + "-" + (day);
     $('#id_created').val(today);
 
+    // Initial Ratings
+    const ratings = {
+        avg_price_rate: 0,
+        avg_quantity_rate: 0,
+        avg_duration_rate: 0,
+        avg_service_rate: 0,
+        avg_safety_rate: 0
+    }
+
+    // Total Stars
+    const starsTotal = 4;
+
+    // Run getRatings when DOM loads
+    document.addEventListener('DOMContentLoaded', getRatings);
+
+    //before submit
+    $('form').submit(function () {
+        if(!$("#rate_distributor").hasClass("d-none")){
+            //เช็คว่าได้ประเมินร้านค้าหรือยัง ถ้าไม่ได้ประเมินจะไม่ให้ save
+            if ($('input[name=rate-price]').is(':checked')
+                && $('input[name=rate-quantity]').is(':checked')
+                && $('input[name=rate-service]').is(':checked')
+                && $('input[name=rate-safety]').is(':checked')) {
+                // everything's fine...
+            } else {
+                alert('กรุณาประเมินร้านค้า');
+                return false;
+            }            
+        }
+
+
+    });
+
     //After page load
-    $(function() {
+    $(function () {
         //ปิดไม่ให้แก้รหัสใบสั่งซื้อหากไม่มีสิทธิ
         "{% if not isEditPO %}"
-            $('#div_id_ref_no').hide();
-            $('#div_id_created').hide();
+        $('#div_id_ref_no').hide();
+        $('#div_id_created').hide();
         "{% endif %}"
 
         //ปิดไม่ให้แก้ผู้อนุมัติใบสั่งซื้อหากไม่มีสิทธิ
         "{% if not isEditApproverUserPO %}"
-            $('#div_id_approver_user').hide();
+        $('#div_id_approver_user').hide();
         "{% endif %}"
+
+        ratings.avg_price_rate = getSetDataRatings(Number('{{ratings.avg_price_rate}}'));
+        ratings.avg_quantity_rate = getSetDataRatings(Number('{{ratings.avg_quantity_rate}}'));
+        ratings.avg_duration_rate = getSetDataRatings(Number('{{ratings.avg_duration_rate}}'));
+        ratings.avg_service_rate = getSetDataRatings(Number('{{ratings.avg_service_rate}}'));
+        ratings.avg_safety_rate = getSetDataRatings(Number('{{ratings.avg_safety_rate}}'));
+
+        avg = getSetDataRatings(Number('{{ratings.avg_total_rate}}'));
+        $('.avg').html(avg);
+
+        getRatings();
     });
 
-$(function () {
-    $("#id-form-distributor").autocomplete({
-        source: '{% url "autocompalteDistributor" %}',
-        minLength: 1,
+    $(function () {
+        $("#id-form-distributor").autocomplete({
+            source: '{% url "autocompalteDistributor" %}',
+            minLength: 1,
+        });
     });
-});
 
-function searchDataDistributor(){
-    if($('#id-form-distributor').val() != ""){
-        var str = $('#id-form-distributor').val();
-        var items = str.split( "-" );
-        var idInput = items[0];
-        // Create Ajax Call
-        if(idInput){
-            //set id_distributor
-            $("#id_distributor").val(idInput);
-            $.ajax({
-            url: '{% url "searchDataDistributor" %}',
-            data: {
-                    'id_distributor': idInput,
-                },
-            dataType: 'json',
-            success: function (data) {
-                if (data.credit) {
-                    //set id_credit , id_vat_type
-                    $("#id_credit").val(data.credit);
-                    $("#id_vat_type").val(data.vat_type);
-                }
+    function searchDataDistributor() {
+        if ($('#id-form-distributor').val() != "") {
+            var str = $('#id-form-distributor').val();
+            var items = str.split("-");
+            var idInput = items[0];
+            // Create Ajax Call
+            if (idInput) {
+                //set id_distributor
+                $("#id_distributor").val(idInput);
+
+                //set id_distributor rate
+                $("#f-rate #id_distributor").val(idInput);
+                $('#name_distributor').text(items[1]);
+                $.ajax({
+                    url: '{% url "searchDataDistributor" %}',
+                    data: {
+                        'id_distributor': idInput,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.credit) {
+                            //set id_credit , id_vat_type
+                            $("#id_credit").val(data.credit);
+                            $("#id_vat_type").val(data.vat_type);
+                        }
+                    }
+                });
             }
-            });
+            return false;
+        }
+
+    }
+
+    //หารายละเอียดการประเมินร้านค้าของร้านนั้นๆ
+    function getRateDistributor() {
+        if ($('#id-form-distributor').val() != "") {
+            var str = $('#id-form-distributor').val();
+            var items = str.split("-");
+            var idInput = items[0];
+            // Create Ajax Call
+            if (idInput) {
+                $.ajax({
+                    url: '{% url "getRateDistributor" %}',
+                    data: {
+                        'id_distributor': idInput,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data) {
+                            setDataFromRateDistributor(data);
+                        }
+                    }
+                });
+            }
+            return false;
+        }
+
+    }
+
+    function getSetDataRatings(getValue){
+        value = 0;
+        if(getValue) 
+            value = getValue.toFixed(1);
+
+        return value;
+    }
+
+    function setDataFromRateDistributor(data) {
+
+        if(data.is_had_buy)
+            $("#rate_distributor").removeClass("d-none");
+        else
+            $("#rate_distributor").addClass("d-none");
+
+        //remove element rate_counsel first
+        $("#block-q-none").removeClass("block-q").addClass("block-q-none");
+        $("#in-block-q-none").remove();
+        $(".blockquote-footer").remove();
+        $("#block-q-none").append("<footer class='blockquote-footer'>ไม่มีข้อเสนอแนะ</footer>");
+
+
+        $('#num_ratings').text(data.num_grade_all + " ratings");
+
+        $('#num_percent_a').text(data.percent_a + "%");
+        $('#num_percent_b').text(data.percent_b + "%");
+        $('#num_percent_c').text(data.percent_c + "%");
+        $('#num_percent_d').text(data.percent_d + "%");
+        $('#num_percent_f').text(data.percent_f + "%");
+
+        $("#progress_percent_a").css("width", data.percent_a + "%");
+        $("#progress_percent_b").css("width", data.percent_b + "%");
+        $("#progress_percent_c").css("width", data.percent_c + "%");
+        $("#progress_percent_d").css("width", data.percent_d + "%");
+        $("#progress_percent_f").css("width", data.percent_f + "%");
+
+        /* start set rating star*/
+        ratings.avg_price_rate = getSetDataRatings(data.ratings.avg_price_rate);
+        ratings.avg_quantity_rate = getSetDataRatings(data.ratings.avg_quantity_rate);
+        ratings.avg_duration_rate = getSetDataRatings(data.ratings.avg_duration_rate);
+        ratings.avg_service_rate = getSetDataRatings(data.ratings.avg_service_rate);
+        ratings.avg_safety_rate = getSetDataRatings(data.ratings.avg_safety_rate);
+
+        avg = getSetDataRatings(data.ratings.avg_total_rate);
+        $('.avg').html(avg);
+
+        getRatings();
+        /* end set rating star*/
+
+        //set element rate_counsel
+        var arr = data.rate_counsel
+        if (arr.length > 0) {
+            $(".blockquote-footer").remove();
+            $("#block-q-none").removeClass("block-q-none").addClass("block-q");
+            for (var i = 0; i < arr.length; i++) {
+                $("#block-q-none").append("<div id='in-block-q-none'></div>");
+                $("#in-block-q-none").append("<h5>" + arr[i].organizer_user__first_name + " " + arr[i].organizer_user__last_name + "</h5>");
+                $("#in-block-q-none").append("<footer class='blockquote-footer'>" + arr[i].counsel + "</footer>");
+                $("#in-block-q-none").append("<p style='font-size:13px;'>" + arr[i].organizer_update + "</p>");
+            }
+        }
+    }
+
+    /*
+    $(".distributor" ).change(function() {
+        // get data id ของ option data list
+        var str = $("#id-form-distributor").val();
+        var items = str.split( "-" );
+        var id = items[items.length - 2]
+        $("#id_distributor").val(id);
+        var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
+        $("#id_credit").val(credit);
+    
+        var vat_type = $('#idDistributorList option[data-id='+id+']').attr('data-vat_type');
+        $("#id_vat_type").val(vat_type);
+    
+        $('form').submit(function() {
+            
+        });
+    
+    });
+    */
+
+    const btn = document.querySelector("button");
+    const post = document.querySelector(".post");
+    const widget = document.querySelector(".star-widget");
+    const editBtn = document.querySelector(".edit");
+    btn.onclick = () => {
+        widget.style.display = "none";
+        post.style.display = "block";
+        editBtn.onclick = () => {
+            widget.style.display = "block";
+            post.style.display = "none";
         }
         return false;
     }
 
-  }
-    
-/*
-$(".distributor" ).change(function() {
-    // get data id ของ option data list
-    var str = $("#id-form-distributor").val();
-    var items = str.split( "-" );
-    var id = items[items.length - 2]
-    $("#id_distributor").val(id);
-    var credit = $('#idDistributorList option[data-id='+id+']').attr('data-credit');
-    $("#id_credit").val(credit);
-
-    var vat_type = $('#idDistributorList option[data-id='+id+']').attr('data-vat_type');
-    $("#id_vat_type").val(vat_type);
-
-    $('form').submit(function() {
-        
+    //ประเมินร้านค้า
+    $('input[type=radio][name=rate-price]').on('change', function () {
+        $("#id_price_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
     });
 
-});
-*/
+    $('input[type=radio][name=rate-quantity]').on('change', function () {
+        $("#id_quantity_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    $('input[type=radio][name=rate-service]').on('change', function () {
+        $("#id_service_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    $('input[type=radio][name=rate-safety]').on('change', function () {
+        $("#id_safety_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    /* คำนวนเกรดหลังบ้านเพราะต้องรอระยะเวลาในการขนส่ง */
+    function calculateTotalRateAndGrade() {
+        var totalRate = (parseInt($("#id_price_rate").val()) + parseInt($("#id_quantity_rate").val()) + parseInt($("#id_duration_rate").val()) + parseInt($("#id_service_rate").val()) + parseInt($("#id_safety_rate").val())) * 5
+        $("#id_total_rate").val(totalRate);
+
+        if (totalRate >= 90 && totalRate <= 100)
+            $("#id_grade").val(1);//A
+        else if (totalRate >= 80 && totalRate <= 89)
+            $("#id_grade").val(2);//B
+        else if (totalRate >= 70 && totalRate <= 79)
+            $("#id_grade").val(3);//C
+        else if (totalRate >= 60 && totalRate <= 69)
+            $("#id_grade").val(4);//D
+        else if (totalRate < 60)
+            $("#id_grade").val(5);//F
+
+    }
+
+    // Get ratings
+    function getRatings() {
+      for (let rating in ratings) {
+        // Get percentage
+        const starPercentage = (ratings[rating] / starsTotal) * 100;
+
+        console.log("starPercentage = "+ starPercentage);
+        // Round to nearest 10
+        //const starPercentageRounded = `${Math.round(starPercentage / 10) * 10}%`;
+        const starPercentageRounded = `${starPercentage}%`;
+        console.log("starPercentageRounded = "+ starPercentageRounded);
+
+        // Set width of stars-inner to percentage
+        document.querySelector(`.${rating} .stars-inner`).style.width = starPercentageRounded;
+
+        // Add number rating
+        document.querySelector(`.${rating} .number-rating`).innerHTML = ratings[rating];
+      }
+    }
 </script>
 {% endblock %}

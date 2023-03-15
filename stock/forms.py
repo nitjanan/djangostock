@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -437,3 +437,17 @@ ReceiveItemInlineFormset = inlineformset_factory(
     extra=1,
     max_num=1
 )
+
+class RateDistributorForm(forms.ModelForm):
+    counsel = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows":"5"}), label='ข้อเสนอแนะ')
+    class Meta:
+        model = RateDistributor
+        fields = ('distributor', 'price_rate','quantity_rate','service_rate','safety_rate','counsel')
+        widgets={
+                'distributor': forms.HiddenInput(),
+                'price_rate': forms.HiddenInput(),
+                'quantity_rate': forms.HiddenInput(),
+                'service_rate': forms.HiddenInput(),
+                'safety_rate': forms.HiddenInput(),
+                'total_rate': forms.HiddenInput(),
+            }
