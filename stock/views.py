@@ -1683,6 +1683,11 @@ def showPR(request, pr_id, mode):
     if (mode == 4 or mode == 5) and (isPurchasing or isSupplies):
         isReApprove = True
 
+    # re pr นำรายการใบขอซื้อกลับมาทำใหม่ โดยไม่จำเป็นต้องทำการอนุมัติใหม่
+    isRePr = False
+    if (mode == 4 or mode == 5) and isPurchasing and pr.organizer.id == request.user.id:
+        isRePr = True
+
     #ที่อยู่และหัวบริษัท
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
     form = RequisitionMemorandumForm(instance=requisition)
@@ -1717,6 +1722,7 @@ def showPR(request, pr_id, mode):
             'form':form,
             'pr_form': pr_form,
             'isReApprove': isReApprove,
+            'isRePr':isRePr,
             active :"active show",
 			"disableTab":"disableTab",
 			"colorNav":"disableNav"
@@ -3614,6 +3620,34 @@ def editReceiveItem(request, rc_id):
         'rc_show': "show",
     }
     return render(request, 'receiveItem/editReceiveItem.html',context)
+
+#ดึงรายการใบขอซื้อกลับมาทำใหม่
+def reBuyPR(request, pr_id):
+    active = request.session['company_code']
+    pr = PurchaseRequisition.objects.get(id = pr_id)
+
+    try:
+        pr_item = RequisitionItem.objects.filter(requisit = pr.requisition)
+        for item in pr_item:
+            item.is_used = False
+            item.save()
+
+        pr.is_complete = False
+        pr.save()
+
+        return HttpResponseRedirect(reverse('createCMorPO', args=(pr_id,)))
+    except RequisitionItem.DoesNotExist:
+        pass
+    
+    context = {
+        'pr_page': "tab-active",
+        'pr_show': "show",
+        active :"active show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
+    }
+
+    return render(request, "purchaseRequisition/showPR.html", context)
 
 def reApprovePR(request, pr_id):
         active = request.session['company_code']

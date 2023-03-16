@@ -82,6 +82,7 @@ urlpatterns = [
     path('purchaseRequisition/show/<int:pr_id>/<int:mode>',views.showPR,name="showPR"),
     path('purchaseRequisition/reApprove/<int:pr_id>',views.reApprovePR,name="reApprovePR"),
     path('purchaseRequisition/close/<int:pr_id>',views.closePR,name="closePR"),
+    path('purchaseRequisition/reBuy/<int:pr_id>',views.reBuyPR,name="reBuyPR"),
 
     path('purchaseRequisitionApprove/',views.viewPRApprove,name="viewPRApprove"),
     path('purchaseRequisitionApprove/edit/<int:pr_id>/<str:isFromHome>',views.editPRApprove,name="editPRApprove"),
