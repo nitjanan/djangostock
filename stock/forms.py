@@ -7,10 +7,11 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
+import string
 
 class MyClearableFileInput(ClearableFileInput):
     initial_text = 'ไฟล์ปัจจุบัน'
@@ -451,3 +452,25 @@ class RateDistributorForm(forms.ModelForm):
                 'safety_rate': forms.HiddenInput(),
                 'total_rate': forms.HiddenInput(),
             }
+        
+
+#new admin check error id 23-03-2023
+def has_only_en(name):
+    char_set = string.ascii_letters + string.digits + "-"
+    return all((True if x in char_set else False for x in name))
+
+class ProductAdminForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = self.cleaned_data
+        id = cleaned_data.get('id')
+        hoen = has_only_en(id)
+
+        if not hoen: #เช็คตัวอักษรภาษาไทยในรหัส
+            raise forms.ValidationError(u"รหัสสินค้าผิด ("+ str(id) +") มีตัวอักษรภาษาไทย ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        if id.find('O-') != -1 : #เช็ค O- ในรหัส
+            raise forms.ValidationError(u"รหัสสินค้าผิด XX-XO-001 ต้องเป็น XX-X0-001 (ขีดเอ็กซ์โอ ต้องเป็น ขีดเอ็กซ์ศูนย์) ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        return cleaned_data

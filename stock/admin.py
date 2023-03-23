@@ -11,6 +11,7 @@ from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import ugettext_lazy as _
 from related_admin import RelatedFieldAdmin
 from related_admin import getter_for_related_field
+from stock.forms import ProductAdminForm
 
 # Register your models here.
 class CategoryAdmin(ImportExportModelAdmin):
@@ -44,6 +45,10 @@ class ProductAdmin(ImportExportModelAdmin):
     list_display = ('id', 'name', 'unit', 'slug', 'affiliated') #แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['id', 'name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+    #new admin check error id 23-03-2023
+    fields = ('id', 'name', 'unit', 'description', 'slug', 'category', 'affiliated')
+    form = ProductAdminForm
+    
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['id','name','email', 'total','token','created','update'] #แสดงรายการสินค้าในรูปแบบตาราง
