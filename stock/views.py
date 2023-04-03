@@ -2713,13 +2713,10 @@ def getRateDistributor(request):
         num_grade_all = RateDistributor.objects.filter(distributor = id).count()
         ratings = RateDistributor.objects.filter(distributor = id).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
-        is_had_buy = PurchaseOrder.objects.filter(distributor = id, stockman_user = request.user).exists()
-
     data = {
         'rate_counsel':list(rate_counsel),
         'ratings':ratings,
         'num_grade_all':num_grade_all,
-        'is_had_buy':is_had_buy,
     }
     return JsonResponse(data)
 
@@ -3151,9 +3148,6 @@ def createPOFromComparisonPrice(request, cp_id):
     num_grade_all = RateDistributor.objects.filter(distributor = bc.select_bidder).count()
     ratings = RateDistributor.objects.filter(distributor = bc.select_bidder).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
-    #หาว่าเจ้าหน้าที่จัดซื้อคนนี้เคยซื้อร้านนี้หรือไม่
-    is_had_buy = PurchaseOrder.objects.filter(distributor = bc.select_bidder, stockman_user = request.user).exists()
-
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : approver_user})
     form_rate = RateDistributorForm(request.POST or None, initial={'distributor': bc.select_bidder})
@@ -3179,8 +3173,7 @@ def createPOFromComparisonPrice(request, cp_id):
             return HttpResponseRedirect(reverse('createPOFromComparisonPrice', args=(cp_id,)))
         else:
             new_contact.save()
-            if is_had_buy:
-                rate_contact.save()
+            rate_contact.save()
 
             cp.po_ref_no = new_contact.ref_no
             cp.save()
@@ -3195,7 +3188,6 @@ def createPOFromComparisonPrice(request, cp_id):
         'rate_counsel':rate_counsel,
         'num_grade_all':num_grade_all,
         'ratings':ratings,
-        'is_had_buy':is_had_buy,
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",

@@ -15,7 +15,7 @@
                 <div>
                     <input type="text" name="form-distributor" id="id-form-distributor" class="form-control"
                         Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"
-                        onfocusout="searchDataDistributor();getRateDistributor();">
+                        onfocusout="searchDataDistributor();getRateDistributor();" required>
                     <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
                     <datalist-- id="idDistributorList">
                     {% for results in distributorList %}
@@ -28,7 +28,7 @@
                 {% csrf_token %}
         </div>
     </div>
-    <div id="rate_distributor" class="{%if not is_had_buy%}d-none{%endif%}">
+    <div id="rate_distributor">
         <hr class="ln">
         <h4>ประเมินร้านค้า</h4>
         <div class="card bg-light border-warning">
@@ -281,19 +281,17 @@
 
     //before submit
     $('form').submit(function () {
-        if(!$("#rate_distributor").hasClass("d-none")){
-            //เช็คว่าได้ประเมินร้านค้าหรือยัง ถ้าไม่ได้ประเมินจะไม่ให้ save
-            if ($('input[name=rate-price]').is(':checked')
-                && $('input[name=rate-quantity]').is(':checked')
-                && $('input[name=rate-service]').is(':checked')
-                && $('input[name=rate-safety]').is(':checked')) {
-                // everything's fine...
-            } else {
-                alert('กรุณาประเมินร้านค้า');
-                return false;
-            }            
-        }
 
+        //เช็คว่าได้ประเมินร้านค้าหรือยัง ถ้าไม่ได้ประเมินจะไม่ให้ save
+        if ($('input[name=rate-price]').is(':checked')
+            && $('input[name=rate-quantity]').is(':checked')
+            && $('input[name=rate-service]').is(':checked')
+            && $('input[name=rate-safety]').is(':checked')) {
+                // everything's fine...
+        } else {
+            alert('กรุณาประเมินร้านค้า');
+            return false;
+        }
 
     });
 
@@ -397,11 +395,6 @@
     }
 
     function setDataFromRateDistributor(data) {
-
-        if(data.is_had_buy)
-            $("#rate_distributor").removeClass("d-none");
-        else
-            $("#rate_distributor").addClass("d-none");
 
         //remove element rate_counsel first
         $("#block-q-none").removeClass("block-q").addClass("block-q-none");
