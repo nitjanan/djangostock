@@ -726,6 +726,7 @@ class Distributor(models.Model):
     affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True, verbose_name="สังกัดบริษัท")
     tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")#เลขประจำตัวผู้เสียภาษี
     fax =  models.CharField(max_length=255, blank = True, null = True, verbose_name="แฟกส์")
+    registration_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/registration/distributor/%Y/%m/%d', verbose_name="หนังสือรับรองบริษัท")
 
     class Meta:
         db_table = 'Distributor'
