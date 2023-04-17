@@ -190,6 +190,15 @@
                     <option data-id="{{results.id}}" value="{{results.first_name}} {{results.last_name}}"></option>
                 {% endfor %}
             </datalist>
+            <label for="id_name" class=" requiredField my-3">
+                ชื่อหัวหน้างาน<span class="asteriskField">*</span>
+            </label>
+            <input id="cName" name="cName" type="text" list="idChiefNameList" class="form-control" Placeholder="ค้นหาชื่อหัวหน้างาน ..." class="form-control" autocomplete="off" required>
+            <datalist id="idChiefNameList">
+                {% for cResults in chiefName %}
+                    <option data-id="{{cResults.id}}" value="{{cResults.first_name}} {{cResults.last_name}}"></option>
+                {% endfor %}
+            </datalist>
             <p>{{ form | crispy}}</p>
             {% csrf_token %}
               <button type="submit" class="btn btn-warning hidden-print">
@@ -331,6 +340,12 @@ $(function() {
     var val = $('#idRequestNameList option[data-id='+idName+']').val();
     //set value to form.item
     $("#rName").val(val);
+
+    //get datalist to set input
+    var idChiefName = $("#id_chief_approve_user_name").val();
+    var valC = $('#idChiefNameList option[data-id='+idChiefName+']').val();
+    //set value to form.item
+    $("#cName").val(valC);
 }); 
 
 function searchProduct(name){
@@ -581,7 +596,8 @@ function selectedUrgency(name, id){
   }
 }
 
-$("#rName" ).change(function() {
+//ผู้ขอตั้งเบิก
+$("#rName").change(function() {
     // get data id ของ option data list
     var val = $("#rName").val();
     var id = $("#idRequestNameList option[value='"+val+"']").attr('data-id');
@@ -589,6 +605,16 @@ $("#rName" ).change(function() {
     //set value to form.item
     $("#id_name").val(id);
 });
+
+  //หัวหน้างาน
+  $("#cName").change(function() {
+    // get data id ของ option data list
+    var val = $("#cName").val();
+    var id = $("#idChiefNameList option[value='"+val+"']").attr('data-id');
+
+    //set value to form.item
+    $("#id_chief_approve_user_name").val(id);
+  });
 
 </script> 
 {% endblock %}

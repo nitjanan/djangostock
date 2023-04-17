@@ -863,6 +863,7 @@ def createRequisition(request):
     active = request.session['company_code']
     company = BaseBranchCompany.objects.get(code = active)
     requestName = User.objects.all()
+    chiefName = User.objects.filter(groups__name='หัวหน้างาน')
     
     form = RequisitionForm(request, request.POST or None, initial={'branch_company': company})
     if form.is_valid():
@@ -881,6 +882,7 @@ def createRequisition(request):
     context = {
         'form':form,
         'requestName':requestName,
+        'chiefName':chiefName,
         'requisitions_page': "tab-active",
         'requisitions_show': "show",
         active :"active show",
@@ -1129,6 +1131,8 @@ def editAllRequisition(request, requisition_id):
     baseUnit = BaseUnit.objects.all()
 
     requestName = User.objects.all()
+    chiefName = User.objects.filter(groups__name='หัวหน้างาน')
+
     #form save
     form = RequisitionForm(request, instance=requisition)
 
@@ -1148,6 +1152,7 @@ def editAllRequisition(request, requisition_id):
         'form':form,
         'users': users,
         'requisition': requisition,
+        'chiefName' : chiefName,
         'pr': pr,
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,

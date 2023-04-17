@@ -43,7 +43,7 @@ class RequisitionForm(forms.ModelForm):
         
         #เปลี่ยนเป็นการค้นหาชื่อแทน
         # self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.all())
-        self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
+        # self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
         self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
 
     class Meta:
@@ -52,6 +52,7 @@ class RequisitionForm(forms.ModelForm):
         widgets = {
         'urgency': forms.HiddenInput(),
         'name': forms.HiddenInput(),
+        'chief_approve_user_name': forms.HiddenInput(),
         'memorandum_pdf' : MyClearableFileInput,
         'branch_company': forms.HiddenInput(),
         }
