@@ -4217,10 +4217,10 @@ def exportExcelPO(request):
 
             strTempReceiveUpdate = None
             strDateDelay = None
-            if row[5] and strApproverUpdate:
+            if row[5] and strPrDesired:
                 strTempReceiveUpdate = str(row[5])
                 strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
-                strDateDiff = str(days_between(strApproverUpdate, strReceiveUpdate)) + " วัน"
+                strDateDiff = str(days_between_nagative(strReceiveUpdate, strPrDesired)) + " วัน"
                 if row[4]:
                     if years_between(row[4], strTempReceiveUpdate) > 500:
                         strDateDelay = str(days_between_nagative(strReceiveUpdate, row[4])) + " วัน"
@@ -4257,7 +4257,25 @@ def exportExcelPO(request):
     ws.write(row_num+6, 1, "4 = D", font_style)
     ws.write(row_num+6, 2, "15 วัน", font_style)
 
-    ws.write(row_num+7, 0, "*** ระยะเวลาในการซื้อ คือ วันที่รับสินค้าเทียบกับวันที่อนุมัติใบขอซื้อ", font_style)
+    ws.write(row_num+8, 0, "ระยะเวลาในการซื้อ คือ วันที่ต้องการเทียบกับรับของวันที่", font_style)
+    ws.write(row_num+8, 1, "น้อยกว่า 0", font_style)
+    ws.write(row_num+8, 2, "รับของช้ากว่าวันที่ต้องการ", font_style)
+
+    ws.write(row_num+9, 1, "เท่ากับ 0", font_style)
+    ws.write(row_num+9, 2, "รับของตรงกับวันที่ต้องการ", font_style)
+
+    ws.write(row_num+10, 1, "มากกว่า 0", font_style)
+    ws.write(row_num+10, 2, "รับของเร็วกว่าวันที่ต้องการ", font_style)
+
+    ws.write(row_num+12, 0, "ความล่าช้าในการรับของ คือ วันที่กำหนดรับของเทียบกับรับของวันที่", font_style)
+    ws.write(row_num+12, 1, "น้อยกว่า 0", font_style)
+    ws.write(row_num+12, 2, "รับของช้ากว่าวันที่กำหนดรับของ", font_style)
+
+    ws.write(row_num+13, 1, "เท่ากับ 0", font_style)
+    ws.write(row_num+13, 2, "รับของตรงกับวันที่กำหนดรับของ", font_style)
+
+    ws.write(row_num+14, 1, "มากกว่า 0", font_style)
+    ws.write(row_num+14, 2, "รับของเร็วกว่าวันที่กำหนดรับของ", font_style)
                         
     wb.save(response)
 
