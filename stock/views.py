@@ -3745,20 +3745,21 @@ def uploadReceive(request):
                             #คำนวน rating (duration_rate) ระยะเวลาที่รับจริง - วันที่กำหนดรับของ
                             #ถ้าปีห่างกันมากกว่าแสดงว่าปีเป็น คศ และ พศ ให้ทำการแปลงเป็นคศ ก่อน
 
-                            if years_between(po.due_receive_update, str(data[1].strftime("%Y-%m-%d"))) > 500:
-                                durationRate = calculateDurationRate(convertDateBEtoBC(str(data[1].strftime("%Y-%m-%d"))), po.due_receive_update)
-                            else:
-                                durationRate = calculateDurationRate(str(data[1].strftime("%Y-%m-%d")), po.due_receive_update)
- 
-                            #คำนวน rating (total_rate)
-                            totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
-                            #คำนวน grade rate
-                            grade_rate = calculateGradeRate(totalRate)
+                            if rd:
+                                if years_between(po.due_receive_update, str(data[1].strftime("%Y-%m-%d"))) > 500:
+                                    durationRate = calculateDurationRate(convertDateBEtoBC(str(data[1].strftime("%Y-%m-%d"))), po.due_receive_update)
+                                else:
+                                    durationRate = calculateDurationRate(str(data[1].strftime("%Y-%m-%d")), po.due_receive_update)
+    
+                                #คำนวน rating (total_rate)
+                                totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
+                                #คำนวน grade rate
+                                grade_rate = calculateGradeRate(totalRate)
 
-                            rd.duration_rate = durationRate
-                            rd.total_rate = totalRate
-                            rd.grade_id = grade_rate
-                            rd.save()
+                                rd.duration_rate = durationRate
+                                rd.total_rate = totalRate
+                                rd.grade_id = grade_rate
+                                rd.save()
                         except RateDistributor.DoesNotExist:
                             pass
 
