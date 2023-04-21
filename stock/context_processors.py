@@ -528,6 +528,8 @@ def setAlertPurchasingCompanyTab(request, tab):
         request.session['NUM_B1'] = findAllPurchasingAlert(request, tab)
     elif tab == "J1":
         request.session['NUM_J1'] = findAllPurchasingAlert(request, tab)
+    elif tab == "P2":
+        request.session['NUM_P2'] = findAllPurchasingAlert(request, tab)
     return
 
 def findAllPurchasingAlert(request, tab):
@@ -565,6 +567,8 @@ def setAlertApproveCompanyTab(request, tab, company_code):
         request.session['NUM_B1'] = findAllApproveAlert(request, code)
     elif tab == "J1":
         request.session['NUM_J1'] = findAllApproveAlert(request, code)
+    elif tab == "P2":
+        request.session['NUM_P2'] = findAllApproveAlert(request, code)
     elif tab == "ALL":
         request.session['NUM_ALL'] = findAllApproveAlert(request, company_code)
     return 

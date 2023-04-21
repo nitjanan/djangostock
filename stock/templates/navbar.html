@@ -272,6 +272,15 @@
               </a>
             </li>
             {%endif%}
+            {% if 'P2' in tab.code %}
+            <li class="nav-item flex-sm-fill pointer">
+              <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{P2}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}
+                {% if request.session.NUM_P2 > 0%}
+                  <span class="badge badge-pill badge-dark notification">{{request.session.NUM_P2}}</span>
+                {% endif %}
+              </a>
+            </li>
+            {%endif%}
             {%endfor%}
             </ul>
       </div>
