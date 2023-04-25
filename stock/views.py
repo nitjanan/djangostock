@@ -4113,7 +4113,7 @@ def exportExcelPO(request):
     font_style = xlwt.XFStyle()
     font_style.font.bold = True
 
-    columns = ['เลขที่', 'วันที่', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย','วันที่กำหนดรับของ', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'ราคาส่วนต่างใบเปรียบเทียบ', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ','ความล่าช้าในการรับของ']
+    columns = ['เลขที่', 'วันที่', 'บริษัท', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย','วันที่กำหนดรับของ', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'ราคาส่วนต่างใบเปรียบเทียบ', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ','ความล่าช้าในการรับของ']
 
     for col_num in range(len(columns)):
         ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
@@ -4157,7 +4157,7 @@ def exportExcelPO(request):
 
     rows = PurchaseOrder.objects.filter(
         my_q
-    ).values_list('ref_no', 'created', 'distributor', 'distributor__name','due_receive_update', 'receive_update', 'credit__name', 'vat_type__id','discount', 'total_after_discount','vat' ,'amount','stockman_user__first_name','cp__amount_diff').annotate(
+    ).values_list('ref_no', 'created', 'branch_company__name', 'distributor', 'distributor__name','due_receive_update', 'receive_update', 'credit__name', 'vat_type__id','discount', 'total_after_discount','vat' ,'amount','stockman_user__first_name','cp__amount_diff').annotate(
         save_price=Case(
 			When(vat_type_id = 1, then= F('total_price')- (F('total_after_discount') + F('vat'))),
 			When(vat_type_id = 0, then= F('total_price')-F('total_after_discount')),
@@ -4187,7 +4187,7 @@ def exportExcelPO(request):
         for col_num in range(len(row)):
             if isinstance(row[col_num], datetime.date):
                 ws.write(row_num, col_num, row[col_num], date_style)
-            elif col_num == 9 or col_num == 10 or col_num == 11 or col_num == 13 or col_num == 14:
+            elif col_num == 10 or col_num == 11 or col_num == 12 or col_num == 14 or col_num == 15:
                 ws.write(row_num, col_num, row[col_num], decimal_style)
             else:
                 ws.write(row_num, col_num, row[col_num], font_style)
@@ -4218,25 +4218,25 @@ def exportExcelPO(request):
 
             strTempReceiveUpdate = None
             strDateDelay = None
-            if row[5] and strPrDesired:
-                strTempReceiveUpdate = str(row[5])
+            if row[6] and strPrDesired:
+                strTempReceiveUpdate = str(row[6])
                 strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
                 strDateDiff = str(days_between_nagative(strReceiveUpdate, strPrDesired)) + " วัน"
-                if row[4]:
-                    if years_between(row[4], strTempReceiveUpdate) > 500:
-                        strDateDelay = str(days_between_nagative(strReceiveUpdate, row[4])) + " วัน"
+                if row[5]:
+                    if years_between(row[5], strTempReceiveUpdate) > 500:
+                        strDateDelay = str(days_between_nagative(strReceiveUpdate, row[5])) + " วัน"
                     else:
-                        strDateDelay = str(days_between_nagative(strTempReceiveUpdate, row[4])) + " วัน"                    
+                        strDateDelay = str(days_between_nagative(strTempReceiveUpdate, row[5])) + " วัน"                    
 
             
-            ws.write(row_num, 15, strPr, font_style)
-            ws.write(row_num, 16, strApproverUpdate, date_style)
-            ws.write(row_num, 17, strPrItem, font_style)
-            ws.write(row_num, 18, strPrMachine, font_style)
-            ws.write(row_num, 19, strPrDesired, date_style)
-            ws.write(row_num, 20, strPrUrgency, font_style)
-            ws.write(row_num, 21, strDateDiff, font_style)
-            ws.write(row_num, 22, strDateDelay, font_style)
+            ws.write(row_num, 16, strPr, font_style)
+            ws.write(row_num, 17, strApproverUpdate, date_style)
+            ws.write(row_num, 18, strPrItem, font_style)
+            ws.write(row_num, 19, strPrMachine, font_style)
+            ws.write(row_num, 20, strPrDesired, date_style)
+            ws.write(row_num, 21, strPrUrgency, font_style)
+            ws.write(row_num, 22, strDateDiff, font_style)
+            ws.write(row_num, 23, strDateDelay, font_style)
 
     ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
     ws.write(row_num+1, 1, count, font_style)
