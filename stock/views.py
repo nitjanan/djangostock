@@ -3750,16 +3750,18 @@ def uploadReceive(request):
                                     durationRate = calculateDurationRate(convertDateBEtoBC(str(data[1].strftime("%Y-%m-%d"))), po.due_receive_update)
                                 else:
                                     durationRate = calculateDurationRate(str(data[1].strftime("%Y-%m-%d")), po.due_receive_update)
-    
-                                #คำนวน rating (total_rate)
-                                totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
-                                #คำนวน grade rate
-                                grade_rate = calculateGradeRate(totalRate)
+                                
+                                #ต้องมีคะแนนประเมินทุกรายการถึงจะให้คำนวน totalRate ได้
+                                if rd.price_rate and rd.quantity_rate and durationRate and rd.service_rate and rd.safety_rate:
+                                    #คำนวน rating (total_rate)
+                                    totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
+                                    #คำนวน grade rate
+                                    grade_rate = calculateGradeRate(totalRate)
 
-                                rd.duration_rate = durationRate
-                                rd.total_rate = totalRate
-                                rd.grade_id = grade_rate
-                                rd.save()
+                                    rd.duration_rate = durationRate
+                                    rd.total_rate = totalRate
+                                    rd.grade_id = grade_rate
+                                    rd.save()
                         except RateDistributor.DoesNotExist:
                             pass
 
