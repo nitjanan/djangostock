@@ -105,8 +105,8 @@
               <thead>
                 <tr>
                     <td class="text-center"><strong>ลำดับที่</strong></td>
-                    <td class="text-center"><strong>สินค้า</strong></td>
-                    <td class="text-center"><strong>รายละเอียดเหตุผล</strong></td>
+                    <td class="text-center"><strong>สินค้า/รายละเอียด</strong></td>
+                    <td class="text-center"><strong>เหตุผลและวัตถุประสงค์</strong></td>
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
                     <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
@@ -204,9 +204,9 @@
         <form id="addUser" action="">
           {% csrf_token %}
           <div class="modal-body">
-            <label for="name">สินค้า</label>
+            <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" type="text" name="name" required>
-            <label for="name">รายละเอียดเหตุผล</label>
+            <label for="name">เหตุผลและวัตถุประสงค์</label>
             <input class="form-control" type="text" name="description" required>
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="1" required step="any">
@@ -249,9 +249,9 @@
           {% csrf_token %}
         <div class="modal-body">
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
-            <label for="name">สินค้า</label>
+            <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
-            <label for="description">รายละเอียดเหตุผล</label>
+            <label for="description">เหตุผลและวัตถุประสงค์</label>
             <input class="form-control" id="form-description" type="text" name="formDescription"/>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min=1 step="any"/>

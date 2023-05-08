@@ -83,7 +83,7 @@
                             </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
                             <datalist id="idExpressList">
                                 {% for results in itemList %}
-                                  <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product__name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product__name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.quantity}}" data-unit="{{results.item__product__unit__id}}"></option>
+                                  <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.quantity}}" data-unit="{{results.item__product__unit__id}}"></option>
                                 {% endfor %}
                             </datalist>
                             {{form.description | add_class:"form-control"}}

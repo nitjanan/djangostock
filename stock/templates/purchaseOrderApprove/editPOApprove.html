@@ -107,7 +107,7 @@
                         {% for item in items %}
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
-                            <td>{{ item.item.product.id}} {{ item.item }} <b class="text-success">{{ item.description }}</b></td>
+                            <td>{{ item.item.product.id}} {{ item.item.product_name }} <b class="text-success">{{ item.description }}</b></td>
                             <td class="text-center">{{ item.quantity |floatformat:"-4"}}</td>
                             <td class="text-center">{{ item.unit_price | intcomma}}</td>
                             <td class="text-center">{{ item.price | intcomma}}</td>

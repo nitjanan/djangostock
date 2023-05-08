@@ -84,7 +84,7 @@
           <tr>
             <td>{{item.po.created |date:"d/m/Y"}}</td>
             <td>{{item.item.product.id}}</td>
-            <td>{{item.item.product.name}}</td>
+            <td>{{item.item.product_name}}</td>
             <td class="text-right">{{item.unit_price}}</td>
             <th scope="row"><a href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></th>
             <th scope="row"><a href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></th>
