@@ -1,7 +1,7 @@
 from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.db import connection
 from collections import Counter
 from django.contrib.auth.decorators import login_required
@@ -470,7 +470,7 @@ def addPOCounter(request):
     cp_count = 0
     if(is_purchasing(request.user)):
         try:
-            cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2, branch_company__code = active).count()
+            cp_count = ComparisonPrice.objects.filter(Q(special_approver_status_id = 2) | Q(special_approver_status_id = 4), examiner_status_id = 2, approver_status_id = 2 , select_bidder__isnull = False, po_ref_no = "", branch_company__code = active).count()
         except ComparisonPrice.DoesNotExist:
             pass
     return cp_count
@@ -534,7 +534,7 @@ def setAlertPurchasingCompanyTab(request, tab):
 
 def findAllPurchasingAlert(request, tab):
     try:
-        cp_count = ComparisonPrice.objects.filter(select_bidder__isnull = False, po_ref_no = "", examiner_status_id = 2, approver_status_id = 2, branch_company__code = tab).count()
+        cp_count = ComparisonPrice.objects.filter(Q(special_approver_status_id = 2) | Q(special_approver_status_id = 4), examiner_status_id = 2, approver_status_id = 2 , select_bidder__isnull = False, po_ref_no = "", branch_company__code = tab).count()
     except ComparisonPrice.DoesNotExist:
         cp_count = 0
 

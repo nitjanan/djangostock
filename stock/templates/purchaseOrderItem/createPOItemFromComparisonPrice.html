@@ -389,8 +389,17 @@ $("#id_freight")
 $("#id_freight" ).change(function() {
   var amount = calculateAmount($("#id_vat").val(), $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
+  //แสดงจำนวนเงินตัวสะกด
+  var thaibath = ArabicNumberToText(amount);
+  document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
 
+$("#id_amount").change(function() {
+  $(this).val(parseFloat($(this).val()).toFixed(2));
+  //แสดงจำนวนเงินตัวสะกด
+  var thaibath = ArabicNumberToText($(this).val());
+  document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+});
 
 $("#id_total_price, #id_discount").change(function() {
   var price =  $("#id_total_price").val();
