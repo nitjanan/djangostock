@@ -180,6 +180,21 @@
   <hr>
   <div class="card bg-light my-3 hidden-print">
     <div class="card-body">
+        {% if form.memorandum_pdf.errors %}
+        <div class="alert alert-warning" role="alert">
+            {{ form.memorandum_pdf.errors }}
+        </div>
+        {% endif %}
+        {% if form.name.errors %}
+        <div class="alert alert-danger" role="alert">
+            ชื่อผู้ขอตั้งเบิก {{ form.name.errors }}
+        </div>
+        {% endif %}
+        {% if form.chief_approve_user_name.errors %}
+        <div class="alert alert-danger" role="alert">
+            ชื่อหัวหน้างาน {{ form.chief_approve_user_name.errors }}
+        </div>
+        {% endif %}
         <form method="post" enctype ="multipart/form-data">
             <label for="id_name" class=" requiredField">
                 ชื่อผู้ขอตั้งเบิก<span class="asteriskField">*</span>

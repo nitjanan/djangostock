@@ -7,6 +7,21 @@
     <h2 align="center">ใบขอเบิก</h2>
     <div class="card bg-light">
         <div class="card-body">
+            {% if form.memorandum_pdf.errors %}
+            <div class="alert alert-warning" role="alert">
+                {{ form.memorandum_pdf.errors }}
+            </div>
+            {% endif %}
+            {% if form.name.errors %}
+            <div class="alert alert-danger" role="alert">
+                ชื่อผู้ขอตั้งเบิก {{ form.name.errors }}
+            </div>
+            {% endif %}
+            {% if form.chief_approve_user_name.errors %}
+            <div class="alert alert-danger" role="alert">
+                ชื่อหัวหน้างาน {{ form.chief_approve_user_name.errors }}
+            </div>
+            {% endif %}
             <form method="post" enctype="multipart/form-data">
                 <label for="id_name" class=" requiredField">
                     ชื่อผู้ขอตั้งเบิก<span class="asteriskField">*</span>
@@ -26,7 +41,7 @@
                         <option data-id="{{cResults.id}}" value="{{cResults.first_name}} {{cResults.last_name}}"></option>
                     {% endfor %}
                 </datalist>
-                <p>{{ form | crispy}}</p> 
+                <p>{{ form | crispy}}</p>
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary hidden-print">
                     <i class="fas fa-save"></i>

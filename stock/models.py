@@ -15,6 +15,7 @@ from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
 import pytz
 import os
+from stock.formatChecker import ContentTypeRestrictedFileField
 
 def requisition_ref_number(branch_company):
     #tz = pytz.timezone('Asia/Bangkok')
@@ -461,7 +462,7 @@ class Requisition(models.Model):
     urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
     is_edit = models.BooleanField(default=True)
-    memorandum_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/memorandum/%Y/%m/%d')
+    memorandum_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/memorandum/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
@@ -726,7 +727,7 @@ class Distributor(models.Model):
     affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True, verbose_name="สังกัดบริษัท")
     tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")#เลขประจำตัวผู้เสียภาษี
     fax =  models.CharField(max_length=255, blank = True, null = True, verbose_name="แฟกส์")
-    registration_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/registration/distributor/%Y/%m/%d', verbose_name="หนังสือรับรองบริษัท")
+    registration_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/registration/distributor/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="หนังสือรับรองบริษัท")
 
     class Meta:
         db_table = 'Distributor'
@@ -874,12 +875,12 @@ class PurchaseOrder(models.Model):
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True, blank = True)
     pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True, blank = True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True,unique=True)
-    quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/PO/%Y/%m/%d')
+    quotation_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/quotation/PO/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     delivery = models.ForeignKey(BaseDelivery,on_delete=models.CASCADE,null = True, blank = True)
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
     receive_update = models.DateField(blank=True, null=True) #วันที่รับสินค้า
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
-    receipt_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/receipt/RC_PO/%Y/%m/%d')
+    receipt_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/receipt/RC_PO/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     is_re_approve = models.BooleanField(default=False)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
@@ -931,7 +932,7 @@ class ComparisonPriceDistributor(models.Model):
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp =  models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE, null=True)
-    quotation_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/quotation/CM/%Y/%m/%d')
+    quotation_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/quotation/CM/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     is_select = models.BooleanField(default=False)
 
     class Meta:
@@ -1000,7 +1001,7 @@ class ReceiveItem(models.Model):
         ordering=('id',)
 
 class Document(models.Model):
-    doc_pdf = models.FileField(null=True, blank=True, upload_to='pdfs/document/')
+    doc_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/document/', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     
     class Meta:
         db_table = 'Document'

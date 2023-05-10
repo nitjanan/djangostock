@@ -205,6 +205,11 @@
             </div>
             <div class="card bg-light hidden-print my-3 {%if isFromPR == 'True'%}d-none{%endif%}">
               <div class="card-body">
+                {% if form.quotation_pdf.errors %}
+                <div class="alert alert-warning" role="alert">
+                    {{ form.quotation_pdf.errors }}
+                </div>
+                {% endif %}
                 <label>{{ form.distributor.label }}</label>
                 <div>
                     <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">

@@ -9,6 +9,11 @@
     <h4>รายละเอียดใบสั่งซื้อ</h4>
     <div class="card bg-light">
         <div class="card-body">
+            {% if form.quotation_pdf.errors %}
+            <div class="alert alert-warning" role="alert">
+                {{ form.quotation_pdf.errors }}
+            </div>
+            {% endif %}
             <form method="post" enctype="multipart/form-data">
                 {% if form.distributor.label %}
                 <label>{{ form.distributor.label }}</label>

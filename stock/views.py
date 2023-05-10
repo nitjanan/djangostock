@@ -865,19 +865,22 @@ def createRequisition(request):
     requestName = User.objects.all()
     chiefName = User.objects.filter(groups__name='หัวหน้างาน')
     
-    form = RequisitionForm(request, request.POST or None, initial={'branch_company': company})
-    if form.is_valid():
-        form = RequisitionForm(request, request.POST or None, request.FILES)
-        new_contact = form.save(commit=False)
-        new_contact.supplies_approve_user_name_id = request.user.id
+    try:
+        form = RequisitionForm(request, request.POST or None, initial={'branch_company': company})
+        if form.is_valid():
+                form = RequisitionForm(request, request.POST or None, request.FILES)
+                new_contact = form.save(commit=False)
+                new_contact.supplies_approve_user_name_id = request.user.id
 
-        try:
-            userProfile = UserProfile.objects.get(user = new_contact.name)
-            new_contact.section = userProfile.department
-        except UserProfile.DoesNotExist:
-            pass
-        new_contact.save()
-        return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
+                try:
+                    userProfile = UserProfile.objects.get(user = new_contact.name)
+                    new_contact.section = userProfile.department
+                except UserProfile.DoesNotExist:
+                    pass
+                new_contact.save()
+                return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
+    except ValueError:
+        pass
 
     context = {
         'form':form,

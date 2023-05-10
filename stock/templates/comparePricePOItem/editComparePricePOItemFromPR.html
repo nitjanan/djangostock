@@ -108,7 +108,16 @@
                 {% endfor %}
                 <div class="row spacer">
                     <div class="col-4 pdf">
-                        ใบเสนอราคา {{bookform.quotation_pdf | add_class:"form-control text-right"}}
+                        <div class="row spacer ml-2">
+                            ใบเสนอราคา {{bookform.quotation_pdf | add_class:"form-control text-right"}}
+                        </div>
+                        <div class="row spacer ml-2">
+                            {% if bookform.quotation_pdf.errors %}
+                            <div class="alert alert-warning" role="alert">
+                                {{ bookform.quotation_pdf.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="col">
                         <div class="row spacer">
