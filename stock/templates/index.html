@@ -6,7 +6,20 @@
 
 <div class="container">
   {% if products %}
-  <h4><span class="badge badge-pill badge-dark notification mr-5">{% if category.name %}{{category.name}}{%else%}สินค้าทั้งหมด{%endif%}</span></h4>
+  <h4>
+    <span class="badge badge-pill badge-dark notification mr-2">{% if category.name %}{{category.name}}{%else%}สินค้าทั้งหมด{%endif%}</span>
+    {% if isEditNewOld %}
+      <span class="badge badge-pill badge-warning notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldModal">New โอน <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
+    {% endif %}
+    {% if isEditChangeExist %}
+      <span class="badge badge-pill badge-danger notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#changeExistModal">Change Exist <i class="fas fa-recycle" style="color: #ffffff;"></i></span>
+    {% endif %}
+    {% if messages %}
+      {% for message in messages %}
+        <span{% if message.tags %} class="text-{{ message.tags }}"{% endif %}>*{{ message }}</span>
+      {% endfor %}
+    {% endif %}
+  </h4>
     <div class="row my-4 justify-content-center">
       <div class="card" style="width: 50rem;">
         <ul class="list-group list-group-flush">
@@ -70,5 +83,80 @@
       ไม่มีรายการสินค้า
     </div>
     {%endif%}
+</div>
+<!-- Modal new old-->
+<div class="modal fade" id="newOldModal" tabindex="-1" role="dialog" aria-labelledby="newOldModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header alert alert-warning">
+        <h5 class="modal-title" id="newOldModalTitle">แก้ไขรหัสสินค้า</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="old_product_id" class="col-form-label">รหัสสินค้าเก่า:</label>
+            <input id="old_product_id" name="old_product_id" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id}}" required>
+            <datalist id="idExpresslist">
+            {% for results in baseProduct %}
+              <option value="{{results.id}}">{{results.name}}</option>
+            {% endfor %}
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label for="new_product_id" class="col-form-label">รหัสสินค้าใหม่:</label>
+            <input id="new_product_id" name="new_product_id" type="text" class="form-control" >
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
+        <button type="submit" name="btnformNewOld" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
+      </div>
+    </form>
+    </div>
+  </div>
+</div>
+<!-- Modal change exist-->
+<div class="modal fade" id="changeExistModal" tabindex="-1" role="dialog" aria-labelledby="changeExistModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header alert alert-danger">
+        <h5 class="modal-title" id="changeExistModalTitle">เปลี่ยนรหัสสินค้าที่มีอยู่แล้ว</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="ce_old_product_id" class="col-form-label">รหัสสินค้าเก่า:</label>
+            <input id="ce_old_product_id" name="ce_old_product_id" type="text" list="idExpresslist" Placeholder="ค้นหารหัสเก่า express..." class="form-control" autocomplete="off" value="{{item.product.id}}" required>
+            <datalist id="idExpresslist">
+            {% for results in baseProduct %}
+              <option value="{{results.id}}">{{results.name}}</option>
+            {% endfor %}
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label for="ce_new_product_id" class="col-form-label">รหัสสินค้าใหม่:</label>
+            <input id="ce_new_product_id" name="ce_new_product_id" type="text" list="idExpresslist" Placeholder="ค้นหารหัสใหม่ express..." class="form-control" autocomplete="off" value="{{item.product.id}}" required>
+            <datalist id="idExpresslist">
+            {% for results in baseProduct %}
+              <option value="{{results.id}}">{{results.name}}</option>
+            {% endfor %}
+            </datalist>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
+        <button type="submit" name="btnformChangeExist" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
+      </div>
+    </form>
+    </div>
+  </div>
 </div>
 {% endblock%}

@@ -49,6 +49,8 @@ from decimal import Decimal
 import pandas as pd
 from django_pandas.io import read_frame
 from django.db.models.functions import Round
+from django.contrib import messages
+import string
 
 def findCompanyIn(request):
     code = request.session['company_code']
@@ -62,6 +64,109 @@ def findCompanyIn(request):
     else:
         company_in = BaseBranchCompany.objects.filter(code = code).values('code')
     return company_in
+
+#check error id 23-05-2023
+def has_only_en(name):
+    char_set = string.ascii_letters + string.digits + "-"
+    return all((True if x in char_set else False for x in name))
+
+#button New โอน 23-05-2023
+def newOld(old_product_id, new_product_id):
+    alertStr = None
+    alertType = None
+
+    if not has_only_en(new_product_id): #เช็คตัวอักษรภาษาไทยในรหัส
+        alertStr = "รหัสสินค้าใหม่ ("+ str(new_product_id) +") มีตัวอักษรภาษาไทย ไม่สามารถ new โอนได้"
+        alertType = messages.WARNING
+    elif new_product_id.find('O-') != -1 : #เช็ค O- ในรหัส
+        alertStr = "รหัสสินค้าใหม่ XX-XO-001 ต้องเป็น XX-X0-001 (ขีดเอ็กซ์โอ ต้องเป็น ขีดเอ็กซ์ศูนย์) ไม่สามารถ new โอนได้"
+        alertType = messages.WARNING
+    else:
+        try:
+            #หารหัสใหม่
+            have_new_product_id = Product.objects.get(id = new_product_id)
+            if have_new_product_id:
+                alertStr = "มีรหัสสินค้าใหม่อยู่แล้ว '" +str(new_product_id)+ "' ไม่สามารถ new โอนได้"
+                alertType = messages.WARNING
+        except Product.DoesNotExist:
+            try:
+                old_product = Product.objects.get(id = old_product_id)
+                #สร้างรหัสสินค้าใหม่
+                if old_product and new_product_id:
+                    obj = Product.objects.create(
+                        id = new_product_id,
+                        name = old_product.name + "(*)",
+                        unit = old_product.unit,
+                        slug = new_product_id.replace('-', "I"),
+                        description = old_product.description,
+                        price = old_product.price,
+                        category = old_product.category,
+                        image = old_product.image,
+                        stock = old_product.stock,
+                        available = old_product.available,
+                        created = old_product.created,
+                        update = old_product.update,
+                        affiliated = old_product.affiliated
+                    )
+                    obj.save()
+
+                    try:
+                        #ย้ายสินค้าในใบขอเบิกไปรหัสสินค้าใหม่
+                        r_item = RequisitionItem.objects.filter(product__id = old_product.id)
+                        new_product = Product.objects.get(id = new_product_id)
+                        for i in r_item:
+                            i.product = new_product
+                            i.save()
+                        #หลังจากย้ายสินค้าไปรหัสใหม่
+                        af_item = RequisitionItem.objects.filter(product__id = old_product.id).count()
+                        if af_item < 1:
+                            old_product.delete()
+                            #แก้ชื่อ new_product
+                            new_product.name =  new_product.name[:-3]
+                            new_product.save()
+
+                            alertStr = "new โอน รหัสสินค้า '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
+                            alertType = messages.SUCCESS
+                    except RequisitionItem.DoesNotExist:
+                        pass
+                    
+            except Product.DoesNotExist:
+                alertStr = "ไม่มีรหัสสินค้าเก่าในระบบ ไม่สามารถ new โอนได้"
+                alertType = messages.WARNING
+                pass
+    return alertType,alertStr
+
+#button Change Exist 23-05-2023
+def changeExist(old_product_id, new_product_id):
+    alertStr = None
+    alertType = None
+    try:
+        #หารหัสเก่า
+        old_product = Product.objects.get(id = old_product_id)
+        #หารหัสใหม่
+        new_product = Product.objects.get(id = new_product_id)
+        if old_product and new_product:
+            try:
+                #ย้ายสินค้าในใบขอเบิกไปรหัสสินค้าใหม่
+                r_item = RequisitionItem.objects.filter(product__id = old_product.id)
+                for i in r_item:
+                    i.product = new_product
+                    i.save()
+                #หลังจากย้ายสินค้าไปรหัสใหม่
+                af_item = RequisitionItem.objects.filter(product__id = old_product.id).count()
+                if af_item < 1:
+                    old_product.delete()
+
+                    alertStr = "เปลี่ยนรหัสสินค้าจาก '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
+                    alertType = messages.SUCCESS
+            except RequisitionItem.DoesNotExist:
+                pass
+
+    except Product.DoesNotExist:
+        alertStr = "ไม่มีรหัสสินค้าในระบบ ไม่สามารถเปลี่ยนรหัสสินค้าได้"
+        alertType = messages.WARNING
+        pass
+    return alertType,alertStr
 
 def days_between(d1, d2):
     d1 = datetime.datetime.strptime(str(d1), "%Y-%m-%d").date()
@@ -154,8 +259,31 @@ def index(request, category_slug = None):
     try:
         productperPage = paginator.page(page)
     except (EmptyPage, InvalidPage):
-        productperPage = paginator.page(paginator.num_pages)    
+        productperPage = paginator.page(paginator.num_pages)
+
+    #หา id express
+    baseProduct = Product.objects.all().values('id', 'name')
+
+    # button New โอน
+    if request.method == 'POST' and 'btnformNewOld' in request.POST:
+        old_product_id = request.POST.get('old_product_id', False)
+        new_product_id = request.POST.get('new_product_id', False)
+        mess = newOld(old_product_id, new_product_id)
+        messages.add_message(request, mess[0], mess[1])
+        return redirect('home')
     
+    # button Change Exist
+    if request.method == 'POST' and 'btnformChangeExist' in request.POST:
+        ce_old_product_id = request.POST.get('ce_old_product_id', False)
+        ce_new_product_id = request.POST.get('ce_new_product_id', False)
+        mess = changeExist(ce_old_product_id, ce_new_product_id)
+        messages.add_message(request, mess[0], mess[1])
+        return redirect('home')
+
+    #เช็คสิทธิเห็นปุ่ม New โอน หรือ Change Exist
+    isEditNewOld = is_edit_new_old(request.user)
+    isEditChangeExist = is_edit_change_exist(request.user)
+
     '''
     #สร้าง page
     p = Paginator(products, 10)
@@ -440,7 +568,7 @@ def index(request, category_slug = None):
             break
 
     if isHaveTab:
-        return render(request,'index.html', {'products':productperPage , 'category':categories_page, active :"active show", "colorNav":"enableNav"})
+        return render(request,'index.html', {'products':productperPage , 'category':categories_page, 'baseProduct':baseProduct, 'isEditNewOld': isEditNewOld, 'isEditChangeExist': isEditChangeExist, active :"active show", "colorNav":"enableNav"})
     else:
         return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav"})
 
@@ -647,9 +775,11 @@ def signOutView(request):
     return redirect('signIn')
 
 def search(request):
+    active = request.session['company_code']
+
     name = request.GET['title']
-    products = Product.objects.filter(name__icontains=name)
-    return render(request,'index.html', {'products':products})
+    products = Product.objects.filter(Q(name__icontains=name) | Q(id__icontains=name))
+    return render(request,'index.html', {'products':products,active :"active show","colorNav":"enableNav"})
 
 def orderHistory(request):
     #ดึง order ทั้งหมดของ user คนนี้
@@ -1288,6 +1418,12 @@ def is_edit_approver_user_po(user):
 #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด
 def is_view_report_all(user):
     return user.groups.filter(name='ดูรายงานของบริษัททั้งหมด').exists()
+
+def is_edit_new_old(user):
+    return user.groups.filter(name='NewOld').exists()
+
+def is_edit_change_exist(user):
+    return user.groups.filter(name='ChangeExist').exists()
 
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
