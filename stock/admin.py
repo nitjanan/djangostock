@@ -8,7 +8,7 @@ from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
 from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade
 from .resources import ReceiveItemResource, DistributorResource
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
 from related_admin import getter_for_related_field
 from stock.forms import ProductAdminForm
