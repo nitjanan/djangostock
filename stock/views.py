@@ -2553,7 +2553,7 @@ def editPOApprove(request, po_id, isFromHome):
     if permiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            isPermiss_po2 = PurchaseOrder.objects.filter(id = po_id, branch_company__code__in = permiss_po).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            isPermiss_po2 = PurchaseOrder.objects.filter(id = po_id, approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = permiss_po).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
 
