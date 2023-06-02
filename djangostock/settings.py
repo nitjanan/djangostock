@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'stock',
     'django.contrib.humanize',
     'crispy_forms',
+    'crispy_bootstrap4',
     'stripe',
     'widget_tweaks',
     'django_filters',

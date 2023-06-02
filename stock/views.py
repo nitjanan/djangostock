@@ -4361,12 +4361,20 @@ def exportExcelPO(request):
             if row[6] and strPrDesired:
                 strTempReceiveUpdate = str(row[6])
                 strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
-                strDateDiff = str(days_between_nagative(strReceiveUpdate, strPrDesired)) + " วัน"
+                
+                #DateDelay
                 if row[5]:
                     if years_between(row[5], strTempReceiveUpdate) > 500:
                         strDateDelay = str(days_between_nagative(strReceiveUpdate, row[5])) + " วัน"
                     else:
-                        strDateDelay = str(days_between_nagative(strTempReceiveUpdate, row[5])) + " วัน"                    
+                        strDateDelay = str(days_between_nagative(strTempReceiveUpdate, row[5])) + " วัน"
+
+                #DateDiff
+                if row[6]:
+                    if years_between(row[6], strPrDesired) > 500:
+                        strDateDiff = str(days_between_nagative(strReceiveUpdate, strPrDesired)) + " วัน"
+                    else:
+                        strDateDiff = str(days_between_nagative(strTempReceiveUpdate, strPrDesired)) + " วัน"
 
             
             ws.write(row_num, 16, strPr, font_style)
