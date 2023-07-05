@@ -11,6 +11,7 @@ class RequisitionFilter(django_filters.FilterSet):
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    name = django_filters.CharFilter(field_name="name__first_name", lookup_expr='icontains')
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
 
     class Meta:
@@ -36,6 +37,7 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     purchase_user =  django_filters.ModelChoiceFilter(field_name="purchase_user", queryset= User.objects.filter(groups__name='หัวหน้างาน'))
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    requisition__name = django_filters.CharFilter(field_name="requisition__name__first_name", lookup_expr='icontains')
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
 
     class Meta:

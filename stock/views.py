@@ -4011,10 +4011,19 @@ def viewPRHistory(request):
     dataPage = p.get_page(page)
 
     ri = RequisitionItem.objects.filter(quantity_pr__gt=0, requisit__in = requisit)
+
+    ri_dict = {}
+    for item in ri:
+        requisition_id = item.requisition_id
+        if requisition_id not in ri_dict:
+            ri_dict[requisition_id] = []
+        ri_dict[requisition_id].append(item)
+
     context = {
                 'prs':dataPage,
                 'filter':myFilter,
                 'ri': ri,
+                'ri_dict': ri_dict,
                 'h_pr_page': "tab-active",
                 'h_pr_show': "show",
                 active :"active show",

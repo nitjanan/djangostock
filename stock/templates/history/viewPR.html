@@ -65,12 +65,25 @@
             <td>{{pr.created |date:"d/m/Y"}}</td>
             <th scope="row"><a href="{% url 'showPR' pr.id 4 %}">{{pr.ref_no}}</a></th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 4 %}">{{pr.requisition.ref_no}}</a></td>
-            <td>
+            <!--td old 8 ms>
                 {% for item in ri%}
                   {% if item.requisition_id ==  pr.requisition.id %}
                     {% if item.is_used %}<li class="text-success">{{item.product_name}}</li>{%else%}<li>{{item.product_name}}</li>{%endif%}
                   {% endif %}
                 {% endfor %}
+            </td-->
+            <td>
+              {% with requisition_items=ri_dict|get_item:pr.requisition.id %}
+                {% if requisition_items %}
+                  {% for item in requisition_items %}
+                    {% if item.is_used %}
+                      <li class="text-success">{{ item.product_name }}</li>
+                    {% else %}
+                      <li>{{ item.product_name }}</li>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endwith %}
             </td>
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>
