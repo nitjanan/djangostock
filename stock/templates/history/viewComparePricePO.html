@@ -52,6 +52,7 @@
                   <th scope="col">รหัส CM</th>
                   <th scope="col">รหัส PR</th>
                   <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
+                  <th scope="col" class="text-center">test</th>
                   <th scope="col">ผู้จัดทำ</th>
                   <th scope="col">ราคา</th>
                   <th scope="col">ลงวันที่ตรวจสอบ</th>
@@ -73,13 +74,9 @@
                     {%endfor%}
                   </td>
                   <td>
-                      <ul style="list-style: none;">
-                      {% for bd in bidder %}
-                        {% if cp.id == bd.cp_id %}
-                            <li>{{bd.distributor__name}}</li>
-                        {% endif %}
-                      {% endfor %}
-                      </ul>
+                    {% for item in cp.comparisonpricedistributor_set.all %}
+                      <li>{{ item.distributor.name }}</li>
+                    {% endfor %}
                   </td>
                   <td>{{cp.organizer}}</td>
                   <td>

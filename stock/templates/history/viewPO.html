@@ -80,11 +80,9 @@
             </td>
             <td>{{po.distributor}}</td>
             <td>
-              {% for pr in prs %}
-                {% if po.id == pr.po %}
-                  <li>{{pr.item__product_name}}</li>
-                {%endif%}
-              {%endfor%}
+              {% for item in po.purchaseorderitem_set.all %}
+                <li>{{ item.item.product_name }}</li>
+              {% endfor %}
             </td>
             <td>{{po.credit}}</td>
             <td>{{po.stockman_user}}</td>
