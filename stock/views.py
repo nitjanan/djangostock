@@ -1443,7 +1443,6 @@ def searchExaminerAndApproverUser(request):
         'user_examiner_list': list(user_examiner),
         'user_approve_list': list(user_approve),
     }
-    
     return JsonResponse(data)
 
 def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
@@ -1657,7 +1656,7 @@ def createCMorPO(request, pr_id):
             organizer = request.user,
             approver_status_id = 1,
             examiner_status_id = 1,
-            branch_company = company,
+            branch_company = pr.branch_company,
             note = pr.note,
         )
         cp.save()
@@ -1697,7 +1696,7 @@ def createCMorPO(request, pr_id):
             approver_status_id = 1,
             vat_type_id = 0,
             pr = pr,
-            branch_company = company,
+            branch_company = pr.branch_company,
         )
         po.save()
 
