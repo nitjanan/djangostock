@@ -209,7 +209,7 @@
             <label for="name">เหตุผลและวัตถุประสงค์</label>
             <input class="form-control" type="text" name="description" required>
             <label for="name">จำนวนที่ขอเบิก</label>
-            <input class="form-control" type="number" name="quantity" min="1" required step="any">
+            <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
             <label for="name">หน่วย</label>
             <input class="form-control" list="unitList" name="unit" id="sel-unit">
             <datalist id="unitList">
@@ -254,9 +254,9 @@
             <label for="description">เหตุผลและวัตถุประสงค์</label>
             <input class="form-control" id="form-description" type="text" name="formDescription"/>
             <label for="quantity">จำนวนที่ขอเบิก</label>
-            <input class="form-control" id="form-quantity" type="number" name="formQuantity" min=1 step="any"/>
+            <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
             <label for="quantityTake">จำนวนที่จ่ายไป</label>
-            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min=0 step="any"/>
+            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min="0" step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">
             <datalist id="formUnitList">
