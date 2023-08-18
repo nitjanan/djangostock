@@ -75,22 +75,24 @@
             <th scope="row"><a href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a></th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 1 %}">{{pr.requisition.ref_no}}</a></td>
             <td>
-               {% for item in ri_not_used%}
-                  {% if item.requisition_id ==  pr.requisition.id %}
-                    <li>{{item.product_name}}</li>
+              <ul>
+                {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                  {% if requisition_item.is_used  == False %}
+                    <li>{{ requisition_item.product_name }}</li>
                   {% endif %}
                 {% endfor %}
+              </ul>
             </td>
             <td>
-              {% for item in ri_not_used%}
-                {% if item.requisition_id ==  pr.requisition.id %}
+              <ul>
+                {% for requisition_item in pr.requisition.requisitionitem_set.all %}
                   {% for bu in baseUrgency %}
-                    {% if item.urgency == bu.id %}
+                    {% if requisition_item.urgency == bu.id and requisition_item.is_used  == False %}
                       <li>{{bu.name}}</li>
                     {% endif %}
                   {% endfor %}
-                {% endif %}
-              {% endfor %} 
+                {% endfor %}
+              </ul>
             </td>
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>

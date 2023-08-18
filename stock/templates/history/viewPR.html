@@ -73,17 +73,15 @@
                 {% endfor %}
             </td-->
             <td>
-              {% with requisition_items=ri_dict|get_item:pr.requisition.id %}
-                {% if requisition_items %}
-                  {% for item in requisition_items %}
-                    {% if item.is_used %}
-                      <li class="text-success">{{ item.product_name }}</li>
-                    {% else %}
-                      <li>{{ item.product_name }}</li>
-                    {% endif %}
-                  {% endfor %}
-                {% endif %}
-              {% endwith %}
+              <ul>
+                {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                  {% if requisition_item.is_used %}
+                    <li class="text-success">{{ requisition_item.product_name }}</li>
+                  {% else %}
+                    <li>{{ requisition_item.product_name }}</li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
             </td>
             <td>{{pr.requisition.name}}</td>
             <td>{{pr.purchase_user}}</td>
