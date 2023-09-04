@@ -1,47 +1,121 @@
 {% extends 'layouts.html' %}
-{% load crispy_forms_tags %}
 {% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <link rel="stylesheet" type='text/css' href="{% static '/css/rate.css' %}">
 <div class="container my-3">
-    <h2 align="center">ใบสั่งซื้อ</h2>
-    <h4>รายละเอียดใบสั่งซื้อ</h4>
-    <div class="card bg-light">
-        <div class="card-body">
-            {% if form.quotation_pdf.errors %}
-            <div class="alert alert-warning" role="alert">
-                {{ form.quotation_pdf.errors }}
-            </div>
-            {% endif %}
-            <form method="post" enctype="multipart/form-data">
-                {% if form.distributor.label %}
-                <label>{{ form.distributor.label }}</label>
-                <div>
-                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control"
-                        Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"
-                        onfocusout="searchDataDistributor();getRateDistributor();" required>
-                    <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
-                    <datalist-- id="idDistributorList">
-                    {% for results in distributorList %}
-                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
-                    {% endfor %}
-                    </datalist-->
-                </div>
-                {% endif %}
-                <p>{{ form | crispy}}</p>
-                {% csrf_token %}
-        </div>
-    </div>
+    <h2 align="center">สรุปคะแนน {{distributor.name}}</h2>
     <div id="rate_distributor">
-        <hr class="ln">
         <h4>ประเมินร้านค้า</h4>
         <div class="card bg-light border-warning">
             <div class="card-body">
                 <div class="row">
                     <div class="col-4">
                         <div class="con">
-                            <h5>ราคา</h5>
+                            <table class="table table-sm table-borderless">
+                                <tbody>
+                                <tr>
+                                    <td class="text-center">
+                                        <h5>ราคา</h5>
+                                    </td>
+                                </tr>
+                                <tr class="full_avg_price_rate">
+                                    <td>
+                                        <div class="full-stars-outer ml-5">
+                                            <div class="full-stars-inner"></div>
+                                        </div>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="full-text-rate-price text-warning"></span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="text-center">
+                                        <h5>คุณภาพงาน</h5>
+                                    </td>
+                                </tr>
+                                <tr class="full_avg_quantity_rate">
+                                    <td>
+                                        <div class="full-stars-outer ml-5">
+                                            <div class="full-stars-inner"></div>
+                                        </div>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="full-text-rate-quantity text-warning"></span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="text-center">
+                                        <h5>การบริการ</h5>
+                                    </td>
+                                </tr>
+                                <tr class="full_avg_service_rate">
+                                    <td>
+                                        <div class="full-stars-outer ml-5">
+                                            <div class="full-stars-inner"></div>
+                                        </div>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="full-text-rate-service text-warning"></span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="text-center">
+                                        <h5>การจัดการสิ่งแวดล้อม/ความปลอดภัย</h5>
+                                    </td>
+                                </tr>
+                                <tr class="full_avg_safety_rate">
+                                    <td>
+                                        <div class="full-stars-outer ml-5">
+                                            <div class="full-stars-inner"></div>
+                                        </div>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="full-text-rate-safety text-warning"></span>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="text-center">
+                                        <h5>ระยะเวลา</h5>
+                                    </td>
+                                </tr>
+                                <tr class="full_avg_duration_rate">
+                                    <td>
+                                        <div class="full-stars-outer ml-5">
+                                            <div class="full-stars-inner"></div>
+                                        </div>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-center">
+                                        <span class="full-text-rate-duration text-warning"></span>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+
+                            <!--h5>ราคา</!--h5>
                             <div class="star-widget">
                                 <input type="radio" name="rate-price" id="rate-price-4" value="4">
                                 <label for="rate-price-4" class="fas fa-star"></label>
@@ -81,7 +155,7 @@
                             </div>
                             <br><br>
                             <h5>การจัดการสิ่งแวดล้อม/ความปลอดภัย</h5>
-                            <div class="star-widget">
+                            <div-- class="star-widget">
                                 <input type="radio" name="rate-safety" id="rate-safety-4" value="4">
                                 <label for="rate-safety-4" class="fas fa-star"></label>
                                 <input type="radio" name="rate-safety" id="rate-safety-3" value="3">
@@ -91,7 +165,7 @@
                                 <input type="radio" name="rate-safety" id="rate-safety-1" value="1">
                                 <label for="rate-safety-1" class="fas fa-star"></label>
                                 <span class="text-rate-safety"></span>
-                            </div>
+                            </div-->
                         </div>
                     </div>
                     <div class="col">
@@ -100,7 +174,7 @@
                                 <h4 class="text-center">Reviews</h4>
                             </div>
                             <div class="card-body">
-                                <h3 id="name_distributor">{{cp.select_bidder}}</h3>
+                                <h3 id="name_distributor">{{distributor.name}}</h3>
                                 <div class="row">
                                     <div class="col"><span class="avg">0.0</span> OUT OF 100 
                                         <!-- Button trigger modal help -->
@@ -163,7 +237,7 @@
                                 <!-- end new rating bar -->
                                 <hr>
                                 {% if rate_counsel%}
-                                <div class="blockquote mb-0 block-q">
+                                <div class="blockquote mb-0 block-q-show">
                                     {% for cs in rate_counsel %}
                                     <h5>{{cs.organizer_user__first_name}} {{cs.organizer_user__last_name}}</h5>
                                     <footer class="blockquote-footer">{{cs.counsel}}</footer>
@@ -171,15 +245,12 @@
                                     {% endfor %}
                                 </div>
                                 {%else%}
-                                <div id="block-q-none" class="blockquote mb-0 block-q-none">
+                                <div id="block-q-none-show" class="blockquote mb-0 block-q-none-show">
                                     <div id="in-block-q-none">
                                         <footer class="blockquote-footer">ไม่มีข้อเสนอแนะ</footer>
                                     </div>
                                 </div>
                                 {%endif%}
-                                <div id="f-rate">
-                                    <h6 class="my-3 text-primary">{{ form_rate | crispy}}</h6>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -187,12 +258,101 @@
             </div>
         </div>
     </div>
-    <br>
-    <button type="submit" class="btn btn-primary hidden-print btn-lg">
-        <i class="fas fa-save"></i>
-        บันทึก
-    </button>
+    <div class="card div-shadow my-3">
+        <div class="card-body">
+            <h6>รายการใบสั่งซื้อที่ประเมินโดยร้านนี้</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered my-3">
+              <thead class="table-primary">
+                  <tr>
+                      <th scope="col">รหัสใบสั่งซื้อ</th>
+                      <th scope="col">ราคา</th>
+                      <th scope="col">คุณภาพงาน</th>
+                      <th scope="col">ระยะเวลา</th>
+                      <th scope="col">การบริการ</th>
+                      <th scope="col">การจัดการสิ่งแวดล้อม/ความปลอดภัย</th>
+                      <th scope="col">รวมคะแนน</th>
+                      <th scope="col">เกรด</th>
+                      <th scope="col">ผู้ประเมิน</th>
+                      <th scope="col">วันที่ประเมิน</th>
+                  </tr>
+              </thead>
+              <tbody>
+              {% for item in po_rd %}
+                <tr>
+                  <th scope="row"><a class="{% if item.po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' item.po.id 3 %}">{{item.po.ref_no}}</a></th>
+                  <td>{{item.price_rate}}</td>
+                  <td>{{item.quantity_rate}}</td>
+                  <td>{% if item.duration_rate%}{{item.duration_rate}}{%else%}-{%endif%}</td>
+                  <td>{{item.service_rate}}</td>
+                  <td>{{item.safety_rate}}</td>
+                  <td>{% if item.total_rate%}{{item.total_rate}}{%else%}-{%endif%}</td>
+                  <td>{% if item.grade%}{{item.grade}}{%else%}-{%endif%}</td>
+                  <td>{{item.organizer_user}}</td>
+                  <td>{{item.organizer_update|date:"d/m/Y"}}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <th scope="row" colspan="10" class="text-center">
+                    <div class="alert alert-warning" role="alert">
+                      ไม่มีใบสั่งซื้อที่ประเมินกับร้านนี้
+                    </div>
+                  </th>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+            <!--Pagination-->
+            <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                {% if po_rd.has_previous %}
+                    <li class="page-item">
+                    <a class="page-link" href="{% my_url po_rd.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+                </li>
+                {% else %}
+                    <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                </li>
+                {% endif %}
+
+                {% if po_rd.number|add:'-4' > 1 %}
+                    <li class="page-item"><a class="page-link" href="{% my_url po_rd.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+                {% endif %}
+
+                {% for i in po_rd.paginator.page_range %}
+                    {% if po_rd.number == i %}
+                        <li class="page-item active" aria-current="page">
+                    <span class="page-link">
+                        {{ i }}
+                        <span class="sr-only">(current)</span>
+                    </span>
+                    </li>
+                    {% elif i > po_rd.number|add:'-5' and i < po_rd.number|add:'5' %}
+                        <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if po_rd.paginator.num_pages > po_rd.number|add:'4' %}
+                <li class="page-item"><a class="page-link" href="{% my_url po_rd.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+                {% endif %}
+
+                {% if po_rd.has_next %}
+                    <li class="page-item">
+                    <a class="page-link"  href="{% my_url po_rd.next_page_number 'page' request.GET.urlencode %}">Next</a>
+                </li>
+                {% else %}
+                    <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+            </nav>
+            <!--end of Pagination-->
+        </div>
+      </div>
 </div>
+
 <!-- Modal -->
 <div class="modal fade" id="helpModalCenter" tabindex="-1" role="dialog" aria-labelledby="helpModalCenterTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -262,7 +422,6 @@
 <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 <script>
-
     var now = new Date();
     var day = ("0" + now.getDate()).slice(-2);
     var month = ("0" + (now.getMonth() + 1)).slice(-2);
@@ -276,6 +435,15 @@
         avg_duration_rate: 0,
         avg_service_rate: 0,
         avg_safety_rate: 0
+    }
+
+    // Initial Ratings
+    const full_ratings = {
+        full_avg_price_rate: 0,
+        full_avg_quantity_rate: 0,
+        full_avg_duration_rate: 0,
+        full_avg_service_rate: 0,
+        full_avg_safety_rate: 0
     }
 
     // Total Stars
@@ -323,6 +491,22 @@
         $('.avg').html(avg);
 
         getRatings();
+
+        //ข้างขวา
+        full_ratings.full_avg_price_rate = getSetDataRatings(Number('{{ratings.avg_price_rate}}'));
+        full_ratings.full_avg_quantity_rate = getSetDataRatings(Number('{{ratings.avg_quantity_rate}}'));
+        full_ratings.full_avg_duration_rate = getSetDataRatings(Number('{{ratings.avg_duration_rate}}'));
+        full_ratings.full_avg_service_rate = getSetDataRatings(Number('{{ratings.avg_service_rate}}'));
+        full_ratings.full_avg_safety_rate = getSetDataRatings(Number('{{ratings.avg_safety_rate}}'));
+        
+        fullGetRatings();
+
+        $('.full-text-rate-price').text(getPriceDescriptionRatings(Number('{{ratings.avg_price_rate}}')));
+        $('.full-text-rate-quantity').text(getQuantityDescriptionRatings(Number('{{ratings.avg_quantity_rate}}')));
+        $('.full-text-rate-duration').text(getDurationDescriptionRatings(Number('{{ratings.avg_duration_rate}}')));        
+        $('.full-text-rate-service').text(getServiceDescriptionRatings(Number('{{ratings.avg_service_rate}}')));
+        $('.full-text-rate-safety').text(getSafetyDescriptionRatings(Number('{{ratings.avg_safety_rate}}')));
+
     });
 
     $(function () {
@@ -371,7 +555,6 @@
             var str = $('#id-form-distributor').val();
             var items = str.split("-");
             var idInput = items[0];
-            
             // Create Ajax Call
             if (idInput) {
                 $.ajax({
@@ -401,13 +584,93 @@
         return value;
     }
 
+    function getPriceDescriptionRatings(getValue){
+        result = "";
+        if(getValue){
+            tmpVal = parseInt(getValue);
+            if(tmpVal == 1)
+                result = "ค่อนข้างแพง";
+            if(tmpVal == 2)
+                result = "ไม่แตกต่างจากที่อื่น";
+            if(tmpVal == 3)
+                result = "ราคาคุ้มค่าตามผลงาน";
+            if(tmpVal == 4)
+                result = "ความพึงพอใจมาก";
+        }
+        return result;
+    }
+
+    function getQuantityDescriptionRatings(getValue){
+        result = "";
+        if(getValue){
+            tmpVal = parseInt(getValue);
+            if(tmpVal == 1)
+                result = "ต้องแก้ไขหลายจุด";
+            if(tmpVal == 2)
+                result = "ไม่ตรงตามสเปค";
+            if(tmpVal == 3)
+                result = "ใช้งานได้ดีแต่มีตำหนิ";
+            if(tmpVal == 4)
+                result = "ใช้งานได้ดี/งานเรียบร้อย";
+        }
+        return result;
+    }
+
+    function getServiceDescriptionRatings(getValue){
+        result = "";
+        if(getValue){
+            tmpVal = parseInt(getValue);
+            if(tmpVal == 1)
+                result = "ไม่ให้ความร่วมมือ/ปิดบังข้อมูล";
+            if(tmpVal == 2)
+                result = "ให้ข้อมูล/เสนอราคาผิดพลาด";
+            if(tmpVal == 3)
+                result = "ให้ข้อมูล/เสนอราคาล่าช้า";
+            if(tmpVal == 4)
+                result = "ให้ข้อมูล/แนะนำดี งานราบรื่น";
+        }
+        return result;
+    }
+
+    function getSafetyDescriptionRatings(getValue){
+        result = "";
+        if(getValue){
+            tmpVal = parseInt(getValue);
+            if(tmpVal == 1)
+                result = "ความเสี่ยงสูง";
+            if(tmpVal == 2)
+                result = "มีผลกระทบนอกขอบเขต";
+            if(tmpVal == 3)
+                result = "มีผลกระทบในขอบเขต";
+            if(tmpVal == 4)
+                result = "มีการจัดการอย่างดี";
+        }
+        return result;
+    }
+
+    function getDurationDescriptionRatings(getValue){
+        result = "";
+        if(getValue){
+            tmpVal = parseInt(getValue);
+            if(tmpVal == 1)
+                result = "ล่าช้าเกิน 30 วัน";
+            if(tmpVal == 2)
+                result = "ล่าช้า 8-30 วัน";
+            if(tmpVal == 3)
+                result = "ล่าช้า 1-7 วัน";
+            if(tmpVal == 4)
+                result = "ตรงเวลา";
+        }
+        return result;
+    }
+
     function setDataFromRateDistributor(data) {
 
         //remove element rate_counsel first
-        $("#block-q-none").removeClass("block-q").addClass("block-q-none");
+        $("#block-q-none-show").removeClass("block-q-show").addClass("block-q-none-show");
         $("#in-block-q-none").remove();
         $(".blockquote-footer").remove();
-        $("#block-q-none").append("<footer class='blockquote-footer'>ไม่มีข้อเสนอแนะ</footer>");
+        $("#block-q-none-show").append("<footer class='blockquote-footer'>ไม่มีข้อเสนอแนะ</footer>");
 
 
         $('#num_ratings').text(data.num_grade_all + " ratings");
@@ -441,9 +704,9 @@
         var arr = data.rate_counsel
         if (arr.length > 0) {
             $(".blockquote-footer").remove();
-            $("#block-q-none").removeClass("block-q-none").addClass("block-q");
+            $("#block-q-none-show").removeClass("block-q-none-show").addClass("block-q-show");
             for (var i = 0; i < arr.length; i++) {
-                $("#block-q-none").append("<div id='in-block-q-none'></div>");
+                $("#block-q-none-show").append("<div id='in-block-q-none'></div>");
                 $("#in-block-q-none").append("<h5>" + arr[i].organizer_user__first_name + " " + arr[i].organizer_user__last_name + "</h5>");
                 $("#in-block-q-none").append("<footer class='blockquote-footer'>" + arr[i].counsel + "</footer>");
                 $("#in-block-q-none").append("<p style='font-size:13px;'>" + arr[i].organizer_update + "</p>");
@@ -472,15 +735,15 @@
     */
 
     const btn = document.querySelector("button");
-    const post = document.querySelector(".post");
+    const po_rdt = document.querySelector(".po_rdt");
     const widget = document.querySelector(".star-widget");
     const editBtn = document.querySelector(".edit");
     btn.onclick = () => {
         widget.style.display = "none";
-        post.style.display = "block";
+        po_rdt.style.display = "block";
         editBtn.onclick = () => {
             widget.style.display = "block";
-            post.style.display = "none";
+            po_rdt.style.display = "none";
         }
         return false;
     }
@@ -527,6 +790,7 @@
     // Get ratings
     function getRatings() {
       for (let rating in ratings) {
+        //alert('rating = '+ rating);
         // Get percentage
         const starPercentage = (ratings[rating] / starsTotal) * 100;
 
@@ -541,6 +805,27 @@
 
         // Add number rating
         document.querySelector(`.${rating} .number-rating`).innerHTML = ratings[rating];
+      }
+    }
+
+        // Get ratings
+     function fullGetRatings() {
+      for (let rating in full_ratings) {
+        //alert('rating = '+ rating);
+        // Get percentage
+        const starPercentage = (full_ratings[rating] / starsTotal) * 100;
+
+        console.log("starPercentage = "+ starPercentage);
+        // Round to nearest 10
+        //const starPercentageRounded = `${Math.round(starPercentage / 10) * 10}%`;
+        const starPercentageRounded = `${starPercentage}%`;
+        console.log("starPercentageRounded = "+ starPercentageRounded);
+
+        // Set width of stars-inner to percentage
+        document.querySelector(`.${rating} .full-stars-inner`).style.width = starPercentageRounded;
+
+        // Add number rating
+        //document.querySelector(`.${rating} .number-rating`).innerHTML = ratings[rating];
       }
     }
 </script>

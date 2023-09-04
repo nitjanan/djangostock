@@ -1,0 +1,121 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
+
+{% block content %}
+<div class="container my-3">
+<h3 align="center">สรุปการประเมินร้านค้า</h3>
+<div class="card my-3 bg-light div-shadow">
+  <div class="card-body">
+    <form method="get">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.distributor_id_from|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.distributor_id_to|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-5 mb-0">
+            {{filter.form.distributor|as_crispy_field}}
+          </div>
+        <div class="form-group col-md-1 mb-0">
+          <div>
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div class="row">
+        <div class="col">
+          <a class="btn btn-success" href="{% url 'exportToExcelRateDistributor' %}?{{request.GET.urlencode}}">รายงานการประเมินร้านค้า <i class="fas fa-file-excel"></i></a>
+        </div>
+    </div>
+  </div>
+</div>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered my-3">
+        <thead class="table-active">
+            <tr>
+                <th scope="col" class="text-center">รหัสผู้จัดจำหน่าย</th>
+                <th scope="col" class="text-center">ชื่อผู้จัดจำหน่าย</th>
+                <th scope="col" class="text-center">ที่อยู่</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in ds %}
+          <tr>
+            <th scope="row"><a href="{%url 'showRateDistributor' item.id %}">{{item.id}}</a></th>
+            <td>{{item.name}}</td>
+            <td>{{item.address}}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <th scope="row" colspan="3" class="text-center">
+              <div class="alert alert-warning" role="alert">
+                ไม่มีรายการประเมินร้านค้า
+              </div>
+            </th>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+      <br/>
+      <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if ds.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="{% my_url ds.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if ds.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="{% my_url ds.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in ds.paginator.page_range %}
+            {% if ds.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > ds.number|add:'-5' and i < ds.number|add:'5' %}
+                 <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if ds.paginator.num_pages > ds.number|add:'4' %}
+           <li class="page-item"><a class="page-link" href="{% my_url ds.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% if ds.has_next %}
+            <li class="page-item">
+            <a class="page-link"  href="{% my_url ds.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}

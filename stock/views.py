@@ -28,7 +28,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -50,6 +50,10 @@ from django_pandas.io import read_frame
 from django.db.models.functions import Round
 from django.contrib import messages
 import string
+from openpyxl import Workbook
+from openpyxl.styles import Border, Side, Alignment
+from django.db.models import Avg
+from datetime import date, timedelta
 
 def findCompanyIn(request):
     code = request.session['company_code']
@@ -63,6 +67,13 @@ def findCompanyIn(request):
     else:
         company_in = BaseBranchCompany.objects.filter(code = code).values('code')
     return company_in
+
+def set_border(ws, side=None, blank=True):
+    wb = ws._parent
+    side = side if side else Side(border_style='thin', color='000000')
+    for cell in ws._cells.values():
+        cell.border = Border(top=side, bottom=side, left=side, right=side)
+
 
 #check error id 23-05-2023
 def has_only_en(name):
@@ -2849,10 +2860,11 @@ def searchDataDistributor(request):
 def getRateDistributor(request):
     if 'id_distributor' in request.GET:
         id = request.GET.get('id_distributor')
+        company_code = request.GET.get('company_code')
 
-        rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = id, counsel__isnull = False).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
-        num_grade_all = RateDistributor.objects.filter(distributor = id).count()
-        ratings = RateDistributor.objects.filter(distributor = id).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
+        rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = id, counsel__isnull = False, po__branch_company__code = company_code).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
+        num_grade_all = RateDistributor.objects.filter(distributor = id, po__branch_company__code = company_code).count()
+        ratings = RateDistributor.objects.filter(distributor = id, po__branch_company__code = company_code).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
     data = {
         'rate_counsel':list(rate_counsel),
@@ -3285,9 +3297,9 @@ def createPOFromComparisonPrice(request, cp_id):
         approver_user = bc.approver_user
 
     #ประเมินร้านค้า
-    rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = bc.select_bidder, counsel__isnull = False).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
-    num_grade_all = RateDistributor.objects.filter(distributor = bc.select_bidder).count()
-    ratings = RateDistributor.objects.filter(distributor = bc.select_bidder).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
+    rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = bc.select_bidder, counsel__isnull = False, po__branch_company__code = company).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
+    num_grade_all = RateDistributor.objects.filter(distributor = bc.select_bidder, po__branch_company__code = company).count()
+    ratings = RateDistributor.objects.filter(distributor = bc.select_bidder, po__branch_company__code = company).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
     #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
     form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : approver_user})
@@ -4244,6 +4256,63 @@ def viewPOItemReport(request):
     }
     return render(request, "report/viewPOItem.html", context)
 
+def viewRateDistributorReport(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+    #data = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False)
+    rd = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False).values('distributor__id')
+    data = Distributor.objects.filter(id__in = rd).values('id', 'name', 'address')
+
+    #กรองข้อมูล
+    #myFilter = RateDistributorFilter(request.GET, queryset = data)
+    myFilter = DistributorFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'ds':dataPage,
+        'filter':myFilter,
+        'rp_rd_page': "tab-active",
+        'rp_rd_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "report/viewRD.html", context)
+
+def showRateDistributor(request, pk):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+    distributor = Distributor.objects.get(id = pk)
+    
+    #ประเมินร้านค้า
+    rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor__id = pk, counsel__isnull = False, po__branch_company__code__in = company_in).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
+    num_grade_all = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).count()
+    ratings = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
+
+    rd_data = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in)
+    
+    paginator = Paginator(rd_data, 10)
+    page_number = request.GET.get('page')
+    po_rd = paginator.get_page(page_number)
+
+    context = {
+        'rp_rd_page': "tab-active",
+        'rp_rd_show': "show",
+        'rate_counsel':rate_counsel,
+        'num_grade_all':num_grade_all,
+        'ratings':ratings,
+        'distributor':distributor,
+        'po_rd':po_rd,
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
+    }
+    return render(request, "rateDistributor/showRateDistributor.html", context)
+
 def exportExcelPO(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -4716,6 +4785,126 @@ def searchLastPoItem(request):
         'instance': strName,
     }
     return JsonResponse(data)
+
+def get_grade(average_total_rate):
+    if 90 <= average_total_rate <= 100:
+        return 'A'
+    elif 80 <= average_total_rate < 90:
+        return 'B'
+    elif 70 <= average_total_rate < 80:
+        return 'C'
+    elif 60 <= average_total_rate < 70:
+        return 'D'
+    elif 60 < average_total_rate :
+        return 'F'
+    else:
+        return '-'
+
+def exportToExcelRateDistributor(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    company_name = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).values_list('address__name_th', flat=True)[:1] or None
+
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="rate_distributor_report_"'+active+'".xlsx"'
+
+    wb = Workbook()
+    ws = wb.active
+
+    rd = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False).values('distributor__id')
+    distributors = Distributor.objects.filter(id__in = rd)
+
+    title = [company_name[0] if company_name else 'บริษัททั้งหมด', '', '', 'บัญชีรายชื่อผู้ขายที่ผ่านการอนุมัติแล้ว Approved Provider List : APL']
+    ws.append(title)
+    ws.row_dimensions[1].height = 40
+    
+    header = ['ลำดับ', 'รหัส Provide','รายชื่อผู้ขาย/ผู้รับจ้าง (Provide)', 'ที่อยู่','เบอร์โทร']
+    six_month_periods = get_six_month_periods()
+
+    for period_start, period_end in six_month_periods:
+        header.append(f'ครั้งที่ { "1" if period_start.strftime("%m") == "01" else "2" } ปี {period_start.strftime("%Y")}')
+    
+    ws.append(header)
+    ws.row_dimensions[2].height = 40
+
+    column_num = 0
+
+    for index, distributor_data in enumerate(distributors):
+        distributor_id = distributor_data.id
+        distributor = Distributor.objects.get(pk=distributor_id)
+        row = [index+1]
+        row.append(distributor.id)
+        row.append(distributor.name)
+        row.append(distributor.address)
+        row.append(distributor.tel)
+
+        for period_start, period_end in six_month_periods:
+            avg_total_rate = RateDistributor.objects.filter(
+                distributor=distributor,
+                organizer_update__range=[period_start, period_end],
+                po__branch_company__code__in = company_in,
+            ).aggregate(Avg('total_rate'))['total_rate__avg'] or 0
+            grade = get_grade(avg_total_rate)
+            row.append(grade)
+
+        ws.append(row)
+        ws.row_dimensions[index+3].height = 30
+        column_num += 1
+
+    try:
+        # Set the column widths
+        for column_cells in ws.columns:
+            max_length = 0
+            column = column_cells[2].column_letter
+            for cell in column_cells:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = (max_length + 2) 
+            ws.column_dimensions[column].width = adjusted_width
+    
+        # Center-align cell content and get cell index
+        for row_index, row in enumerate(ws.iter_rows(), 1):
+            for cell_index, cell in enumerate(row, 1):
+                if row_index == 1:
+                    cell.alignment = Alignment(horizontal='center')
+
+                if cell_index > 5:
+                    cell.alignment = Alignment(horizontal='center')
+
+        side = Side(border_style='thin', color='000000')
+        set_border(ws, side)
+
+        ws.merge_cells(start_row=1, start_column = 1, end_row=1, end_column=3)
+        ws.merge_cells(start_row=1, start_column = 4, end_row=1, end_column= column_num + 4)
+    except:
+        pass 
+
+    wb.save(response)
+    return response
+
+def get_six_month_periods():
+    start_date = date(2023, 1, 1)
+    end_date = datetime.date.today()
+
+    periods = []
+    while start_date < end_date:
+        period_end = getLastDayInSixMonth(start_date)
+        periods.append((start_date, period_end))
+        start_date = period_end + timedelta(days=1)
+
+    return periods
+
+def getLastDayInSixMonth(start_date):
+    try:
+        period_end = start_date.replace(month=start_date.month + 6) - timedelta(days=1)
+    except ValueError:
+        period_end = datetime.date(start_date.year, 12, 31)
+    
+    return  period_end
 
 def setSessionCompany(request):
     name = request.GET.get('title', None)

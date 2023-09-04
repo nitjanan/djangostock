@@ -153,6 +153,11 @@ urlpatterns = [
     path('report/purchaseOrder/',views.viewPOReport,name="viewPOReport"),
     path('report/purchaseOrder/export/excel', views.exportExcelPO, name='exportExcelPO'),
     path('report/purchaseOrder/item',views.viewPOItemReport,name="viewPOItemReport"),
+    path('report/RateDistributor/',views.viewRateDistributorReport,name="viewRateDistributorReport"),
+
+    path('rateDistributor/show/<str:pk>',views.showRateDistributor,name="showRateDistributor"),
+    path('rateDistributor/export/excel',views.exportToExcelRateDistributor,name="exportToExcelRateDistributor"),
+
     path('report/purchaseOrderItem/export/excel/by/value', views.exportExcelSummaryByProductValue, name='exportExcelSummaryByProductValue'),
     path('report/purchaseOrderItem/export/excel/by/frequently', views.exportExcelSummaryByProductFrequently, name='exportExcelSummaryByProductFrequently'),
 

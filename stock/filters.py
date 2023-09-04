@@ -158,3 +158,38 @@ ReceiveFilter.base_filters['start_created'].label = 'วันที่รับ
 ReceiveFilter.base_filters['end_created'].label = 'ถึง'
 ReceiveFilter.base_filters['po__distributor'].label = 'ผู้จำหน่าย'
 ReceiveFilter.base_filters['po__credit'].label = 'เครดิต'
+
+class RateDistributorFilter(django_filters.FilterSet):
+    start_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
+    end_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
+    distributor_id_from  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='gte')
+    distributor_id_to  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='lte')
+    distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='icontains')
+    organizer_user = django_filters.ModelChoiceFilter(field_name="organizer_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
+
+    class Meta:
+        model = RateDistributor
+        fields = ('po__created', 'distributor_id_from','distributor__name','organizer_user',)
+
+RateDistributorFilter.base_filters['start_created'].label = 'วันที่ประเมิน'
+RateDistributorFilter.base_filters['end_created'].label = 'ถึง'
+RateDistributorFilter.base_filters['distributor_id_from'].label = 'รหัสผู้จำหน่าย'
+RateDistributorFilter.base_filters['distributor_id_to'].label = 'ถึง'
+RateDistributorFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
+RateDistributorFilter.base_filters['organizer_user'].label = 'ผู้ประเมิน'
+
+
+class DistributorFilter(django_filters.FilterSet):
+    distributor_id_from  = django_filters.CharFilter(field_name="id", lookup_expr='gte')
+    distributor_id_to  = django_filters.CharFilter(field_name="id", lookup_expr='lte')
+    distributor  = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
+
+    class Meta:
+        model = Distributor
+        fields = ('distributor_id_from', 'distributor_id_to','distributor',)
+
+DistributorFilter.base_filters['distributor_id_from'].label = 'รหัสผู้จำหน่าย'
+DistributorFilter.base_filters['distributor_id_to'].label = 'ถึง'
+DistributorFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
+
+
