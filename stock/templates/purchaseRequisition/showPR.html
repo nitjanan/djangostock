@@ -64,6 +64,11 @@ u.dotted {
         {% if isReApprove %}
         <div class="col d-print-none">
               <div class="pdf">
+                {% if form.memorandum_pdf.errors %}
+                  <div class="alert alert-warning" role="alert">
+                      {{ form.memorandum_pdf.errors }}
+                  </div>
+                {% endif %}
                 เอกสารแนบ {{form.memorandum_pdf | add_class:"form-control text-right"}}
               </div>
               <button type="submit" name="btnformR" class="btn btn-primary my-1">
