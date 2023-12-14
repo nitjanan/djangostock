@@ -90,6 +90,11 @@
                         <!-- a href="{% url 'editComparePricePO' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a -->
                         <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removeComparePricePO' cp.id %}" class="btn btn-danger btn-sm" style="width:90px"><i class="fas fa-trash-alt"></i> ลบ</a>
                     </td>
+                  {% elif request.user.is_superuser %}
+                    <td><a href="{%url 'createComparePricePOItem' cp.id False %}" class="btn btn-secondary btn-sm" style="width:90px"><i class="fas fa-edit"></i> แก้ไข</a>
+                      <!-- a href="{% url 'editComparePricePO' cp.id %}" class="btn btn-secondary"><i class="fas fa-edit"></i> แก้ไข</a -->
+                      <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removeComparePricePO' cp.id %}" class="btn btn-danger btn-sm" style="width:90px"><i class="fas fa-trash-alt"></i> ลบ</a>
+                    </td>
                   {% else %}
                     <td>
                       <button type="button"
