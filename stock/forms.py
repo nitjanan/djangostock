@@ -209,11 +209,12 @@ PurchaseOrderItemModelFormset = modelformset_factory(
     }
 )
 
+# 16-01-2024 เปลี่ยน extra=1 เป็น extra=0
 PurchaseOrderItemInlineFormset = inlineformset_factory(
     PurchaseOrder,
     PurchaseOrderItem,
     fields=('id','item','quantity','unit_price','price','unit','description'),
-    extra=1,
+    extra=0,
     widgets={
         'item': forms.HiddenInput(attrs={'class': 'form-control item'}),#dataList
         'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity'}),
@@ -352,6 +353,7 @@ CPitemFormset = modelformset_factory(
     extra=1
 )
 
+# 16-01-2024 เปลี่ยน extra=1 เป็น extra=0
 CPitemInlineFormset = inlineformset_factory(
     ComparisonPriceDistributor,
     ComparisonPriceItem,
@@ -365,7 +367,7 @@ CPitemInlineFormset = inlineformset_factory(
     labels = {
         'item': _('สินค้า'),
     },
-    extra=1
+    extra=0
     , can_delete=True
 )
 

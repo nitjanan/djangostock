@@ -88,7 +88,7 @@
                             </datalist>
                             {{form.description | add_class:"form-control"}}
                             {{form.quantity | add_class:"form-control quantity"}}
-                            {{form.unit | add_class:"form-control"}}
+                            {{form.unit | add_class:"form-control"|attr:"required:true"}}
                             {{form.brand | add_class:"form-control"}}
                             {{form.unit_price | add_class:"form-control unit-price"}}
                             {{form.price | add_class:"form-control text-right price"}}
