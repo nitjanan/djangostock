@@ -4554,7 +4554,7 @@ def exportExcelPO(request):
     else:
         my_q &=Q(branch_company__code__in = company_in)
 
-    queryset = PurchaseOrder.objects.filter(my_q).order_by('amount')
+    queryset = PurchaseOrder.objects.filter(my_q).order_by('amount', 'id')
     if not queryset.exists():
         return HttpResponse("No data to export.")
 
