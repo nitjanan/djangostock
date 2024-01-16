@@ -4621,9 +4621,10 @@ def exportExcelPO(request):
     result = pd.concat(frames)
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=PO_Report_('+ active +').xlsx'
+    response['Content-Disposition'] = f'attachment; filename=PO_Report_({active}).xlsx'
 
-    result.to_excel(response, index=False, engine='openpyxl')
+    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+        result.to_excel(writer, index=False)
 
     return response
 
