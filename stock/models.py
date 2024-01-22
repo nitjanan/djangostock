@@ -549,7 +549,7 @@ class PurchaseRequisition(models.Model):
     )
     approver_update = models.DateField(blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
-    note = models.CharField(max_length=255, blank=True)
+    note = models.TextField(blank=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
