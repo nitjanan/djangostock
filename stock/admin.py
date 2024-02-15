@@ -72,6 +72,7 @@ class BaseUrgencyAdmin(ImportExportModelAdmin):
 
 class PositionAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
@@ -79,6 +80,7 @@ class PositionBasePermissionAdmin(ImportExportModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
+    autocomplete_fields = ['position',]
     list_display = ['position']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
@@ -160,6 +162,7 @@ class BaseSparesTypeAdmin(ImportExportModelAdmin):
 
 class BaseDepartmentAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
 
@@ -172,6 +175,8 @@ class UserProfileAdmin(ImportExportModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
+    autocomplete_fields = ['user','position','department']
+
     list_display = ['user','position','department'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['position','department']
@@ -218,6 +223,7 @@ class RequisitionAdmin(ImportExportModelAdmin):
     search_fields = ['ref_no', 'pr_ref_no', 'name__first_name','supplies_approve_user_name__first_name', 'organizer__first_name']
 
 class RequisitionItemAdmin(RelatedFieldAdmin):
+    autocomplete_fields = ['product']
     list_display = ('requisit__ref_no','product_name','product__id','product')
     search_fields = ('requisit__ref_no','product_name','product__id','product__name')
 

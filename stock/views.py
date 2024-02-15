@@ -1689,13 +1689,18 @@ def createCMorPO(request, pr_id):
             ri.quantity_used = sum_po_cp
             ri.save()
 
+            try:
+               b_unit =  BaseUnit.objects.filter(name = ri.unit).first()
+            except BaseUnit.DoesNotExist:
+               b_unit = ri.product.unit
+
             #สร้าง ComparisonPriceItem ใหม่
             item = ComparisonPriceItem.objects.create(
                 item_id = i,
                 bidder_id = cpd.id,
                 cp = cp.id,
                 quantity = remain,
-                unit = ri.product.unit
+                unit = b_unit
             )
             item.save()
 
@@ -1722,13 +1727,18 @@ def createCMorPO(request, pr_id):
             #save จำนวนสินค้าที่ใช้ไปแล้ว
             ri.quantity_used = sum_po_cp
             ri.save()
+
+            try:
+               b_unit =  BaseUnit.objects.filter(name = ri.unit).first()
+            except BaseUnit.DoesNotExist:
+               b_unit = ri.product.unit 
             
             #สร้าง PurchaseOrderItem ใหม่
             item = PurchaseOrderItem.objects.create(
                 item_id = i,
                 quantity = remain,
                 po_id = po.id,
-                unit = ri.product.unit
+                unit = b_unit
             )
             item.save()
         return HttpResponseRedirect(reverse('editPOFromPR', args=(po.id,)))
@@ -1739,7 +1749,6 @@ def createCMorPO(request, pr_id):
         'requisition':requisition,
         'quantityTotal': quantityTotal,
         'baseUrgency': baseUrgency,
-        'baseUnit': baseUnit,
         'baseProduct':baseProduct,        
         'pr': pr,
         'bc': bc,
@@ -2346,7 +2355,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
-    itemList = PurchaseOrderItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(po__id = po_id)
+    itemList = PurchaseOrderItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id', 'unit__id').filter(po__id = po_id)
     
     company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
@@ -2889,8 +2898,8 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
-    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'quantity', 'item__product__unit__id').filter(cp = cp_id)
-    
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'quantity', 'item__product__unit__id', 'unit__id').filter(cp = cp_id)
+
     #company = BaseBranchCompany.objects.get(code = request.session['company_code'])
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
@@ -3364,7 +3373,7 @@ def createPOItemFromComparisonPrice(request, po_id):
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
-    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp.id)
+    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id', 'unit__id').filter(cp = cp.id)
 
     cp_item = ComparisonPriceItem.objects.filter(cp = po_data.cp.id, bidder__distributor = po_data.cp.select_bidder)
     cpd_price = ComparisonPriceDistributor.objects.get(cp = po_data.cp.id, distributor = po_data.cp.select_bidder)
@@ -4560,9 +4569,11 @@ def exportExcelPO(request):
 
     data1 = {'เลขที่': queryset.values_list('ref_no', flat=True),
             'วันที่': queryset.values_list('created', flat=True),
+            'รหัสบริษัท': queryset.values_list('branch_company__code', flat=True),
             'บริษัท': queryset.values_list('branch_company__name', flat=True),
             'รหัสผู้จำหน่าย': queryset.values_list('distributor', flat=True),
             'ผู้จำหน่าย': queryset.values_list('distributor__name', flat=True),
+            'แผนก': '',
             'วันที่กำหนดรับของ': queryset.values_list('due_receive_update', flat=True),
             'รับของวันที่': queryset.values_list('receive_update', flat=True),
             'เครดิต': queryset.values_list('credit__name', flat=True),
@@ -4581,6 +4592,7 @@ def exportExcelPO(request):
                         )).values_list('save_price', flat=True),
             'เลขที่ใบขอซื้อ': [ PurchaseOrderItem.objects.filter(po = id).values_list('item__requisit__pr_ref_no', flat=True).first() for id in queryset.values_list('id', flat=True)],
             'วันที่อนุมัติใบขอซื้อ' : [ PurchaseRequisition.objects.filter(requisition = PurchaseOrderItem.objects.filter(po = id).values_list('item__requisit', flat=True).first()).values_list('approver_update', flat=True).first() for id in queryset.values_list('id', flat=True)],
+            'รหัสสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__id', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'รายการสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__name', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'ใช้ในระบบงาน' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__machine', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'วันที่ต้องการ' :   [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__desired_date', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
@@ -4872,7 +4884,7 @@ def exportExcelSummaryByProductFrequently(request):
 
 #ค้นหารายการสินค้าที่สั่งซื้อ 5 รายการล่าสุด
 def searchLastPoItem(request):
-    strName = "<table class='table table-striped'><thead class = 'thead-dark'><tr><th>เลขที่</th><th>วันที่</th><th>ราคาต่อหน่วย</th><th>เกรด/ยี่ห้อ</th><th>จากร้าน</th><th>ซื้อโดย</th></thead></tr>"
+    strName = "<table class='table table-striped'><thead class = 'thead-dark'><tr><th>เลขที่</th><th>วันที่</th><th>ราคาต่อหน่วย</th><th>หน่วย</th><th>เกรด/ยี่ห้อ</th><th>จากร้าน</th><th>ซื้อโดย</th></thead></tr>"
     item = request.GET.getlist('itemList[]', None)
     
     product = RequisitionItem.objects.filter(id__in = item).values('product__id')
@@ -4882,7 +4894,7 @@ def searchLastPoItem(request):
         try:
             po_item = PurchaseOrderItem.objects.filter(item__product__id = pd['product__id'], unit_price__isnull = False , po__approver_status = 2).order_by('-po__created')[:5]
 
-            strName = ''.join([strName, "<tr class='bg-info text-white'><td colspan='6'><b>" + po_item[0].item.product.id + " : "+ po_item[0].item.product.name +"</b></td></tr>"])
+            strName = ''.join([strName, "<tr class='bg-info text-white'><td colspan='7'><b>" + po_item[0].item.product.id + " : "+ po_item[0].item.product.name +"</b></td></tr>"])
             index = 1
             if po_item:
                 for i in po_item:
@@ -4893,8 +4905,27 @@ def searchLastPoItem(request):
                     else:
                         brand = ''   
 
+                    ''' กดเข้าไปดูแต่ละ po ได้
+                    show_po_url = reverse('showPO', args=[i.po.id, 4])
+
+                    href_string = f'<a href="{show_po_url}">{i.po.created.strftime("%d/%m/%Y")}</a>'
+
                     strName = ''.join([strName, "<tr>"])
-                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ i.po.created.strftime("%d/%m/%Y") + "</td><td>"+ f'{i.unit_price:,}'  + "</td><td>" + str(brand) + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"])
+                    strName = ''.join([
+                        strName,
+                        "<td>" + str(index) + ")</td>",
+                        "<td>" + href_string + "</td>",
+                        "<td>" + str(i.item.product_name) + "</td>",
+                        "<td>" + f'{i.unit_price:,}' + "</td>",
+                        "<td>" + str(i.unit.name) + "</td>",
+                        "<td>" + str(brand) + "</td>",
+                        "<td>" + str(i.po.distributor.name) + "</td>",
+                        "<td>" + str(i.po.branch_company.name) + "</b></td>"
+                    ])
+                    '''
+
+                    strName = ''.join([strName, "<tr>"])
+                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ i.po.created.strftime("%d/%m/%Y") + "</td><td>"+ f'{i.unit_price:,}' + "</td><td>" + str(i.unit.name) + "</td><td>" + str(brand) + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"])
                     strName = ''.join([strName, "</tr>"])
                     index += 1
             count += 1
