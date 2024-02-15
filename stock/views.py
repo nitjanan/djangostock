@@ -4930,7 +4930,7 @@ def searchLastPoItem(request):
                     index += 1
             count += 1
         except IndexError or PurchaseOrderItem.DoesNotExist:
-            strName = ''.join([strName, "<tr><td class='alert alert-warning' colspan='6'><b>ไม่มีรายการ "+pd['product__id']+" ที่ซื้อล่าสุด</b></td></tr>"])
+            strName = ''.join([strName, "<tr><td class='alert alert-warning' colspan='7'><b>ไม่มีรายการ "+pd['product__id']+" ที่ซื้อล่าสุด</b></td></tr>"])
 
     strName = ''.join([strName, "</table>"])
 
