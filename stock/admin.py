@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -180,7 +180,7 @@ class UserProfileAdmin(ImportExportModelAdmin):
     list_display = ['user','position','department'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['position','department']
-    search_fields = ['user__first_name', 'user__last_name']
+    search_fields = ['user__first_name', 'user__last_name', 'position__name']
     readonly_fields = ('signature_preview',)
 
     def signature_preview(self, obj):
@@ -223,7 +223,7 @@ class RequisitionAdmin(ImportExportModelAdmin):
     search_fields = ['ref_no', 'pr_ref_no', 'name__first_name','supplies_approve_user_name__first_name', 'organizer__first_name']
 
 class RequisitionItemAdmin(RelatedFieldAdmin):
-    autocomplete_fields = ['product']
+    autocomplete_fields = ['product',]
     list_display = ('requisit__ref_no','product_name','product__id','product')
     search_fields = ('requisit__ref_no','product_name','product__id','product__name')
 
@@ -232,6 +232,8 @@ class PurchaseRequisitionAdmin(RelatedFieldAdmin):
     search_fields = ('ref_no', 'requisition__ref_no','purchase_user__first_name','approver_user__first_name','stockman_user__first_name', 'organizer__first_name')
 
 class ComparisonPriceAdmin(RelatedFieldAdmin):
+    autocomplete_fields = ['select_bidder', 'organizer', 'examiner_user', 'approver_user', 'special_approver_user']
+
     list_display = ('ref_no','po_ref_no','select_bidder','organizer')
     search_fields = ('ref_no','po_ref_no','select_bidder__name','organizer__first_name')
 
@@ -244,6 +246,8 @@ class ComparisonPriceItemAdmin(RelatedFieldAdmin):
     search_fields = ('bidder__cp__ref_no','bidder__distributor__name','item__product__id', 'item__product__name')
 
 class PurchaseOrderAdmin(RelatedFieldAdmin):
+    autocomplete_fields = ['distributor', 'stockman_user', 'approver_user']
+
     list_display = ('ref_no', 'cp__ref_no','distributor', 'stockman_user')
     search_fields = ('ref_no', 'cp__ref_no','distributor__name', 'stockman_user__first_name')
 
@@ -258,6 +262,11 @@ class DocumentAdmin(admin.ModelAdmin):
 class BaseGradeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+class BasePOTypeAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+    list_editable = ['name']
     
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
@@ -299,3 +308,4 @@ admin.site.register(BranchCompanyBaseAdress, BranchCompanyBaseAdressAdmin)
 admin.site.register(BaseIsoCode, BaseIsoCodeAdmin)
 admin.site.register(Document, DocumentAdmin)
 admin.site.register(BaseGrade, BaseGradeAdmin)
+admin.site.register(BasePOType, BasePOTypeAdmin)

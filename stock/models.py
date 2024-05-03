@@ -16,6 +16,11 @@ from django.template.defaultfilters import truncatechars
 import pytz
 import os
 from stock.formatChecker import ContentTypeRestrictedFileField
+import qrcode
+from io import BytesIO
+from django.core.files import File
+from PIL import Image, ImageDraw, ImageOps
+import segno
 
 def requisition_ref_number(branch_company):
     #tz = pytz.timezone('Asia/Bangkok')
@@ -608,6 +613,19 @@ class BaseSparesType(models.Model):
     
     def __str__(self):
         return str(self.name)
+    
+class BasePOType(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทใบสั่งซื้อ")#เก็บไอดีประเภทใบสั่งซื้อ
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทใบสั่งซื้อ")
+
+    class Meta:
+        db_table = 'BasePOType'
+        ordering=('id',)
+        verbose_name = 'ประเภทใบสั่งซื้อ'
+        verbose_name_plural = 'ข้อมูลประเภทใบสั่งซื้อ'
+    
+    def __str__(self):
+        return str(self.name)
 
 
 class PositionBasePermission(models.Model):
@@ -753,7 +771,7 @@ class BaseDelivery(models.Model):
         return str(self.name)
 
 class BaseCMType(models.Model):
-    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทใบเปรียบเทียบเทียบราคา")#เก็บไอดีชนิดภาษี
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทใบเปรียบเทียบเทียบราคา")#เก็บไอดีใบเปรียบเทียบเทียบราคา
     name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อประเภทใบเปรียบเทียบเทียบราคา")
     codename = models.CharField(max_length=255, verbose_name="โค้ด", blank=True, null=True)
 
@@ -887,6 +905,8 @@ class PurchaseOrder(models.Model):
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
     is_cancel = models.BooleanField(default=False)
     due_receive_update = models.DateField(blank=True, null=True) #วันที่กำหนดรับของ
+    qr_code = models.ImageField(null=True, blank=True, upload_to = "qr_codes/",verbose_name="qr code")
+    po_type = models.ForeignKey(BasePOType, on_delete=models.CASCADE, blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -894,8 +914,35 @@ class PurchaseOrder(models.Model):
             self.address_company = company.address
         if self.ref_no is None:
             self.ref_no = purchaseOrder_ref_number(self.branch_company)
-            
+
+        if not self.qr_code:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=2,  # Set border size to 2
+            )
+            qr.add_data(self.ref_no)
+            qr.make(fit=True)
+            qrcode_img = qr.make_image(fill_color="black", back_color="white")
+
+            # Crop the QR code image to remove the border
+            image_data = qrcode_img.get_image()
+            image_data = image_data.crop((2, 2, image_data.size[0] - 2, image_data.size[1] - 2))
+
+            # Create a new image and paste the cropped QR code onto it
+            canvas = Image.new('RGB', (image_data.size[0], image_data.size[1]), 'white')
+            canvas.paste(image_data)
+
+            # Save the QR code image
+            fname = f'qr_code-{self.ref_no}.png'
+            buffer = BytesIO()
+            canvas.save(buffer, 'PNG')
+            self.qr_code.save(fname, File(buffer), save=False)
+            canvas.close()
+
         super(PurchaseOrder, self).save(*args, **kwargs)
+
 
     class Meta:
         db_table = 'PurchaseOrder'

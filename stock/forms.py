@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -109,12 +109,13 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf')
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf', 'po_type',)
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
+        'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
             'ref_no': _('รหัสใบสั่งซื้อ'),
@@ -127,6 +128,7 @@ class PurchaseOrderForm(forms.ModelForm):
             'quotation_pdf': _('ใบเสนอราคา'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
+            'po_type': _('ประเภทใบสั่งซื้อ'),
         }
 
 class PurchaseOrderAddressCompanyForm(forms.ModelForm):
@@ -159,11 +161,12 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update')
+       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update','po_type')
        widgets = {
         'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
+        'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
             'shipping': _('ขนส่งโดย'),
@@ -171,6 +174,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
+            'po_type': _('ประเภทใบสั่งซื้อ'),
         }
 
 
@@ -474,6 +478,8 @@ class ProductAdminForm(forms.ModelForm):
 
         if not hoen: #เช็คตัวอักษรภาษาไทยในรหัส
             raise forms.ValidationError(u"รหัสสินค้าผิด ("+ str(id) +") มีตัวอักษรภาษาไทย ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        if not id.isupper() and not id.replace('-', '').isdigit():  # Check if id contains only uppercase letters
+            raise forms.ValidationError(u"รหัสสินค้าผิด ("+ str(id) +") ต้องเป็นตัวพิมพ์ใหญ่เท่านั้น ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
         if id.find('O-') != -1 : #เช็ค O- ในรหัส
             raise forms.ValidationError(u"รหัสสินค้าผิด XX-XO-001 ต้องเป็น XX-X0-001 (ขีดเอ็กซ์โอ ต้องเป็น ขีดเอ็กซ์ศูนย์) ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
         return cleaned_data

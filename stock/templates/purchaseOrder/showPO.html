@@ -82,6 +82,24 @@
                     </div>
                   </div>
           </form>
+          <div class="col-4 float-right" style="display: flex; align-items: center;">
+            <!-- QR Code -->
+            {% if po.qr_code %}
+                <img src="{{ po.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
+            {% endif %}
+            <ul class="list-unstyled my-3 text-left">
+                {% for bp in base_po_type %}
+                    <li>
+                        {% if bp == po.po_type %}
+                            <i class="fas fa-square"></i>
+                        {% else %}
+                            <i class="far fa-square"></i>
+                        {% endif %}
+                        {{ bp.name }}
+                    </li>
+                {% endfor %}
+            </ul>
+          </div>
         </div>
         <hr>
         <div class="row">

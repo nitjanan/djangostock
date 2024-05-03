@@ -16,7 +16,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -2217,6 +2217,7 @@ def removePO(request, po_id):
 def showPO(request, po_id, mode):
     active = request.session['company_code']
 
+    base_po_type = BasePOType.objects.all()
     po = PurchaseOrder.objects.get(id = po_id)
     bc = BaseBranchCompany.objects.get(code = po.branch_company)
 
@@ -2282,6 +2283,7 @@ def showPO(request, po_id, mode):
             'poa_form':poa_form,
             'cancel_form':cancel_form,
             'bc':bc,
+            'base_po_type':base_po_type,
             page: "tab-active",
             show: "show",
             active :"active show",
@@ -2342,6 +2344,8 @@ def createPOItem(request, po_id):
 def editPOItem(request, po_id, isFromPR, isReApprove):
     active = request.session['company_code']
     bc = BaseBranchCompany.objects.get(code = active)
+
+    base_po_type = BasePOType.objects.all()
 
     template_name = 'purchaseOrderItem/editPOItem.html'
     heading_message = 'Model Formset Demo'
@@ -2485,6 +2489,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'isEditPO':isEditPO,
         'isEditApproverUserPO':isEditApproverUserPO,
         'bc':bc,
+        'base_po_type':base_po_type,
         'heading': heading_message,
         active :"active show",
 		"disableTab":"disableTab",
@@ -2526,6 +2531,7 @@ def editPOApprove(request, po_id, isFromHome):
     except:
         company_in = BaseBranchCompany.objects.filter(code = active).values('code')
 
+    base_po_type = BasePOType.objects.all()
     po = PurchaseOrder.objects.get(id = po_id)
     bc = BaseBranchCompany.objects.get(code = po.branch_company)
 
@@ -2606,6 +2612,7 @@ def editPOApprove(request, po_id, isFromHome):
                 'isFromHome':isFromHome,
                 'new_pr':new_pr,
                 'bc':bc,
+                'base_po_type':base_po_type,
                 'ap_po_page': "tab-active",
                 'ap_po_show': "show",
                 active :"active show",
@@ -3364,6 +3371,8 @@ def createPOItemFromComparisonPrice(request, po_id):
     active = request.session['company_code']
     bc = BaseBranchCompany.objects.get(code = active)
 
+    base_po_type = BasePOType.objects.all()
+
     template_name = 'purchaseOrderItem/createPOItemFromComparisonPrice.html'
     heading_message = 'Model Formset Demo'
     po_data = PurchaseOrder.objects.get(id=po_id)
@@ -3426,6 +3435,7 @@ def createPOItemFromComparisonPrice(request, po_id):
         'new_pr':new_pr,
         'heading': heading_message,
         'bc':bc,
+        'base_po_type':base_po_type,
         active :"active show",
 		"disableTab":"disableTab",
 		"colorNav":"disableNav"
