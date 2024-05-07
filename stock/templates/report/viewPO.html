@@ -44,8 +44,11 @@
       </div>
     </form>
     <div class="row">
-        <div class="col">
+        <div class="col-2">
           <a class="btn btn-success" href="{% url 'exportExcelPO' %}?{{request.GET.urlencode}}">รายงานใบสั่งสินค้า <i class="fas fa-file-excel"></i></a>
+        </div>
+        <div class="col-2">
+          <a class="btn"style="background-color:#5CB881;color:white;" href="{% url 'exportExcelPOToExpress' %}?{{request.GET.urlencode}}">PO to Express <i class="far fa-file-excel"></i></a>
         </div>
     </div>
   </div>

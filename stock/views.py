@@ -4537,6 +4537,124 @@ def cal_days_between_nagative(day1, day2):
             strDate = str(days_between_nagative(str(day1), str(day2))) + " วัน"
     return strDate
 
+def exportExcelPOToExpress(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    stockman_user = request.GET.get('stockman_user') or None
+    ref_no = request.GET.get('ref_no') or None
+    distributor = request.GET.get('distributor') or None
+    amount_min = request.GET.get('amount_min') or None
+    amount_max = request.GET.get('amount_max') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    my_q = Q()
+    if stockman_user is not None:
+        my_q = Q(po__stockman_user = stockman_user)
+    if ref_no is not None:
+        my_q &= Q(po__ref_no__icontains = ref_no)
+    if distributor is not None:
+        my_q &= Q(po__distributor__name__startswith = distributor)
+    if start_created is not None:
+        my_q &= Q(po__created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(po__created__lte = end_created)
+    if amount_min is not None:
+        my_q &= Q(po__amount__gte = amount_min)
+    if amount_max is not None :
+        my_q &=Q(po__amount__lte = amount_max)
+
+    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
+
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(po__branch_company__code__in = company_in)
+
+    queryset = PurchaseOrderItem.objects.filter(my_q).order_by('po__id')
+    if not queryset.exists():
+        return HttpResponse("No data to export.")
+
+    data1 = {'เลขที่': queryset.values_list('po__ref_no', flat=True),
+            'วันที่': queryset.values_list('po__created', flat=True),
+            'รหัสบริษัท': queryset.values_list('po__branch_company__code', flat=True),
+            'บริษัท': queryset.values_list('po__branch_company__name', flat=True),
+            'รหัสผู้จำหน่าย': queryset.values_list('po__distributor', flat=True),
+            'ผู้จำหน่าย': queryset.values_list('po__distributor__name', flat=True),
+            'แผนก': '',
+            'วันที่กำหนดรับของ': queryset.values_list('po__due_receive_update', flat=True),
+            'รับของวันที่': queryset.values_list('po__receive_update', flat=True),
+            'เครดิต': queryset.values_list('po__credit__name', flat=True),
+            'V': queryset.values_list('po__vat_type__id', flat=True),
+            'ส่วนลดท้ายบิล': queryset.values_list('po__discount', flat=True),
+            'มูลค่าสินค้า': queryset.values_list('po__total_after_discount', flat=True),
+            'VAT.': queryset.values_list('po__vat', flat=True),
+            'รวมทั้งสิ้น': queryset.values_list('po__amount', flat=True),
+            'ผู้สั่งสินค้า': queryset.values_list('po__stockman_user__first_name', flat=True),
+            'ราคาส่วนต่างใบเปรียบเทียบ': queryset.values_list('po__cp__amount_diff', flat=True),
+            'ราคาที่ประหยัดได้': queryset.annotate(
+                    save_price=Case(
+                        When(po__vat_type_id = 1, then= F('po__total_price')- (F('po__total_after_discount') + F('po__vat'))),
+                        When(po__vat_type_id = 0, then= F('po__total_price')-F('po__total_after_discount')),
+                        When(po__vat_type_id = 2, then= F('po__total_price')-F('po__total_after_discount')),
+                        )).values_list('save_price', flat=True),        
+            'เลขที่ใบขอซื้อ': queryset.values_list('item__requisit__pr_ref_no', flat=True),
+            'วันที่อนุมัติใบขอซื้อ' : queryset.values_list('po__pr__approver_update', flat=True),
+            'รหัสสินค้า' : queryset.values_list('item__product__id', flat=True),
+            'รายการสินค้า' : queryset.values_list('item__product__name', flat=True),
+            'กลุ่มสินค้า' : queryset.values_list('item__product__category__name', flat=True),
+            'จำนวน' : queryset.values_list('quantity', flat=True),
+            'ราคาต่อหน่วย' : queryset.values_list('unit_price', flat=True),
+            'ส่วนลด' : '',
+            'ราคารวม' : queryset.values_list('price', flat=True),
+            'ใช้ในระบบงาน' : queryset.values_list('item__machine', flat=True),
+            'วันที่ต้องการ' : queryset.values_list('item__desired_date', flat=True),
+            'ระดับความเร่งด่วน' : queryset.values_list('item__urgency', flat=True),
+            'ระยะเวลาในการซื้อ' :  [ cal_days_between_nagative(qs[1], qs[0]) for qs in queryset.values_list('item__desired_date', 'po__receive_update')],
+            'ความล่าช้าในการรับของ' :  [ cal_days_between_nagative(qs['po__receive_update'], qs['po__due_receive_update']) for qs in queryset.values('po__due_receive_update', 'po__receive_update')],
+            }
+
+    df1 = pd.DataFrame(data1)
+
+    data2 = {'เลขที่': 'รวมทั้งสิ้น',
+            'วันที่': [queryset.values('po__id').distinct().count()],
+            'บริษัท': 'ใบ',
+            'รหัสผู้จำหน่าย': '',
+            'ผู้จำหน่าย': '',
+            'วันที่กำหนดรับของ': '',
+            'รับของวันที่': '',
+            'เครดิต': '',
+            'V': '',
+            'ส่วนลด': '',
+            'มูลค่าสินค้า': [queryset.aggregate(s_t_f_d = Sum('po__total_after_discount'))['s_t_f_d']],
+            'VAT.': [queryset.aggregate(s_vat = Sum('po__vat'))['s_vat']],
+            'รวมทั้งสิ้น': [queryset.aggregate(s_amount = Sum('po__amount'))['s_amount']],
+            }
+
+    df2 = pd.DataFrame(data2, index=[0])
+
+    data3 = {"เลขที่": ['ระดับความเร่งด่วน', '', '', ''], "วันที่": ['1 = A', '2 = B', '3 = C', '4 = D'], "บริษัท": ['ภายใน 48 ชม.', '3-5 วัน', '7 วัน', '15 วัน']}
+    df3 = pd.DataFrame(data3, index=[0, 1, 2, 3])
+
+    data4 = {"เลขที่": ['ระยะเวลาในการซื้อ คือ วันที่ต้องการเทียบกับรับของวันที่', '', ''], "วันที่": ['น้อยกว่า 0', 'เท่ากับ 0', 'มากกว่า 0'], "บริษัท": ['รับของช้ากว่าวันที่ต้องการ', 'รับของตรงกับวันที่ต้องการ', 'รับของเร็วกว่าวันที่ต้องการ']}
+    df4 = pd.DataFrame(data4, index=[0, 1, 2])
+
+    data5 = {"เลขที่": ['ความล่าช้าในการรับของ คือ วันที่กำหนดรับของเทียบกับรับของวันที่', '', ''], "วันที่": ['น้อยกว่า 0', 'เท่ากับ 0', 'มากกว่า 0'], "บริษัท": ['รับของช้ากว่าวันที่กำหนดรับของ', 'รับของตรงกับวันที่กำหนดรับของ', 'รับของเร็วกว่าวันที่ต้องการ']}
+    df5 = pd.DataFrame(data5, index=[0, 1, 2])
+
+    frames = [df1, df2, df3, df4, df5]
+    result = pd.concat(frames)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xlsx'
+
+    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+        result.to_excel(writer, index=False)
+
+    return response
+
 def exportExcelPO(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -4583,7 +4701,6 @@ def exportExcelPO(request):
             'บริษัท': queryset.values_list('branch_company__name', flat=True),
             'รหัสผู้จำหน่าย': queryset.values_list('distributor', flat=True),
             'ผู้จำหน่าย': queryset.values_list('distributor__name', flat=True),
-            'แผนก': '',
             'วันที่กำหนดรับของ': queryset.values_list('due_receive_update', flat=True),
             'รับของวันที่': queryset.values_list('receive_update', flat=True),
             'เครดิต': queryset.values_list('credit__name', flat=True),
