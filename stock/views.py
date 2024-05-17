@@ -5092,7 +5092,19 @@ def exportToExcelRateDistributor(request):
     wb = Workbook()
     ws = wb.active
 
-    rd = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False).values('distributor__id')
+    distributor_id_from = request.GET.get('distributor_id_from') or None
+    distributor_id_to = request.GET.get('distributor_id_to') or None
+    distributor = request.GET.get('distributor') or None
+
+    my_q = Q()
+    if distributor_id_from is not None:
+        my_q &= Q(distributor__id__gte = distributor_id_from)
+    if distributor_id_to is not None:
+        my_q &= Q(distributor__id__lte = distributor_id_to)
+    if distributor is not None :
+        my_q &=Q(distributor__name__icontains = distributor)
+
+    rd = RateDistributor.objects.filter(my_q, po__branch_company__code__in = company_in, grade__isnull = False).values('distributor__id')
     distributors = Distributor.objects.filter(id__in = rd)
 
     title = [company_name[0] if company_name else 'บริษัททั้งหมด', '', '', 'บัญชีรายชื่อผู้ขายที่ผ่านการอนุมัติแล้ว Approved Provider List : APL']
