@@ -5108,7 +5108,7 @@ def exportToExcelRateDistributor(request):
     ws.append(header)
     ws.row_dimensions[2].height = 40
 
-    column_num = 0
+    column_num = len(six_month_periods)
 
     for index, distributor_data in enumerate(distributors):
         distributor_id = distributor_data.id
@@ -5130,7 +5130,6 @@ def exportToExcelRateDistributor(request):
 
         ws.append(row)
         ws.row_dimensions[index+3].height = 30
-        column_num += 1
 
     try:
         # Set the column widths
@@ -5159,7 +5158,7 @@ def exportToExcelRateDistributor(request):
         set_border(ws, side)
 
         ws.merge_cells(start_row=1, start_column = 1, end_row=1, end_column=3)
-        ws.merge_cells(start_row=1, start_column = 4, end_row=1, end_column= column_num + 4)
+        ws.merge_cells(start_row=1, start_column = 4, end_row=1, end_column= column_num + 5)
     except:
         pass 
 
