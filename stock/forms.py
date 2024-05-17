@@ -109,7 +109,7 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf',) #'po_type',
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf',) #'po_type', 17-05-2024 เอาออกก่อน
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
@@ -161,7 +161,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update',) #'po_type'
+       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update',) #'po_type', 17-05-2024 เอาออกก่อน
        widgets = {
         'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),

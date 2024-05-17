@@ -915,6 +915,7 @@ class PurchaseOrder(models.Model):
         if self.ref_no is None:
             self.ref_no = purchaseOrder_ref_number(self.branch_company)
 
+        ''' QR Code 17-05-2024 เอาออกก่อน
         if not self.qr_code:
             qr = qrcode.QRCode(
                 version=1,
@@ -940,7 +941,7 @@ class PurchaseOrder(models.Model):
             canvas.save(buffer, 'PNG')
             self.qr_code.save(fname, File(buffer), save=False)
             canvas.close()
-
+        '''
         super(PurchaseOrder, self).save(*args, **kwargs)
 
 
