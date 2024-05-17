@@ -109,13 +109,13 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf', 'po_type',)
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf',) #'po_type',
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
-        'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
+        #'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
             'ref_no': _('รหัสใบสั่งซื้อ'),
@@ -128,7 +128,7 @@ class PurchaseOrderForm(forms.ModelForm):
             'quotation_pdf': _('ใบเสนอราคา'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
-            'po_type': _('ประเภทใบสั่งซื้อ'),
+            #'po_type': _('ประเภทใบสั่งซื้อ'),
         }
 
 class PurchaseOrderAddressCompanyForm(forms.ModelForm):
@@ -161,12 +161,12 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update','po_type')
+       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update',) #'po_type'
        widgets = {
         'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
-        'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
+        #'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
             'shipping': _('ขนส่งโดย'),
@@ -174,7 +174,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
-            'po_type': _('ประเภทใบสั่งซื้อ'),
+            #'po_type': _('ประเภทใบสั่งซื้อ'),
         }
 
 

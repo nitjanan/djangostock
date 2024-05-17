@@ -4628,9 +4628,9 @@ def exportExcelPOToExpress(request):
             'เครดิต': '',
             'V': '',
             'ส่วนลด': '',
-            'มูลค่าสินค้า': [queryset.aggregate(s_t_f_d = Sum('po__total_after_discount'))['s_t_f_d']],
-            'VAT.': [queryset.aggregate(s_vat = Sum('po__vat'))['s_vat']],
-            'รวมทั้งสิ้น': [queryset.aggregate(s_amount = Sum('po__amount'))['s_amount']],
+            'มูลค่าสินค้า': [queryset.values('po__id').distinct().aggregate(s_t_f_d = Sum('po__total_after_discount'))['s_t_f_d']],
+            'VAT.': [queryset.values('po__id').distinct().aggregate(s_vat = Sum('po__vat'))['s_vat']],
+            'รวมทั้งสิ้น': [queryset.values('po__id').distinct().aggregate(s_amount = Sum('po__amount'))['s_amount']],
             }
 
     df2 = pd.DataFrame(data2, index=[0])

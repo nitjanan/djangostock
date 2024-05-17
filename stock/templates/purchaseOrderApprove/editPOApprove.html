@@ -37,8 +37,8 @@
                 {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}
               </description>
             </div>
-            <div class="col-4 float-right" style="display: flex; align-items: center;">
-              <!-- QR Code -->
+            <!-- QR Code -->
+            <!-- div class="col-4 float-right" style="display: flex; align-items: center;">
               {% if po.qr_code %}
                   <img src="{{ po.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
               {% endif %}
@@ -54,7 +54,7 @@
                       </li>
                   {% endfor %}
               </ul>
-            </div>
+            </div-->
         </div>
         <hr>
         <div class="row">
