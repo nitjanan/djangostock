@@ -48,7 +48,7 @@ class RequisitionForm(forms.ModelForm):
 
     class Meta:
         model = Requisition
-        fields = ('name','chief_approve_user_name','organizer','urgency', 'memorandum_pdf','branch_company') #สร้าง auto อ้างอิงจากฟิลด์ใน db
+        fields = ('name','chief_approve_user_name','organizer','urgency','branch_company', 'repair_type', 'car', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db
         widgets = {
         'urgency': forms.HiddenInput(),
         'name': forms.HiddenInput(),
@@ -60,6 +60,8 @@ class RequisitionForm(forms.ModelForm):
             'section': _('แผนก'),
             'urgency': _('ระดับความเร่งด่วน'),
             'memorandum_pdf': _('ใบบันทึกข้อความ'),
+            'repair_type': _('ประเภทการซ่อม'),
+            'car': _('ทะเบียนรถ'),
         }
 
 class RequisitionItemForm(forms.ModelForm):

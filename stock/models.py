@@ -168,6 +168,31 @@ def get_first_name(self):
     return self.first_name + " " + self.last_name
 User.add_to_class("__str__", get_first_name)
 
+class BaseRepairType(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทการซ่อม")#เก็บประเภทการซ่อม
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทการซ่อม")
+
+    class Meta:
+        db_table = 'BaseRepairType'
+        ordering=('id',)
+        verbose_name = 'ประเภทการซ่อม'
+        verbose_name_plural = 'ข้อมูลประเภทการซ่อม'
+    
+    def __str__(self):
+        return str(self.name)
+    
+class BaseCar(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อทะเบียนรถ")
+
+    class Meta:
+        db_table = 'BaseCar'
+        ordering=('id',)
+        verbose_name = 'ทะเบียนรถ'
+        verbose_name_plural = 'ข้อมูลทะเบียนรถ'
+    
+    def __str__(self):
+        return str(self.name)
+
 class BaseIsoCode(models.Model):
     r_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบขอเบิก")
     pr_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบขอซื้อ")
@@ -471,6 +496,8 @@ class Requisition(models.Model):
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    repair_type = models.ForeignKey(BaseRepairType, on_delete=models.CASCADE, blank=True, null=True)
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

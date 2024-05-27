@@ -1,5 +1,23 @@
 {% extends 'layouts.html' %}
 {% load crispy_forms_tags %}
+{% block css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+
+<style>
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-container .select2-selection--single {
+        height: 37px; /* Match Bootstrap's form-control height */
+        width: 55.5svw;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 37px; /* Match Bootstrap's form-control line-height */
+        width: 55.5svw;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 
@@ -54,6 +72,9 @@
 
 {% endblock%}
 {% block javascript %}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
  //ผู้ขอตั้งเบิก
  $("#rName").change(function() {
@@ -74,5 +95,11 @@
     //set value to form.item
     $("#id_chief_approve_user_name").val(id);
   });
+
+//select2 (dropdown & search)
+$(document).ready(function() {
+    $("#id_car").select2({});
+    $('#id_repair_type').select2({});
+});
 </script>
 {% endblock%}
