@@ -817,7 +817,7 @@ class ComparisonPrice(models.Model):
     select_bidder = models.ForeignKey(Distributor,on_delete=models.CASCADE, null=True) #ร้านที่เลือก
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
-    note = models.CharField(max_length=255, blank = True)
+    note = models.CharField(max_length=255, null = True, blank = True)
     approver_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -894,7 +894,7 @@ class PurchaseOrder(models.Model):
     total_after_discount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
-    note = models.CharField(max_length=255, blank = True)
+    note = models.CharField(max_length=255, null = True, blank = True)
     freight = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
     stockman_user = models.ForeignKey(
         User,
@@ -1042,7 +1042,7 @@ class Receive(models.Model):
     vat = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
     freight = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
-    note = models.CharField(max_length=255, blank = True)
+    note = models.CharField(max_length=255, null = True, blank = True)
     receive_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

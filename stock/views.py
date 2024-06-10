@@ -3886,6 +3886,16 @@ def export(request):
     response['Content-Disposition'] = 'attachment; filename="persons.xls"'
     return response
 
+def correct_date_format(date_str):
+    formats = ['%Y-%m-%d %H:%M:%S', '%d/%m/%Y']
+    for date_format in formats:
+        try:
+            date_obj = datetime.datetime.strptime(date_str, date_format)
+            return date_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return "Invalid date format"
+
 def uploadReceive(request):
     active = request.session['company_code']
     if request.method == 'POST':
@@ -3903,9 +3913,12 @@ def uploadReceive(request):
                         refNo = strRefNo
 
                     try:
+                        #change data[1] to corract format
+                        data_col_1 = correct_date_format(str(data[1]))
+
                         po = PurchaseOrder.objects.get(ref_no = refNo)
                         po.is_receive = True
-                        po.receive_update = data[1]
+                        po.receive_update = data_col_1
                         po.save()
 
                         try:
@@ -3914,10 +3927,10 @@ def uploadReceive(request):
                             #ถ้าปีห่างกันมากกว่าแสดงว่าปีเป็น คศ และ พศ ให้ทำการแปลงเป็นคศ ก่อน
 
                             if rd:
-                                if years_between(po.due_receive_update, str(data[1].strftime("%Y-%m-%d"))) > 500:
-                                    durationRate = calculateDurationRate(convertDateBEtoBC(str(data[1].strftime("%Y-%m-%d"))), po.due_receive_update)
+                                if years_between(po.due_receive_update, data_col_1) > 500:
+                                    durationRate = calculateDurationRate(convertDateBEtoBC(str(data_col_1)), po.due_receive_update)
                                 else:
-                                    durationRate = calculateDurationRate(str(data[1].strftime("%Y-%m-%d")), po.due_receive_update)
+                                    durationRate = calculateDurationRate(data_col_1, po.due_receive_update)
                                 
                                 #ต้องมีคะแนนประเมินทุกรายการถึงจะให้คำนวน totalRate ได้
                                 if rd.price_rate and rd.quantity_rate and durationRate and rd.service_rate and rd.safety_rate:
