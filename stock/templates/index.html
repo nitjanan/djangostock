@@ -9,10 +9,13 @@
   <h4>
     <span class="badge badge-pill badge-dark notification mr-2">{% if category.name %}{{category.name}}{%else%}สินค้าทั้งหมด{%endif%}</span>
     {% if isEditNewOld %}
-      <span class="badge badge-pill badge-warning notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldModal">New โอน <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
+      <span class="badge badge-pill badge-warning notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldModal">New โอน รหัสสินค้า <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
     {% endif %}
     {% if isEditChangeExist %}
-      <span class="badge badge-pill badge-danger notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#changeExistModal">Change Exist <i class="fas fa-recycle" style="color: #ffffff;"></i></span>
+      <span class="badge badge-pill badge-danger notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#changeExistModal">Change Exist รหัสสินค้า <i class="fas fa-recycle" style="color: #ffffff;"></i></span>
+    {% endif %}
+    {% if isEditNewOldDistributor %}
+      <span class="badge badge-pill badge-success notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldDistributorModal">New โอน รหัสผู้จัดจำหน่าย <i class="fas fa-exchange-alt" style="color: #ffffff;"></i></span>
     {% endif %}
     {% if messages %}
       {% for message in messages %}
@@ -154,6 +157,41 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
         <button type="submit" name="btnformChangeExist" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
+      </div>
+    </form>
+    </div>
+  </div>
+</div>
+<!-- Modal new old Distributor-->
+<div class="modal fade" id="newOldDistributorModal" tabindex="-1" role="dialog" aria-labelledby="newOldDistributorModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header alert alert-success">
+        <h5 class="modal-title" id="newOldDistributorModalTitle">แก้ไขรหัสผู้จำหน่าย</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="old_distributor_id" class="col-form-label">รหัสผู้จำหน่ายเก่า:</label>
+            <input id="old_distributor_id" name="old_distributor_id" type="text" list="idExpresslistDistributor" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off"  required>
+            <datalist  id="idExpresslistDistributor">
+            {% for results in baseDistributor %}
+              <option value="{{results.id}}">{{results.name}}</option>
+            {% endfor %}
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label for="new_distributor_id" class="col-form-label">รหัสผู้จำหน่ายใหม่:</label>
+            <input id="new_distributor_id" name="new_distributor_id" type="text" class="form-control" >
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
+        <button type="submit" name="btnformNewOldDistributor" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
       </div>
     </form>
     </div>

@@ -178,6 +178,104 @@ def changeExist(old_product_id, new_product_id):
         pass
     return alertType,alertStr
 
+#button New โอน 17-06-2024
+def newOldDistributor(old_distributor_id, new_distributor_id):
+    alertStr = None
+    alertType = None
+
+    try:
+        #หารหัสใหม่
+        have_new_distributor_id = Distributor.objects.get(id = new_distributor_id)
+        if have_new_distributor_id:
+            alertStr = "มีรหัสผู้จัดจำหน่ายใหม่อยู่แล้ว'" +str(new_distributor_id)+ "' ไม่สามารถ new โอนได้"
+            alertType = messages.WARNING
+    except Distributor.DoesNotExist:
+        try:
+            old_distributor = Distributor.objects.get(id = old_distributor_id)
+
+            #สร้างรหัสสินค้าใหม่
+            if old_distributor and new_distributor_id:
+                obj = Distributor.objects.create(
+                    id = new_distributor_id,
+                    prefix = old_distributor.prefix,
+                    name = old_distributor.name + "(*)",
+                    type = old_distributor.type,
+                    genre = old_distributor.genre,
+                    credit = old_distributor.credit,
+                    vat_type = old_distributor.vat_type,
+                    discount = old_distributor.discount,
+                    credit_limit = old_distributor.credit_limit,
+                    account_number = old_distributor.account_number,
+                    address = old_distributor.address,
+                    tel = old_distributor.tel,
+                    payment = old_distributor.payment,
+                    contact = old_distributor.contact,
+                    affiliated = old_distributor.affiliated,
+                    tex = old_distributor.tex,
+                    fax = old_distributor.fax,
+                    registration_pdf = old_distributor.registration_pdf,
+                    created = old_distributor.created
+                )
+                obj.save()
+
+                try:
+                    #ย้ายผู้จัดจำหน่ายในใบเปรียบเทียบไปรหัสผู้จัดจำหน่ายใหม่
+                    ###### 1 ######
+                    cp = ComparisonPrice.objects.filter(select_bidder = old_distributor)
+                    cp.update(select_bidder = new_distributor_id)
+
+                except ComparisonPrice.DoesNotExist:
+                    pass
+
+                try:
+                    #ย้ายผู้จัดจำหน่ายในใบสั่งซื้อไปรหัสผู้จัดจำหน่ายใหม่
+                    ###### 2 ######
+                    po = PurchaseOrder.objects.filter(distributor = old_distributor)
+                    po.update(distributor = new_distributor_id)
+                    
+                except PurchaseOrder.DoesNotExist:
+                    pass
+
+                try:
+                    #ย้ายผู้จัดจำหน่ายในการเปรียบเทียบผู้จัดจำหน่ายไปรหัสผู้จัดจำหน่ายใหม่
+                    ###### 3 ######
+                    cpd = ComparisonPriceDistributor.objects.filter(distributor = old_distributor)
+                    cpd.update(distributor = new_distributor_id)
+                    
+                except ComparisonPriceDistributor.DoesNotExist:
+                    pass
+
+                try:
+                    #ย้ายผู้จัดจำหน่ายในประเมินร้านค้าไปรหัสผู้จัดจำหน่ายใหม่
+                    ###### 4 ######
+                    rd = RateDistributor.objects.filter(distributor = old_distributor)
+                    rd.update(distributor = new_distributor_id)
+                    
+                except RateDistributor.DoesNotExist:
+                    pass
+
+                #หลังจากย้ายผู้จัดจำหน่ายไปรหัสใหม่ ลบรหัสเก่า
+                af_cp = ComparisonPrice.objects.filter(select_bidder__id = old_distributor.id).count()
+                af_po = PurchaseOrder.objects.filter(distributor__id = old_distributor.id).count()
+                af_cpd = ComparisonPriceDistributor.objects.filter(distributor__id = old_distributor.id).count()
+                af_rd = RateDistributor.objects.filter(distributor__id = old_distributor.id).count()
+
+                new_distributor = Distributor.objects.get(id = new_distributor_id)
+                if af_cp < 1 and af_po < 1 and af_cpd < 1 and af_rd < 1:
+                    old_distributor.delete()
+
+                    new_distributor.name =  new_distributor.name[:-3]
+                    new_distributor.save()
+
+                    alertStr = "new โอน รหัสผู้จัดจำหน่าย '"+ str(old_distributor_id) + "' เป็น '"+ str(new_distributor_id)+ "' สำเร็จแล้ว"
+                    alertType = messages.SUCCESS
+                    
+        except Distributor.DoesNotExist:
+            alertStr = "ไม่มีรหัสผู้จัดจำหน่ายเก่าในระบบ ไม่สามารถ new โอนได้"
+            alertType = messages.WARNING
+            pass
+    return alertType,alertStr
+
 def days_between(d1, d2):
     d1 = datetime.datetime.strptime(str(d1), "%Y-%m-%d").date()
     d2 = datetime.datetime.strptime(str(d2), "%Y-%m-%d").date()
@@ -274,6 +372,9 @@ def index(request, category_slug = None):
     #หา id express
     baseProduct = Product.objects.all().values('id', 'name')
 
+    #หา id express
+    baseDistributor = Distributor.objects.all().values('id', 'name')
+
     # button New โอน
     if request.method == 'POST' and 'btnformNewOld' in request.POST:
         old_product_id = request.POST.get('old_product_id', False)
@@ -289,10 +390,19 @@ def index(request, category_slug = None):
         mess = changeExist(ce_old_product_id, ce_new_product_id)
         messages.add_message(request, mess[0], mess[1])
         return redirect('home')
+    
+    # button New โอน
+    if request.method == 'POST' and 'btnformNewOldDistributor' in request.POST:
+        old_distributor_id = request.POST.get('old_distributor_id', False)
+        new_distributor_id = request.POST.get('new_distributor_id', False)
+        mess = newOldDistributor(old_distributor_id, new_distributor_id)
+        messages.add_message(request, mess[0], mess[1])
+        return redirect('home')
 
     #เช็คสิทธิเห็นปุ่ม New โอน หรือ Change Exist
     isEditNewOld = is_edit_new_old(request.user)
     isEditChangeExist = is_edit_change_exist(request.user)
+    isEditNewOldDistributor = is_edit_new_old_distributor(request.user)
 
     '''
     #สร้าง page
@@ -578,7 +688,7 @@ def index(request, category_slug = None):
             break
 
     if isHaveTab:
-        return render(request,'index.html', {'products':productperPage , 'category':categories_page, 'baseProduct':baseProduct, 'isEditNewOld': isEditNewOld, 'isEditChangeExist': isEditChangeExist, active :"active show", "colorNav":"enableNav"})
+        return render(request,'index.html', {'products':productperPage , 'category':categories_page, 'baseProduct':baseProduct, 'isEditNewOld': isEditNewOld, 'isEditChangeExist': isEditChangeExist,'isEditNewOldDistributor': isEditNewOldDistributor, active :"active show", 'baseDistributor': baseDistributor, "colorNav":"enableNav"})
     else:
         return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav"})
 
@@ -1433,6 +1543,9 @@ def is_edit_new_old(user):
 
 def is_edit_change_exist(user):
     return user.groups.filter(name='ChangeExist').exists()
+
+def is_edit_new_old_distributor(user):
+    return user.groups.filter(name='NewOldDistributor').exists()
 
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
