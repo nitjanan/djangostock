@@ -304,7 +304,7 @@ u.dotted {
               {% if isRePr %}
                 <a class="btn btn-success d-print-none" onclick="return confirm('คุณต้องการนำรายการนี้กลับมาหรือไม่ ?\n *** รายการใบขอซื้อนี้จะกลับไปที่หน้าสร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อ')" href="{%url 'reBuyPR' pr.id %}" role="button"><i class="fas fa-redo"></i> นำรายการกลับมา</a>
               {% endif %}
-              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="window.print();">
+              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();window.print();">
                 <i class="fas fa-print"></i>
                 ปริ้นใบขอซื้อ
               </button>

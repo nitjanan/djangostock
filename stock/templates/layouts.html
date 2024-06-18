@@ -207,6 +207,11 @@
             return false;
         }
 
+        //18-06-2024 ก่อนปริ้นให้เลื่อนขึ้นก่อน แก้ bug chrome version ใหม่ ปริ้นไม่ครบ
+        function scrollToTop(){
+            $(window).scrollTop(0);
+        }
+
     </script>
 {% block javascript %}
 
