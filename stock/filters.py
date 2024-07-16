@@ -96,10 +96,11 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
     unit_price_min  = django_filters.CharFilter(field_name="unit_price", lookup_expr='gte')
     unit_price_max  = django_filters.CharFilter(field_name="unit_price", lookup_expr='lte')
     category = django_filters.ModelChoiceFilter(field_name="item__product__category__name", queryset= Category.objects.all())
+    po_ref_no = django_filters.CharFilter(field_name="po__ref_no", lookup_expr='icontains')
 
     class Meta:
         model = PurchaseOrderItem
-        fields = ('item__product_id', 'item__product_name','po__created','po__distributor__name','po__stockman_user', 'unit_price', 'item__product__category__name')
+        fields = ('item__product_id', 'item__product_name','po__created','po__distributor__name','po__stockman_user', 'unit_price', 'item__product__category__name', 'po_ref_no')
 
 PurchaseOrderItemFilter.base_filters['item_product_id_from'].label = 'รหัสสินค้าจาก'
 PurchaseOrderItemFilter.base_filters['item_product_id_to'].label = 'ถึง'
@@ -112,6 +113,7 @@ PurchaseOrderItemFilter.base_filters['stockman_user'].label = 'ผู้สั�
 PurchaseOrderItemFilter.base_filters['unit_price_min'].label = 'ราคาต่อหน่วยจาก'
 PurchaseOrderItemFilter.base_filters['unit_price_max'].label = 'ถึง'
 PurchaseOrderItemFilter.base_filters['category'].label = 'หมวดหมู่สินค้า'
+PurchaseOrderItemFilter.base_filters['po_ref_no'].label = 'เลขที่ใบสั่ง'
 
 class ComparisonPriceFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))

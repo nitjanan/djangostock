@@ -16,7 +16,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -1253,6 +1253,7 @@ class CrudView(TemplateView):
         context['pr'] = pr
         context['baseUrgency'] = BaseUrgency.objects.all()
         context['baseUnit'] = BaseUnit.objects.all()
+        context['baseProduct'] = Product.objects.all().values('id', 'name')
         context['requisitions_page'] = "tab-active"
         context['requisitions_show'] = "show"
         context['bc'] = bc
@@ -1289,19 +1290,29 @@ class CreateCrudUser(View):
 
         rqs = Requisition.objects.get(id=kwargs['requisition_id'])
 
+        if not description1:
+            description1 = rqs.repair_type.name
+        if not machine1:
+            machine1 = rqs.car.name
+        if not desireddate1:
+            desireddate1 = rqs.desired_date
+        if not urgency1:
+            urgency1 = rqs.urgency.id
+
+        #08-07-2024 repair_type -> description, machine -> car
         obj = RequisitionItem.objects.create(
             requisition_id = kwargs['requisition_id'],
             product_name = name1,
-            description = description1,
-            quantity = quantity1,
-            quantity_take = 0,
-            quantity_pr = quantityPQ,
-            machine = machine1,
-            desired_date = desireddate1,
             unit = unit1,
-            urgency = urgency1,
+            quantity = quantity1,
+            quantity_take = quantityTake1,
+            quantity_pr = quantityPQ,
             requisit = rqs,
             product = product_item,
+            description = description1,
+            machine = machine1,
+            desired_date = desireddate1,
+            urgency = urgency1,
         )
 
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
@@ -1337,18 +1348,34 @@ class UpdateCrudUser(View):
         except:
             quantityPQ = 0
 
+        rqs = Requisition.objects.get(id=kwargs['requisition_id'])
+
+        #08-07-2024 repair_type -> description, machine -> car
         obj = RequisitionItem.objects.get(id=id1)
         obj.requisition_id = kwargs['requisition_id']
         obj.product_name = name1
-        obj.description = description1
         obj.quantity = quantity1
         obj.quantity_take = quantityTake1
         obj.quantity_pr = quantityPQ
-        obj.machine = machine1
-        obj.desired_date = desireddate1
         obj.unit = unit1
-        obj.urgency = urgency1
         obj.product = product_item
+
+        if description1:
+            obj.description = description1
+        else:
+            obj.description = rqs.repair_type.name
+        if machine1:
+            obj.machine = machine1
+        else:
+            obj.machine = rqs.car.name
+        if desireddate1:
+            obj.desired_date = desireddate1
+        else:
+            obj.desired_date = rqs.desired_date
+        if urgency1:
+            obj.urgency = urgency1
+        else:
+            obj.urgency = rqs.urgency.id
         obj.save()
 
 
@@ -1382,6 +1409,7 @@ def editAllRequisition(request, requisition_id):
             
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
+    baseProduct = Product.objects.all().values('id', 'name')
 
     requestName = User.objects.all()
     chiefName = User.objects.filter(groups__name='หัวหน้างาน')
@@ -1393,6 +1421,13 @@ def editAllRequisition(request, requisition_id):
         form = RequisitionForm(request, request.POST, request.FILES , instance=requisition)
         if form.is_valid():
             new_contact =  form.save()
+            r_item = RequisitionItem.objects.filter(requisit = new_contact.pk)
+            for i in r_item:
+                i.description = new_contact.repair_type.name
+                i.machine = new_contact.car.name
+                i.desired_date = new_contact.desired_date
+                i.urgency = new_contact.urgency.id
+                i.save()
             try :
                 obj = PurchaseRequisition.objects.get(requisition = new_contact.pk)
                 obj.purchase_user_id = requisition.chief_approve_user_name
@@ -1409,6 +1444,7 @@ def editAllRequisition(request, requisition_id):
         'pr': pr,
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,
+        'baseProduct': baseProduct,
         'requestName':requestName,
         'bc':bc,
         'requisitions_page':"tab-active",
@@ -1565,6 +1601,19 @@ def searchExaminerAndApproverUser(request):
     data = {
         'user_examiner_list': list(user_examiner),
         'user_approve_list': list(user_approve),
+    }
+    return JsonResponse(data)
+
+def searchRepairTypeAndCar(request):
+    if 'rq_type' in request.GET:
+        rq_type = request.GET.get('rq_type')
+
+        base_car =  BaseCar.objects.filter(Q(rq_type = rq_type)| Q(rq_type = 4)).values('id', 'name')
+        base_repair_type = BaseRepairType.objects.filter(Q(rq_type = rq_type)| Q(rq_type = 4)).values('id', 'name')
+        
+    data = {
+        'car_list': list(base_car),
+        'repair_type_list': list(base_repair_type),
     }
     return JsonResponse(data)
 
@@ -3952,6 +4001,8 @@ def reApprovePR(request, pr_id):
         baseUrgency = BaseUrgency.objects.all()
         baseUnit = BaseUnit.objects.all()
         baseProduct = Product.objects.all().values('id', 'name')
+        baseCar = BaseCar.objects.all().values('id', 'name')
+        baseRepairType = BaseRepairType.objects.all().values('id', 'name')
 
         #form
         form_pr = PurchaseRequisitionForm(request, instance=pr)
@@ -3968,6 +4019,8 @@ def reApprovePR(request, pr_id):
             'baseUrgency' : baseUrgency,
             'baseUnit' : baseUnit,
             'baseProduct' : baseProduct,
+            'baseCar': baseCar,
+            'baseRepairType': baseRepairType,
             'bc':bc,
             'form_pr':form_pr,
             'pr_page': "tab-active",

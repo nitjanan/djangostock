@@ -7,11 +7,12 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
 import string
+from django.db.models import Q
 
 class MyClearableFileInput(ClearableFileInput):
     initial_text = 'ไฟล์ปัจจุบัน'
@@ -46,20 +47,39 @@ class RequisitionForm(forms.ModelForm):
         # self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
         self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
 
+    rq_type = forms.ModelChoiceField(
+        queryset=BaseRequisitionType.objects.filter(~Q(id = 4)),
+        widget=forms.Select(attrs={'class': 'is-valid'}),
+        label='ประเภทใบขอเบิก',
+        required=True
+    )
+    repair_type = forms.ModelChoiceField(queryset = BaseRepairType.objects.all(), label='ประเภทการซ่อม', required=True)
+    car = forms.ModelChoiceField(queryset = BaseCar.objects.all(), label='เครื่องจักร/ทะเบียนรถ', required=True)
+
+    expense_dept = forms.ModelChoiceField(queryset = BaseExpenseDepartment.objects.all(), label='แผนกค่าใช้จ่าย', required=True)
+    urgency = forms.ModelChoiceField(queryset = BaseUrgency.objects.all(), label='ระดับความเร่งด่วน', required=True)
+
     class Meta:
         model = Requisition
-        fields = ('name','chief_approve_user_name','organizer','urgency','branch_company', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
+        fields = ('name','chief_approve_user_name','organizer','branch_company', 'expense_dept', 'rq_type', 'repair_type', 'car', 'broke_type', 'desired_date','urgency', 'is_invoice', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
-        'urgency': forms.HiddenInput(),
         'name': forms.HiddenInput(),
         'chief_approve_user_name': forms.HiddenInput(),
         'memorandum_pdf' : MyClearableFileInput,
         'branch_company': forms.HiddenInput(),
+        'is_invoice': forms.HiddenInput(),
+        'desired_date': forms.DateInput(format=('%d/%m/%Y'), attrs={'class':'form-control', 'placeholder':'Select a date', 'type':'date', 'required':'True'}),
         }
         labels = {
             'section': _('แผนก'),
             'urgency': _('ระดับความเร่งด่วน'),
             'memorandum_pdf': _('ใบบันทึกข้อความ'),
+            'repair_type': _('ประเภทการซ่อม'),
+            'car': _('เครื่องจักร/ทะเบียนรถ'),
+            'broke_type': _('เหตุผล/สาเหตุ'),
+            'expense_dept': _('แผนกค่าใช้จ่าย'),
+            'is_invoice': _('ออกใบกำกับภาษี'),
+            'desired_date': _('วันที่ต้องการ'),
         }
 
 class RequisitionItemForm(forms.ModelForm):

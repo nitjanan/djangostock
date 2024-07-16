@@ -24,73 +24,72 @@
   line-height: 37px; /* Match Bootstrap's form-control line-height */
   width: 55.5svw;
 }
+
+.custom-control-label::before{
+  background-color:lightblue;
+  width: 1.85rem;
+  height: 1.85rem;
+}
+.custom-control-label::after {
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    <div class="row my-2">
-      <div class="col col-md-2">
-        <img src="/media/{{requisition.address_company.logo}}" class="rounded float-left" width="50" height="50"/>
-      </div>
-      <div class="text-left col">
-        <h3>{{requisition.address_company.name_th}}</h3>
-      </div>
-      <div class="text-center col col-md-3">
-        <div role="alert"  
-        class="alert
-        {% if requisition.urgency.id == 1 %}
-          alert-danger
-        {% elif requisition.urgency.id == 2 %}
-          alert-warning
-        {% elif requisition.urgency.id == 3 %}
-          alert alert-success
-        {% elif requisition.urgency.id == 4 %}
-          alert-info
-        {% endif %}">
-         {% if requisition.urgency %} 
-          <b>ระดับความเร่งด่วน: {{requisition.urgency.name}}</b>
-         {% endif %}
-        </div>
-      </div>
+  <div class="row my-2">
+    <div class="text-left col">
+      <h4>{{requisition.address_company.name_th}}</h4>
     </div>
-    <hr>
-    <!--
-    <h4 align="center">ใบขอเบิก</h4>
-    -->
-    <div class="row my-2">
-      <div class="col-md-12">
-      <div class="invoice-title text-right">
-          <h5>รหัสใบขอเบิก # {{requisition.ref_no}}
+    <div class="text-right col">
+      <h6>{{requisition.rq_type.iso_code}}</h6>
+    </div>
+  </div>
+  <hr>
+  <div class="row my-2">
+    <div class="col-7 text-right">
+        <h4>ใบขอเบิก{% if requisition.rq_type %} ({{requisition.rq_type}}){%endif%}</h4>
+    </div>
+    <div class="col-5 text-right">
+          <h5>เลขที่. {{requisition.ref_no}}
             {% if requisition.memorandum_pdf %}
               {% ifchanged requisition.memorandum_pdf %}
                 <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
               {% endifchanged %}
             {% endif %}
           </h5>
-      </div>
-      <hr>
-      <div class="row">
-        <div class="col-md-4">
-          <description>
-          <strong>ขอตั้งเบิก: </strong>{{requisition.name}}
+    </div>
+  </div>
+  <hr>
+
+  <div class="row">
+    <div class="col-4">
+      <description>
+      <strong>ผู้ขอตั้งเบิก: </strong>{{requisition.name}}
+      <br>
+      <br>
+      </description>
+    </div>
+    <div class="col-4 text-center">
+        <description>
+          <strong>แผนกค่าใช้จ่าย: </strong>{% if requisition.expense_dept %}{{requisition.expense_dept}}{%endif%}<br>
           <br>
-          <br>
-          </description>
-        </div>
-        <div class="col-md-4 text-center">
-            <description>
-              <strong>แผนก: </strong>{{requisition.section}}<br>
-              <br>
-            </description>
-          </div>
-        <div class="col-md-4 text-right">
-          <description>
-            <strong>วันที่ขอเบิก: </strong>{{requisition.created | date:"d/m/Y"}}<br>
-            <br>
-          </description>
-        </div>
+        </description>
       </div>
+      <div class="col-2 text-center">
+        <description>
+          <strong> {% if requisition.is_invoice %}<i class="fas fa-check-square"></i>{%else%}<i class="far fa-square"></i>{%endif%} ออกใบกำกับฯ.</strong><br>
+          <br>
+        </description>
+      </div>
+    <div class="col-2 text-right">
+      <description>
+        <strong>วันที่: </strong>{{requisition.created | date:"d/m/Y"}}<br>
+        <br>
+      </description>
     </div>
   </div>
   
@@ -115,33 +114,39 @@
             </div>
         <div class="panel-body">
           <div class="table-responsive">
-            <table id="userTable" class="table table-condensed">
+            <table id="userTable" class="table table-bordered">
               <thead>
                 <tr>
-                    <td class="text-center"><strong>ลำดับที่</strong></td>
-                    <td class="text-center"><strong>สินค้า/รายละเอียด</strong></td>
-                    <td class="text-center"><strong>เหตุผลและวัตถุประสงค์</strong></td>
+                    <td class="text-center"><strong>ลำดับ</strong></td>
+                    <td class="text-center d-print-none"><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
+                    <td class="text-center"><strong>สินค้า</strong></td>
+                    <!--td class="text-center"><strong>เหตุผลและวัตถุประสงค์</strong></td-->
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
                     <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>ทะเบียนรถ/เครื่องจักร</strong></td>
+                    <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
+                    <!--
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
                     <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                    <td class="text-right hidden-print" colspan="2"><strong>Action</strong></td>                  
+                    -->
+                    <td class="text-center hidden-print" colspan="2"><strong>Action</strong></td>
                 </tr>
               </thead>
               <tbody>
                 {% for user in users %}
                 <tr id="user-{{user.id}}">
                     <td class="text-center">{{ forloop.counter }}</td>
+                    <td class="text-center userProduct userData d-print-none" name="product">{{user.product.id}}</td>
                     <td class="text-center userName userData" name="name"><form class="form-inline ml-3" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
-                    <td class="text-center userDescription userData" name="description">{{user.description}}</td>
                     <td class="text-center userQuantity userData" name="quantity">{{user.quantity |floatformat:"-4"}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake"><b onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" style="cursor: pointer;color:red;">{{user.quantity_take |floatformat:"-4"}}</b></td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
                       {{user.unit}}
                     </td>
+                    <td class="text-center userDescription userData" name="description">{{user.description}}</td>
                     <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
+                    <!--
                     <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
                     <td class="text-center userUrgency userData" name="urgency" data-val="{{user.urgency}}">
                       {% for bu in baseUrgency %}
@@ -150,6 +155,7 @@
                         {% endif %}
                       {% endfor %}
                     </td>
+                    -->
                     <td align="center" class="hidden-print">
                       <button class="btn btn-secondary form-control" onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" ><i class="fas fa-pen"></i></button>
                     </td>
@@ -175,17 +181,44 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-md-4">
+    <div class="col-4">
+      <description>
+      <strong>เหตุผล/สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
+      </description>
+    </div>
+    <div class="col-4 text-center">
+      <description>
+      <strong>ระดับความเร่งด่วน: </strong>
+      {% if requisition.urgency %}
+        {{requisition.urgency}}
+      {%else%}
+        {% for bu in baseUrgency %}
+          {% if users.1.urgency == bu.id %}
+            {{bu.name}}
+          {% endif %}
+        {% endfor %}
+      {%endif%}
+      </description>
+    </div>
+    <div class="col-4 text-right">
+      <description>
+      <strong>วันที่ต้องการ: </strong>{% if requisition.desired_date %}{{requisition.desired_date | date:"d/m/Y"}}{%else%}{{users.1.desired_date| date:"d/m/Y"}}{%endif%}
+      </description>
+    </div>
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-4">
       <description>
       <strong>หัวหน้างาน: </strong>{{requisition.chief_approve_user_name}}
       </description>
     </div>
-    <div class="col-md-4 text-center">
+    <div class="col-4 text-center">
         <description>
           <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
         </description>
       </div>
-    <div class="col-md-4 text-right">
+    <div class="col-4 text-right">
       <description>
         <strong>ส่งให้เจ้าหน้าที่จัดซื้อ: </strong>{{requisition.organizer}}
       </description>
@@ -229,16 +262,18 @@
                 {% endfor %}
             </datalist>
             <p>{{ form | crispy}}</p>
+            <div class="custom-control form-control-lg custom-checkbox">
+              <input type="checkbox" class="custom-control-input" id="customCheckInvoice">
+              <label class="custom-control-label" for="customCheckInvoice"></label>
+              <label class="control-label col-sm-3 small">ออกใบกำกับภาษี</label>
+            </div>
             {% csrf_token %}
-              <button type="submit" class="btn btn-warning hidden-print">
+              <button type="submit" class="btn btn-warning hidden-print float-right">
                 <i class="fas fa-save"></i>
                   บันทึกการแก้ไข
               </button>
         </form>
     </div>
-  </div>
-    <div class="invoice-title text-right my-2">
-    <h6>{{bc.affiliated.iso_code.r_code|safe}}</h6>
   </div>
   <div class="row">
     <div class="col">
@@ -264,11 +299,18 @@
           {% csrf_token %}
           <div class="modal-body">
             <label for="name">สินค้า/รายละเอียด</label>
-            <input class="form-control" type="text" name="name" required>
-            <label for="name">เหตุผลและวัตถุประสงค์</label>
-            <input class="form-control" type="text" name="description" required>
+            <input class="form-control" type="text" name="name_pd" required>
+            <label for="product">รหัสวัสดุ/อุปกรณ์</label>
+            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
+            <datalist id="idExpresslist">
+            {% for results in baseProduct %}
+              <option value="{{results.id}}">{{results.name}}</option>
+            {% endfor %}
+            </datalist>
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
+            <label for="quantityTake">จำนวนที่จ่ายไป</label>
+            <input class="form-control is-invalid" type="number" name="quantityTake" min="0" step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="unitList" name="unit" id="sel-unit">
             <datalist id="unitList">
@@ -276,8 +318,11 @@
                 <option data-id = "{{unit.id}}" value="{{unit.name}}">
               {% endfor %}
             </datalist>
+            <!--
+            <label for="name">เหตุผลและวัตถุประสงค์</label>
+            <input class="form-control" type="text" name="description" required>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
-            <input class="form-control" type="text" name="machine" >
+            <input class="form-control" type="text" name="machine">
             <label for="name">วันที่ต้องการ</label>
             <input class="form-control dateinput form-control" type="date" name="desireddate"  placeholder="Select a date" onchange="selectedUrgency(this.name, 'sel-urgency');">
             <label for="name">ระดับความเร่งด่วน</label>
@@ -287,6 +332,7 @@
               <option value="{{op.id}}">{{op.name}} {{op.description}}</option>
               {% endfor %}
             </select>
+            -->
           </div>
           <div class="modal-footer">
             <button type="submit" class="btn btn-primary" >บันทึก</button>
@@ -310,8 +356,13 @@
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
-            <label for="description">เหตุผลและวัตถุประสงค์</label>
-            <input class="form-control" id="form-description" type="text" name="formDescription"/>
+            <label for="formProduct">รหัสวัสดุ/อุปกรณ์</label>
+            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
+            <datalist id="idExpresslist">
+            {% for results in baseProduct %}
+              <option value="{{results.id}}">{{results.name}}</option>
+            {% endfor %}
+            </datalist>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
             <label for="quantityTake">จำนวนที่จ่ายไป</label>
@@ -323,6 +374,9 @@
                 <option data-id = "{{unit.id}}" value="{{unit.name}}">
               {% endfor %}
             </datalist>
+            <!--
+            <label for="description">เหตุผลและวัตถุประสงค์</label>
+            <input class="form-control" id="form-description" type="text" name="formDescription"/>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
             <input class="form-control" type="text" id="form-machine" name="formMachine">
             <label for="name">วันที่ต้องการ</label>
@@ -334,6 +388,7 @@
               <option value="{{op.id}}">{{op.name}} {{op.description}}</option>
               {% endfor %}
             </select>
+            -->
         </div>
         <div class="modal-footer">
             <button type="submit" class="btn btn-primary" >บันทึก</button>
@@ -366,6 +421,9 @@
 $('div#div_id_memorandum_pdf a').addClass('btn btn-outline-success btn-sm');
 $('div#div_id_memorandum_pdf a').text('Download');
 
+//วันที่ต้องการ
+$('#id_desired_date').val('{{requisition.desired_date|date:"Y-m-d"}}');
+
 $(function() {
     //get datalist to set input
     var idName = $("#id_name").val();
@@ -378,7 +436,7 @@ $(function() {
     var valC = $('#idChiefNameList option[data-id='+idChiefName+']').val();
     //set value to form.item
     $("#cName").val(valC);
-}); 
+});
 
 function searchProduct(name){
     var titleInput = name;
@@ -413,17 +471,25 @@ function openModal(instance) {
 // Create Django Ajax Call
 $(function(){
 $(document).on('submit','form#addUser',function(){
-    var nameInput = $('input[name="name"]').val().trim();
+    var nameInput = $('input[name="name_pd"]').val().trim();
     var descriptionInput = $('input[name="description"]').val().trim();
     var quantityInput = $('input[name="quantity"]').val().trim();
+    var quantityTakeInput = $('input[name="quantityTake"]').val().trim();
+    var unitInput = $('#sel-unit').val();
+    var machineInput = '';
+    var desireddateInput = '';
+    var urgencyInput = '';
+    var quantityInput = '';
+    var productInput = $('input[name="product"]').val().trim();
+    /*
     var machineInput = $('input[name="machine"]').val().trim();
     var desireddateInput = $('input[name="desireddate"]').val();
-    var unitInput = $('#sel-unit').val();
     var urgencyInput = $('#sel-urgency').val();
-
+    var quantityInput = $('input[name="quantity"]').val().trim();
     if (desireddateInput == '')
       desireddateInput = null;
-    if (nameInput && descriptionInput && quantityInput) {
+    */
+    if (nameInput && quantityInput) {
         // Create Ajax Call
         $.ajax({
             url: '{% url "crud_ajax_create" requisition.id %}',
@@ -431,10 +497,12 @@ $(document).on('submit','form#addUser',function(){
                 'name': nameInput,
                 'description': descriptionInput,
                 'quantity': quantityInput,
+                'quantity_take': quantityTakeInput,
                 'machine': machineInput,
                 'desired_date': desireddateInput,
                 'unit': unitInput,
                 'urgency':urgencyInput,
+                'product': productInput,
             },
             dataType: 'json',
             success: function (data) {
@@ -482,14 +550,22 @@ $(function(){
 $(document).on('submit','form#updateUser',function(){
     var idInput = $('input[name="formId"]').val().trim();
     var nameInput = $('input[name="formName"]').val().trim();
-    var descriptionInput = $('input[name="formDescription"]').val().trim();
     var quantityInput = $('input[name="formQuantity"]').val().trim();
     var quantityTakeInput = $('input[name="formQuantityTake"]').val().trim();
+    var unitInput = $('#form-unit').val();
+    var machineInput = '';
+    var desireddateInput = '';
+    var urgencyInput = '';
+    var descriptionInput = '';
+    var productInput = $('input[name="formProduct"]').val().trim();
+    /*
     var machineInput = $('input[name="formMachine"]').val().trim();
     var desireddateInput = $('input[name="formDesiredDate"]').val();
-    var unitInput = $('#form-unit').val();
     var urgencyInput = $('#form-urgency').val();
-    if (nameInput && descriptionInput && quantityInput) {
+    var descriptionInput = $('input[name="formDescription"]').val().trim();
+    */
+
+    if (nameInput && quantityInput) {
         // Create Ajax Call
         $.ajax({
             url: '{% url "crud_ajax_update" requisition.id %}',
@@ -502,7 +578,8 @@ $(document).on('submit','form#updateUser',function(){
                 'machine': machineInput,
                 'desired_date': desireddateInput,
                 'unit': unitInput,
-                'urgency':urgencyInput
+                'urgency':urgencyInput,
+                'product' : productInput,
             },
             dataType: 'json',
             success: function (data) {
@@ -538,6 +615,7 @@ function editUser(id) {
     desireddateObject = desireddate_str.split("/").reverse().join("-");
     unit = $(tr_id).find(".userUnit").data('val');
     urgency = $(tr_id).find(".userUrgency").data('val');
+    product = $(tr_id).find(".userProduct").text();
     $('#form-id').val(id);
     $('#form-name').val(name);
     $('#form-description').val(description);
@@ -547,16 +625,17 @@ function editUser(id) {
     $('#form-desireddate').val(desireddateObject);
     $('#form-unit').val(unit);
     $('#form-urgency').val(urgency);
+    $('#form-product').val(product);
   }
 }
 
 function appendToUsrTable(user) {
   $("#userTable > tbody:last-child").append(`
         <tr id="user-${user.id}">
-            <td class="text-center userName" name="name">${user.name}</td>
+            <td class="text-center userName" name="name_pd">${user.name}</td>
             '<td class="text-center userDescription" name="description">${user.description}</td>
             '<td class="text-center userQuantity" name="quantity">${user.quantity}</td>
-            '<td class="text-center userQuantityTake" name="quantityTake">0</td>
+            '<td class="text-center userQuantityTake" name="quantityTake">${user.quantity_take}</td>
             '<td class="text-center userUnit" name="unit">${user.unit}</td>
             '<td class="text-center userMachine" name="machine">${user.machine}</td>
             '<td class="text-center userDesiredDate" name="desireddate">${user.desired_date}</td>
@@ -591,6 +670,8 @@ function updateToUserTabel(user){
           $(this).text(user.unit);
         }else if (attr == "urgency"){
           $(this).text(user.urgency);
+        }else if (attr == "product"){
+          $(this).text(user.product);
         }
       });
       window.location.reload();
@@ -621,7 +702,7 @@ function selectedUrgency(name, id){
     document.getElementById(id).selectedIndex = 2;
   }else if(day > 4 & day < 7){
     document.getElementById(id).selectedIndex = 3;
-  }else if(day > 6 & day < 15){
+  }else if(day > 6){
     document.getElementById(id).selectedIndex = 4;
   }else{
     
@@ -648,11 +729,100 @@ $("#rName").change(function() {
     $("#id_chief_approve_user_name").val(id);
   });
 
-  //select2 (dropdown & search)
-  $(document).ready(function() {
-      $("#id_car").select2({});
-      $('#id_repair_type').select2({});
+  $("#id_rq_type").change(function() {
+    rqType_Change();
   });
+
+  function rqType_Change(){
+    if ($("#id_rq_type").val() == ""){
+        $("#div_id_repair_type").addClass("d-none");
+        $("#div_id_car").addClass("d-none");
+        $("#div_id_broke_type").addClass("d-none");
+    } 
+    else{
+        $("#div_id_repair_type").removeClass("d-none");
+        $("#div_id_car").removeClass("d-none");
+        $("#div_id_broke_type").removeClass("d-none");
+
+        searchRepairTypeAndCar();
+    }
+  }
+
+  function searchRepairTypeAndCar(){
+    var tempCar = $("#id_car").val();
+    var tempRepairType = $("#id_repair_type").val();
+
+    if($('#id_rq_type').val() != ""){
+      var idInput = $('#id_rq_type').val();
+
+      // Create Ajax Call
+      if(idInput){
+        //set id_rq_type
+        $.ajax({
+          url: '{% url "searchRepairTypeAndCar" %}',
+          data: {
+            'rq_type': idInput,
+          },
+          dataType: 'json',
+          success: function (data) {
+            if (data.car_list) {
+              $("#id_car").find('option').not(':first').remove();
+              //set option 
+              for(var i = 0; i < data.car_list.length; i++){
+                $("#id_car").append(new Option(data.car_list[i].name, data.car_list[i].id));
+              }
+            }
+            if (data.repair_type_list) {
+              $("#id_repair_type").find('option').not(':first').remove();
+              //set option 
+              for(var i = 0; i < data.repair_type_list.length; i++){
+                $("#id_repair_type").append(new Option(data.repair_type_list[i].name, data.repair_type_list[i].id));
+              }
+            }
+            $('#id_car option[value="'+tempCar+'"]').attr('selected','selected');
+            $('#id_repair_type option[value="'+tempRepairType+'"]').attr('selected','selected');
+          }
+        });
+      }
+      return false;
+      }else{
+        $("#id_car").find('option').not(':first').remove();
+        $("#id_repair_type").find('option').not(':first').remove();
+      }
+  }
+
+    //after load
+    $(document).ready(function() {
+        //เส้น
+        $('#div_id_expense_dept').after("<hr class='my-4' style='border: 1px solid #7DCEA0; border-radius: 1px;'>");
+        $('#div_id_urgency').after("<hr class='my-4' style='border: 1px solid #7FB3D5; border-radius: 1px;'>");
+
+        rqType_Change();
+        check_customCheckInvoice();
+    });
+
+    function check_customCheckInvoice(){
+      if ($('#id_is_invoice').val() == 'True'){
+        $('#customCheckInvoice').prop('checked', true);
+      }else{
+        $('#customCheckInvoice').prop('checked', false);
+      }
+    }
+
+    //before save
+    $('form').submit(function() {
+        //ถ้าติ๊กออกใบกำกับ
+        if ($('#customCheckInvoice').is(":checked")){
+            $('#id_is_invoice').val('TRUE');
+        }else{
+            $('#id_is_invoice').val('FALSE');
+        }
+    });
+
+    //ระดับความเร่งด่วน
+    $("#id_desired_date").change(function() {
+        selectedUrgency('desired_date', 'id_urgency');
+    });
 
 </script> 
 {% endblock %}

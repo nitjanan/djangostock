@@ -127,6 +127,7 @@ urlpatterns = [
     path('setDataDistributor', views.setDataDistributor, name="setDataDistributor"),
     path('searchLastPoItem', views.searchLastPoItem, name="searchLastPoItem"),
     path('getRateDistributor', views.getRateDistributor, name="getRateDistributor"),
+    path('searchRepairTypeAndCar', views.searchRepairTypeAndCar, name="searchRepairTypeAndCar"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),

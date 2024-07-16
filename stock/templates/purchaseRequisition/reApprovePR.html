@@ -33,7 +33,7 @@ u.dotted {
             <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
           </description>
         </div>
-        <div class="text-center col col-md-3">
+        <!--div class="text-center col col-md-3">
           <div role="alert"  
           class="alert
           {% if requisition.urgency.id == 1 %}
@@ -49,7 +49,7 @@ u.dotted {
             <b>ระดับความเร่งด่วน: {{requisition.urgency.name}}</b>
            {% endif %}
           </div>
-        </div>
+        </div-->
       </div>
       <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
       <div class="row">
@@ -302,25 +302,39 @@ u.dotted {
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" type="text" name="name" required>
             <label for="product">รหัสวัสดุ/อุปกรณ์</label>
-            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id}}">
+            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
             <label for="name">เหตุผลและวัตถุประสงค์</label>
-            <input class="form-control" type="text" name="description" required>
-            <label for="name">จำนวนที่ขอเบิก</label>
-            <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
-            <label for="name">หน่วย</label>
-            <select id="sel-unit" name="unit" class="select form-control" required>
+            <!--input class="form-control" type="text" name="description" required-->
+            <select id="sel-description" name="description" class="select form-control" required>
               <option value="" selected="">---------</option>
-              {% for unit in baseUnit %}
-              <option value="{{unit.name}}">{{unit.name}}</option>
+              {% for rt in baseRepairType %}
+              <option value="{{rt.name}}">{{rt.name}}</option>
               {% endfor %}
             </select>
+            <label for="name">จำนวนที่ขอเบิก</label>
+            <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
+            <label for="quantityTake">จำนวนที่จ่ายไป</label>
+            <input class="form-control is-invalid" type="number" name="quantityTake" min="0" step="any"/>
+            <label for="name">หน่วย</label>
+            <input class="form-control" list="unitList" name="unit" id="sel-unit">
+            <datalist id="unitList">
+              {% for unit in baseUnit %}
+                <option data-id = "{{unit.id}}" value="{{unit.name}}">
+              {% endfor %}
+            </datalist>
             <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
-            <input class="form-control" type="text" name="machine" >
+            <!--input class="form-control" type="text" name="machine"-->
+            <select id="sel-machine" name="machine" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for car in baseCar %}
+              <option value="{{car.name}}">{{car.name}}</option>
+              {% endfor %}
+            </select>
             <label for="name">วันที่ต้องการ</label>
             <input class="form-control dateinput form-control" type="date" name="desireddate"  placeholder="Select a date" onchange="selectedUrgency(this.name, 'sel-urgency');">
             <label for="name">ระดับความเร่งด่วน</label>
@@ -354,27 +368,39 @@ u.dotted {
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
             <label for="formProduct">รหัสวัสดุ/อุปกรณ์</label>
-            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off" value="{{item.product.id}}">
+            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
             <label for="description">เหตุผลและวัตถุประสงค์</label>
-            <input class="form-control" id="form-description" type="text" name="formDescription"/>
+            <!--input class="form-control" id="form-description" type="text" name="formDescription"/-->
+            <select id="form-description" name="formDescription" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for rt in baseRepairType %}
+              <option value="{{rt.name}}">{{rt.name}}</option>
+              {% endfor %}
+            </select>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
             <label for="quantityTake">จำนวนที่จ่ายไป</label>
-            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min="0"  step="any"/>
+            <input class="form-control is-invalid" id="form-quantitytake" type="number" name="formQuantityTake" min="0"  step="any"/>
             <label for="name">หน่วย</label>
-            <select id="form-unit" name="formUnit" class="select form-control" required>
-              <option value="" selected="">---------</option>
+            <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">
+            <datalist id="formUnitList">
               {% for unit in baseUnit %}
-              <option value="{{unit.name}}">{{unit.name}}</option>
+                <option data-id = "{{unit.id}}" value="{{unit.name}}">
+              {% endfor %}
+            </datalist>
+            <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
+            <!--input class="form-control" type="text" id="form-machine" name="formMachine"-->
+            <select id="form-machine" name="formMachine" class="select form-control" required>
+              <option value="" selected="">---------</option>
+              {% for car in baseCar %}
+              <option value="{{car.name}}">{{car.name}}</option>
               {% endfor %}
             </select>
-            <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
-            <input class="form-control" type="text" id="form-machine" name="formMachine">
             <label for="name">วันที่ต้องการ</label>
             <input class="form-control dateinput form-control" type="date" id="form-desireddate" name="formDesiredDate"  placeholder="Select a date" onchange="selectedUrgency(this.name, 'form-urgency');">
             <label for="name">ระดับความเร่งด่วน</label>
@@ -445,9 +471,10 @@ function openModal(instance) {
 $(function(){
 $(document).on('submit','form#addUser',function(){
     var nameInput = $('input[name="name"]').val().trim();
-    var descriptionInput = $('input[name="description"]').val().trim();
+    var descriptionInput = $('#sel-description').val().trim();
     var quantityInput = $('input[name="quantity"]').val().trim();
-    var machineInput = $('input[name="machine"]').val().trim();
+    var quantityTakeInput = $('input[name="quantityTake"]').val().trim();
+    var machineInput = $('#sel-machine').val().trim();
     var desireddateInput = $('input[name="desireddate"]').val();
     var unitInput = $('#sel-unit').val();
     var urgencyInput = $('#sel-urgency').val();
@@ -463,6 +490,7 @@ $(document).on('submit','form#addUser',function(){
                 'name': nameInput,
                 'description': descriptionInput,
                 'quantity': quantityInput,
+                'quantity_take': quantityTakeInput,
                 'machine': machineInput,
                 'desired_date': desireddateInput,
                 'unit': unitInput,
@@ -513,10 +541,10 @@ $(function(){
 $(document).on('submit','form#updateUser',function(){
     var idInput = $('input[name="formId"]').val().trim();
     var nameInput = $('input[name="formName"]').val().trim();
-    var descriptionInput = $('input[name="formDescription"]').val().trim();
+    var descriptionInput = $('#form-description').val();
     var quantityInput = $('input[name="formQuantity"]').val().trim();
     var quantityTakeInput = $('input[name="formQuantityTake"]').val().trim();
-    var machineInput = $('input[name="formMachine"]').val().trim();
+    var machineInput = $('#form-machine').val();
     var desireddateInput = $('input[name="formDesiredDate"]').val();
     var unitInput = $('#form-unit').val();
     var urgencyInput = $('#form-urgency').val();
@@ -591,7 +619,7 @@ function appendToUsrTable(user) {
             '<td class="userName" name="name">${user.name}</td>
             '<td class="userDescription" name="description">${user.description}</td>
             '<td class="text-center userQuantity" name="quantity">${user.quantity}</td>
-            '<td class="text-center userQuantityTake" name="quantityTake">0</td>
+            '<td class="text-center userQuantityTake" name="quantityTake">${user.quantity_take}</td>
             '<td class="text-center userUnit" name="unit">${user.unit}</td>
             '<td class="userMachine" name="machine">${user.machine}</td>
             '<td class="text-center userDesiredDate" name="desireddate">${user.desired_date}</td>
@@ -656,7 +684,7 @@ function selectedUrgency(name, id){
     document.getElementById(id).selectedIndex = 2;
   }else if(day > 4 & day < 7){
     document.getElementById(id).selectedIndex = 3;
-  }else if(day > 6 & day < 15){
+  }else if(day > 6){
     document.getElementById(id).selectedIndex = 4;
   }else{
     

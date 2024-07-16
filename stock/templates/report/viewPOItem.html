@@ -13,6 +13,9 @@
       {% csrf_token %}
       <div class="form-row">
         <div class="form-group col-md-2 mb-0">
+            {{ filter.form.po_ref_no|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
             {{ filter.form.item_product_id_from|as_crispy_field }}
         </div>
         <div class="form-group col-md-2 mb-0">
@@ -22,22 +25,22 @@
             {{filter.form.item_product_name|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
-            {{filter.form.category|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-2 mb-0">
             {{filter.form.unit_price_min|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
             {{filter.form.unit_price_max|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
-          {{filter.form.distributor|as_crispy_field}}
+            {{filter.form.distributor|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-1 mb-0">
+            {{filter.form.stockman_user|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
-          {{filter.form.stockman_user|as_crispy_field}}
+            {{filter.form.category|as_crispy_field}}
         </div>
-        <div class="form-group col-md-3 mb-0">
-          {{filter.form.item_machine|as_crispy_field}}
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.item_machine|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
             {{filter.form.start_created|as_crispy_field}}

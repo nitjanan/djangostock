@@ -168,9 +168,36 @@ def get_first_name(self):
     return self.first_name + " " + self.last_name
 User.add_to_class("__str__", get_first_name)
 
+class BaseRequisitionType(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทใบขอเบิก")
+    iso_code = models.CharField(max_length=255, blank=True, null = True, verbose_name="iso code")
+
+    class Meta:
+        db_table = 'BaseRequisitionType'
+        ordering=('id',)
+        verbose_name = 'ประเภทใบขอเบิก'
+        verbose_name_plural = 'ข้อมูลประเภทใบขอเบิก'
+    
+    def __str__(self):
+        return str(self.name)
+    
+class BaseExpenseDepartment(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสแผนกค่าใช้จ่าย")#แผนกค่าใช้จ่าย
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนกค่าใช้จ่าย")
+
+    class Meta:
+        db_table = 'BaseExpenseDepartment'
+        ordering=('id',)
+        verbose_name = 'แผนกค่าใช้จ่าย'
+        verbose_name_plural = 'ข้อมูลแผนกค่าใช้จ่าย'
+    
+    def __str__(self):
+        return str(self.name)
+    
 class BaseRepairType(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทการซ่อม")#เก็บประเภทการซ่อม
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทการซ่อม")
+    rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
 
     class Meta:
         db_table = 'BaseRepairType'
@@ -181,14 +208,28 @@ class BaseRepairType(models.Model):
     def __str__(self):
         return str(self.name)
     
+class BaseBrokeType(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อเหตุผล/สาเหตุที่ต้องซ่อม")
+    rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
+
+    class Meta:
+        db_table = 'BaseBrokeType'
+        ordering=('id',)
+        verbose_name = 'เหตุผล/สาเหตุที่ต้องซ่อม'
+        verbose_name_plural = 'ข้อมูลเหตุผล/สาเหตุที่ต้องซ่อม'
+    
+    def __str__(self):
+        return str(self.name)
+    
 class BaseCar(models.Model):
-    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อทะเบียนรถ")
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อเครื่องจักร/ทะเบียนรถ")
+    rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
 
     class Meta:
         db_table = 'BaseCar'
         ordering=('id',)
-        verbose_name = 'ทะเบียนรถ'
-        verbose_name_plural = 'ข้อมูลทะเบียนรถ'
+        verbose_name = 'เครื่องจักร/ทะเบียนรถ'
+        verbose_name_plural = 'ข้อมูลเครื่องจักร/ทะเบียนรถ'
     
     def __str__(self):
         return str(self.name)
@@ -489,15 +530,20 @@ class Requisition(models.Model):
         on_delete=models.CASCADE,
         related_name='supplies_approve_user_name'
     )
-    urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)
+    urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)#ระดับความเร่งด่วน
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
     is_edit = models.BooleanField(default=True)
     memorandum_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/memorandum/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
-    repair_type = models.ForeignKey(BaseRepairType, on_delete=models.CASCADE, blank=True, null=True)
-    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True)
+    repair_type = models.ForeignKey(BaseRepairType, on_delete=models.CASCADE, blank=True, null=True)#ประเภทการซ่อม
+    broke_type = models.ForeignKey(BaseBrokeType, on_delete=models.CASCADE, blank=True, null=True) #เหตุผล/สาเหตุ
+    rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True) #ประเภทใบขอเบิก
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True) #เครื่องจักร/ทะเบียนรถ
+    expense_dept = models.ForeignKey(BaseExpenseDepartment, on_delete=models.CASCADE, blank=True, null=True) #แผนกค่าใช้จ่าย
+    is_invoice = models.BooleanField(default=False) #ออกใบกำกับ
+    desired_date = models.DateField(blank=True, null=True) #วันที่ต้องการ
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
