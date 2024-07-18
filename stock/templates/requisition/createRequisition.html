@@ -26,6 +26,21 @@
         width: 1.85rem;
         height: 1.85rem;
     }
+
+    .big-checkbox{
+        width: 16px; /* Adjust the width as needed */
+        height: 16px; /* Adjust the height as needed */
+        transform: scale(1.15); /* Adjust the scale as needed */
+        -webkit-transform: scale(1.15); /* For Safari and Chrome */
+        -moz-transform: scale(1.15); /* For Firefox */
+        -ms-transform: scale(1.15); /* For Internet Explorer */
+        -o-transform: scale(1.15); /* For Opera */
+    }
+
+    .inline-checkboxes{
+        display: inline-block;
+        margin-right: 15px; /* Adjust spacing as needed */
+    }
 </style>
 {% endblock %}
 
@@ -70,11 +85,6 @@
                     {% endfor %}
                 </datalist>
                 <p>{{ form | crispy}}</p>
-                <div class="custom-control form-control-lg custom-checkbox">
-                    <input type="checkbox" class="custom-control-input" id="customCheckInvoice">
-                    <label class="custom-control-label" for="customCheckInvoice"></label>
-                    <label class="control-label col-sm-3 small">ออกใบกำกับภาษี</label>
-                </div>
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary hidden-print float-right">
                     <i class="fas fa-save"></i>
@@ -179,17 +189,10 @@
         $('#div_id_expense_dept').after("<hr class='my-4' style='border: 1px solid #7DCEA0; border-radius: 1px;'>");
         $('#div_id_urgency').after("<hr class='my-4' style='border: 1px solid #7FB3D5; border-radius: 1px;'>");
 
-        rqType_Change();
-    });
+        $('input[type="checkbox"]').addClass('big-checkbox');
+        $('.form-check').addClass('inline-checkboxes');
 
-    //before save
-    $('form').submit(function() {
-        //ถ้าติ๊กออกใบกำกับ
-        if ($('#customCheckInvoice').is(":checked")){
-            $('#id_is_invoice').val('TRUE');
-        }else{
-            $('#id_is_invoice').val('FALSE');
-        }
+        rqType_Change();
     });
 	  
     function parseDate(str) {

@@ -40,29 +40,47 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-4">
+    <div class="col-6">
       <description>
       <strong>ผู้ขอตั้งเบิก: </strong>{{requisition.name}}
       <br>
       <br>
       </description>
     </div>
-    <div class="col-4 text-center">
+    <div class="col-4 text-left">
         <description>
-          <strong>แผนกค่าใช้จ่าย: </strong>{% if requisition.expense_dept %}{{requisition.expense_dept}}{%endif%}<br>
+          <strong>ใบแจ้งซ่อมเลขที่: </strong><br>
           <br>
         </description>
-      </div>
-      <div class="col-2 text-center">
-        <description>
-          <strong> {% if requisition.is_invoice %}<i class="fas fa-check-square"></i>{%else%}<i class="far fa-square"></i>{%endif%} ออกใบกำกับฯ.</strong><br>
-          <br>
-        </description>
-      </div>
+    </div>
     <div class="col-2 text-right">
       <description>
         <strong>วันที่: </strong>{{requisition.created | date:"d/m/Y"}}<br>
         <br>
+      </description>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-6">
+      <description>
+      <strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน: </strong>{% if requisition.car %}{{requisition.car}}{%endif%}
+      <br>
+      <br>
+      </description>
+    </div>
+    <div class="col-3 text-left">
+        <description>
+          <strong>แผนกคชจ. </strong>{% if requisition.expense_dept %}{{requisition.expense_dept}}{%endif%}<br>
+          <br>
+        </description>
+      </div>
+    <div class="col-3 text-right">
+      <description>
+        <strong>
+        </strong>
+        {% for expense in requisition.expenses.all %}
+          <i class="fas fa-circle"></i> {{ expense.name }}
+        {% endfor %}
       </description>
     </div>
   </div>
@@ -98,7 +116,7 @@
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
                     <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ทะเบียนรถ/เครื่องจักร</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
                     <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
                     <!--
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
@@ -118,10 +136,10 @@
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
                       {{user.unit}}
                     </td>
-                    <td class="text-center userDescription userData" name="description">{{user.description}}</td>
-                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
-                    <!--
                     <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
+                    <td class="text-center userDescription userData" name="description">{{user.description}}</td>
+                    <!--
+                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
                     <td class="text-center userUrgency userData" name="urgency" data-val="{{user.urgency}}">
                       {% for bu in baseUrgency %}
                         {% if user.urgency == bu.id %}
@@ -155,12 +173,12 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-4">
+    <div class="col-8">
       <description>
       <strong>เหตุผล/สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
       </description>
     </div>
-    <div class="col-4 text-center">
+    <div class="col-4 text-right">
       <description>
       <strong>ระดับความเร่งด่วน: </strong>
       {% if requisition.urgency %}
@@ -168,15 +186,10 @@
       {%else%}
         {% for bu in baseUrgency %}
           {% if users.1.urgency == bu.id %}
-            {{bu.name}}
+            {{bu.name}} {{bu.description}}
           {% endif %}
         {% endfor %}
       {%endif%}
-      </description>
-    </div>
-    <div class="col-4 text-right">
-      <description>
-      <strong>วันที่ต้องการ: </strong>{% if requisition.desired_date %}{{requisition.desired_date | date:"d/m/Y"}}{%else%}{{users.1.desired_date| date:"d/m/Y"}}{%endif%}
       </description>
     </div>
   </div>

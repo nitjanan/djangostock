@@ -168,6 +168,19 @@ def get_first_name(self):
     return self.first_name + " " + self.last_name
 User.add_to_class("__str__", get_first_name)
 
+class BaseExpenses(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสค่าใช้จ่าย")#เก็บไอดีค่าใช้จ่าย
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อค่าใช้จ่าย")
+
+    class Meta:
+        db_table = 'BaseExpenses'
+        ordering=('id',)
+        verbose_name = 'ค่าใช้จ่าย'
+        verbose_name_plural = 'ข้อมูลค่าใช้จ่าย'
+    
+    def __str__(self):
+        return str(self.name)
+
 class BaseRequisitionType(models.Model):
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทใบขอเบิก")
     iso_code = models.CharField(max_length=255, blank=True, null = True, verbose_name="iso code")
@@ -542,8 +555,8 @@ class Requisition(models.Model):
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True) #ประเภทใบขอเบิก
     car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True) #เครื่องจักร/ทะเบียนรถ
     expense_dept = models.ForeignKey(BaseExpenseDepartment, on_delete=models.CASCADE, blank=True, null=True) #แผนกค่าใช้จ่าย
-    is_invoice = models.BooleanField(default=False) #ออกใบกำกับ
     desired_date = models.DateField(blank=True, null=True) #วันที่ต้องการ
+    expenses = models.ManyToManyField(BaseExpenses, blank=True, null=True, verbose_name="ค่าใช้จ่าย")#ค่าใช้จ่าย checkbox
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

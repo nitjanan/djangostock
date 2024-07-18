@@ -1128,6 +1128,8 @@ def createRequisition(request):
                 except UserProfile.DoesNotExist:
                     pass
                 new_contact.save()
+                # บันทึก ManyToMany relationships
+                form.save_m2m()
                 return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
     except ValueError:
         pass

@@ -35,6 +35,21 @@
   height: 1.85rem;
 }
 
+.big-checkbox{
+  width: 16px; /* Adjust the width as needed */
+  height: 16px; /* Adjust the height as needed */
+  transform: scale(1.15); /* Adjust the scale as needed */
+  -webkit-transform: scale(1.15); /* For Safari and Chrome */
+  -moz-transform: scale(1.15); /* For Firefox */
+  -ms-transform: scale(1.15); /* For Internet Explorer */
+  -o-transform: scale(1.15); /* For Opera */
+}
+
+.inline-checkboxes{
+  display: inline-block;
+  margin-right: 15px; /* Adjust spacing as needed */
+}
+
 </style>
 {% endblock %}
 
@@ -66,29 +81,47 @@
   <hr>
 
   <div class="row">
-    <div class="col-4">
+    <div class="col-6">
       <description>
       <strong>ผู้ขอตั้งเบิก: </strong>{{requisition.name}}
       <br>
       <br>
       </description>
     </div>
-    <div class="col-4 text-center">
+    <div class="col-4 text-left">
         <description>
-          <strong>แผนกค่าใช้จ่าย: </strong>{% if requisition.expense_dept %}{{requisition.expense_dept}}{%endif%}<br>
+          <strong>ใบแจ้งซ่อมเลขที่: </strong><br>
           <br>
         </description>
-      </div>
-      <div class="col-2 text-center">
-        <description>
-          <strong> {% if requisition.is_invoice %}<i class="fas fa-check-square"></i>{%else%}<i class="far fa-square"></i>{%endif%} ออกใบกำกับฯ.</strong><br>
-          <br>
-        </description>
-      </div>
+    </div>
     <div class="col-2 text-right">
       <description>
         <strong>วันที่: </strong>{{requisition.created | date:"d/m/Y"}}<br>
         <br>
+      </description>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-6">
+      <description>
+      <strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน: </strong>{% if requisition.car %}{{requisition.car}}{%endif%}
+      <br>
+      <br>
+      </description>
+    </div>
+    <div class="col-3 text-left">
+        <description>
+          <strong>แผนกคชจ. </strong>{% if requisition.expense_dept %}{{requisition.expense_dept}}{%endif%}<br>
+          <br>
+        </description>
+      </div>
+    <div class="col-3 text-right">
+      <description>
+        <strong>
+        </strong>
+        {% for expense in requisition.expenses.all %}
+          <i class="fas fa-circle"></i> {{ expense.name }}
+        {% endfor %}
       </description>
     </div>
   </div>
@@ -124,7 +157,7 @@
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
                     <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ทะเบียนรถ/เครื่องจักร</strong></td>
+                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
                     <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
                     <!--
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
@@ -144,9 +177,10 @@
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">
                       {{user.unit}}
                     </td>
+                    <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
                     <td class="text-center userDescription userData" name="description">{{user.description}}</td>
-                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
                     <!--
+                    <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
                     <td class="text-center userDesiredDate userData" name="desireddate">{{user.desired_date | date:"d/m/Y"}}</td>
                     <td class="text-center userUrgency userData" name="urgency" data-val="{{user.urgency}}">
                       {% for bu in baseUrgency %}
@@ -181,12 +215,12 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-4">
+    <div class="col-8">
       <description>
       <strong>เหตุผล/สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
       </description>
     </div>
-    <div class="col-4 text-center">
+    <div class="col-4 text-right">
       <description>
       <strong>ระดับความเร่งด่วน: </strong>
       {% if requisition.urgency %}
@@ -194,15 +228,10 @@
       {%else%}
         {% for bu in baseUrgency %}
           {% if users.1.urgency == bu.id %}
-            {{bu.name}}
+            {{bu.name}} {{bu.description}}
           {% endif %}
         {% endfor %}
       {%endif%}
-      </description>
-    </div>
-    <div class="col-4 text-right">
-      <description>
-      <strong>วันที่ต้องการ: </strong>{% if requisition.desired_date %}{{requisition.desired_date | date:"d/m/Y"}}{%else%}{{users.1.desired_date| date:"d/m/Y"}}{%endif%}
       </description>
     </div>
   </div>
@@ -262,11 +291,6 @@
                 {% endfor %}
             </datalist>
             <p>{{ form | crispy}}</p>
-            <div class="custom-control form-control-lg custom-checkbox">
-              <input type="checkbox" class="custom-control-input" id="customCheckInvoice">
-              <label class="custom-control-label" for="customCheckInvoice"></label>
-              <label class="control-label col-sm-3 small">ออกใบกำกับภาษี</label>
-            </div>
             {% csrf_token %}
               <button type="submit" class="btn btn-warning hidden-print float-right">
                 <i class="fas fa-save"></i>
@@ -797,26 +821,10 @@ $("#rName").change(function() {
         $('#div_id_expense_dept').after("<hr class='my-4' style='border: 1px solid #7DCEA0; border-radius: 1px;'>");
         $('#div_id_urgency').after("<hr class='my-4' style='border: 1px solid #7FB3D5; border-radius: 1px;'>");
 
+        $('input[type="checkbox"]').addClass('big-checkbox');
+        $('.form-check').addClass('inline-checkboxes');
+
         rqType_Change();
-        check_customCheckInvoice();
-    });
-
-    function check_customCheckInvoice(){
-      if ($('#id_is_invoice').val() == 'True'){
-        $('#customCheckInvoice').prop('checked', true);
-      }else{
-        $('#customCheckInvoice').prop('checked', false);
-      }
-    }
-
-    //before save
-    $('form').submit(function() {
-        //ถ้าติ๊กออกใบกำกับ
-        if ($('#customCheckInvoice').is(":checked")){
-            $('#id_is_invoice').val('TRUE');
-        }else{
-            $('#id_is_invoice').val('FALSE');
-        }
     });
 
     //ระดับความเร่งด่วน
