@@ -160,9 +160,14 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-8">
+    <div class="col-4">
       <description>
-      <strong>เหตุผล/สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
+      <strong>สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
+      </description>
+    </div>
+    <div class="col-4 text-center">
+      <description>
+      <strong>หมายเหตุ/เหตุผล: </strong>{% if requisition.note %}{{requisition.note}}{%endif%}
       </description>
     </div>
     <div class="col-4 text-right">

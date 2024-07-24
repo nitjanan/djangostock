@@ -1728,14 +1728,16 @@ def createPR(request, requisition_id):
     for item in items:
         quantityTotal += item.quantity_pr
 
+    '''24-07-2024 เปลี่ยนเป็นดึงจาก หมายเหตุ/เหตุผล ของใบขอเบิกแทน
     try:
         first_items = RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0).first()
         description = first_items.description
     except:
         description = ""
+    '''
         
     #form
-    form = PurchaseRequisitionForm(request, request.POST or None, initial={'note': description, 'branch_company': company, 'organizer': requisition.organizer,})
+    form = PurchaseRequisitionForm(request, request.POST or None, initial={'note': requisition.note, 'branch_company': company, 'organizer': requisition.organizer,})
     if form.is_valid():
         #save id express
         bool = saveIdExpressPR(request)

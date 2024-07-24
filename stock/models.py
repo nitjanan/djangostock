@@ -557,6 +557,7 @@ class Requisition(models.Model):
     expense_dept = models.ForeignKey(BaseExpenseDepartment, on_delete=models.CASCADE, blank=True, null=True) #แผนกค่าใช้จ่าย
     desired_date = models.DateField(blank=True, null=True) #วันที่ต้องการ
     expenses = models.ManyToManyField(BaseExpenses, blank=True, null=True, verbose_name="ค่าใช้จ่าย")#ค่าใช้จ่าย checkbox
+    note = models.CharField(max_length = 255, null = True, blank = True, verbose_name="หมายเหตุ/เหตุผล")
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

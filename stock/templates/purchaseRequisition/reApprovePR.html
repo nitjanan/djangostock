@@ -125,11 +125,11 @@ u.dotted {
                     <td class="text-center"><strong>ลำดับที่</strong></td>
                     <td class="text-center"><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
                     <td class="text-center"><strong>สินค้า/รายละเอียด</strong></td>
-                    <td class="text-center"><strong>เหตุผลและวัตถุประสงค์</strong></td>
+                    <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
                     <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ใช้ในระบบงาน(เครื่องจักร)</strong></td>
+                    <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
                     <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
                     <td class="text-right hidden-print" colspan="2"><strong>Action</strong></td>                
@@ -308,7 +308,7 @@ u.dotted {
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
-            <label for="name">เหตุผลและวัตถุประสงค์</label>
+            <label for="name">รายละเอียด/ประเภทการซ่อม</label>
             <!--input class="form-control" type="text" name="description" required-->
             <select id="sel-description" name="description" class="select form-control" required>
               <option value="" selected="">---------</option>
@@ -327,7 +327,7 @@ u.dotted {
                 <option data-id = "{{unit.id}}" value="{{unit.name}}">
               {% endfor %}
             </datalist>
-            <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
+            <label for="name">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</label>
             <!--input class="form-control" type="text" name="machine"-->
             <select id="sel-machine" name="machine" class="select form-control" required>
               <option value="" selected="">---------</option>
@@ -374,7 +374,7 @@ u.dotted {
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
-            <label for="description">เหตุผลและวัตถุประสงค์</label>
+            <label for="description">รายละเอียด/ประเภทการซ่อม</label>
             <!--input class="form-control" id="form-description" type="text" name="formDescription"/-->
             <select id="form-description" name="formDescription" class="select form-control" required>
               <option value="" selected="">---------</option>
@@ -393,7 +393,7 @@ u.dotted {
                 <option data-id = "{{unit.id}}" value="{{unit.name}}">
               {% endfor %}
             </datalist>
-            <label for="name">ใช้ในระบบงาน(เครื่องจักร)</label>
+            <label for="name">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</label>
             <!--input class="form-control" type="text" id="form-machine" name="formMachine"-->
             <select id="form-machine" name="formMachine" class="select form-control" required>
               <option value="" selected="">---------</option>

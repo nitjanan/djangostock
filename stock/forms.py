@@ -68,7 +68,7 @@ class RequisitionForm(forms.ModelForm):
 
     class Meta:
         model = Requisition
-        fields = ('name','chief_approve_user_name','organizer','branch_company', 'expense_dept', 'rq_type', 'repair_type', 'car', 'broke_type', 'desired_date','urgency', 'expenses', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
+        fields = ('name','chief_approve_user_name','organizer','branch_company', 'expense_dept', 'rq_type', 'car', 'repair_type', 'broke_type', 'desired_date', 'urgency', 'note', 'expenses', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
         'name': forms.HiddenInput(),
         'chief_approve_user_name': forms.HiddenInput(),
