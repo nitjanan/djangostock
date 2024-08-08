@@ -501,14 +501,13 @@ function openModal(instance) {
 $(function(){
 $(document).on('submit','form#addUser',function(){
     var nameInput = $('input[name="name_pd"]').val().trim();
-    var descriptionInput = $('input[name="description"]').val().trim();
+    var unitInput = $('#sel-unit').val();
     var quantityInput = $('input[name="quantity"]').val().trim();
     var quantityTakeInput = $('input[name="quantityTake"]').val().trim();
-    var unitInput = $('#sel-unit').val();
     var machineInput = '';
     var desireddateInput = '';
     var urgencyInput = '';
-    var quantityInput = '';
+    var descriptionInput = '';
     var productInput = $('input[name="product"]').val().trim();
     /*
     var machineInput = $('input[name="machine"]').val().trim();
@@ -777,6 +776,21 @@ $("#rName").change(function() {
     }
   }
 
+  $("#id_agency").change(function() {
+    agency_Change();
+  });
+
+  function agency_Change(){
+    if ($("#id_agency").val() == ""){
+        $("#div_id_expense_dept").addClass("d-none");
+    }
+    else{
+        $("#id_agency").removeClass("d-none");
+        $("#div_id_expense_dept").removeClass("d-none");
+        searchExpenseDept();
+    }
+  }
+
   function searchRepairTypeAndCar(){
     var tempCar = $("#id_car").val();
     var tempRepairType = $("#id_repair_type").val();
@@ -820,6 +834,39 @@ $("#rName").change(function() {
       }
   }
 
+  function searchExpenseDept(){
+        var tempExpenseDept = $("#id_expense_dept").val();
+
+        if($('#id_agency').val() != ""){
+            var idInput = $('#id_agency').val();
+
+            // Create Ajax Call
+            if(idInput){
+                //set id_rq_type
+                $.ajax({
+                    url: '{% url "searchExpenseDept" %}',
+                    data:{
+                            'agency': idInput,
+                        },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.expense_dept_list) {
+                                $("#id_expense_dept").find('option').not(':first').remove();
+                                //set option 
+                                for(var i = 0; i < data.expense_dept_list.length; i++){
+                                    $("#id_expense_dept").append(new Option(data.expense_dept_list[i].name, data.expense_dept_list[i].id));
+                                }
+                        }
+                        $('#id_expense_dept option[value="'+tempExpenseDept +'"]').attr('selected','selected');
+                    }
+                });
+            }
+            return false;
+        }else{
+            $("#id_expense_dept").find('option').not(':first').remove();
+        }
+    }
+
     //after load
     $(document).ready(function() {
         //เส้น
@@ -830,6 +877,7 @@ $("#rName").change(function() {
         $('.form-check').addClass('inline-checkboxes');
 
         rqType_Change();
+        agency_Change();
     });
 
     //ระดับความเร่งด่วน

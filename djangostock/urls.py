@@ -128,6 +128,7 @@ urlpatterns = [
     path('searchLastPoItem', views.searchLastPoItem, name="searchLastPoItem"),
     path('getRateDistributor', views.getRateDistributor, name="getRateDistributor"),
     path('searchRepairTypeAndCar', views.searchRepairTypeAndCar, name="searchRepairTypeAndCar"),
+    path('searchExpenseDept', views.searchExpenseDept, name="searchExpenseDept"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),
@@ -163,6 +164,9 @@ urlpatterns = [
 
     path('report/purchaseOrderItem/export/excel/by/value', views.exportExcelSummaryByProductValue, name='exportExcelSummaryByProductValue'),
     path('report/purchaseOrderItem/export/excel/by/frequently', views.exportExcelSummaryByProductFrequently, name='exportExcelSummaryByProductFrequently'),
+
+    path('invoice/',views.viewInvoice,name="viewInvoice"),
+    path('invoice/show/<int:iv_id>/<int:mode>',views.showInvoice,name="showInvoice"),
 
 ]
 

@@ -16,7 +16,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -28,7 +28,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -1011,6 +1011,14 @@ def POShowMode(mode):
     elif mode == 5:
         return 'h_i_po_show'
 
+def IVPageMode(mode):
+    if mode == 1:
+        return 'iv_page'
+
+def IVShowMode(mode):
+    if mode == 1:
+        return 'iv_show'
+
 @login_required(login_url='signIn')
 @permission_required('auth.view_user', login_url='requisition')
 def requisitionAll(request):
@@ -1232,6 +1240,115 @@ def editRequisitionItem(request, item_id):
         form = RequisitionItemForm(instance=item)
         return redirect('createRequisitionItem', requisition_id = requisit.id)
 
+def createInvoiceAndItem(rqs, obj):
+    #ถ้ามี invoice_code และเป็นหน่วยงานภายใน (agency.id = 1) ให้สร้าง invoice
+    if rqs.branch_company.invoice_code and float(obj.quantity_take) > 0 and rqs.agency.id == 1:
+
+        have_iv_id = Invoice.objects.filter(requisit = rqs).first()
+        if not have_iv_id:
+            # ไม่ Invoice create invoice
+            iv = Invoice.objects.create(
+                bring_name = rqs.name,
+                payer_name = rqs.supplies_approve_user_name,
+                car = rqs.car,
+                note = rqs.note,
+                expense_dept = rqs.expense_dept,
+                branch_company = rqs.branch_company,
+                requisit = rqs
+            )
+            iv.save()
+            # set have_iv_id
+            have_iv_id = iv
+
+        #create invoice item
+        iv_item = InvoiceItem.objects.create(
+            iv = have_iv_id,
+            item = obj,
+            quantity = obj.quantity_take,
+            unit = obj.unit
+        )
+        iv_item.save()
+
+def updateInvoice(rqs):
+    #update invoid
+    try:
+        iv = Invoice.objects.get(requisit = rqs)
+        iv.bring_name = rqs.name
+        iv.payer_name = rqs.supplies_approve_user_name
+        iv.car = rqs.car
+        iv.note = rqs.note
+        iv.expense_dept = rqs.expense_dept
+        iv.save()
+    except Invoice.DoesNotExist:
+        pass
+
+def updateInvoiceAndItem(rqs, obj):
+    #update invoid
+    updateInvoice(rqs)
+
+    iv = Invoice.objects.get(requisit = rqs)
+    #update invoid item
+    if float(obj.quantity_take) > 0:
+        try:
+            #มีแล้ว update
+            iv_item = InvoiceItem.objects.get(item = obj)
+            iv_item.quantity = obj.quantity_take
+            iv_item.unit = obj.unit
+            iv_item.save()
+        except InvoiceItem.DoesNotExist:
+            #ยังไม่มีให้ create
+            iv_item = InvoiceItem.objects.create(
+                iv = iv,
+                item = obj,
+                quantity = obj.quantity_take,
+                unit = obj.unit
+            )
+            iv_item.save()
+    else:
+        #obj.quantity_take = 0 ลบ item
+        try:
+          item =  InvoiceItem.objects.get(item = obj)
+          item.delete()
+        except InvoiceItem.DoesNotExist:
+            pass
+
+def CUInvoiceAndItem(rqs):
+    have_iv_id = Invoice.objects.filter(requisit = rqs).first()
+    #ถ้ามี invoice_code และเป็นหน่วยงานภายใน (agency.id = 1) ให้สร้าง invoice
+    if rqs.branch_company.invoice_code and rqs.agency.id == 1:
+        if have_iv_id:
+            updateInvoice(rqs)
+        else:
+            #สร้าง invioce
+            iv = Invoice.objects.create(
+                bring_name = rqs.name,
+                payer_name = rqs.supplies_approve_user_name,
+                car = rqs.car,
+                note = rqs.note,
+                expense_dept = rqs.expense_dept,
+                branch_company = rqs.branch_company,
+                requisit = rqs
+            )
+            iv.save()
+
+            #สร้าง invioce item
+            r_items = RequisitionItem.objects.filter(requisit = rqs, quantity_take__gt = 0)
+            for r_i in r_items:
+                iv_item = InvoiceItem.objects.create(
+                    iv = iv,
+                    item = r_i,
+                    quantity = r_i.quantity_take,
+                    unit = r_i.unit
+                )
+                iv_item.save()
+    else:
+        #ถ้าเป็นหน่วยงานภายนอกให้ลบ iv
+        if have_iv_id:
+          #ลบ iv item ก่อน
+          items =  InvoiceItem.objects.filter(iv = have_iv_id)
+          items.delete()
+          #ลบ iv หลังจากนั้น
+          have_iv_id.delete()
 
 # class CrudView(PermissionRequiredMixin, TemplateView):
 #    raise_exception = True 
@@ -1317,6 +1434,9 @@ class CreateCrudUser(View):
             urgency = urgency1,
         )
 
+        ############# create invoice ##############
+        createInvoiceAndItem(rqs, obj)
+
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
         'quantity':obj.quantity,'quantity_take':obj.quantity_take,'machine':obj.machine,'desired_date':obj.desired_date,
         'unit':obj.unit, 'urgency': obj.urgency}
@@ -1366,20 +1486,25 @@ class UpdateCrudUser(View):
             obj.description = description1
         else:
             obj.description = rqs.repair_type.name
+
         if machine1:
             obj.machine = machine1
         else:
             obj.machine = rqs.car.name
+
         if desireddate1:
             obj.desired_date = desireddate1
         else:
             obj.desired_date = rqs.desired_date
+            
         if urgency1:
             obj.urgency = urgency1
         else:
             obj.urgency = rqs.urgency.id
         obj.save()
 
+        ############# update invoice ##############
+        updateInvoiceAndItem(rqs, obj)
 
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
         'quantity':obj.quantity,'quantity_take':obj.quantity_take,'machine':obj.machine,'desired_date':obj.desired_date,
@@ -1436,6 +1561,10 @@ def editAllRequisition(request, requisition_id):
                 obj.save()
             except PurchaseRequisition.DoesNotExist :
                 pass
+
+            #crate or update invoid
+            CUInvoiceAndItem(requisition)
+
             return redirect('requisition')
 
     context = {
@@ -1616,6 +1745,17 @@ def searchRepairTypeAndCar(request):
     data = {
         'car_list': list(base_car),
         'repair_type_list': list(base_repair_type),
+    }
+    return JsonResponse(data)
+
+def searchExpenseDept(request):
+    if 'agency' in request.GET:
+        agency = request.GET.get('agency')
+
+        base_expense_dep =  BaseExpenseDepartment.objects.filter(agency = agency).values('id', 'name')
+        
+    data = {
+        'expense_dept_list': list(base_expense_dep),
     }
     return JsonResponse(data)
 
@@ -5389,3 +5529,47 @@ def setSessionCompany(request):
         'instance': request.session['company_code'],
     }
     return JsonResponse(data)
+
+def viewInvoice(request):
+    active = request.session['company_code']
+    data = Invoice.objects.filter(branch_company__code = active)
+
+    #กรองข้อมูล
+    myFilter = InvoidFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+    
+    context = {
+        'ivs':dataPage,
+        'filter':myFilter,
+        'iv_page': "tab-active",
+        'iv_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "invoice/viewInvoice.html", context)
+
+def showInvoice(request, iv_id, mode):
+    active = request.session['company_code']
+
+    items = InvoiceItem.objects.filter(iv = iv_id)
+    iv = Invoice.objects.get(id = iv_id)
+
+    page = IVPageMode(mode)
+    show = IVShowMode(mode)
+
+    context = {
+        'items': items,
+        'iv': iv,
+        page:"tab-active",
+        show:"show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
+    }
+
+    return render(request, "invoice/showInvoice.html", context)

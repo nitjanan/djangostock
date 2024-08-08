@@ -19,7 +19,7 @@
                             <span class="float-right badge badge-pill badge-warning notification mr-5">{{pc_all}}</span>
                         {% endif %}
                     </a>
-                    <ul class="collapse list-unstyled {{requisitions_show}} {{pr_show}} {{po_show}} {{cp_show}}" id="requestSubmenu">
+                    <ul class="collapse list-unstyled {{requisitions_show}} {{pr_show}} {{po_show}} {{cp_show}} {{iv_show}}" id="requestSubmenu">
                         <li>
                             <a id="requisitionsPage" class="{{requisitions_page}}" href="{% url 'requisition' %}">ใบขอเบิก</a>
                         </li>
@@ -39,6 +39,9 @@
                         </li>
                         <li>
                             <a class="{{po_page}}" href="{% url 'viewPO' %}">ใบสั่งซื้อ</a>
+                        </li>
+                        <li>
+                            <a class="{{iv_page}}" href="{% url 'viewInvoice' %}">ใบจ่ายสินค้า</a>
                         </li>
                     </ul>
                 </li>

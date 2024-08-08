@@ -163,6 +163,39 @@ def receive_ref_number():
     new_no = format + str(formatted)
     return new_no
 
+def invoice_ref_number(branch_company):
+    today = datetime.datetime.now()
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
+    month = str(today.strftime('%m'))
+    YM = year + month
+
+    bbc = BaseBranchCompany.objects.get(code = branch_company)
+    if bbc.invoice_code:
+        format = bbc.invoice_code + YM
+
+        try:
+            last_no = Invoice.objects.all().filter(ref_no__contains=format, branch_company__code = branch_company).order_by('id').last()
+        except:
+            last_no = None
+
+        if not last_no:
+            return format + '001'
+
+        ref_no = last_no.ref_no
+        oldDate =  ref_no[2:-3]
+        if YM == oldDate:
+            no_int = int(ref_no.split(format)[-1])
+        elif YM != oldDate:
+            no_int = 000
+
+        width = 3
+        new_no_int = no_int + 1
+        formatted = (width - len(str(new_no_int))) * "0" + str(new_no_int)
+        new_no = format + str(formatted)
+    else:
+        new_no = None
+    return new_no
+
 # Create your models here.
 def get_first_name(self):
     return self.first_name + " " + self.last_name
@@ -190,13 +223,26 @@ class BaseRequisitionType(models.Model):
         ordering=('id',)
         verbose_name = 'ประเภทใบขอเบิก'
         verbose_name_plural = 'ข้อมูลประเภทใบขอเบิก'
-    
+
     def __str__(self):
         return str(self.name)
-    
+
+class BaseAgency(models.Model):
+    name = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = 'BaseAgency'
+        ordering=('id',)
+        verbose_name = 'หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลหน่วยงาน'
+
+    def __str__(self):
+        return str(self.name)
+
 class BaseExpenseDepartment(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสแผนกค่าใช้จ่าย")#แผนกค่าใช้จ่าย
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนกค่าใช้จ่าย")
+    agency = models.ForeignKey(BaseAgency, on_delete=models.CASCADE, blank=True, null=True) #หน่วยงาน
 
     class Meta:
         db_table = 'BaseExpenseDepartment'
@@ -294,6 +340,7 @@ class BaseBranchCompany(models.Model):
     code = models.CharField(max_length=255,unique=True, verbose_name="โค้ดสาขาบริษัท")
     affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True,related_name='branch_affiliated', verbose_name="ชื่อสังกัดบริษัท")
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อสาขาบริษัท", blank = True, null = True)
+    invoice_code = models.CharField(max_length=255, verbose_name="โค้ดใบจ่ายสินค้าภายใน", blank = True, null = True)
 
     class Meta:
         db_table = 'BaseBranchCompany'
@@ -553,11 +600,12 @@ class Requisition(models.Model):
     repair_type = models.ForeignKey(BaseRepairType, on_delete=models.CASCADE, blank=True, null=True)#ประเภทการซ่อม
     broke_type = models.ForeignKey(BaseBrokeType, on_delete=models.CASCADE, blank=True, null=True) #เหตุผล/สาเหตุ
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True) #ประเภทใบขอเบิก
-    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True) #เครื่องจักร/ทะเบียนรถ
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True) #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน
     expense_dept = models.ForeignKey(BaseExpenseDepartment, on_delete=models.CASCADE, blank=True, null=True) #แผนกค่าใช้จ่าย
     desired_date = models.DateField(blank=True, null=True) #วันที่ต้องการ
     expenses = models.ManyToManyField(BaseExpenses, blank=True, null=True, verbose_name="ค่าใช้จ่าย")#ค่าใช้จ่าย checkbox
     note = models.CharField(max_length = 255, null = True, blank = True, verbose_name="หมายเหตุ/เหตุผล")
+    agency = models.ForeignKey(BaseAgency, on_delete=models.CASCADE, blank=True, null=True) #หน่วยงาน
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -599,6 +647,55 @@ class RequisitionItem(models.Model):
     
     def __str__(self):
         return str(self.product)
+
+class Invoice(models.Model):
+    ref_no = models.CharField(max_length = 255, null = True, blank = True)
+    bring_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='bring_name',
+        verbose_name='ผู้เบิก'
+    )
+    payer_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='payer_name',
+        verbose_name='ผู้จ่าย'
+    )
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, verbose_name="หมายเหตุ")#ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน จากใบขอเบิก
+    note = models.CharField(max_length = 255, null = True, blank = True, verbose_name="หมายเหตุเพิ่มเติม")#หมายเหตุ จากใบขอเบิก
+    expense_dept = models.ForeignKey(BaseExpenseDepartment, on_delete=models.CASCADE, blank=True, null=True, verbose_name="แผนกค่าใช้จ่าย") #แผนกค่าใช้จ่าย
+    created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True) #บริษัท
+    requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True, blank=True) #เก็บเลขที่ใบขอเบิก
+
+    def save(self, *args, **kwargs):
+        if self.ref_no is None:
+            self.ref_no = invoice_ref_number(self.branch_company)
+        super(Invoice, self).save(*args, **kwargs)
+
+    class Meta:
+        db_table = 'Invoice'
+        ordering=('-id',)
+        unique_together = 'ref_no', 'branch_company'
+
+    def __str__(self):
+        return str(self.id)
+
+class InvoiceItem(models.Model):
+    iv = models.ForeignKey(Invoice,on_delete=models.CASCADE, null=True)
+    item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
+    quantity = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
+    unit = models.CharField(max_length=255, blank=True, null=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
+    created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+
+    class Meta:
+        db_table = 'InvoiceItem'
+        ordering=('id',)
 
 class CrudUser(models.Model):
     name = models.CharField(max_length=30, blank=True)

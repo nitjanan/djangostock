@@ -125,6 +125,21 @@
     rqType_Change();
   });
 
+  $("#id_agency").change(function() {
+    agency_Change();
+  });
+
+  function agency_Change(){
+    if ($("#id_agency").val() == ""){
+        $("#div_id_expense_dept").addClass("d-none");
+    }
+    else{
+        $("#id_agency").removeClass("d-none");
+        $("#div_id_expense_dept").removeClass("d-none");
+        searchExpenseDept();
+    }
+  }
+
   function rqType_Change(){
     if ($("#id_rq_type").val() == ""){
         $("#div_id_repair_type").addClass("d-none");
@@ -183,6 +198,39 @@
         }
     }
 
+    function searchExpenseDept(){
+        var tempExpenseDept = $("#id_expense_dept").val();
+
+        if($('#id_agency').val() != ""){
+            var idInput = $('#id_agency').val();
+
+            // Create Ajax Call
+            if(idInput){
+                //set id_rq_type
+                $.ajax({
+                    url: '{% url "searchExpenseDept" %}',
+                    data:{
+                            'agency': idInput,
+                        },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.expense_dept_list) {
+                                $("#id_expense_dept").find('option').not(':first').remove();
+                                //set option 
+                                for(var i = 0; i < data.expense_dept_list.length; i++){
+                                    $("#id_expense_dept").append(new Option(data.expense_dept_list[i].name, data.expense_dept_list[i].id));
+                                }
+                        }
+                        $('#id_expense_dept option[value="'+tempExpenseDept +'"]').attr('selected','selected');
+                    }
+                });
+            }
+            return false;
+        }else{
+            $("#id_expense_dept").find('option').not(':first').remove();
+        }
+    }
+
     //after load
     $(document).ready(function() {
         //เส้น
@@ -193,6 +241,7 @@
         $('.form-check').addClass('inline-checkboxes');
 
         rqType_Change();
+        agency_Change();
     });
 	  
     function parseDate(str) {

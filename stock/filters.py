@@ -194,4 +194,22 @@ DistributorFilter.base_filters['distributor_id_from'].label = 'รหัสผ�
 DistributorFilter.base_filters['distributor_id_to'].label = 'ถึง'
 DistributorFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
 
+class InvoidFilter(django_filters.FilterSet):
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    bring_name = django_filters.CharFilter(field_name="bring_name__first_name", lookup_expr='icontains')
+    payer_name = django_filters.ModelChoiceFilter(field_name="payer_name", queryset= User.objects.filter(groups__name='พัสดุ'))
+    car = django_filters.ModelChoiceFilter(field_name="car", queryset= BaseCar.objects.filter().all())
+    expense_dept = django_filters.ModelChoiceFilter(field_name="expense_dept", queryset= BaseExpenseDepartment.objects.filter().all())
+    start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
+    end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
 
+    class Meta:
+        model = PurchaseOrder
+        fields = ('ref_no', 'bring_name','payer_name','car','expense_dept', 'created')
+
+InvoidFilter.base_filters['ref_no'].label = 'รหัส'
+InvoidFilter.base_filters['bring_name'].label = 'ผู้เบิก'
+InvoidFilter.base_filters['payer_name'].label = 'ผู้จ่าย'
+InvoidFilter.base_filters['expense_dept'].label = 'แผนกค่าใช้จ่าย'
+InvoidFilter.base_filters['start_created'].label = 'วันที่จ่าย'
+InvoidFilter.base_filters['end_created'].label = 'ถึง'
