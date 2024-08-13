@@ -15,7 +15,7 @@
     size: A4 landscape;
     }
     body {
-        font-size: 9pt;
+        font-size: 8pt;
         font-family: serif;
         color: black;
         float: right;
@@ -85,7 +85,7 @@
                 <td scope="col" rowspan="4">จำนวน</td>
                 <td scope="col" rowspan="4">หน่วย</td>
                 {% for bd in bidder %}
-                    <td scope="col" colspan="3">{{bd.distributor.name}}
+                    <td scope="col" colspan="4">{{bd.distributor.name}}
                         {% if bd.quotation_pdf %}
                             <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
                         {% endif %}
@@ -108,19 +108,20 @@
             </tr>
             <tr>
                 {% for bd in bidder %}
-                    <td scope="col" colspan="3">โทร. {{bd.distributor.tel}}</td>
+                    <td scope="col" colspan="4">โทร. {{bd.distributor.tel}}</td>
                 {% endfor %}
             </tr>
             <tr>
                 {% for bd in bidder %}
                     <td scope="col">เกรด</td>
-                    <td scope="col" colspan="2">เครดิต {{bd.credit}}</td>
+                    <td scope="col" colspan="3">เครดิต {{bd.credit}}</td>
                 {% endfor %}
             </tr>
             <tr>
                 {% for bd in bidder %}
                     <td scope="col">ยี่ห้อ</td>
                     <td scope="col">ราคา/หน่วย</td>
+                    <td scope="col">ส่วนลด</td>
                     <td scope="col">รวม</td>
                 {% endfor %}
             </tr>
@@ -136,6 +137,7 @@
                             {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
                             <td>{{it.brand}}</td>
                             <td class="text-right">{% if it.unit_price %}{{it.unit_price |intcomma}}{%else%}{%endif%}</td>
+                            <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
                             <td class="text-right">{% if it.price %}{{it.price |intcomma}}{%else%}{%endif%}</td>
                             {% endif %}
                         {% endfor %}
@@ -148,6 +150,7 @@
                 <td rowspan="6"></td>
                 <td rowspan="6"></td>
                 {% for bd in bidder %}
+                    <td rowspan="6"></td>
                     <td rowspan="6"></td>
                     <td rowspan="6"></td>
                     <td class="text-right">{{bd.total_price |intcomma}}</td>
@@ -215,6 +218,9 @@
                             ผู้ตรวจสอบ
                             {% if cp.examiner_status.id == 3 %}
                                 <br>{{cp.examiner_status.name}}
+                            {% elif cp.examiner_status.id == 1 %}
+                                <br>{{cp.examiner_user}}
+                                <br>{{cp.examiner_status.name}}
                             {% elif cp.examiner_status.id == 2 %}
                                 {% if cp.examiner_user %}
                                 <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
@@ -230,6 +236,9 @@
                             ผู้อนุมัติ
                             {% if cp.approver_status.id == 3 %}
                                 <br>{{cp.approver_status.name}}
+                            {% elif cp.approver_status.id == 1 %}
+                                <br>{{cp.approver_user}}
+                                <br>{{cp.approver_status.name}}
                             {% elif cp.approver_status.id == 2 %}
                                 {% if cp.approver_user %}
                                 <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
@@ -244,6 +253,8 @@
                             <div class="card-body text-center pt-1 pb-1">
                                 ผู้อนุมัติ
                                 {% if cp.special_approver_status.id == 3 %}
+                                    <br>{{cp.special_approver_status.name}}
+                                {% elif cp.special_approver_status.id == 1 %}
                                     <br>{{cp.special_approver_status.name}}
                                 {% elif cp.special_approver_status.id == 2 %}
                                     {% if cp.special_approver_user %}

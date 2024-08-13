@@ -98,10 +98,11 @@
                         </form>
                         <th scope="col">รายละเอียด</th>
                         <th scope="col">จำนวน</th>
-                        <th scope="col" class="w-25">หน่วย</th>
-                        <th scope="col">หน่วยละ</th>
-                        <th scope="col">จำนวนเงิน</th>
-                        <th scope="col"></th>
+                        <th scope="col">หน่วย</th>
+                        <th scope="col" class="text-right">หน่วยละ</th>
+                        <th scope="col" class="text-right">ส่วนลด</th>
+                        <th scope="col" class="text-right">จำนวนเงิน</th>
+                        <th scope="col" class="w-10"></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -127,7 +128,7 @@
                               <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.unit__id}}"></option>
                             {% endfor %}
                           </datalist>
-                          {{form.description| add_class:"form-control description"}} {{form.quantity}} {{form.unit | add_class:"form-control"}} {{form.unit_price}} {{form.price}}
+                          {{form.description| add_class:"form-control description"}} {{form.quantity}} {{form.unit | add_class:"form-control"}} {{form.unit_price}} {{form.discount}} {{form.price}}
                           <div class="input-group-append text-right">
                               <button class="btn btn-success add-form-row hidden-print">+</button>
                           </div>
@@ -265,6 +266,9 @@ for (let i = 1; i < len; i++) {
         $("#id_form-{{forloop.counter0}}-unit").val("{{it.unit.id}}");
         $("#id_form-{{forloop.counter0}}-unit_price").val("{{it.unit_price}}");
         $("#id_form-{{forloop.counter0}}-price").val("{{it.price}}");
+        "{% if it.discount %}"
+          $("#id_form-{{forloop.counter0}}-discount").val("{{it.discount}}");
+        "{% endif %}"
 "{% endfor %}"
 
 //get datalist to set input
@@ -351,7 +355,7 @@ $(document).on('click', '.remove-form-row', function(e){
 });
 
 //jQuery ดึงค่าจาก 2 class
-$(".unit-price, .quantity")
+$(".unit-price, .quantity , .discount")
   .focusout(function() {
   })  
   .blur(function() {
@@ -359,7 +363,11 @@ $(".unit-price, .quantity")
     var quantity = $('#id_form-' + suffix + '-quantity').val();
     var unitPrice = $('#id_form-' + suffix + '-unit_price').val();
 
-    price = parseFloat(quantity) * parseFloat(unitPrice);
+    //เพิ่มคำนวณส่วนลด 09-08-2024
+    tmp_price = parseFloat(quantity) * parseFloat(unitPrice);
+    var discount = calculateUnitDiscount($('#id_form-' + suffix + '-discount').val(), tmp_price);
+    price = tmp_price - discount;
+
     $('#id_form-' + suffix + '-price').val(price);
     
     // format ทศนิยม 2 และ 0 ตำแหน่ง
@@ -369,6 +377,18 @@ $(".unit-price, .quantity")
 
     //คำนวนค่าทั้งหมด
     calculateAll();
+});
+
+//เพิ่มคำนวณส่วนลด 09-08-2024
+$(".discount")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    if($(this).val().indexOf('%') != -1){
+        //ไม่ต้องทำอะไร
+    }else{
+        $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
 });
 
 $(".price" )
@@ -439,6 +459,17 @@ $("#id_total_price, #id_discount").change(function() {
   var thaibath = ArabicNumberToText(amount);
   document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
+
+//เพิ่มคำนวณส่วนลด 09-08-2024
+function calculateUnitDiscount(prmDiscount, price){
+    if(prmDiscount.indexOf('%') != -1){
+        var discountPersent = prmDiscount.replace('%','');
+        var discount = parseFloat(price) * parseFloat(discountPersent)/100;
+        return discount;
+    }else{
+        return prmDiscount;
+    }
+}
 
 function calculateDiscount(prmDiscount){
     if(prmDiscount.indexOf('%') != -1){

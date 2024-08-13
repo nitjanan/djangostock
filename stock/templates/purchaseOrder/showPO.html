@@ -163,10 +163,11 @@
                             รหัสสินค้า/รายละเอียด <i class="fas fa-list text-danger d-print-none"></i>
                           </th>
                         </form>
-                        <th scope="col" class="text-center">จำนวน</th>
+                        <th scope="col" class="text-right">จำนวน</th>
                         <th scope="col" class="text-center">หน่วย</th>
-                        <th scope="col" class="text-center">หน่วยละ</th>
-                        <th scope="col" class="text-center">จำนวนเงิน</th>
+                        <th scope="col" class="text-right">หน่วยละ</th>
+                        <th scope="col" class="text-right">ส่วนลด</th>
+                        <th scope="col" class="text-right">จำนวนเงิน</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -174,10 +175,11 @@
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
                             <td>{{ item.item.product.id }} {{ item.item.product_name }} <b class="text-success">{{ item.description }}</b></td>
-                            <td class="text-center">{{ item.quantity |floatformat:"-4"}}</td>
+                            <td class="text-right">{{ item.quantity |floatformat:"-4"}}</td>
                             <td class="text-center">{{ item.unit}}</td>
-                            <td class="text-center">{{ item.unit_price | intcomma}}</td>
-                            <td class="text-center">{{ item.price | intcomma}}</td>
+                            <td class="text-right">{{ item.unit_price | intcomma}}</td>
+                            <td class="text-right">{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}</td>
+                            <td class="text-right">{{ item.price | intcomma}}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

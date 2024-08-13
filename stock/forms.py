@@ -230,13 +230,14 @@ class PurchaseOrderItemForm(forms.ModelForm):
 PurchaseOrderItemFormset = formset_factory(PurchaseOrderItemForm)
 PurchaseOrderItemModelFormset = modelformset_factory(
     PurchaseOrderItem,
-    fields=('item','quantity','unit_price','price','unit','description'),
+    fields=('item','quantity','unit_price','discount','price','unit','description'),
     extra=1,
     widgets={
         'item': forms.HiddenInput(attrs={'class': 'form-control item'}),#dataList
         'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity'}),
-        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price'}),
-        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price'}),
+        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price text-right'}),
+        'discount': forms.TextInput(attrs={'placeholder':'0.00 ', 'class': 'form-control discount text-right'}),
+        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price text-right'}),
     }
 )
 
@@ -244,13 +245,14 @@ PurchaseOrderItemModelFormset = modelformset_factory(
 PurchaseOrderItemInlineFormset = inlineformset_factory(
     PurchaseOrder,
     PurchaseOrderItem,
-    fields=('id','item','quantity','unit_price','price','unit','description'),
+    fields=('id','item','quantity','unit_price','discount','price','unit','description'),
     extra=0,
     widgets={
         'item': forms.HiddenInput(attrs={'class': 'form-control item'}),#dataList
         'quantity': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control quantity'}),
-        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price'}),
-        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price'}),
+        'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price text-right'}),
+        'discount': forms.TextInput(attrs={'placeholder':'0.00 ', 'class': 'form-control discount text-right'}),
+        'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price text-right'}),
     }
     , can_delete=True
 )
@@ -371,11 +373,12 @@ CPDModelFormset = modelformset_factory(
 #ลูก สินค้าใบเปรียบเทียบราคา
 CPitemFormset = modelformset_factory(
     ComparisonPriceItem,
-    fields=('item','quantity','unit','brand','unit_price','price','description'),
+    fields=('item','quantity','unit','brand','unit_price','discount','price','description'),
     widgets={
         'item': forms.HiddenInput(),#dataList
         'quantity': forms.NumberInput(attrs={}),
         'unit_price': forms.NumberInput(attrs={}),
+        'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
         'price': forms.NumberInput(attrs={}),
     },
     labels = {
@@ -388,11 +391,12 @@ CPitemFormset = modelformset_factory(
 CPitemInlineFormset = inlineformset_factory(
     ComparisonPriceDistributor,
     ComparisonPriceItem,
-    fields=('item','quantity','unit','brand','unit_price','price','description'),
+    fields=('item','quantity','unit','brand','unit_price','discount','price','description'),
     widgets={
         'item': forms.HiddenInput(),#dataList
         'quantity': forms.NumberInput(attrs={}),
         'unit_price': forms.NumberInput(attrs={}),
+        'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
         'price': forms.NumberInput(attrs={}),
     },
     labels = {

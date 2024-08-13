@@ -1142,6 +1142,7 @@ class PurchaseOrderItem(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=4, blank = True, null = True)
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
+    discount = models.CharField(max_length=255, blank = True, null = True)#ส่วนลด ทศนิยม and %
     price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
@@ -1178,6 +1179,7 @@ class ComparisonPriceItem(models.Model):
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
     brand = models.CharField(max_length=255, blank=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
+    discount = models.CharField(max_length=255, blank = True, null = True)#ส่วนลด ทศนิยม and %
     price = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด

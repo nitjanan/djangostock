@@ -65,7 +65,8 @@
                     <div class="col">หน่วย</div>
                     <div class="col">เกรด/ยี่ห้อ</div>
                     <div class="col">ราคาหน่วยละ</div>
-                    <div class="col text-center">รวม</div>
+                    <div class="col">ส่วนลด</div>
+                    <div class="col">รวม</div>
                 </div>
                 {{ formset.management_form }}
                 {% for form in formset %}
@@ -90,7 +91,8 @@
                             {{form.quantity | add_class:"form-control quantity"}}
                             {{form.unit | add_class:"form-control"|attr:"required:true"}}
                             {{form.brand | add_class:"form-control"}}
-                            {{form.unit_price | add_class:"form-control unit-price"}}
+                            {{form.unit_price | add_class:"form-control unit-price text-right"}}
+                            {{form.discount | add_class:"form-control discount text-right"}}
                             {{form.price | add_class:"form-control text-right price"}}
                             {{ form.DELETE | add_class:"d-none"}}
                             {% if form.id.value %}
@@ -327,7 +329,7 @@ function changeNumberOrder(){
 
 /*คำนวนค่าต่างๆ*/
 //jQuery ดึงค่าจาก 2 class
-$(".unit-price, .quantity")
+$(".unit-price, .quantity , .discount")
   .focusout(function() {
   })  
   .blur(function() {
@@ -335,7 +337,11 @@ $(".unit-price, .quantity")
     var quantity = $('#id_comparisonpriceitem_set-' + suffix + '-quantity').val();
     var unitPrice = $('#id_comparisonpriceitem_set-' + suffix + '-unit_price').val();
 
-    price = parseFloat(quantity) * parseFloat(unitPrice);
+    //เพิ่มคำนวณส่วนลด 09-08-2024
+    tmp_price = parseFloat(quantity) * parseFloat(unitPrice);
+    var discount = calculateUnitDiscount($('#id_comparisonpriceitem_set-' + suffix + '-discount').val(), tmp_price);
+    price = tmp_price - discount;
+
     $('#id_comparisonpriceitem_set-' + suffix + '-price').val(price.toFixed(2));
     
     // format ทศนิยม 2 และ 0 ตำแหน่ง
@@ -353,6 +359,18 @@ $(".price" )
     //คำนวนค่าทั้งหมด
     calculateAll();
   });
+
+//เพิ่มคำนวณส่วนลด 09-08-2024
+$(".discount")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    if($(this).val().indexOf('%') != -1){
+        //ไม่ต้องทำอะไร
+    }else{
+        $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+});
 
 $("#id_discount")
   .focusout(function() {
@@ -414,6 +432,17 @@ $("#id_total_price, #id_discount").change(function() {
   var amount = calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
 });
+
+//เพิ่มคำนวณส่วนลด 09-08-2024
+function calculateUnitDiscount(prmDiscount, price){
+    if(prmDiscount.indexOf('%') != -1){
+        var discountPersent = prmDiscount.replace('%','');
+        var discount = parseFloat(price) * parseFloat(discountPersent)/100;
+        return discount;
+    }else{
+        return prmDiscount;
+    }
+}
 
 function calculateDiscount(prmDiscount){
     if(prmDiscount.indexOf('%') != -1){

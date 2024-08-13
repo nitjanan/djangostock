@@ -32,8 +32,9 @@
                 <div class="col">จำนวน</div>
                 <div class="col">หน่วย</div>
                 <div class="col">เกรด/ยี่ห้อ</div>
-                <div class="col">ราคาหน่วยละ</div>
-                <div class="col text-center">รวม</div>
+                <div class="col text-right">ราคาหน่วยละ</div>
+                <div class="col text-right">ส่วนลด</div>
+                <div class="col text-right">รวม</div>
             </div>
         </li>
         {% for it in cp_item %}
@@ -45,8 +46,9 @@
                         <div class="col">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
                         <div class="col">{% if it.unit %}{{it.unit}}{% endif %}</div>
                         <div class="col">{% if it.brand %}{{it.brand}}{% endif %}</div>
-                        <div class="col">{% if it.unit_price %}{{it.unit_price| intcomma}}{% endif %}</div>
-                        <div class="col text-center">{% if it.price %}{{it.price | intcomma}}{% endif %}</div>
+                        <div class="col text-right">{% if it.unit_price %}{{it.unit_price| intcomma}}{% endif %}</div>
+                        <div class="col text-right">{% if it.discount %}{{it.discount| intcomma}}{%else%}0.00{% endif %}</div>
+                        <div class="col text-right">{% if it.price %}{{it.price | intcomma}}{% endif %}</div>
                     </div>
                 </li>
             {% endif %}
@@ -136,7 +138,8 @@
                     <div class="col">หน่วย</div>
                     <div class="col">เกรด/ยี่ห้อ</div>
                     <div class="col">ราคาหน่วยละ</div>
-                    <div class="col text-center">รวม</div>
+                    <div class="col">ส่วนลด</div>
+                    <div class="col">รวม</div>
                 </div>
                 {{ formset.management_form }}
                 {% for form in formset %}
@@ -160,7 +163,8 @@
                             {{form.quantity | add_class:"form-control quantity"}}
                             {{form.unit | add_class:"form-control unit"|attr:"required:true"}}
                             {{form.brand | add_class:"form-control"}}
-                            {{form.unit_price | add_class:"form-control unit-price"}}
+                            {{form.unit_price | add_class:"form-control unit-price text-right"}}
+                            {{form.discount | add_class:"form-control discount text-right"}}
                             {{form.price | add_class:"form-control price text-right"}}
                             <div class="input-group-append">
                                 <button class="btn btn-success add-form-row">+</button>
@@ -434,7 +438,7 @@ function changeNumberOrder(){
 
 /*คำนวนค่าต่างๆ*/
 //jQuery ดึงค่าจาก 2 class
-$(".unit-price, .quantity")
+$(".unit-price, .quantity, .discount")
   .focusout(function() {
   })  
   .blur(function() {
@@ -442,7 +446,11 @@ $(".unit-price, .quantity")
     var quantity = $('#id_form-' + suffix + '-quantity').val();
     var unitPrice = $('#id_form-' + suffix + '-unit_price').val();
 
-    price = parseFloat(quantity) * parseFloat(unitPrice);
+    //เพิ่มคำนวณส่วนลด 09-08-2024
+    tmp_price = parseFloat(quantity) * parseFloat(unitPrice);
+    var discount = calculateUnitDiscount($('#id_form-' + suffix + '-discount').val(), tmp_price);
+    price = tmp_price - discount;
+
     $('#id_form-' + suffix + '-price').val(price.toFixed(2));
     
     // format ทศนิยม 2 และ 0 ตำแหน่ง
@@ -460,6 +468,18 @@ $(".price" )
     //คำนวนค่าทั้งหมด
     calculateAll();
   });
+
+//เพิ่มคำนวณส่วนลด 09-08-2024
+$(".discount")
+  .focusout(function() {
+  })  
+  .blur(function() {
+    if($(this).val().indexOf('%') != -1){
+        //ไม่ต้องทำอะไร
+    }else{
+        $(this).val(parseFloat($(this).val()).toFixed(2));
+    }
+});
 
 $("#id_discount")
   .focusout(function() {
@@ -517,6 +537,17 @@ $("#id_total_price, #id_discount").change(function() {
   var thaibath = ArabicNumberToText(amount);
   document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
+
+//เพิ่มคำนวณส่วนลด 09-08-2024
+function calculateUnitDiscount(prmDiscount, price){
+    if(prmDiscount.indexOf('%') != -1){
+        var discountPersent = prmDiscount.replace('%','');
+        var discount = parseFloat(price) * parseFloat(discountPersent)/100;
+        return discount;
+    }else{
+        return prmDiscount;
+    }
+}
 
 function calculateDiscount(prmDiscount){
     if(prmDiscount.indexOf('%') != -1){
