@@ -130,7 +130,7 @@
                 <tr id="user-{{user.id}}">
                     <td class="text-center">{{ forloop.counter }}</td>
                     <td class="text-center userProduct userData d-print-none" name="product">{{user.product.id}}</td>
-                    <td class="text-center userName userData" name="name"><form class="form-inline ml-3" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
+                    <td class="userName userData" name="name"><form class="form-inline ml-3" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
                     <td class="text-center userQuantity userData" name="quantity">{{user.quantity |floatformat:"-4" }}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake"><b onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" style="cursor: pointer;color:red;">{{user.quantity_take |floatformat:"-4"}}</b></td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}">

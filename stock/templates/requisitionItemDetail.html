@@ -66,7 +66,7 @@
               <tbody>
                 {% for user in users %}
                 <tr id="user-{{user.id}}">
-                    <td class="text-center userName userData" name="name">{{user.product_name}}</td>
+                    <td class="userName userData" name="name">{{user.product_name}}</td>
                     <td class="text-center userAddress userData" name="address">{{user.description}}</td>
                     <td class="text-center userAge userData" name="age">{{user.quantity |floatformat:"-4"}}</td>
                     <td class="text-center userMachine userData" name="machine">{{user.machine}}</td>
