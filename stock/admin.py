@@ -278,11 +278,11 @@ class BasePOTypeAdmin(ImportExportModelAdmin):
 
 class BaseRepairTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name','rq_type'] #แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['name']
+    search_fields = ['name','rq_type__name']
 
 class BaseCarAdmin(ImportExportModelAdmin):
     list_display = ['id','name','rq_type'] #แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['name']
+    search_fields = ['name','rq_type__name']
 
 class BaseBrokeTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -293,8 +293,8 @@ class BaseRequisitionTypeAdmin(ImportExportModelAdmin):
     search_fields = ['name']
 
 class BaseExpenseDepartmentAdmin(ImportExportModelAdmin):
-    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['name']
+    list_display = ['id','name', 'agency'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name', 'agency__name']
 
 class BaseAgencyAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
