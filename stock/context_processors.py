@@ -470,7 +470,7 @@ def addPOCounter(request):
     cp_count = 0
     if(is_purchasing(request.user)):
         try:
-            cp_count = ComparisonPrice.objects.filter(Q(special_approver_status_id = 2) | Q(special_approver_status_id = 4), examiner_status_id = 2, approver_status_id = 2 , select_bidder__isnull = False, po_ref_no = "", branch_company__code = active).count()
+            cp_count = ComparisonPrice.objects.filter(Q(special_approver_status_id = 2) | Q(special_approver_status_id = 4), examiner_status_id = 2, approver_status_id = 2 , select_bidder__isnull = False, po_ref_no = "", branch_company__code = active, organizer = request.user ).count()
         except ComparisonPrice.DoesNotExist:
             pass
     return cp_count
@@ -536,7 +536,7 @@ def setAlertPurchasingCompanyTab(request, tab):
 
 def findAllPurchasingAlert(request, tab):
     try:
-        cp_count = ComparisonPrice.objects.filter(Q(special_approver_status_id = 2) | Q(special_approver_status_id = 4), examiner_status_id = 2, approver_status_id = 2 , select_bidder__isnull = False, po_ref_no = "", branch_company__code = tab).count()
+        cp_count = ComparisonPrice.objects.filter(Q(special_approver_status_id = 2) | Q(special_approver_status_id = 4), examiner_status_id = 2, approver_status_id = 2 , select_bidder__isnull = False, po_ref_no = "", branch_company__code = tab, organizer = request.user).count()
     except ComparisonPrice.DoesNotExist:
         cp_count = 0
 
