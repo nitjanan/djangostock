@@ -4442,13 +4442,15 @@ def viewComparePricePOHistory(request):
 
     return render(request, 'history/viewComparePricePO.html',context)
 
-#Incomplate
+#Incomplate อันนี้ไม่ได้ใช้อยู่ 19-08-2024
 def viewRequisitionHistoryIncomplete(request):
     active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
     #data = Requisition.objects.filter(created__year__lte = year,created__month__lt = month, purchase_requisition_id__isnull = False)
-    data = Requisition.objects.filter(purchase_requisition_id__isnull = False)
+    data = Requisition.objects.filter(purchase_requisition_id__isnull = False, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
@@ -5573,3 +5575,81 @@ def showInvoice(request, iv_id, mode):
     }
 
     return render(request, "invoice/showInvoice.html", context)
+
+def exportExcelRQ(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    ref_no = request.GET.get('ref_no') or None
+    name = request.GET.get('name') or None
+    section = request.GET.get('section') or None
+    organizer = request.GET.get('organizer') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    my_q = Q()
+    if ref_no is not None:
+        my_q &= Q(requisit__ref_no__icontains = ref_no)
+    if name is not None:
+        my_q &= Q(requisit__name__first_name__icontains = name)
+    if section is not None:
+        my_q &= Q(requisit__section = section)
+    if organizer is not None :
+        my_q &=Q(requisit__organizer = organizer)
+    if start_created is not None:
+        my_q &= Q(requisit__created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(requisit__created__lte = end_created)
+
+    my_q &=Q(requisit__purchase_requisition_id__isnull = False)
+
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q( requisit__branch_company__code__in = company_in )
+
+    queryset = RequisitionItem.objects.filter(my_q).order_by('requisit__id')
+    if not queryset.exists():
+        return HttpResponse("No data to export.")
+
+    data1 = {
+            'วันที่': queryset.values_list('requisit__created', flat=True),
+            'บริษัท': queryset.values_list('requisit__branch_company__name', flat=True),            
+            'ทะเบียนรถ/เครื่องจักร': queryset.values_list('requisit__car__name', flat=True),
+            'ประเภทการซ่อม': queryset.values_list('requisit__repair_type__name', flat=True),
+            'เลขที่ใบขอเบิก': queryset.values_list('requisit__ref_no', flat=True),
+            'รหัสสินค้า': queryset.values_list('product__id', flat=True),
+            'สินค้า': queryset.values_list('product_name', flat=True),
+            'จำนวน': queryset.values_list('quantity', flat=True),
+            'หน่วยงาน': queryset.values_list('requisit__agency__name', flat=True),
+            'แผนกคชจ.': queryset.values_list('requisit__expense_dept__name', flat=True)
+            }
+
+    df1 = pd.DataFrame(data1)
+
+    data2 = {
+            'วันที่': 'รวมใบขอเบิก',
+            'บริษัท': [queryset.values('requisit__id').distinct().count()],
+            'ทะเบียนรถ/เครื่องจักร': 'ใบ',
+            'ประเภทการซ่อม': '',
+            'เลขที่ใบขอเบิก': '',
+            'รหัสสินค้า': '',
+            'สินค้า': '',
+            'จำนวน': '',
+            'หน่วยงาน': '',
+            'แผนกคชจ.': '',
+            }
+
+    df2 = pd.DataFrame(data2, index=[0])
+
+    frames = [df1, df2]
+    result = pd.concat(frames)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Requisition_Report_({active}).xlsx'
+
+    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+        result.to_excel(writer, index=False)
+
+    return response

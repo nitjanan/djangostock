@@ -133,7 +133,7 @@
                             <td class="text-right">{{ item.quantity |floatformat:"-4"}}</td>
                             <td class="text-center">{{ item.unit}}</td>
                             <td class="text-right">{{ item.unit_price | intcomma}}</td>
-                            <td class="text-right">{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}</td>
+                            <td class="text-right">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
                             <td class="text-right">{{ item.price | intcomma}}</td>
                         </tr>
                         {% endfor %}
@@ -141,6 +141,7 @@
                 </table>
             </div>
             <hr>
+            <!--  Old ****************
             <div class="row">
               <div class="col-7">
                 <p>หมายเหตุ : {{po.note}}</p>
@@ -198,6 +199,78 @@
                 <p class="text-right">{{po.amount | intcomma}}&ensp;บาท</p>
               </div>
             </div>
+            -->
+            <!-- New **************** -->
+            <div class="row">
+              <div class="col-7">
+                <div class="row">
+                  <div class="col">
+                    <p>ทะเบียนรถ/เครื่องจักร : {% if po.pr.requisition.car.name %}{{po.pr.requisition.car.name}}{% endif %}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col"><p>หมายเหตุ : {% if po.note %}{{po.note}}{% endif %}</p></div>
+                </div>
+                <div class="row">
+                  <div class="col"><p>สถานที่จัดส่ง : {% if po.delivery %}{{po.delivery}}{% endif %}</p></div>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="row">
+                  <div class="col"><p class="text-right">รวมเป็นเงิน</p></div>
+                </div>
+                <div class="row">
+                  <div class="col"><p class="text-right">หักส่วนลด</p></div>
+                </div>
+                <div class="row">
+                  <div class="col"><p class="text-right">จำนวนเงินหลังหักส่วนลด</p></div>
+                </div>
+                <div class="row">
+                  <div class="col"><p class="text-right">ค่าขนส่ง</p></div>
+                </div>
+                <div class="row">
+                  <div class="col"><p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p></div>
+                </div>
+              </div>
+              <div class="col-2">
+                <div class="row">
+                  <div class="col"><p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p></div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <p class="text-right">{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <p class="text-right">{{po.total_after_discount | intcomma}}&ensp;บาท</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <p class="text-right">{{po.freight | intcomma}}&ensp;บาท</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col">
+                    <p class="text-right">{{po.vat | intcomma}}&ensp;บาท</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-7">
+                <p id="total-spell"></p>
+              </div>
+              <div class="col-3">
+                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
+              </div>
+              <div class="col-2">
+                <p class="text-right">{{po.amount | intcomma}}&ensp;บาท</p>
+              </div>
+            </div>
+
             <hr>
             <div class="row spacer my-3">
                 <div class="col">

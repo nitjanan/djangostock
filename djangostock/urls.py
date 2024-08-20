@@ -145,6 +145,8 @@ urlpatterns = [
     path('history/purchaseOrder/',views.viewPOHistory,name="viewPOHistory"),
     path('history/comparePricePO/',views.viewComparePricePOHistory,name="viewComparePricePOHistory"),
 
+    path('report/requisition/export/excel', views.exportExcelRQ, name='exportExcelRQ'),
+
     path('history/incomplete/requisition/',views.viewRequisitionHistoryIncomplete,name="viewRequisitionHistoryIncomplete"),
     path('history/incomplete/purchaseRequisition/',views.viewPRHistoryIncomplete,name="viewPRHistoryIncomplete"),
     path('history/incomplete/purchaseOrder/',views.viewPOHistoryIncomplete,name="viewPOHistoryIncomplete"),

@@ -63,7 +63,7 @@ class RequisitionForm(forms.ModelForm):
         label='ค่าใช้จ่าย',
         queryset=BaseExpenses.objects.all(),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-select'}),
-        required=False
+        required=True
     )
 
     agency = forms.ModelChoiceField(queryset = BaseAgency.objects.all(), label='หน่วยงาน', required=True)
@@ -84,7 +84,7 @@ class RequisitionForm(forms.ModelForm):
             'memorandum_pdf': _('ใบบันทึกข้อความ'),
             'repair_type': _('ประเภทการซ่อม'),
             'car': _('เครื่องจักร/ทะเบียนรถ'),
-            'broke_type': _('เหตุผล/สาเหตุ'),
+            'broke_type': _('สาเหตุ'),
             'expense_dept': _('แผนกค่าใช้จ่าย'),
             'desired_date': _('วันที่ต้องการ'),
         }

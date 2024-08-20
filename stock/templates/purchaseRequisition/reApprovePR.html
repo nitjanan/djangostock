@@ -301,7 +301,7 @@ u.dotted {
           <div class="modal-body">
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" type="text" name="name" required>
-            <label for="product">รหัสวัสดุ/อุปกรณ์</label>
+            <label for="product" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
@@ -318,7 +318,7 @@ u.dotted {
             </select>
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
-            <label for="quantityTake">จำนวนที่จ่ายไป</label>
+            <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
             <input class="form-control is-invalid" type="number" name="quantityTake" min="0" step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="unitList" name="unit" id="sel-unit">
@@ -358,7 +358,7 @@ u.dotted {
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header text-white" style="background-color:#B2BABB;" >
-          <h4 class="modal-title" id="myModalLabel">แก้ไขรายการสินค้า</h4>
+          <h4 class="modal-title" id="myModalLabel">แก้ไขรายการสินค้า</h4> 
           <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <form id="updateUser" action="">
@@ -367,7 +367,7 @@ u.dotted {
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
-            <label for="formProduct">รหัสวัสดุ/อุปกรณ์</label>
+            <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
@@ -384,7 +384,7 @@ u.dotted {
             </select>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
-            <label for="quantityTake">จำนวนที่จ่ายไป</label>
+            <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
             <input class="form-control is-invalid" id="form-quantitytake" type="number" name="formQuantityTake" min="0"  step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">

@@ -329,7 +329,7 @@
           <div class="modal-body">
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" type="text" name="name_pd" required>
-            <label for="product">รหัสวัสดุ/อุปกรณ์</label>
+            <label for="product" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
@@ -338,7 +338,7 @@
             </datalist>
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
-            <label for="quantityTake">จำนวนที่จ่ายไป</label>
+            <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
             <input class="form-control is-invalid" type="number" name="quantityTake" min="0" step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="unitList" name="unit" id="sel-unit">
@@ -385,7 +385,7 @@
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
             <label for="name">สินค้า/รายละเอียด</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
-            <label for="formProduct">รหัสวัสดุ/อุปกรณ์</label>
+            <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
@@ -394,8 +394,8 @@
             </datalist>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
-            <label for="quantityTake">จำนวนที่จ่ายไป</label>
-            <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min="0" step="any"/>
+            <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
+            <input class="form-control is-invalid" id="form-quantitytake" type="number" name="formQuantityTake" min="0" step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">
             <datalist id="formUnitList">
