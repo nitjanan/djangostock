@@ -5,16 +5,32 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 
 <style>
-    .select2-container {
-        width: 100% !important;
-    }
+    /* Adjust the Select2 container */
     .select2-container .select2-selection--single {
-        height: 37px; /* Match Bootstrap's form-control height */
-        width: 55.5svw;
+        height: 37px !important;
+        line-height: 50px !important;
+        padding: 5px 12px;
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+        width: 55.5vw !important;
     }
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        line-height: 37px; /* Match Bootstrap's form-control line-height */
-        width: 55.5svw;
+
+    /* Adjust the dropdown arrow height and alignment */
+    .select2-container .select2-selection--single .select2-selection__arrow {
+        height: 37px !important;
+        top: 0;
+        right: 6px;
+    }
+
+    /* Ensure dropdown menu adapts properly */
+    .select2-container .select2-dropdown {
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+    }
+
+    /* Align the clear button */
+    .select2-container .select2-selection__clear {
+        line-height: 37px !important;
     }
 
     .custom-control-label::before{
@@ -97,8 +113,11 @@
 
 {% endblock%}
 {% block javascript %}
+<!-- Select2 CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
 <!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 
 <script>
  //ผู้ขอตั้งเบิก
@@ -233,6 +252,10 @@
 
     //after load
     $(document).ready(function() {
+        $('#id_car').select2();
+        $('#id_repair_type').select2();
+        $('#id_expense_dept').select2();
+
         //เส้น
         $('#div_id_expense_dept').after("<hr class='my-4' style='border: 1px solid #7DCEA0; border-radius: 1px;'>");
         $('#div_id_urgency').after("<hr class='my-4' style='border: 1px solid #7FB3D5; border-radius: 1px;'>");

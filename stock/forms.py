@@ -13,6 +13,7 @@ from django.forms import (formset_factory, modelformset_factory, inlineformset_f
 from django.forms.widgets import ClearableFileInput
 import string
 from django.db.models import Q
+from django_select2.forms import Select2Widget
 
 class MyClearableFileInput(ClearableFileInput):
     initial_text = 'ไฟล์ปัจจุบัน'
@@ -54,7 +55,13 @@ class RequisitionForm(forms.ModelForm):
         required=True
     )
     repair_type = forms.ModelChoiceField(queryset = BaseRepairType.objects.all(), label='ประเภทการซ่อม', required=True)
-    car = forms.ModelChoiceField(queryset = BaseCar.objects.all(), label='เครื่องจักร/ทะเบียนรถ', required=True)
+    #car = forms.ModelChoiceField(queryset = BaseCar.objects.all(), label='เครื่องจักร/ทะเบียนรถ', required=True)
+    car = forms.ModelChoiceField(
+        queryset=BaseCar.objects.all(),
+        label='เครื่องจักร/ทะเบียนรถ',
+        widget=Select2Widget(),
+        required=True,
+    )
 
     expense_dept = forms.ModelChoiceField(queryset = BaseExpenseDepartment.objects.all(), label='แผนกค่าใช้จ่าย', required=True)
     urgency = forms.ModelChoiceField(queryset = BaseUrgency.objects.all(), label='ระดับความเร่งด่วน', required=True)
