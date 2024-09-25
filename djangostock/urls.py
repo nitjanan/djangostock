@@ -127,7 +127,7 @@ urlpatterns = [
     path('setDataDistributor', views.setDataDistributor, name="setDataDistributor"),
     path('searchLastPoItem', views.searchLastPoItem, name="searchLastPoItem"),
     path('getRateDistributor', views.getRateDistributor, name="getRateDistributor"),
-    path('searchRepairTypeAndCar', views.searchRepairTypeAndCar, name="searchRepairTypeAndCar"),
+    path('searchRepairType', views.searchRepairType, name="searchRepairType"),
     path('searchExpenseDept', views.searchExpenseDept, name="searchExpenseDept"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
@@ -169,6 +169,8 @@ urlpatterns = [
 
     path('invoice/',views.viewInvoice,name="viewInvoice"),
     path('invoice/show/<int:iv_id>/<int:mode>',views.showInvoice,name="showInvoice"),
+
+    path('car-search/', views.car_search, name='car_search'),
 
 ]
 

@@ -48,6 +48,18 @@ class RequisitionForm(forms.ModelForm):
         # self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
         self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
 
+    name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ชื่อผู้ขอตั้งเบิก',
+        required=True
+    )
+
+    chief_approve_user_name = forms.ModelChoiceField(
+        queryset = User.objects.filter(groups__name='หัวหน้างาน'),
+        label='หัวหน้างาน',
+        required=True
+    )
+
     rq_type = forms.ModelChoiceField(
         queryset=BaseRequisitionType.objects.filter(~Q(id = 4)),
         widget=forms.Select(attrs={'class': 'is-valid'}),
@@ -56,12 +68,14 @@ class RequisitionForm(forms.ModelForm):
     )
     repair_type = forms.ModelChoiceField(queryset = BaseRepairType.objects.all(), label='ประเภทการซ่อม', required=True)
     #car = forms.ModelChoiceField(queryset = BaseCar.objects.all(), label='เครื่องจักร/ทะเบียนรถ', required=True)
+    '''
     car = forms.ModelChoiceField(
         queryset=BaseCar.objects.all(),
         label='เครื่องจักร/ทะเบียนรถ',
         widget=Select2Widget(),
         required=True,
     )
+    '''
 
     expense_dept = forms.ModelChoiceField(queryset = BaseExpenseDepartment.objects.all(), label='แผนกค่าใช้จ่าย', required=True)
     urgency = forms.ModelChoiceField(queryset = BaseUrgency.objects.all(), label='ระดับความเร่งด่วน', required=True)
@@ -79,11 +93,10 @@ class RequisitionForm(forms.ModelForm):
         model = Requisition
         fields = ('name','chief_approve_user_name','organizer','branch_company', 'agency', 'expense_dept', 'rq_type', 'car', 'repair_type', 'broke_type', 'desired_date', 'urgency', 'note', 'expenses', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
-        'name': forms.HiddenInput(),
-        'chief_approve_user_name': forms.HiddenInput(),
         'memorandum_pdf' : MyClearableFileInput,
         'branch_company': forms.HiddenInput(),
         'desired_date': forms.DateInput(format=('%d/%m/%Y'), attrs={'class':'form-control', 'placeholder':'Select a date', 'type':'date', 'required':'True'}),
+        'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
         }
         labels = {
             'section': _('แผนก'),
@@ -143,13 +156,13 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf',) #'po_type', 17-05-2024 เอาออกก่อน
+       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf', 'po_type',) #'po_type', 17-05-2024
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
-        #'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
+        'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
             'ref_no': _('รหัสใบสั่งซื้อ'),
@@ -162,7 +175,7 @@ class PurchaseOrderForm(forms.ModelForm):
             'quotation_pdf': _('ใบเสนอราคา'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
-            #'po_type': _('ประเภทใบสั่งซื้อ'),
+            'po_type': _('ประเภทใบสั่งซื้อ'),
         }
 
 class PurchaseOrderAddressCompanyForm(forms.ModelForm):
@@ -195,12 +208,12 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update',) #'po_type', 17-05-2024 เอาออกก่อน
+       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update', 'po_type',) #'po_type', 17-05-2024
        widgets = {
         'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
         'due_receive_update' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
-        #'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
+        'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
             'shipping': _('ขนส่งโดย'),
@@ -208,7 +221,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
-            #'po_type': _('ประเภทใบสั่งซื้อ'),
+            'po_type': _('ประเภทใบสั่งซื้อ'),
         }
 
 

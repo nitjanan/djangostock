@@ -55,6 +55,21 @@ from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
 from datetime import date, timedelta
 
+def car_search(request):
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        search_term = request.GET.get('q', '')
+        rq_type = request.GET.get('rq_type')
+
+        cars = BaseCar.objects.filter(Q(name__icontains=search_term) | Q(code__icontains=search_term), (Q(rq_type = rq_type)| Q(rq_type = 4))).values('id', 'name', 'code')
+        results = []
+        for car in cars:
+            results.append({
+                'id': car['id'],
+                'text': f"{car['code']} : {car['name']}"
+            })
+        return JsonResponse({'results': results})
+    return JsonResponse({'results': []})
+
 def findCompanyIn(request):
     code = request.session['company_code']
 
@@ -1120,8 +1135,8 @@ def requisition(request):
 def createRequisition(request):
     active = request.session['company_code']
     company = BaseBranchCompany.objects.get(code = active)
-    requestName = User.objects.all()
-    chiefName = User.objects.filter(groups__name='หัวหน้างาน')
+    #requestName = User.objects.all()
+    #chiefName = User.objects.filter(groups__name='หัวหน้างาน')
     
     try:
         form = RequisitionForm(request, request.POST or None, initial={'branch_company': company})
@@ -1144,8 +1159,8 @@ def createRequisition(request):
 
     context = {
         'form':form,
-        'requestName':requestName,
-        'chiefName':chiefName,
+        #'requestName':requestName,
+        #'chiefName':chiefName,
         'requisitions_page': "tab-active",
         'requisitions_show': "show",
         active :"active show",
@@ -1412,7 +1427,7 @@ class CreateCrudUser(View):
         if not description1:
             description1 = rqs.repair_type.name
         if not machine1:
-            machine1 = rqs.car.name
+            machine1 = rqs.car.code
         if not desireddate1:
             desireddate1 = rqs.desired_date
         if not urgency1:
@@ -1490,7 +1505,7 @@ class UpdateCrudUser(View):
         if machine1:
             obj.machine = machine1
         else:
-            obj.machine = rqs.car.name
+            obj.machine = rqs.car.code
 
         if desireddate1:
             obj.desired_date = desireddate1
@@ -1538,8 +1553,8 @@ def editAllRequisition(request, requisition_id):
     baseUnit = BaseUnit.objects.all()
     baseProduct = Product.objects.all().values('id', 'name')
 
-    requestName = User.objects.all()
-    chiefName = User.objects.filter(groups__name='หัวหน้างาน')
+    #requestName = User.objects.all()
+    #chiefName = User.objects.filter(groups__name='หัวหน้างาน')
 
     #form save
     form = RequisitionForm(request, instance=requisition)
@@ -1571,12 +1586,12 @@ def editAllRequisition(request, requisition_id):
         'form':form,
         'users': users,
         'requisition': requisition,
-        'chiefName' : chiefName,
+        #'chiefName' : chiefName,
         'pr': pr,
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,
         'baseProduct': baseProduct,
-        'requestName':requestName,
+        #'requestName':requestName,
         'bc':bc,
         'requisitions_page':"tab-active",
         'requisitions_show':"show",
@@ -1735,15 +1750,13 @@ def searchExaminerAndApproverUser(request):
     }
     return JsonResponse(data)
 
-def searchRepairTypeAndCar(request):
+def searchRepairType(request):
     if 'rq_type' in request.GET:
         rq_type = request.GET.get('rq_type')
 
-        base_car =  BaseCar.objects.filter(Q(rq_type = rq_type)| Q(rq_type = 4)).values('id', 'name')
         base_repair_type = BaseRepairType.objects.filter(Q(rq_type = rq_type)| Q(rq_type = 4)).values('id', 'name')
         
     data = {
-        'car_list': list(base_car),
         'repair_type_list': list(base_repair_type),
     }
     return JsonResponse(data)
@@ -5616,7 +5629,7 @@ def exportExcelRQ(request):
     data1 = {
             'วันที่': queryset.values_list('requisit__created', flat=True),
             'บริษัท': queryset.values_list('requisit__branch_company__name', flat=True),            
-            'ทะเบียนรถ/เครื่องจักร': queryset.values_list('requisit__car__name', flat=True),
+            'ทะเบียนรถ/เครื่องจักร': queryset.values_list('requisit__car__code', flat=True),
             'ประเภทการซ่อม': queryset.values_list('requisit__repair_type__name', flat=True),
             'เลขที่ใบขอเบิก': queryset.values_list('requisit__ref_no', flat=True),
             'รหัสสินค้า': queryset.values_list('product__id', flat=True),

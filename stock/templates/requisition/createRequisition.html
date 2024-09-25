@@ -71,6 +71,7 @@
                 {{ form.memorandum_pdf.errors }}
             </div>
             {% endif %}
+            <!--
             {% if form.name.errors %}
             <div class="alert alert-danger" role="alert">
                 ชื่อผู้ขอตั้งเบิก {{ form.name.errors }}
@@ -80,8 +81,10 @@
             <div class="alert alert-danger" role="alert">
                 ชื่อหัวหน้างาน {{ form.chief_approve_user_name.errors }}
             </div>
-            {% endif %}
+            {% endif %}            
+            -->
             <form method="post" enctype="multipart/form-data">
+                <!--
                 <label for="id_name" class=" requiredField">
                     ชื่อผู้ขอตั้งเบิก<span class="asteriskField">*</span>
                 </label>
@@ -99,7 +102,9 @@
                     {% for cResults in chiefName %}
                         <option data-id="{{cResults.id}}" value="{{cResults.first_name}} {{cResults.last_name}}"></option>
                     {% endfor %}
-                </datalist>
+                </datalist>                
+                -->
+
                 <p>{{ form | crispy}}</p>
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary hidden-print float-right">
@@ -120,6 +125,31 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 
 <script>
+
+    $('#id_car').select2({
+        ajax: {
+            url: "{% url 'car_search' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term, // search term
+                    'rq_type': $('#id_rq_type').val(),
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        placeholder: 'Search for a car by name or code',
+        minimumInputLength: 2,
+        allowClear: true
+    });
+
+ /*
  //ผู้ขอตั้งเบิก
  $("#rName").change(function() {
     // get data id ของ option data list
@@ -139,6 +169,7 @@
     //set value to form.item
     $("#id_chief_approve_user_name").val(id);
   });
+  */
 
   $("#id_rq_type").change(function() {
     rqType_Change();
@@ -160,6 +191,9 @@
   }
 
   function rqType_Change(){
+    //เคลียร์ค่าเครื่องจักร/ทะเบียนรถ หากเปลี่ยนประเภทใบขอเบิก
+    $("#id_car").find('option').remove();
+
     if ($("#id_rq_type").val() == ""){
         $("#div_id_repair_type").addClass("d-none");
         $("#div_id_car").addClass("d-none");
@@ -170,12 +204,11 @@
         $("#div_id_car").removeClass("d-none");
         $("#div_id_broke_type").removeClass("d-none");
 
-        searchRepairTypeAndCar();
+        searchRepairType();
     }
   }
 
-    function searchRepairTypeAndCar(){
-        var tempCar = $("#id_car").val();
+    function searchRepairType(){
         var tempRepairType = $("#id_repair_type").val();
 
         if($('#id_rq_type').val() != ""){
@@ -185,19 +218,12 @@
             if(idInput){
                 //set id_rq_type
                 $.ajax({
-                    url: '{% url "searchRepairTypeAndCar" %}',
+                    url: '{% url "searchRepairType" %}',
                     data:{
                             'rq_type': idInput,
                         },
                     dataType: 'json',
                     success: function (data) {
-                        if (data.car_list) {
-                                $("#id_car").find('option').not(':first').remove();
-                                //set option 
-                                for(var i = 0; i < data.car_list.length; i++){
-                                    $("#id_car").append(new Option(data.car_list[i].name, data.car_list[i].id));
-                                }
-                        }
                         if (data.repair_type_list) {
                                 $("#id_repair_type").find('option').not(':first').remove();
                                 //set option 
@@ -205,14 +231,12 @@
                                     $("#id_repair_type").append(new Option(data.repair_type_list[i].name, data.repair_type_list[i].id));
                                 }
                         }
-                        $('#id_car option[value="'+tempCar +'"]').attr('selected','selected');
                         $('#id_repair_type option[value="'+tempRepairType +'"]').attr('selected','selected');
                     }
                 });
             }
             return false;
         }else{
-            $("#id_car").find('option').not(':first').remove();
             $("#id_repair_type").find('option').not(':first').remove();
         }
     }
@@ -252,7 +276,9 @@
 
     //after load
     $(document).ready(function() {
-        $('#id_car').select2();
+        //$('#id_car').select2();
+        $('#id_name').select2();
+        $('#id_chief_approve_user_name').select2();
         $('#id_repair_type').select2();
         $('#id_expense_dept').select2();
 

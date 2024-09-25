@@ -281,7 +281,8 @@ class BaseBrokeType(models.Model):
         return str(self.name)
     
 class BaseCar(models.Model):
-    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อเครื่องจักร/ทะเบียนรถ")
+    code = models.CharField(unique=True, max_length=255, blank=False, null=True, verbose_name="code")
+    name = models.CharField(max_length=255, blank=False, null=True, verbose_name="ชื่อเครื่องจักร/ทะเบียนรถ")
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
 
     class Meta:
@@ -289,9 +290,10 @@ class BaseCar(models.Model):
         ordering=('id',)
         verbose_name = 'เครื่องจักร/ทะเบียนรถ'
         verbose_name_plural = 'ข้อมูลเครื่องจักร/ทะเบียนรถ'
+        unique_together = 'name', 'code'
     
     def __str__(self):
-        return str(self.name)
+        return str(self.code)+ " : " + str(self.name)
 
 class BaseIsoCode(models.Model):
     r_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบขอเบิก")
@@ -1099,7 +1101,7 @@ class PurchaseOrder(models.Model):
         if self.ref_no is None:
             self.ref_no = purchaseOrder_ref_number(self.branch_company)
 
-        ''' QR Code 17-05-2024 เอาออกก่อน
+        # QR Code 17-05-2024
         if not self.qr_code:
             qr = qrcode.QRCode(
                 version=1,
@@ -1125,7 +1127,7 @@ class PurchaseOrder(models.Model):
             canvas.save(buffer, 'PNG')
             self.qr_code.save(fname, File(buffer), save=False)
             canvas.close()
-        '''
+
         super(PurchaseOrder, self).save(*args, **kwargs)
 
 

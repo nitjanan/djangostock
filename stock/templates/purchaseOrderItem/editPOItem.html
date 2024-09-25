@@ -32,10 +32,9 @@
               </description>
             </div>
             <!-- QR Code 17-05-2024 เอาออกก่อน -->
-            <!--div class="col-4 float-right" style="display: flex; align-items: center;">
+            <div class="col-4 float-right" style="display: flex; align-items: center;">
               {% if po.qr_code %}
                   <img src="{{ po.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
-              {% endif %}
               <ul class="list-unstyled my-3 text-left">
                   {% for bp in base_po_type %}
                       <li>
@@ -48,7 +47,8 @@
                       </li>
                   {% endfor %}
               </ul>
-            </div-->
+              {% endif %}
+            </div>
           </div>
         <hr>
         <div class="row">
@@ -161,7 +161,7 @@
             <hr>
             <div class="row">
               <div class="col-7">
-                <p>ทะเบียนรถ/เครื่องจักร&nbsp;&nbsp;{% if po.pr.requisition.car.name %}{{po.pr.requisition.car.name}}{% endif %}</p>
+                <p>ทะเบียนรถ/เครื่องจักร&nbsp;&nbsp;{% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.code }}{% endif %}</p>
               </div>
 
               <div class="col-3">
