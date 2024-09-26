@@ -517,6 +517,7 @@ $("#id_vat_type" ).change(function() {
   vat = calculateVat(parseFloat(tempTotal.innerHTML));
 
   $("#id_vat").val(vat.toFixed(2));
+  $("#id_amount").val(amount.toFixed(2));
 });
 
 $("#id_total_price, #id_discount").change(function() {
