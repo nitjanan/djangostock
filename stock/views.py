@@ -1519,7 +1519,11 @@ class UpdateCrudUser(View):
         obj.save()
 
         ############# update invoice ##############
-        updateInvoiceAndItem(rqs, obj)
+        have_iv = Invoice.objects.filter(requisit = rqs).exists()
+        if have_iv:
+            updateInvoiceAndItem(rqs, obj)
+        else:
+            CUInvoiceAndItem(rqs)
 
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
         'quantity':obj.quantity,'quantity_take':obj.quantity_take,'machine':obj.machine,'desired_date':obj.desired_date,
@@ -5588,6 +5592,15 @@ def showInvoice(request, iv_id, mode):
     }
 
     return render(request, "invoice/showInvoice.html", context)
+
+def removeInvoice(request, iv_id):
+    iv = Invoice.objects.get(id = iv_id)
+    #ลบ item ใน PurchaseOrder ด้วย
+    items = InvoiceItem.objects.filter(iv = iv)
+    items.delete()
+    #ลบ PurchaseOrder ทีหลัง
+    iv.delete()
+    return redirect('viewInvoice')
 
 def exportExcelRQ(request):
     active = request.session['company_code']

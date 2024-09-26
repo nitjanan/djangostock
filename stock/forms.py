@@ -68,14 +68,14 @@ class RequisitionForm(forms.ModelForm):
     )
     repair_type = forms.ModelChoiceField(queryset = BaseRepairType.objects.all(), label='ประเภทการซ่อม', required=True)
     #car = forms.ModelChoiceField(queryset = BaseCar.objects.all(), label='เครื่องจักร/ทะเบียนรถ', required=True)
-    '''
+    
     car = forms.ModelChoiceField(
         queryset=BaseCar.objects.all(),
         label='เครื่องจักร/ทะเบียนรถ',
         widget=Select2Widget(),
         required=True,
     )
-    '''
+    
 
     expense_dept = forms.ModelChoiceField(queryset = BaseExpenseDepartment.objects.all(), label='แผนกค่าใช้จ่าย', required=True)
     urgency = forms.ModelChoiceField(queryset = BaseUrgency.objects.all(), label='ระดับความเร่งด่วน', required=True)

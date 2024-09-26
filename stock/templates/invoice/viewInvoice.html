@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
+{% load humanize %}
 
 {% block content %}
 <div class="container my-3">
@@ -49,10 +50,12 @@
           <tr>
             <th scope="col">รหัสใบจ่ายภายใน</th>
             <th scope="col">วันที่จ่าย</th>
+            <th scope="col">สินค้า</th>
             <th scope="col">ชื่อผู้เบิก</th>
             <th scope="col">ชื่อผู้จ่าย</th>
             <th scope="col">หมายเหตุ</th>
             <th scope="col">แผนกคชจ.</th>
+            <th scope="col">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -60,10 +63,18 @@
           <tr>
             <th scope="row"><a href="{% url 'showInvoice' iv.id 1 %}">{{iv.ref_no}}</a></th>
             <td>{{iv.created |date:"d/m/Y" }}</td>
+            <td>
+              {% for i in iv.invoiceitem_set.all %}
+                <li>{{ i.item.product_name }}</li>
+              {% endfor %}
+            </td>
             <td>{{iv.bring_name}}</td>
             <td>{{iv.payer_name}}</td>
             <td>{{iv.car}}</td>
             <td>{{iv.expense_dept}}</td>
+            <td>
+              <a onclick="return confirm('คุณต้องการลบใบจ่ายภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+            </td>
           </tr>
         {% endfor %}
         </tbody>

@@ -252,7 +252,7 @@
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
             <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
-            <input class="form-control is-invalid" type="number" name="quantityTake" min="0" step="any"/>
+            <input class="form-control is-invalid" type="number" name="quantityTake" min="0" step="any" required/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="unitList" name="unit" id="sel-unit" required>
             <datalist id="unitList">
@@ -308,7 +308,7 @@
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
             <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
-            <input class="form-control is-invalid" id="form-quantitytake" type="number" name="formQuantityTake" min="0" step="any"/>
+            <input class="form-control is-invalid" id="form-quantitytake" type="number" name="formQuantityTake" min="0" step="any" required/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="formUnitList" name="formUnit" id="form-unit" required>
             <datalist id="formUnitList">

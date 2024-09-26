@@ -169,6 +169,7 @@ urlpatterns = [
 
     path('invoice/',views.viewInvoice,name="viewInvoice"),
     path('invoice/show/<int:iv_id>/<int:mode>',views.showInvoice,name="showInvoice"),
+    path('invoice/remove/<int:iv_id>',views.removeInvoice,name="removeInvoice"),
 
     path('car-search/', views.car_search, name='car_search'),
 
