@@ -4249,7 +4249,7 @@ def uploadReceive(request):
                         po.save()
 
                         try:
-                            rd = RateDistributor.objects.get(po = po)
+                            rd = RateDistributor.objects.filter(po=po).order_by('-id').first()
                             #คำนวน rating (duration_rate) ระยะเวลาที่รับจริง - วันที่กำหนดรับของ
                             #ถ้าปีห่างกันมากกว่าแสดงว่าปีเป็น คศ และ พศ ให้ทำการแปลงเป็นคศ ก่อน
 
