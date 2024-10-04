@@ -4162,8 +4162,13 @@ def reApprovePR(request, pr_id):
         baseUrgency = BaseUrgency.objects.all()
         baseUnit = BaseUnit.objects.all()
         baseProduct = Product.objects.all().values('id', 'name')
-        baseCar = BaseCar.objects.all().values('id', 'name')
-        baseRepairType = BaseRepairType.objects.all().values('id', 'name')
+        #ถ้ามีประเภทใบขอเบิก ดึงตามประเภทใบขอเบิก
+        if requisition.rq_type:
+            baseCar = BaseCar.objects.filter(Q(rq_type = requisition.rq_type)| Q(rq_type = 4)).values('id', 'code', 'name')
+            baseRepairType = BaseRepairType.objects.filter(Q(rq_type = requisition.rq_type)| Q(rq_type = 4)).values('id', 'name')
+        else:
+            baseCar = BaseCar.objects.all().values('id', 'code', 'name')
+            baseRepairType = BaseRepairType.objects.all().values('id', 'name')
 
         #form
         form_pr = PurchaseRequisitionForm(request, instance=pr)
@@ -4171,7 +4176,7 @@ def reApprovePR(request, pr_id):
             form_pr = PurchaseRequisitionForm(request, request.POST, instance=pr)
             if form_pr.is_valid():
                 form_pr.save()
-                return HttpResponseRedirect(reverse('viewPR'))
+                return HttpResponseRedirect(reverse('viewPRHistory'))
 
         context = {
             'users' : items,

@@ -488,7 +488,7 @@
             },
             cache: true
         },
-        placeholder: 'Search for a car by name or code',
+        placeholder: 'ค้นหาด้วย code หรือ ชื่อ',
         minimumInputLength: 2,
         allowClear: true
     });
@@ -912,7 +912,6 @@ $("#rName").change(function() {
 
     //after load
     $(document).ready(function() {
-        //$('#id_car').select2();
         $('#id_name').select2();
         $('#id_chief_approve_user_name').select2();
         $('#id_repair_type').select2();
@@ -925,7 +924,6 @@ $("#rName").change(function() {
         $('input[type="checkbox"]').addClass('big-checkbox');
         $('.form-check').addClass('inline-checkboxes');
 
-        rqType_Change();
         agency_Change();
     });
 
