@@ -6,155 +6,176 @@
 
 {% block css %}
 <style>
+/* A5 Page size settings for print */
 @media print {
-    .hidden-print {
+  .hidden-print {
     display: none;
-    }
-    
+  }
+
+  @page {
+    size: A5;
+    margin: 8mm;
+  }
+
+  body {
+    font-family: serif;
+    margin: 0;
+  }
+
+  .print-content-a5 {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-content-a5, .print-content-a5 * {
+    visibility: visible;
+  }
 }
 
+/* underline */
 .underline-only {
-      display: inline-block;
-      width: 150px; /* Adjust the width as needed */
-      border-bottom: 1px dashed #999;
-      text-decoration: none;
+  display: inline-block;
+  width: 150px;
+  border-bottom: 1px dashed #999;
+  text-decoration: none;
 }
 .underline-only::before {
-      content: "\00A0"; /* Non-breaking space to make the underline visible */
+  content: "\00A0";
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-  <div class="row my-2">
-    <div class="text-left col">
-      <h2>{{iv.branch_company.affiliated.name_th}}</h2>
-    </div>
-  </div>
-  <div class="row my-2">
-    <div class="col-6 text-right">
-    </div>
-    <div class="col-4 text-left">
-        <h2>ใบจ่ายสินค้าภายใน</h2>
-    </div>
-  </div>
-  <div class="row my-2">
-    <div class="col-6 text-left">
-      <strong>เลขที่ใบขอเบิก: </strong>
-      <description><u><a href="{% url 'showRequisition' iv.requisit.id 4 %}">{{iv.requisit.ref_no}}</a></u>
-      </description>
-    </div>
-    <div class="col-2 text-left">
-        <strong>เลขที่เอกสาร </strong>
-    </div>
-    <div class="col-2 text-left">
-        <description>{{iv.ref_no}}
-        </description>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-6">
-      <description>
-      <strong>หมายเหตุ : </strong>{{iv.car}}
-      </description>
-    </div>
-    <div class="col-2 text-left">
-        <strong>วันที่ </strong>
-    </div>
-    <div class="col-2 text-left">
-      <description>{{iv.created | date:"d/m/Y"}}
-      </description>
-    </div>
-  </div>
-  
-  <div class="row my-4">
-    <div class="col-md-12">
-      <div class="panel panel-default">
-            <div class="panel-heading">
-                <!--h3 class="panel-title">
-                  <div class="row">
-                    <div class="col">
-                     <strong>รายการใบขอเบิก</strong>
-                    </div>
-                  </div>
-                </h3-->
+  <div class="print-content-a5">
+      <div class="row my-2">
+        <div class="text-left col">
+          <h3>{{iv.branch_company.affiliated.name_th}}</h3>
+        </div>
+      </div>
+      <div class="row my-2">
+        <div class="col text-right">
+            <h3>ใบจ่ายสินค้าภายใน</h3>
+        </div>
+      </div>
+      <div class="row my-2">
+        <div class="col-6 text-left">
+          <strong>เลขที่ใบขอเบิก: </strong>
+          <description><u><a href="{% url 'showRequisition' iv.requisit.id 4 %}">{{iv.requisit.ref_no}}</a></u>
+          </description>
+        </div>
+        <div class="col-2 text-left">
+            <strong>เลขที่เอกสาร </strong>
+        </div>
+        <div class="col-2 text-left">
+            <description>{{iv.ref_no}}
+            </description>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <description>
+          <strong>หมายเหตุ : </strong>{{iv.car}}
+          </description>
+        </div>
+        <div class="col-2 text-left">
+            <strong>วันที่ </strong>
+        </div>
+        <div class="col-2 text-left">
+          <description>{{iv.created | date:"d/m/Y"}}
+          </description>
+        </div>
+      </div>
+      
+      <div class="row my-4">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+                <div class="panel-heading">
+    
+                </div>
+            <div class="panel-body">
+              <div class="table-responsive">
+                <table id="userTable" class="table table-bordered">
+                  <thead>
+                    <tr>
+                        <td class="text-center"><strong>No.</strong></td>
+                        <td class="text-center"><strong>รหัสสินค้า/รายละเอียด</strong></td>
+                        <td class="text-center"><strong>จำนวน</strong></td>
+                        <td class="text-center"><strong>หน่วย</strong></td>
+                        <td class="text-center"><strong>หน่วยละ</strong></td>
+                        <td class="text-center"><strong>รวม</strong></td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td class="text-left">{{item.item.product.id}} {{item.item.product_name}}</td>
+                        <td class="text-right">{{item.quantity | floatformat:"4"}}</td>
+                        <td class="text-left">{{item.unit}}</td>
+                        <td class="text-center">{% if item.unit_price %}{{item.unit_price | floatformat:"4"}}{%else%}0.0000{%endif%}</td>
+                        <td class="text-center">{% if item.unit_price %}{{item.price | floatformat:"2"}}{%else%}0.00{%endif%}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="6" class="text-center ">
+                        <div class="alert alert-warning" role="alert">
+                          ไม่มีสินค้า
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td class="text-right" colspan="5">รวม</td>
+                        <td class="text-center" colspan="6">0.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-        <div class="panel-body">
-          <div class="table-responsive">
-            <table id="userTable" class="table table-bordered">
-              <thead>
-                <tr>
-                    <td class="text-center"><strong>No.</strong></td>
-                    <td class="text-center"><strong>รหัสสินค้า/รายละเอียด</strong></td>
-                    <td class="text-center"><strong>จำนวน</strong></td>
-                    <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>หน่วยละ</strong></td>
-                    <td class="text-center"><strong>รวม</strong></td>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in items %}
-                <tr>
-                    <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-left">{{item.item.product.id}} {{item.item.product_name}}</td>
-                    <td class="text-right">{{item.quantity | floatformat:"4"}}</td>
-                    <td class="text-left">{{item.unit}}</td>
-                    <td class="text-center">{% if item.unit_price %}{{item.unit_price | floatformat:"4"}}{%else%}0.0000{%endif%}</td>
-                    <td class="text-center">{% if item.unit_price %}{{item.price | floatformat:"2"}}{%else%}0.00{%endif%}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="6" class="text-center ">
-                    <div class="alert alert-warning" role="alert">
-                      ไม่มีสินค้า
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-                <tr>
-                    <td class="text-right" colspan="5">รวม</td>
-                    <td class="text-center" colspan="6">0.00</td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
-    </div>
+    
+      <div class="row my-3">
+        <div class="col-9">
+          <description>
+          <strong>หมายเหตุเพิ่มเติม : </strong>{{iv.note}}
+          </description>
+        </div>
+        <div class="col-3 text-right">
+          <description>
+            FM-ST-008 Rev.01
+          </description>
+        </div>
+      </div>
+      <div class="row my-3">
+        <div class="col-8">
+          <description>
+          <strong>ผู้เบิก </strong><u>{{iv.bring_name}}</u><u class="underline-only"></u>
+          </description>
+        </div>
+        <div class="col-4 text-left">
+            <description>
+            <strong>ผู้จ่าย </strong><u>{{iv.payer_name}}</u>
+            </description>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col text-right">
+          <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();window.print();">
+            <i class="fas fa-print"></i>
+            ปริ้นใบจ่ายสินค้าภายใน
+          </button>
+        </div>
+      </div>
   </div>
-
-  <div class="row my-3">
-    <div class="col-9">
-      <description>
-      <strong>หมายเหตุเพิ่มเติม : </strong>{{iv.note}}
-      </description>
-    </div>
-    <div class="col-3 text-right">
-      <description>
-        FM-ST-008 Rev.01
-      </description>
-    </div>
-  </div>
-  <div class="row my-3">
-    <div class="col-8">
-      <description>
-      <strong>ผู้เบิก </strong><u>{{iv.bring_name}}</u><u class="underline-only"></u>
-      </description>
-    </div>
-    <div class="col-4 text-left">
-        <description>
-        <strong>ผู้จ่าย </strong><u>{{iv.payer_name}}</u>
-        </description>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col text-right">
-      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();window.print();">
-        <i class="fas fa-print"></i>
-        ปริ้นใบจ่ายสินค้าภายใน
-      </button>
-    </div>
-  </div>
-  </div>
-{% endblock%}
+</div>
+{% endblock %}
