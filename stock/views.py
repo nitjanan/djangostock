@@ -47,7 +47,7 @@ from django.views.decorators.cache import cache_control
 from decimal import Decimal
 import pandas as pd
 from django_pandas.io import read_frame
-from django.db.models.functions import Round
+from django.db.models.functions import Round, Concat
 from django.contrib import messages
 import string
 from openpyxl import Workbook
@@ -55,6 +55,7 @@ from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
 from datetime import date, timedelta
 
+#ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         search_term = request.GET.get('q', '')
@@ -1427,7 +1428,7 @@ class CreateCrudUser(View):
         if not description1:
             description1 = rqs.repair_type.name
         if not machine1:
-            machine1 = rqs.car.code
+            machine1 = rqs.car.name + rqs.car.code #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
         if not desireddate1:
             desireddate1 = rqs.desired_date
         if not urgency1:
@@ -1505,7 +1506,7 @@ class UpdateCrudUser(View):
         if machine1:
             obj.machine = machine1
         else:
-            obj.machine = rqs.car.code
+            obj.machine = rqs.car.name + rqs.car.code #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
         if desireddate1:
             obj.desired_date = desireddate1
@@ -4956,7 +4957,12 @@ def exportExcelPOToExpress(request):
             'ราคาต่อหน่วย' : queryset.values_list('unit_price', flat=True),
             'ส่วนลด' : queryset.values_list('discount', flat=True),
             'ราคารวม' : queryset.values_list('price', flat=True),
-            'ใช้ในระบบงาน' : queryset.values_list('item__machine', flat=True),
+            'ใช้ในระบบงาน' : queryset.annotate(
+                car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
+                machine=Case(
+                    When(~Q(car_name_code =''), then='car_name_code'),
+                    default='item__machine'
+                )).values_list('machine', flat=True), #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
             'วันที่ต้องการ' : queryset.values_list('item__desired_date', flat=True),
             'ระดับความเร่งด่วน' : queryset.values_list('item__urgency', flat=True),
             'ระยะเวลาในการซื้อ' :  [ cal_days_between_nagative(qs[1], qs[0]) for qs in queryset.values_list('item__desired_date', 'po__receive_update')],
@@ -5068,7 +5074,10 @@ def exportExcelPO(request):
             'วันที่อนุมัติใบขอซื้อ' : [ PurchaseRequisition.objects.filter(requisition = PurchaseOrderItem.objects.filter(po = id).values_list('item__requisit', flat=True).first()).values_list('approver_update', flat=True).first() for id in queryset.values_list('id', flat=True)],
             'รหัสสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__id', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'รายการสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__name', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
-            'ใช้ในระบบงาน' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__machine', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
+            'ใช้ในระบบงาน' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id)
+                                                .annotate(car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'), machine=Case(When(~Q(car_name_code =''), then='car_name_code'),default='item__machine'))
+                                                .values_list('machine', flat=True).distinct()))) 
+                                                for id in queryset.values_list('id', flat=True)], #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
             'วันที่ต้องการ' :   [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__desired_date', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'ระดับความเร่งด่วน' :  [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__urgency', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'ระยะเวลาในการซื้อ' : [ cal_days_between_nagative(qs[1], PurchaseOrderItem.objects.filter(po = qs[0]).values_list('item__desired_date', flat=True).first()) for qs in queryset.values_list('id', 'receive_update')],
@@ -5187,7 +5196,12 @@ def exportExcelSummaryByProductValue(request):
         my_q
     ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price','item__machine')
+    po_items = PurchaseOrderItem.objects.filter(my_q).annotate(
+                car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
+                mc=Case(
+                    When(~Q(car_name_code =''), then='car_name_code'),
+                    default='item__machine'
+                )).values('item__product_id','unit_price','mc') #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
     total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
@@ -5208,7 +5222,7 @@ def exportExcelSummaryByProductValue(request):
         for item in po_items:
             if row[0] == item['item__product_id']:
                 strUnitPrice = " ".join([strUnitPrice, str(item['unit_price']), ", "])
-                strMachine = " ".join([strMachine, str(item['item__machine']), ", "])
+                strMachine = " ".join([strMachine, str(item['mc']), ", "])
         #remove , in last item
         strUnitPrice = strUnitPrice[:-2]
         strMachine = strMachine[:-2]
@@ -5308,7 +5322,12 @@ def exportExcelSummaryByProductFrequently(request):
         my_q
     ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).values('item__product_id','unit_price','item__machine')
+    po_items = PurchaseOrderItem.objects.filter(my_q).annotate(
+                car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
+                mc=Case(
+                    When(~Q(car_name_code =''), then='car_name_code'),
+                    default='item__machine'
+                )).values('item__product_id','unit_price','mc') #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
     total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
@@ -5328,7 +5347,7 @@ def exportExcelSummaryByProductFrequently(request):
         for item in po_items:
             if row[0] == item['item__product_id']:
                 strUnitPrice = " ".join([strUnitPrice, str(item['unit_price']), ", "])
-                strMachine = " ".join([strMachine, str(item['item__machine']), ", "])
+                strMachine = " ".join([strMachine, str(item['mc']), ", "])
         #remove , in last item
         strUnitPrice = strUnitPrice[:-2]
         strMachine = strMachine[:-2]
@@ -5647,12 +5666,18 @@ def exportExcelRQ(request):
     data1 = {
             'วันที่': queryset.values_list('requisit__created', flat=True),
             'บริษัท': queryset.values_list('requisit__branch_company__name', flat=True),            
-            'ทะเบียนรถ/เครื่องจักร': queryset.values_list('requisit__car__code', flat=True),
+            'ทะเบียนรถ/เครื่องจักร/หน่วยงาน': queryset.annotate(
+                                            car_name_code=Concat('requisit__car__name', 'requisit__car__code'),
+                                            mc =Case(
+                                                When(~Q(car_name_code =''), then='car_name_code'),
+                                                default='machine'
+                                            )).values_list('mc', flat=True), #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
             'ประเภทการซ่อม': queryset.values_list('requisit__repair_type__name', flat=True),
             'เลขที่ใบขอเบิก': queryset.values_list('requisit__ref_no', flat=True),
             'รหัสสินค้า': queryset.values_list('product__id', flat=True),
             'สินค้า': queryset.values_list('product_name', flat=True),
             'จำนวน': queryset.values_list('quantity', flat=True),
+            'หน่วย': queryset.values_list('unit', flat=True),
             'หน่วยงาน': queryset.values_list('requisit__agency__name', flat=True),
             'แผนกคชจ.': queryset.values_list('requisit__expense_dept__name', flat=True)
             }
@@ -5662,12 +5687,13 @@ def exportExcelRQ(request):
     data2 = {
             'วันที่': 'รวมใบขอเบิก',
             'บริษัท': [queryset.values('requisit__id').distinct().count()],
-            'ทะเบียนรถ/เครื่องจักร': 'ใบ',
+            'ทะเบียนรถ/เครื่องจักร/หน่วยงาน': 'ใบ',
             'ประเภทการซ่อม': '',
             'เลขที่ใบขอเบิก': '',
             'รหัสสินค้า': '',
             'สินค้า': '',
             'จำนวน': '',
+            'หน่วย': '',
             'หน่วยงาน': '',
             'แผนกคชจ.': '',
             }

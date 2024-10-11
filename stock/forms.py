@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -71,7 +71,7 @@ class RequisitionForm(forms.ModelForm):
     
     car = forms.ModelChoiceField(
         queryset=BaseCar.objects.all(),
-        label='เครื่องจักร/ทะเบียนรถ',
+        label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
         widget=Select2Widget(),
         required=True,
     )
@@ -533,4 +533,26 @@ class ProductAdminForm(forms.ModelForm):
             raise forms.ValidationError(u"รหัสสินค้าผิด ("+ str(id) +") ต้องเป็นตัวพิมพ์ใหญ่เท่านั้น ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
         if id.find('O-') != -1 : #เช็ค O- ในรหัส
             raise forms.ValidationError(u"รหัสสินค้าผิด XX-XO-001 ต้องเป็น XX-X0-001 (ขีดเอ็กซ์โอ ต้องเป็น ขีดเอ็กซ์ศูนย์) ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        return cleaned_data
+    
+class BaseCarAdminForm(forms.ModelForm):
+    class Meta:
+        model = BaseCar
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = self.cleaned_data
+        #ลบช่องว่างหน้าและหลัง
+        code = cleaned_data.get('code').strip() if cleaned_data.get('code') else ''
+        name = cleaned_data.get('name').strip() if cleaned_data.get('name') else ''
+        
+        hoen = has_only_en(code)
+
+        if not hoen: #เช็คตัวอักษรภาษาไทยในรหัส
+            raise forms.ValidationError(u"code เครื่องจักร/ทะเบียนรถ/หน่วยงาน ผิด ("+ str(code) +") มีตัวอักษรภาษาไทย ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        if not code.isupper():  #เช็คตัวอักษรพิมใหญ่
+            raise forms.ValidationError(u"code เครื่องจักร/ทะเบียนรถ/หน่วยงาน ผิด ("+ str(code) +") ต้องเป็นตัวพิมพ์ใหญ่เท่านั้น ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        
+        cleaned_data['code'] = code
+        cleaned_data['name'] = name
         return cleaned_data

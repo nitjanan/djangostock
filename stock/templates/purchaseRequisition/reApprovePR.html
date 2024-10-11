@@ -332,7 +332,7 @@ u.dotted {
             <select id="sel-machine" name="machine" class="select form-control" required>
               <option value="" selected="">---------</option>
               {% for car in baseCar %}
-              <option value="{{car.code}}">{{car.code}} : {{car.name}}</option>
+              <option value="{{car.name}}{{car.code}}">{{car.code}} : {{car.name}}</option>
               {% endfor %}
             </select>
             <label for="name">วันที่ต้องการ</label>
@@ -398,7 +398,7 @@ u.dotted {
             <select id="form-machine" name="formMachine" class="select form-control" required>
               <option value="" selected="">---------</option>
               {% for car in baseCar %}
-                <option value="{{car.code}}">{{car.code}} : {{car.name}}</option>
+                <option value="{{car.name}}{{car.code}}">{{car.code}} : {{car.name}}</option>
               {% endfor %}
             </select>
             <label for="name">วันที่ต้องการ</label>

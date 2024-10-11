@@ -11,7 +11,7 @@ from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
 from related_admin import getter_for_related_field
-from stock.forms import ProductAdminForm
+from stock.forms import ProductAdminForm, BaseCarAdminForm
 
 # Register your models here.
 class CategoryAdmin(ImportExportModelAdmin):
@@ -283,6 +283,7 @@ class BaseRepairTypeAdmin(ImportExportModelAdmin):
 class BaseCarAdmin(ImportExportModelAdmin):
     list_display = ['id','code','name','rq_type']#แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['code', 'name','rq_type__name']
+    form = BaseCarAdminForm
 
 class BaseBrokeTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง

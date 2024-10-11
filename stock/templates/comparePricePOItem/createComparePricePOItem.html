@@ -535,7 +535,7 @@ $("#id_total_price, #id_discount").change(function() {
   var amount = calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
-  var thaibath = ArabicNumberToText(amount);
+  var thaibath = ArabicNumberToText($("#id_amount").val());
   document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
 

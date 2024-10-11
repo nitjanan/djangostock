@@ -282,18 +282,18 @@ class BaseBrokeType(models.Model):
     
 class BaseCar(models.Model):
     code = models.CharField(unique=True, max_length=255, blank=False, null=True, verbose_name="code")
-    name = models.CharField(max_length=255, blank=False, null=True, verbose_name="ชื่อเครื่องจักร/ทะเบียนรถ/หน่วยงาน")
+    name = models.CharField(max_length=255, blank=False, null=True, verbose_name="ชื่อทะเบียนรถ/เครื่องจักร/หน่วยงาน")
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
 
     class Meta:
         db_table = 'BaseCar'
         ordering=('id',)
-        verbose_name = 'เครื่องจักร/ทะเบียนรถ/หน่วยงาน'
-        verbose_name_plural = 'ข้อมูลเครื่องจักร/ทะเบียนรถ/หน่วยงาน'
+        verbose_name = 'ทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลทะเบียนรถ/เครื่องจักร/หน่วยงาน'
         unique_together = 'name', 'code'
     
     def __str__(self):
-        return str(self.code)+ " : " + str(self.name)
+        return str(self.name) + str(self.code)
 
 class BaseIsoCode(models.Model):
     r_code = models.TextField(max_length=255, verbose_name="รหัส iso ใบขอเบิก")

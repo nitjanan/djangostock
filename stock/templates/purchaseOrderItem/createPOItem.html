@@ -309,7 +309,7 @@ $("#id_freight").change(function() {
   var amount = calculateAmount($("#id_vat").val(), $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
-  var thaibath = ArabicNumberToText(amount);
+  var thaibath = ArabicNumberToText($("#id_amount").val());
   document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
 
@@ -335,7 +335,7 @@ $("#id_total_price, #id_discount").change(function() {
   var amount = calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
-  var thaibath = ArabicNumberToText(amount);
+  var thaibath = ArabicNumberToText($("#id_amount").val());
   document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 });
 
@@ -376,7 +376,7 @@ function calculateAll(){
     $("#id_amount").val(amount.toFixed(2));
     //document.getElementById("amount").innerHTML = amount.toFixed(2) + " บาท";
     //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
-		var thaibath = ArabicNumberToText(amount);
+		var thaibath = ArabicNumberToText($("#id_amount").val());
     document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
 }
 

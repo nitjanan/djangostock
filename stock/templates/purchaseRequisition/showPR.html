@@ -184,7 +184,7 @@ u.dotted {
                     <td class="text-center" name="unit">
                       {{item.unit}}
                     </td>
-                    <td name="machine">{{item.machine}}</td>
+                    <td name="machine">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
                     <td name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
                     <td class="text-center" name="urgency">
                       {% for bu in baseUrgency %}
