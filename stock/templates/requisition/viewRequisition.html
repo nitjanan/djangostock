@@ -50,7 +50,7 @@
           <tr>
             <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
-            <th scope="col">แผนก</th>
+            <th scope="col">สินค้า</th>
             <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">หัวหน้างาน</th>
             <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
@@ -64,7 +64,13 @@
           <tr>
             <th scope="row"><a href="{% url 'showRequisition' requisition.id 1 %}">{{requisition.ref_no}}</a></th>
             <td>{{requisition.name}}</td>
-            <td>{{requisition.section}}</td>
+            <td>
+              <ul>
+                {% for item in requisition.requisitionitem_set.all %}
+                    <li>{{ item.product_name }}</li>
+                {% endfor %}
+              </ul>
+            </td>
             <td>{{requisition.created |date:"d/m/Y" }}</td>
             <td>{{requisition.chief_approve_user_name}}</td>
             <td>{{requisition.organizer}}</td>

@@ -49,6 +49,7 @@
         <thead class="thead-dark">
           <tr>
             <th scope="col">รหัสใบจ่ายภายใน</th>
+            <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">วันที่จ่าย</th>
             <th scope="col">สินค้า</th>
             <th scope="col">ชื่อผู้เบิก</th>
@@ -62,6 +63,7 @@
         {% for iv in ivs %}
           <tr>
             <th scope="row"><a href="{% url 'showInvoice' iv.id 1 %}">{{iv.ref_no}}</a></th>
+            <td><a href="{% url 'showRequisition' iv.requisit.id 1 %}">{{iv.requisit.ref_no}}</a></td>
             <td>{{iv.created |date:"d/m/Y" }}</td>
             <td>
               {% for i in iv.invoiceitem_set.all %}
@@ -73,7 +75,11 @@
             <td>{{iv.car}}</td>
             <td>{{iv.expense_dept}}</td>
             <td>
-              <a onclick="return confirm('คุณต้องการลบใบจ่ายภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+              {% if request.user.is_superuser %}
+                <a onclick="return confirm('คุณต้องการลบใบจ่ายภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+              {% elif iv.requisit.invoice_id and iv.requisit.is_edit == True %}
+                <a onclick="return confirm('คุณต้องการลบใบจ่ายภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+              {% endif %}
             </td>
           </tr>
         {% endfor %}

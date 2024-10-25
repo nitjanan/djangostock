@@ -3,21 +3,42 @@
 
 {% block content %}
 <div class="container my-2">
-  <h3 align="center">สร้างใบขอซื้อ</h3>
+  <h3 align="center">สร้างใบขอซื้อและใบจ่ายภายใน</h3>
+      {% if messages %}
+          {% for message in messages %}
+              <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
+                <i class="fas fa-check-circle"></i>
+                {{ message }}
+              </div>
+          {% endfor %}
+      {% endif %}
     {% for requisition in requisitions%}
     <div class="card my-3">
         <h5 class="card-header alert-info">ใบขอเบิก #{{requisition.ref_no}}</h5>
         <div class="card-body">
           <h6 class="card-title">วันที่ตั้งเบิก {{requisition.created |date:"d/m/Y"}}</h6>
-          <ul>
-            {% for item in items %}
-                {% if requisition.id == item.requisition_id %}
-                    <li>{{item.product_name}}</li>
-                {% endif %}
-            {% endfor %}
-          </ul>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col" class="text-center">สินค้า</th>
+                <th scope="col" class="text-center">จำนวนที่ออกใบขอซื้อ</th>
+                <th scope="col" class="text-center">จำนวนที่ออกใบจ่ายภายใน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in requisition.requisitionitem_set.all %}
+              <tr>
+                <th scope="row">{{forloop.counter}}</th>
+                <td>{{ item.product_name }}</td>
+                <td class="text-right">{{ item.quantity_pr |floatformat:"-4" }}</td>
+                <td class="text-right">{% if requisition.agency.id == 1 %}{{ item.quantity_take |floatformat:"-4" }}{%else%}0{%endif%}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
           <p class="card-text">ขอเบิกโดย {{requisition.name}} แผนก {{requisition.section}}</p>
-          <a href="{%url 'createPR' requisition.id %}" class="btn btn-primary"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อ</a>
+          <a href="{%url 'CUInvoiceAndItem' requisition.id %}" class="btn btn-primary"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อและใบจ่ายภายใน</a>
         </div>
     </div>
     {% empty %}

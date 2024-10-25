@@ -29,7 +29,10 @@
                                     <span class="float-right badge badge-pill badge-warning notification mr-5">{{is_purchasing_pr}}</span>
                                 {% endif %}
                             </a>
-                        </li>                
+                        </li>
+                        <li>
+                            <a class="{{iv_page}}" href="{% url 'viewInvoice' %}">ใบจ่ายสินค้า</a>
+                        </li>
                         <li>
                             <a class="{{cp_page}}" href="{% url 'viewComparePricePO' %}">ใบเปรียบเทียบราคา
                                 {% if add_po_all > 0%}
@@ -39,9 +42,6 @@
                         </li>
                         <li>
                             <a class="{{po_page}}" href="{% url 'viewPO' %}">ใบสั่งซื้อ</a>
-                        </li>
-                        <li>
-                            <a class="{{iv_page}}" href="{% url 'viewInvoice' %}">ใบจ่ายสินค้า</a>
                         </li>
                     </ul>
                 </li>

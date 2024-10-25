@@ -5,6 +5,15 @@
 
 {% block content %}
 <div class="container my-3">
+  {% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
+          <i class="fas fa-check-circle"></i>
+          {{ message }}
+        </div>
+    {% endfor %}
+  {% endif %}
+
 {% if isPurchasing %}
   <h3 align="center">สร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อจากใบขอซื้อ/ขอซ่อม</h3>
 {% else %}

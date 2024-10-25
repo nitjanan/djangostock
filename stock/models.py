@@ -572,8 +572,10 @@ class BranchCompanyBaseAdress(models.Model):
         return str(self.address)
 
 class Requisition(models.Model):
-    purchase_requisition_id =  models.IntegerField(blank=True, null=True,unique=True)
-    pr_ref_no = models.CharField(max_length = 255, null = True, blank = True)
+    purchase_requisition_id =  models.IntegerField(blank=True, null=True,unique=True)#อ้างอิง id pr
+    pr_ref_no = models.CharField(max_length = 255, null = True, blank = True)#อ้างอิง เลขที่ pr
+    invoice_id = models.IntegerField(blank=True, null=True,unique=True)#อ้างอิง id iv
+    iv_ref_no = models.CharField(max_length = 255, null = True, blank = True)#อ้างอิง เลขที่ iv
     name = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

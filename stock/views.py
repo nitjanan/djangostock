@@ -1110,7 +1110,7 @@ def requisition(request):
                               created__year__lte = year,
                               created__month__lte = month) | Q(purchase_requisition_id__isnull = True))   
     '''
-    data = Requisition.objects.filter(purchase_requisition_id__isnull = True, branch_company__code = active)
+    data = Requisition.objects.filter(Q(invoice_id__isnull = True) & Q(purchase_requisition_id__isnull = True) & Q(is_edit = True), branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
@@ -1328,10 +1328,16 @@ def updateInvoiceAndItem(rqs, obj):
         except InvoiceItem.DoesNotExist:
             pass
 
-def CUInvoiceAndItem(rqs):
-    have_iv_id = Invoice.objects.filter(requisit = rqs).first()
-    #ถ้ามี invoice_code และเป็นหน่วยงานภายใน (agency.id = 1) ให้สร้าง invoice
-    if rqs.branch_company.invoice_code and rqs.agency.id == 1:
+def CUInvoiceAndItem(request, rq_id):
+    iv = None
+    rqs = Requisition.objects.get(id = rq_id)
+    have_iv_id = Invoice.objects.filter(requisit = rq_id).first()
+
+    have_take_item = RequisitionItem.objects.filter(requisit = rqs, quantity_take__gt = 0).exists()#มีจำนวนที่จ่าย
+    have_pr_item = RequisitionItem.objects.filter(requisit = rqs, quantity_pr__gt = 0).exists()#มีจำนวนที่ซื้อ
+
+    #ถ้ามีจำนวนที่ต้องจ่าย และ invoice_code และเป็นหน่วยงานภายใน (agency.id = 1) ให้สร้าง invoice
+    if have_take_item and rqs.branch_company.invoice_code and rqs.agency.id == 1:
         if have_iv_id:
             updateInvoice(rqs)
         else:
@@ -1357,15 +1363,41 @@ def CUInvoiceAndItem(rqs):
                     unit = r_i.unit
                 )
                 iv_item.save()
-    else:
+
+            #เก็บ invoice id ใน requisition
+            rqs.invoice_id = iv.pk
+            rqs.iv_ref_no = iv.ref_no
+
+            if not have_pr_item:#ถ้าไม่มีจำนวนที่ต้องซื้อ ปิดใบเบิกเลย
+                rqs.is_edit = False
+
+            rqs.save()
+
+    else:#กรณีหน่วยงานภายนอก ไม่มีการออกใบจ่าย
         #ถ้าเป็นหน่วยงานภายนอกให้ลบ iv
         if have_iv_id:
           #ลบ iv item ก่อน
           items =  InvoiceItem.objects.filter(iv = have_iv_id)
           items.delete()
+
+          #set invoice_id ใน requisition เป็น None
+          rqs.invoice_id = None
+          rqs.iv_ref_no = None
+
           #ลบ iv หลังจากนั้น
           have_iv_id.delete()
+        
+        rqs.is_edit = False #ปิดใบเบิกเลย กรณีหน่วยงานภายนอก
+        rqs.save()
 
+    if have_pr_item: #มีจำนวนที่ต้องซื้อ เข้า createPR
+        return HttpResponseRedirect(reverse('createPR', args=(rq_id,)))
+    elif iv: #มีการจ่ายภายใน
+        messages.success(request, "สร้างใบจ่ายภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
+        return redirect('preparePR')
+    else: #กรณีหน่วยงานภายนอก ไม่มีการออกใบขอซื้อหรือใบจ่าย
+        messages.warning(request, "ใบขอเบิกนี้เป็นหน่วยงานภายนอก ข้อมูลเป็นประวัติใบขอเบิกเรียบร้อยแล้ว")
+        return redirect('preparePR')
 # class CrudView(PermissionRequiredMixin, TemplateView):
 #    raise_exception = True 
 #    permission_required = 'stock.cruduser.change_cruduser'
@@ -1450,8 +1482,10 @@ class CreateCrudUser(View):
             urgency = urgency1,
         )
 
+        ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายภายในแทน
         ############# create invoice ##############
         createInvoiceAndItem(rqs, obj)
+        '''
 
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
         'quantity':obj.quantity,'quantity_take':obj.quantity_take,'machine':obj.machine,'desired_date':obj.desired_date,
@@ -1519,12 +1553,14 @@ class UpdateCrudUser(View):
             obj.urgency = rqs.urgency.id
         obj.save()
 
+        ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายภายในแทน
         ############# update invoice ##############
         have_iv = Invoice.objects.filter(requisit = rqs).exists()
         if have_iv:
             updateInvoiceAndItem(rqs, obj)
         else:
             CUInvoiceAndItem(rqs)
+        '''
 
         user = {'id':obj.id,'name':obj.product_name,'description':obj.description,
         'quantity':obj.quantity,'quantity_take':obj.quantity_take,'machine':obj.machine,'desired_date':obj.desired_date,
@@ -1582,8 +1618,10 @@ def editAllRequisition(request, requisition_id):
             except PurchaseRequisition.DoesNotExist :
                 pass
 
+            ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายภายในแทน
             #crate or update invoid
-            CUInvoiceAndItem(requisition)
+            CUInvoiceAndItem(requisition)            
+            '''
 
             return redirect('requisition')
 
@@ -1683,7 +1721,7 @@ def viewPR(request):
 
 def preparePR(request):
     active = request.session['company_code']
-    requisitions = Requisition.objects.filter(purchase_requisition_id__isnull = True, branch_company__code = active)
+    requisitions = Requisition.objects.filter(Q(invoice_id__isnull = True) & Q(purchase_requisition_id__isnull = True) & Q(is_edit = True), branch_company__code = active)
 
     #สร้าง page
     paginator = Paginator(requisitions,10) #หมายถึงให้แสดงสินค้า 4 ต่อ 1 หน้า
@@ -1698,10 +1736,8 @@ def preparePR(request):
     except (EmptyPage, InvalidPage):
         dataPage = paginator.page(paginator.num_pages)
 
-    items = RequisitionItem.objects.filter(quantity_pr__gt=0)
     context = {
         'requisitions':dataPage,
-        'items':items,
         'pr_page': "tab-active",
         'pr_show': "show",
         active :"active show",
@@ -1886,6 +1922,12 @@ def createPR(request, requisition_id):
     for item in items:
         quantityTotal += item.quantity_pr
 
+    #หาว่ามีใบจ่ายภายในหรือไม่
+    try:
+        iv = Invoice.objects.get(requisit__id = requisition_id)
+    except Invoice.DoesNotExist:
+        iv = None
+
     '''24-07-2024 เปลี่ยนเป็นดึงจาก หมายเหตุ/เหตุผล ของใบขอเบิกแทน
     try:
         first_items = RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0).first()
@@ -1924,6 +1966,10 @@ def createPR(request, requisition_id):
             obj.organizer = new_contact.organizer
             obj.pr_ref_no = new_contact.ref_no
             obj.save()
+
+            messages.info(request, "สร้างใบขอซื้อ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
+            if iv:
+                messages.success(request, "สร้างใบจ่ายภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
             return HttpResponseRedirect(reverse('viewPR'))
         else:
             return HttpResponseRedirect(reverse('createPR', args=(requisition_id,)))
@@ -2089,6 +2135,7 @@ def removePR(request, pr_id):
     requisition = Requisition.objects.get(purchase_requisition_id = pr_id)
     requisition.purchase_requisition_id = None
     requisition.pr_ref_no = None
+    requisition.is_edit = True
     requisition.save()
     pr.delete()
     return redirect('viewPR')
@@ -2349,9 +2396,14 @@ def editPRApprove(request, pr_id, isFromHome):
             obj.approver_update = datetime.datetime.now()
         #หากอนุมัติแล้วแก้ใบขอเบิกไม่ได้
         if obj.purchase_status_id != 1 or obj.approver_status_id != 1:
-            r = Requisition.objects.get(purchase_requisition_id = obj.id)
-            r.is_edit = False
-            r.save()
+            try:
+                r = Requisition.objects.get(purchase_requisition_id = obj.id)
+                r.is_edit = False
+                r.save()
+            except Requisition.DoesNotExist: #ยกเลิกเนื่องจาก ออกใบขอซื้อเบิล 22/10/2024
+                obj.approver_status_id = 4
+                tmp_note = obj.note
+                obj.note = "(ยกเลิกจากระบบ)" + tmp_note
         obj.save()
         return redirect('editPRApprove', pr_id = pr_id, isFromHome = isFromHome)
 
@@ -4348,7 +4400,9 @@ def viewRequisitionHistory(request):
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
     #data = Requisition.objects.filter(created__year__lte = year,created__month__lt = month, purchase_requisition_id__isnull = False)
-    data = Requisition.objects.filter(purchase_requisition_id__isnull = False, branch_company__code__in = company_in)
+    
+    data = Requisition.objects.filter(is_edit = False, branch_company__code__in = company_in)
+    #data = Requisition.objects.filter(Q(invoice_id__isnull = False) | Q(purchase_requisition_id__isnull = False) , branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
@@ -4499,7 +4553,7 @@ def viewPRHistoryIncomplete(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 3) | Q(approver_status_id = 3), branch_company__code__in = company_in)
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 3) | Q(approver_status_id = 3) | Q(approver_status_id = 4), branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -5619,6 +5673,14 @@ def showInvoice(request, iv_id, mode):
 
 def removeInvoice(request, iv_id):
     iv = Invoice.objects.get(id = iv_id)
+
+    #set invoice_id เป็น None ด้วย
+    rq = Requisition.objects.get(invoice_id = iv_id)
+    rq.invoice_id = None
+    rq.iv_ref_no = None
+    rq.is_edit = True
+    rq.save()
+
     #ลบ item ใน PurchaseOrder ด้วย
     items = InvoiceItem.objects.filter(iv = iv)
     items.delete()

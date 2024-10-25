@@ -59,7 +59,8 @@
             <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">หัวหน้างาน</th>
             <th scope="col">ส่งให้เจ้าหน้าที่จัดซื้อ</th>
-            <th scope="col">สถานะใบขอซื้อ</th>
+            <th scope="col">ใบขอซื้อ</th>
+            <th scope="col">ใบจ่ายภายใน</th>
             <th scope="col">ใบบันทึก</th>
           </tr>
         </thead>
@@ -75,10 +76,13 @@
             <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
               {% if requisition.purchase_requisition_id %}
-                <button type="button" class="btn btn-outline-info btn-block btn-sm">มีใบขอซื้อ</button>
-              {% else %}
-                <button type="button" class="btn btn-outline-warning btn-block btn-sm">ไม่มีใบขอซื้อ</button>
-              {% endif %}
+                <a href="{% url 'showPR' requisition.purchase_requisition_id 4 %}"><button type="button" class="btn btn-outline-info btn-block btn-sm">{{requisition.pr_ref_no}}</button></a>
+              {%endif %}
+            </td>
+            <td>
+              {% if requisition.invoice_id %}
+                <a href="{% url 'showInvoice' requisition.invoice_id 1 %}"><button type="button" class="btn btn-outline-warning btn-block btn-sm">{{requisition.iv_ref_no}}</button></a>
+              {%endif %}
             </td>
             <td>
               {% if requisition.memorandum_pdf %}

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from pathlib import Path
 import dj_database_url
+from django.contrib.messages import constants as messages
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -120,6 +121,14 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '',
     }
+}
+
+MESSAGE_TAGS = {
+    messages.DEBUG: "alert-secondary",
+    messages.INFO: "alert-info",
+    messages.SUCCESS: "alert-success",
+    messages.WARNING: "alert-warning",
+    messages.ERROR: "alert-danger",
 }
 
 #DATABASES = {'default': dj_database_url.config(conn_max_age=600, ssl_require= True, default='postgres://avnbwhaodyglkp:01efb2b20ec5d27ca465b7a6f7877c67b8c99829513e075ebc9759d9d92792e9@ec2-107-22-245-82.compute-1.amazonaws.com:5432/da60ecbhqm0qsv')}
