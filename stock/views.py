@@ -1393,7 +1393,7 @@ def CUInvoiceAndItem(request, rq_id):
     if have_pr_item: #มีจำนวนที่ต้องซื้อ เข้า createPR
         return HttpResponseRedirect(reverse('createPR', args=(rq_id,)))
     elif iv: #มีการจ่ายภายใน
-        messages.success(request, "สร้างใบจ่ายภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
+        messages.success(request, "สร้างใบจ่ายสินค้าภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
         return redirect('preparePR')
     else: #กรณีหน่วยงานภายนอก ไม่มีการออกใบขอซื้อหรือใบจ่าย
         messages.warning(request, "ใบขอเบิกนี้เป็นหน่วยงานภายนอก ข้อมูลเป็นประวัติใบขอเบิกเรียบร้อยแล้ว")
@@ -1482,7 +1482,7 @@ class CreateCrudUser(View):
             urgency = urgency1,
         )
 
-        ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายภายในแทน
+        ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายสินค้าภายในแทน
         ############# create invoice ##############
         createInvoiceAndItem(rqs, obj)
         '''
@@ -1553,7 +1553,7 @@ class UpdateCrudUser(View):
             obj.urgency = rqs.urgency.id
         obj.save()
 
-        ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายภายในแทน
+        ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายสินค้าภายในแทน
         ############# update invoice ##############
         have_iv = Invoice.objects.filter(requisit = rqs).exists()
         if have_iv:
@@ -1618,7 +1618,7 @@ def editAllRequisition(request, requisition_id):
             except PurchaseRequisition.DoesNotExist :
                 pass
 
-            ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายภายในแทน
+            ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายสินค้าภายในแทน
             #crate or update invoid
             CUInvoiceAndItem(requisition)            
             '''
@@ -1769,6 +1769,9 @@ def is_edit_change_exist(user):
 
 def is_edit_new_old_distributor(user):
     return user.groups.filter(name='NewOldDistributor').exists()
+
+def is_del_iv(user):
+    return user.groups.filter(name='DeleteInvoice').exists()
 
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
@@ -1922,7 +1925,7 @@ def createPR(request, requisition_id):
     for item in items:
         quantityTotal += item.quantity_pr
 
-    #หาว่ามีใบจ่ายภายในหรือไม่
+    #หาว่ามีใบจ่ายสินค้าภายในหรือไม่
     try:
         iv = Invoice.objects.get(requisit__id = requisition_id)
     except Invoice.DoesNotExist:
@@ -1969,7 +1972,7 @@ def createPR(request, requisition_id):
 
             messages.info(request, "สร้างใบขอซื้อ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
             if iv:
-                messages.success(request, "สร้างใบจ่ายภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
+                messages.success(request, "สร้างใบจ่ายสินค้าภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
             return HttpResponseRedirect(reverse('viewPR'))
         else:
             return HttpResponseRedirect(reverse('createPR', args=(requisition_id,)))
@@ -2133,10 +2136,22 @@ def createCMorPO(request, pr_id):
 def removePR(request, pr_id):
     pr = PurchaseRequisition.objects.get(id = pr_id)
     requisition = Requisition.objects.get(purchase_requisition_id = pr_id)
+    #set อ้างอิง pr = None
     requisition.purchase_requisition_id = None
     requisition.pr_ref_no = None
+    #set อ้างอิง iv = None
+    requisition.invoice_id = None
+    requisition.iv_ref_no = None
+
     requisition.is_edit = True
     requisition.save()
+
+    #ลบใบจ่ายสินค้าภายใน auto
+    iv = Invoice.objects.get(requisit = requisition)
+    iv_items = InvoiceItem.objects.filter(iv = iv)
+    iv_items.delete()
+
+    iv.delete()
     pr.delete()
     return redirect('viewPR')
 
@@ -5641,7 +5656,8 @@ def viewInvoice(request):
     dataPage = p.get_page(page)
     
     context = {
-        'ivs':dataPage,
+        'ivs': dataPage,
+        'isDelIv' : is_del_iv(request.user),
         'filter':myFilter,
         'iv_page': "tab-active",
         'iv_show': "show",

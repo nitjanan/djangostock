@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="container my-2">
-  <h3 align="center">สร้างใบขอซื้อและใบจ่ายภายใน</h3>
+  <h3 align="center">สร้างใบขอซื้อและใบจ่ายสินค้าภายใน</h3>
       {% if messages %}
           {% for message in messages %}
               <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
@@ -23,7 +23,7 @@
                 <th scope="col">#</th>
                 <th scope="col" class="text-center">สินค้า</th>
                 <th scope="col" class="text-center">จำนวนที่ออกใบขอซื้อ</th>
-                <th scope="col" class="text-center">จำนวนที่ออกใบจ่ายภายใน</th>
+                <th scope="col" class="text-center">จำนวนที่ออกใบจ่ายสินค้าภายใน</th>
               </tr>
             </thead>
             <tbody>
@@ -38,7 +38,7 @@
             </tbody>
           </table>
           <p class="card-text">ขอเบิกโดย {{requisition.name}} แผนก {{requisition.section}}</p>
-          <a href="{%url 'CUInvoiceAndItem' requisition.id %}" class="btn btn-primary"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อและใบจ่ายภายใน</a>
+          <a href="{%url 'CUInvoiceAndItem' requisition.id %}" class="btn btn-primary"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อและใบจ่ายสินค้าภายใน</a>
         </div>
     </div>
     {% empty %}

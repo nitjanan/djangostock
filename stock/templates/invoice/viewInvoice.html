@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="container my-3">
-<h3 align="center">ใบจ่ายภายใน</h3>
+<h3 align="center">ใบจ่ายสินค้าภายใน</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
     <form method="get">
@@ -48,7 +48,7 @@
       <table class="table table-striped my-3">
         <thead class="thead-dark">
           <tr>
-            <th scope="col">รหัสใบจ่ายภายใน</th>
+            <th scope="col">รหัสใบจ่ายสินค้าภายใน</th>
             <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">วันที่จ่าย</th>
             <th scope="col">สินค้า</th>
@@ -76,9 +76,9 @@
             <td>{{iv.expense_dept}}</td>
             <td>
               {% if request.user.is_superuser %}
-                <a onclick="return confirm('คุณต้องการลบใบจ่ายภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
-              {% elif iv.requisit.invoice_id and iv.requisit.is_edit == True %}
-                <a onclick="return confirm('คุณต้องการลบใบจ่ายภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+                <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+              {% elif iv.requisit.invoice_id and iv.requisit.is_edit == True and isDelIv %}<!-- ใบจ่ายที่ยังไม่ได้อนุมัติ ใบขอยังลบได้ -->
+                <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
               {% endif %}
             </td>
           </tr>

@@ -86,7 +86,7 @@
             <td>
               <ul>
                 {% for requisition_item in pr.requisition.requisitionitem_set.all %}
-                  {% if requisition_item.is_used  == False %}
+                  {% if requisition_item.is_used  == False and requisition_item.quantity_pr > 0 %}
                     <li>{{ requisition_item.product_name }}</li>
                   {% endif %}
                 {% endfor %}
@@ -96,7 +96,7 @@
               <ul>
                 {% for requisition_item in pr.requisition.requisitionitem_set.all %}
                   {% for bu in baseUrgency %}
-                    {% if requisition_item.urgency == bu.id and requisition_item.is_used  == False %}
+                    {% if requisition_item.urgency == bu.id and requisition_item.is_used  == False  and requisition_item.quantity_pr > 0 %}
                       <li>{{bu.name}}</li>
                     {% endif %}
                   {% endfor %}
@@ -118,7 +118,7 @@
                 {% if pr.approver_status_id == 1 %}
                 <div style="display: flex;">
                   <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
-                  <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+                  <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?\n *** หากลบใบขอซื้อนี้จะลบใบจ่ายสินค้าภายในด้วย')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
                 </div>
                 {% else %}
                   <button type="button"

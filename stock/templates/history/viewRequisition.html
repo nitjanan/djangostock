@@ -55,13 +55,12 @@
             <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
-            <th scope="col">แผนก</th>
             <!--<th scope="col">ความเร่งด่วน</th>-->
-            <th scope="col">หัวหน้างาน</th>
+            <th scope="col">สินค้า</th>
             <th scope="col">ส่งให้เจ้าหน้าที่จัดซื้อ</th>
             <th scope="col">ใบขอซื้อ</th>
-            <th scope="col">ใบจ่ายภายใน</th>
-            <th scope="col">ใบบันทึก</th>
+            <th scope="col">ใบจ่ายสินค้าภายใน</th>
+            <th scope="col">บันทึก</th>
           </tr>
         </thead>
         <tbody>
@@ -70,8 +69,13 @@
             <td>{{requisition.created |date:"d/m/Y" }}</td>
             <th scope="row"><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></th>
             <td>{{requisition.name}}</td>
-            <td>{{requisition.section}}</td>
-            <td>{{requisition.chief_approve_user_name}}</td>
+            <td>
+              <ul>
+                {% for item in requisition.requisitionitem_set.all %}
+                    <li>{{ item.product_name }}</li>
+                {% endfor %}
+              </ul>
+            </td>
             <td>{{requisition.organizer}}</td>
             <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
