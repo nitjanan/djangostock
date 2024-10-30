@@ -296,10 +296,7 @@ u.dotted {
           </div>
           <div class="row my-2">
             <div class="col-6">
-              <!-- 24/02/2024 ขอเปลี่ยนแปลงรายละเอียด ใบ pr ต้องเป็น admin เท่านั้น -->
-              {% if request.user.is_superuser %}
                 <a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
-              {% endif %}
             </div>
             <div class="col-6 text-right">
               {% if isRePr %}
