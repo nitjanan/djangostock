@@ -596,7 +596,7 @@ class Requisition(models.Model):
     )
     urgency = models.ForeignKey(BaseUrgency, on_delete=models.CASCADE, blank=True, null=True)#ระดับความเร่งด่วน
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
-    is_edit = models.BooleanField(default=True)
+    is_edit = models.BooleanField(default=True)#ยังแก้ไขได้ กรณีที่ยังไม่ได้อนุมัติใบขอซื้อหรือใบจ่ายสินค้าภายใน
     memorandum_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/memorandum/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer')#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)

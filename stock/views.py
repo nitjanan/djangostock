@@ -2139,19 +2139,24 @@ def removePR(request, pr_id):
     #set อ้างอิง pr = None
     requisition.purchase_requisition_id = None
     requisition.pr_ref_no = None
-    #set อ้างอิง iv = None
-    requisition.invoice_id = None
-    requisition.iv_ref_no = None
-
-    requisition.is_edit = True
-    requisition.save()
 
     #ลบใบจ่ายสินค้าภายใน auto
-    iv = Invoice.objects.get(requisit = requisition)
-    iv_items = InvoiceItem.objects.filter(iv = iv)
-    iv_items.delete()
+    try:
+        iv = Invoice.objects.get(requisit = requisition)
+        iv_items = InvoiceItem.objects.filter(iv = iv)
+        iv_items.delete()
+        iv.delete()
 
-    iv.delete()
+        #set อ้างอิง iv = None
+        requisition.invoice_id = None
+        requisition.iv_ref_no = None
+
+    except Invoice.DoesNotExist:
+        pass
+    
+    requisition.is_edit = True
+    requisition.save()
+    
     pr.delete()
     return redirect('viewPR')
 
