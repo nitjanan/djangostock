@@ -1387,7 +1387,8 @@ def CUInvoiceAndItem(request, rq_id):
           #ลบ iv หลังจากนั้น
           have_iv_id.delete()
         
-        rqs.is_edit = False #ปิดใบเบิกเลย กรณีหน่วยงานภายนอก
+        if not have_pr_item:
+            rqs.is_edit = False #ปิดใบเบิกเลย กรณีหน่วยงานภายนอกและไม่มีจำนวนที่ซื้อ
         rqs.save()
 
     if have_pr_item: #มีจำนวนที่ต้องซื้อ เข้า createPR
@@ -1396,7 +1397,7 @@ def CUInvoiceAndItem(request, rq_id):
         messages.success(request, "สร้างใบจ่ายสินค้าภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
         return redirect('preparePR')
     else: #กรณีหน่วยงานภายนอก ไม่มีการออกใบขอซื้อหรือใบจ่าย
-        messages.warning(request, "ใบขอเบิกนี้เป็นหน่วยงานภายนอก ข้อมูลเป็นประวัติใบขอเบิกเรียบร้อยแล้ว")
+        messages.warning(request, "ใบขอเบิกนี้เป็นหน่วยงานภายนอกและไม่มีการออกใบขอซื้อ ข้อมูลเป็นประวัติใบขอเบิกเรียบร้อยแล้ว")
         return redirect('preparePR')
 # class CrudView(PermissionRequiredMixin, TemplateView):
 #    raise_exception = True 

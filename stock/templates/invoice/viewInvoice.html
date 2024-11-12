@@ -77,7 +77,7 @@
             <td>
               {% if request.user.is_superuser %}
                 <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
-              {% elif iv.requisit.invoice_id and iv.requisit.is_edit == True and isDelIv %}<!-- ใบจ่ายที่ยังไม่ได้อนุมัติ ใบขอยังลบได้ -->
+              {% elif iv.requisit.invoice_id and iv.requisit.purchase_requisition_id is None and isDelIv %}<!-- เคสที่ออกใบจ่ายอย่างเดียวลบได้ -->
                 <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
               {% endif %}
             </td>
