@@ -53,7 +53,6 @@
             <th scope="col">สินค้า</th>
             <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">หัวหน้างาน</th>
-            <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
             <th scope="col">รายการขอเบิก</th>
             <th scope="col">ลบ</th>
             <th scope="col">ใบบันทึก</th>
@@ -73,7 +72,6 @@
             </td>
             <td>{{requisition.created |date:"d/m/Y" }}</td>
             <td>{{requisition.chief_approve_user_name}}</td>
-            <td>{{requisition.organizer}}</td>
             <td>
                 <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
             </td>

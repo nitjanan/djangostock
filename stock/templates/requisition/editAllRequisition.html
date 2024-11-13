@@ -76,7 +76,13 @@
       <h4>{{requisition.address_company.name_th}}</h4>
     </div>
     <div class="text-right col">
-      <h6>{{requisition.rq_type.iso_code}}</h6>
+      <h5>เลขที่. {{requisition.ref_no}}
+        {% if requisition.memorandum_pdf %}
+          {% ifchanged requisition.memorandum_pdf %}
+            <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+          {% endifchanged %}
+        {% endif %}
+      </h5>
     </div>
   </div>
   <hr>
@@ -85,13 +91,18 @@
         <h4>ใบขอเบิก{% if requisition.rq_type %} ({{requisition.rq_type}}){%endif%}</h4>
     </div>
     <div class="col-5 text-right">
-          <h5>เลขที่. {{requisition.ref_no}}
-            {% if requisition.memorandum_pdf %}
-              {% ifchanged requisition.memorandum_pdf %}
-                <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-              {% endifchanged %}
+      <description>
+        <strong>ระดับความเร่งด่วน: </strong>
+        {% if requisition.urgency %}
+          {{requisition.urgency}}
+        {%else%}
+          {% for bu in baseUrgency %}
+            {% if users.1.urgency == bu.id %}
+              {{bu.name}} {{bu.description}}
             {% endif %}
-          </h5>
+          {% endfor %}
+        {%endif%}
+      </description>
     </div>
   </div>
   <hr>
@@ -141,8 +152,15 @@
       </description>
     </div>
   </div>
-  
   <div class="row">
+    <div class="col">
+      <description>
+        <strong>หมายเหตุ/เหตุผล: </strong>{% if requisition.note %}{{requisition.note}}{%endif%}
+      </description>
+    </div>
+  </div>
+  
+  <div class="row my-3">
     <div class="col-md-12">
       <div class="panel panel-default">
             <div class="panel-heading">
@@ -231,30 +249,18 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-4">
+    <div class="col">
       <description>
       <strong>สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
       </description>
     </div>
-    <div class="col-4 text-center">
-      <description>
-      <strong>หมายเหตุ/เหตุผล: </strong>{% if requisition.note %}{{requisition.note}}{%endif%}
-      </description>
-    </div>
+    {% if requisition.rq_type.id == 2 %}
     <div class="col-4 text-right">
       <description>
-      <strong>ระดับความเร่งด่วน: </strong>
-      {% if requisition.urgency %}
-        {{requisition.urgency}}
-      {%else%}
-        {% for bu in baseUrgency %}
-          {% if users.1.urgency == bu.id %}
-            {{bu.name}} {{bu.description}}
-          {% endif %}
-        {% endfor %}
-      {%endif%}
+      <strong>เลขไมล์: </strong>{{requisition.mile}}
       </description>
     </div>
+    {%endif%}
   </div>
   <hr>
   <div class="row">
@@ -264,17 +270,21 @@
       </description>
     </div>
     <div class="col-4 text-center">
-        <description>
-          <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
-        </description>
-      </div>
-    <div class="col-4 text-right">
       <description>
-        <strong>ส่งให้เจ้าหน้าที่จัดซื้อ: </strong>{{requisition.organizer}}
+        <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
       </description>
+    </div>
+    <div class="col-4 text-right">
+      <h6>{{requisition.rq_type.iso_code}}</h6>
     </div>
   </div>
   <hr>
+  <div class="row">
+    <div class="col text-right">
+      <description id="dt_print"></description>
+    </div>
+  </div>
+
   <div class="card bg-light my-3 hidden-print">
     <div class="card-body">
         {% if form.memorandum_pdf.errors %}
@@ -329,7 +339,7 @@
       <a class="btn btn-primary hidden-print" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
     </div>
     <div class="col text-right">
-      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();window.print();">
+      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
         <i class="fas fa-print"></i>
         ปริ้นใบขอเบิก
       </button>
@@ -819,11 +829,27 @@ $("#rName").change(function() {
         $("#div_id_repair_type").addClass("d-none");
         $("#div_id_car").addClass("d-none");
         $("#div_id_broke_type").addClass("d-none");
-    } 
+        //เลขไมล์
+        $("#div_id_mile").addClass("d-none");
+        $("#id_mile").prop('required',false);
+        $("#id_mile").val("");
+    }
+    else if($("#id_rq_type").val() == 2){
+        $("#div_id_repair_type").removeClass("d-none");
+        $("#div_id_car").removeClass("d-none");
+        $("#div_id_broke_type").removeClass("d-none");
+        //เลขไมล์
+        $("#div_id_mile").removeClass("d-none");
+        $("#id_mile").prop('required',true);
+    }
     else{
         $("#div_id_repair_type").removeClass("d-none");
         $("#div_id_car").removeClass("d-none");
         $("#div_id_broke_type").removeClass("d-none");
+        //เลขไมล์
+        $("#div_id_mile").addClass("d-none");
+        $("#id_mile").prop('required',false);
+        $("#id_mile").val("");
 
         searchRepairType();
     }
@@ -925,12 +951,23 @@ $("#rName").change(function() {
         $('.form-check').addClass('inline-checkboxes');
 
         agency_Change();
+
+        //ถ้าไม่ใช่ประเภทใบขอเบิก รถ/เครื่องจักรหนัก ไม่ต้องโชว์ช่อง เลขไมล์
+        if($("#id_rq_type").val() != 2)
+          $("#div_id_mile").addClass("d-none");
+
     });
 
     //ระดับความเร่งด่วน
     $("#id_desired_date").change(function() {
         selectedUrgency('desired_date', 'id_urgency');
     });
+
+  function setDateTimePrint(){
+    var currentdate = new Date();
+    var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
+    $("#dt_print").text(datetime);
+  }
 
 </script> 
 {% endblock %}

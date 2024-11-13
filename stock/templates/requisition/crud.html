@@ -20,7 +20,13 @@
         <h4>{{requisition.address_company.name_th}}</h4>
       </div>
       <div class="text-right col">
-        <h6>{{requisition.rq_type.iso_code}}</h6>
+        <h5>เลขที่. {{requisition.ref_no}}
+          {% if requisition.memorandum_pdf %}
+            {% ifchanged requisition.memorandum_pdf %}
+              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+            {% endifchanged %}
+          {% endif %}
+        </h5>
       </div>
     </div>
     <hr>
@@ -29,13 +35,18 @@
           <h4>ใบขอเบิก{% if requisition.rq_type %} ({{requisition.rq_type}}){%endif%}</h4>
       </div>
       <div class="col-5 text-right">
-            <h5>เลขที่. {{requisition.ref_no}}
-              {% if requisition.memorandum_pdf %}
-                {% ifchanged requisition.memorandum_pdf %}
-                  <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-                {% endifchanged %}
+        <description>
+          <strong>ระดับความเร่งด่วน: </strong>
+          {% if requisition.urgency %}
+            {{requisition.urgency}}
+          {%else%}
+            {% for bu in baseUrgency %}
+              {% if users.1.urgency == bu.id %}
+                {{bu.name}} {{bu.description}}
               {% endif %}
-            </h5>
+            {% endfor %}
+          {%endif%}
+        </description>
       </div>
   </div>
   <hr>
@@ -84,8 +95,15 @@
       </description>
     </div>
   </div>
-  
   <div class="row">
+    <div class="col">
+      <description>
+        <strong>หมายเหตุ/เหตุผล: </strong>{% if requisition.note %}{{requisition.note}}{%endif%}
+      </description>
+    </div>
+  </div>
+
+  <div class="row my-3">
     <div class="col-md-12">
       <div class="panel panel-default">
             <div class="panel-heading">
@@ -173,30 +191,18 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-4">
+    <div class="col">
       <description>
       <strong>สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
       </description>
     </div>
-    <div class="col-4 text-center">
-      <description>
-      <strong>หมายเหตุ/เหตุผล: </strong>{% if requisition.note %}{{requisition.note}}{%endif%}
-      </description>
-    </div>
+    {% if requisition.rq_type.id == 2 %}
     <div class="col-4 text-right">
       <description>
-      <strong>ระดับความเร่งด่วน: </strong>
-      {% if requisition.urgency %}
-        {{requisition.urgency}}
-      {%else%}
-        {% for bu in baseUrgency %}
-          {% if users.1.urgency == bu.id %}
-            {{bu.name}} {{bu.description}}
-          {% endif %}
-        {% endfor %}
-      {%endif%}
+      <strong>เลขไมล์: </strong>{{requisition.mile}}
       </description>
     </div>
+    {%endif%}
   </div>
   <hr>
   <div class="row">
@@ -206,23 +212,27 @@
       </description>
     </div>
     <div class="col-4 text-center">
-        <description>
-          <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
-        </description>
-      </div>
-    <div class="col-4 text-right">
       <description>
-        <strong>ส่งให้เจ้าหน้าที่จัดซื้อ: </strong>{{requisition.organizer}}
+        <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
       </description>
+    </div>
+    <div class="col-4 text-right">
+      <h6>{{requisition.rq_type.iso_code}}</h6>
     </div>
   </div>
   <hr>
+  <div class="row">
+    <div class="col text-right">
+      <description id="dt_print"></description>
+    </div>
+  </div>
+
   <div class="row">
     <div class="col">
       <a class="btn btn-primary hidden-print" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
     </div>
     <div class="col text-right">
-      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();window.print();">
+      <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
         <i class="fas fa-print"></i>
         ปริ้นใบขอเบิก
       </button>
@@ -626,6 +636,12 @@ function selectedUrgency(name, id){
   }else{
     
   }
+}
+
+function setDateTimePrint(){
+    var currentdate = new Date();
+    var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
+    $("#dt_print").text(datetime);
 }
 </script> 
 {% endblock %}

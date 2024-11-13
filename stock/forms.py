@@ -46,7 +46,7 @@ class RequisitionForm(forms.ModelForm):
         #เปลี่ยนเป็นการค้นหาชื่อแทน
         # self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.all())
         # self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
-        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        # self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
 
     name = forms.ModelChoiceField(
         queryset = User.objects.all(),
@@ -91,7 +91,7 @@ class RequisitionForm(forms.ModelForm):
 
     class Meta:
         model = Requisition
-        fields = ('name','chief_approve_user_name','organizer','branch_company', 'agency', 'expense_dept', 'rq_type', 'car', 'repair_type', 'broke_type', 'desired_date', 'urgency', 'note', 'expenses', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
+        fields = ('name','chief_approve_user_name', 'branch_company', 'agency', 'expense_dept', 'rq_type', 'car', 'repair_type', 'broke_type', 'desired_date', 'urgency', 'mile', 'note', 'expenses', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
         'memorandum_pdf' : MyClearableFileInput,
         'branch_company': forms.HiddenInput(),

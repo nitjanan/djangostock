@@ -57,7 +57,6 @@
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
             <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">สินค้า</th>
-            <th scope="col">ส่งให้เจ้าหน้าที่จัดซื้อ</th>
             <th scope="col">ใบขอซื้อ</th>
             <th scope="col">ใบจ่ายสินค้าภายใน</th>
             <th scope="col">บันทึก</th>
@@ -76,7 +75,6 @@
                 {% endfor %}
               </ul>
             </td>
-            <td>{{requisition.organizer}}</td>
             <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
               {% if requisition.purchase_requisition_id %}

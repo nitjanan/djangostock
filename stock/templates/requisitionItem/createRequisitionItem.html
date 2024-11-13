@@ -137,20 +137,33 @@
   </div>
   <hr>
   <div class="row">
-    <div class="col-md-4">
+    <div class="col">
+      <description>
+      <strong>สาเหตุ: </strong>{% if requisition.broke_type %}{{requisition.broke_type}}{%endif%}
+      </description>
+    </div>
+    {% if requisition.rq_type.id == 2 %}
+    <div class="col-4 text-right">
+      <description>
+      <strong>เลขไมล์: </strong>{{requisition.mile}}
+      </description>
+    </div>
+    {%endif%}
+  </div>
+  <hr>
+  <div class="row">
+    <div class="col-4">
       <description>
       <strong>หัวหน้างาน: </strong>{{requisition.chief_approve_user_name}}
       </description>
     </div>
-    <div class="col-md-4 text-center">
-        <description>
-          <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
-        </description>
-      </div>
-    <div class="col-md-4 text-right">
+    <div class="col-4 text-center">
       <description>
-        <strong>ส่งให้เจ้าหน้าที่จัดซื้อ: </strong>{{requisition.organizer}}
+        <strong>เจ้าหน้าที่พัสดุ: </strong>{{requisition.supplies_approve_user_name}}
       </description>
+    </div>
+    <div class="col-4 text-right">
+      <h6>{{requisition.rq_type.iso_code}}</h6>
     </div>
   </div>
   <hr>

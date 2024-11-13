@@ -197,11 +197,27 @@
         $("#div_id_repair_type").addClass("d-none");
         $("#div_id_car").addClass("d-none");
         $("#div_id_broke_type").addClass("d-none");
+        //เลขไมล์
+        $("#div_id_mile").addClass("d-none");
+        $("#id_mile").prop('required',false);
+        $("#id_mile").val("");
+    }
+    else if($("#id_rq_type").val() == 2){
+        $("#div_id_repair_type").removeClass("d-none");
+        $("#div_id_car").removeClass("d-none");
+        $("#div_id_broke_type").removeClass("d-none");
+        //เลขไมล์
+        $("#div_id_mile").removeClass("d-none");
+        $("#id_mile").prop('required',true);
     }
     else{
         $("#div_id_repair_type").removeClass("d-none");
         $("#div_id_car").removeClass("d-none");
         $("#div_id_broke_type").removeClass("d-none");
+        //เลขไมล์
+        $("#div_id_mile").addClass("d-none");
+        $("#id_mile").prop('required',false);
+        $("#id_mile").val("");
 
         searchRepairType();
     }
