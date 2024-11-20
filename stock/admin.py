@@ -15,11 +15,11 @@ from stock.forms import ProductAdminForm, BaseCarAdminForm
 
 # Register your models here.
 class CategoryAdmin(ImportExportModelAdmin):
+    search_fields = ['slug', 'name']
     list_display = ('id', 'name', 'slug') #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 15 #แสดงผล 10 รายการต่อ 1 หน้า
 
 class ProductResource(resources.ModelResource):
-
     unit = fields.Field(
         column_name='unit',
         attribute='unit',
@@ -41,6 +41,8 @@ class ProductResource(resources.ModelResource):
         export_order = ('id', 'name', 'unit', 'slug', 'category', 'affiliated')
 
 class ProductAdmin(ImportExportModelAdmin):
+    autocomplete_fields = ['unit','category']
+
     resource_class = ProductResource
     list_display = ('id', 'name', 'unit', 'slug', 'affiliated') #แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['id', 'name']
@@ -89,6 +91,7 @@ class PositionBasePermissionAdmin(ImportExportModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseDistributorGenreAdmin(ImportExportModelAdmin):
+    search_fields = ['name']
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
@@ -110,6 +113,7 @@ class BaseAffiliatedCompanyAdmin(ImportExportModelAdmin):
     logo_preview.allow_tags = True
 
 class BasePrefixAdmin(ImportExportModelAdmin):
+    search_fields = ['name']
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
@@ -155,6 +159,8 @@ class DistributorResource(resources.ModelResource):
         export_order = ('created', 'id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
 
 class DistributorAdmin(ImportExportModelAdmin):
+    autocomplete_fields = ['prefix','genre']
+
     resource_class = DistributorResource
     list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
     search_fields = ('id', 'name','affiliated__name')
@@ -194,6 +200,7 @@ class UserProfileAdmin(ImportExportModelAdmin):
     signature_preview.allow_tags = True
 
 class BaseUnitAdmin(ImportExportModelAdmin):
+    search_fields = ['name']
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     list_editable = ['name']
