@@ -250,15 +250,16 @@
         <form id="addUser" action="">
           {% csrf_token %}
           <div class="modal-body">
-            <label for="name">สินค้า/รายละเอียด</label>
-            <input class="form-control" type="text" name="name" required>
+            <div id="add_alert" class="alert alert-warning d-none" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
             <label for="product" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
-            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required>
+            <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required onblur="setDataProductExpress(1);">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
+            <label for="name">สินค้า/รายละเอียด</label>
+            <input class="form-control" type="text" name="name" required>
             <label for="name">จำนวนที่ขอเบิก</label>
             <input class="form-control" type="number" name="quantity" min="0.0001" required step="any">
             <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
@@ -305,16 +306,17 @@
         <form id="updateUser" action="">
           {% csrf_token %}
         <div class="modal-body">
+            <div id="update_alert" class="alert alert-warning d-none" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
-            <label for="name">สินค้า/รายละเอียด</label>
-            <input class="form-control" id="form-name" type="text" name="formName"/>
             <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
-            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required>
+            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required onblur="setDataProductExpress(2);">
             <datalist id="idExpresslist">
             {% for results in baseProduct %}
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
+            <label for="name">สินค้า/รายละเอียด</label>
+            <input class="form-control" id="form-name" type="text" name="formName"/>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
             <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
@@ -367,6 +369,59 @@
 {% endblock%}
 {% block javascript %}
 <script>
+  //ดึงชื่อสินค้าและหน่วย จากที่ตั้งค่าไว้
+  function setDataProductExpress(mode){
+    if(mode == 1)
+      var id_product = $('input[name="product"]').val().trim();
+    else if(mode == 2)
+      var id_product = $('#form-product').val().trim();
+
+    if(id_product){
+        // Create Ajax Call
+        if(id_product){
+            $.ajax({
+            url: '{% url "setDataProductExpress" %}',
+            data: {
+                    'id_product': id_product,
+                },
+            dataType: 'json',
+            success: function (data) {
+              if(mode == 1){
+                if (data.exp_name) { //add
+                  $('input[name="name"]').val(data.exp_name);
+                }
+                if(data.exp_unit){
+                  var selectedOption = $('#unitList option[data-id="'+data.exp_unit+'"]');
+                  if (selectedOption.length) {
+                    $('#sel-unit').val(selectedOption.attr('value'));
+                  }
+                }
+                if(data.exp_alert){
+                  $("#add_alert").removeClass("d-none");
+                  $('#add_alert').text(data.exp_alert);
+                }
+              }else if(mode == 2){ //edit
+                if (data.exp_name) {
+                  $('#form-name').val(data.exp_name);
+                }
+                if(data.exp_unit){
+                  var selectedOption = $('#formUnitList option[data-id="'+data.exp_unit+'"]');
+                  if (selectedOption.length) {
+                    $('#form-unit').val(selectedOption.attr('value'));
+                  }
+                }
+                if(data.exp_alert){
+                  $("#update_alert").removeClass("d-none");
+                  $('#update_alert').text(data.exp_alert);
+                }
+              }
+            }
+          });
+        }
+        return false;
+    }
+  }
+
 function searchProduct(name){
     var titleInput = name;
     if (titleInput) {

@@ -1817,6 +1817,28 @@ def searchExpenseDept(request):
     }
     return JsonResponse(data)
 
+def setDataProductExpress(request):
+    active = request.session['company_code']
+
+    if 'id_product' in request.GET:
+        id_product = request.GET.get('id_product')
+        exp_product =  Product.objects.get(id = id_product)
+
+        try:
+            last_rq = RequisitionItem.objects.filter(requisit__branch_company__code = active, product__id = id_product).order_by('-id')[0]
+            
+            formatted_quantity = str(int(last_rq.quantity)) if last_rq.quantity == int(last_rq.quantity) else str(last_rq.quantity)
+            exp_alert = "เบิกรายการนี้ล่าสุด วันที่ " + str(datetime.datetime.strptime(str(last_rq.created), "%Y-%m-%d").strftime("%d/%m/%Y")) + " จำนวน " + str(formatted_quantity) + " " + last_rq.unit
+        except:
+            exp_alert = None
+        
+    data = {
+        'exp_name': exp_product.name,
+        'exp_unit': exp_product.unit.id,
+        'exp_alert': exp_alert,
+    }
+    return JsonResponse(data)
+
 def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
     active = request.session['company_code']
 

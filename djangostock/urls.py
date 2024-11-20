@@ -131,6 +131,7 @@ urlpatterns = [
     path('getRateDistributor', views.getRateDistributor, name="getRateDistributor"),
     path('searchRepairType', views.searchRepairType, name="searchRepairType"),
     path('searchExpenseDept', views.searchExpenseDept, name="searchExpenseDept"),
+    path('setDataProductExpress', views.setDataProductExpress, name="setDataProductExpress"),
 
     path('receive/',views.viewReceive,name="viewReceive"),
     path('receive/create',views.createReceive,name="createReceive"),
