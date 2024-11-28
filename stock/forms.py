@@ -107,6 +107,7 @@ class RequisitionForm(forms.ModelForm):
             'broke_type': _('สาเหตุ'),
             'expense_dept': _('แผนกค่าใช้จ่าย'),
             'desired_date': _('วันที่ต้องการ'),
+            'mile': _('*** เลขไมล์/เลขชั่วโมง'),
         }
 
 class RequisitionItemForm(forms.ModelForm):

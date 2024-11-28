@@ -253,6 +253,7 @@
             <div class="row">
               <div class="col text-right">
                 <h6>{{bc.affiliated.iso_code.po_code|safe}}</h6>
+                <description id="dt_print"></description>
               </div>
             </div>
             <div class="row spacer my-3">
@@ -266,7 +267,7 @@
                     </button>
                 </div>
                 <div>
-                  <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="scrollToTop();window.print();">
+                  <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
                       <i class="fas fa-print"></i>
                       ปริ้นใบสั่งซื้อ
                   </button>
@@ -773,5 +774,11 @@ $(".distributor" ).change(function() {
     $("#id_vat_type").val(vat_type);
   });
 */
+
+function setDateTimePrint(){
+	var currentdate = new Date();
+	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
+	$("#dt_print").text(datetime);
+}
 </script>
 {% endblock%}

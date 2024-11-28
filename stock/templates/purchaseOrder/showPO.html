@@ -336,7 +336,8 @@
                     </p>
                 </div>
                 <div class="float-right">
-                  <h6>{{bc.affiliated.iso_code.po_code|safe}}</h6>
+                  <h6 class="text-right">{{bc.affiliated.iso_code.po_code|safe}}</h6>
+                  <description id="dt_print"></description>
                 </div>
               </div>
               <div class="row my-3 d-print-none">
@@ -349,7 +350,7 @@
                 </div>
                 {% endif %}
                 <div class="col text-right">
-                  <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="scrollToTop();window.print();">
+                  <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
                     <i class="fas fa-print"></i>
                     ปริ้นใบสั่งซื้อ
                 </button>
@@ -445,6 +446,12 @@ function searchLastPoItem(){
 function openModal(instance) {
   $("#pShowSearch").html(instance);
   $('#myEdit').modal('show');
+}
+
+function setDateTimePrint(){
+	var currentdate = new Date();
+	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
+	$("#dt_print").text(datetime);
 }
 </script>
 {% endblock %}

@@ -121,7 +121,7 @@
               <thead>
                 <tr>
                     <td class="text-center"><strong>ลำดับ</strong></td>
-                    <td class="text-center d-print-none"><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
+                    <td class="text-center"><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
                     <td class="text-center"><strong>สินค้า</strong></td>
                     <!--td class="text-center"><strong>เหตุผลและวัตถุประสงค์</strong></td-->
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
@@ -139,7 +139,7 @@
                 {% for item in items %}
                 <tr>
                     <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center userProduct userData d-print-none" name="product">{{item.product.id}}</td>
+                    <td class="text-center userProduct userData" name="product"><b class="text-danger">{{item.alert_level}}</b>{{item.product.id}}</td>
                     <td class="userName userData" name="name">{{item.product_name}}</td>
                     <td class="text-center userQuantity userData" name="quantity">{{item.quantity |floatformat:"-4"}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake">{{item.quantity_take |floatformat:"-4"}}</td>
@@ -186,7 +186,7 @@
     {% if requisition.rq_type.id == 2 %}
     <div class="col-4 text-right">
       <description>
-      <strong>เลขไมล์: </strong>{{requisition.mile}}
+      <strong>เลขไมล์/เลขชั่วโมง: </strong>{{requisition.mile}}
       </description>
     </div>
     {%endif%}
@@ -209,6 +209,16 @@
   </div>
   <hr>
   <div class="row">
+    {% if requisition.rq_type.id == 1 or requisition.rq_type.id == 2%}
+    <div class="col text-danger">
+      <b>หากมีการเบิกสินค้านี้ซ้ำ ในทะเบียนรถหรือเครื่องจักรเดียวกัน</b>
+      <ul>
+          <li>ภายใน 7 วัน ***</li>
+          <li>ภายใน 15 วัน **</li>
+          <li>ภายใน 30 วัน *</li>
+      </ul>
+    </div>
+    {%endif%}
     <div class="col text-right">
       <description id="dt_print"></description>
     </div>

@@ -163,6 +163,7 @@ urlpatterns = [
     path('report/RateDistributor/',views.viewRateDistributorReport,name="viewRateDistributorReport"),
 
     path('report/purchaseOrderToExpress/export/excel', views.exportExcelPOToExpress, name='exportExcelPOToExpress'),
+    path('report/invoiceToExpress/export/excel', views.exportExcelIVToExpress, name='exportExcelIVToExpress'),
 
     path('rateDistributor/show/<str:pk>',views.showRateDistributor,name="showRateDistributor"),
     path('rateDistributor/export/excel',views.exportToExcelRateDistributor,name="exportToExcelRateDistributor"),

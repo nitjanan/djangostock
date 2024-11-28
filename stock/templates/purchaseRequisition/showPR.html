@@ -294,6 +294,9 @@ u.dotted {
           <div class="invoice-title text-right my-2">
             <h6>{{bc.affiliated.iso_code.pr_code|safe}}</h6>
           </div>
+          <div class="text-right my-2">
+            <description id="dt_print"></description>
+          </div>
           <div class="row my-2">
             <div class="col-6">
                 <a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
@@ -302,7 +305,7 @@ u.dotted {
               {% if isRePr %}
                 <a class="btn btn-success d-print-none" onclick="return confirm('คุณต้องการนำรายการนี้กลับมาหรือไม่ ?\n *** รายการใบขอซื้อนี้จะกลับไปที่หน้าสร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อ')" href="{%url 'reBuyPR' pr.id %}" role="button"><i class="fas fa-redo"></i> นำรายการกลับมา</a>
               {% endif %}
-              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();window.print();">
+              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
                 <i class="fas fa-print"></i>
                 ปริ้นใบขอซื้อ
               </button>
@@ -364,6 +367,12 @@ function searchLastPoItem(){
 function openModal(instance) {
   $("#pShowSearch").html(instance);
   $('#myEdit').modal('show');
+}
+
+function setDateTimePrint(){
+	var currentdate = new Date();
+	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
+	$("#dt_print").text(datetime);
 }
 </script>
 {% endblock %}

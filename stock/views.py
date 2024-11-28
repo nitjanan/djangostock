@@ -1410,13 +1410,40 @@ class CrudView(TemplateView):
 
         bc = BaseBranchCompany.objects.get(code = active)
         context = super().get_context_data(*args,**kwargs)
-        context['users'] = RequisitionItem.objects.filter(requisition_id = self.kwargs['requisition_id'])
+        users = RequisitionItem.objects.filter(requisition_id = self.kwargs['requisition_id'])
+        context['users'] = users
         requisition = Requisition.objects.get(id=self.kwargs['requisition_id'])
         context['requisition'] = requisition
         try:
             pr = PurchaseRequisition.objects.get(id = requisition.purchase_requisition_id)
         except:
             pr = ""
+
+        #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 7, 15, 30 
+        distinct_products = {
+            product : created 
+            for product, created in RequisitionItem.objects.filter(
+                ~Q(requisition_id = self.kwargs['requisition_id']),
+                Q(requisit__rq_type__id=1) | Q(requisit__rq_type__id=2),
+                requisit__created__lt=requisition.created,
+                requisit__car=requisition.car,
+                requisit__branch_company = requisition.branch_company
+            ).values_list('product', 'requisit__created')
+        }
+
+        #set alert_level text ภายใน 7, 15, 30
+        for item in users:
+            created = distinct_products.get(item.product.id)
+            if created:
+                diff_days = (item.requisit.created - created).days
+                if diff_days <= 7:
+                    item.alert_level = "***"
+                elif diff_days <= 15:
+                    item.alert_level = "**"
+                elif diff_days <= 30:
+                    item.alert_level = "*"
+                else:
+                    item.alert_level = ""
             
         context['pr'] = pr
         context['baseUrgency'] = BaseUrgency.objects.all()
@@ -1595,8 +1622,32 @@ def editAllRequisition(request, requisition_id):
     baseUnit = BaseUnit.objects.all()
     baseProduct = Product.objects.all().values('id', 'name')
 
-    #requestName = User.objects.all()
-    #chiefName = User.objects.filter(groups__name='หัวหน้างาน')
+    #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 7, 15, 30 
+    distinct_products = {
+        product : created 
+        for product, created in RequisitionItem.objects.filter(
+            ~Q(requisition_id=requisition_id),
+            Q(requisit__rq_type__id=1) | Q(requisit__rq_type__id=2),
+            requisit__created__lt=requisition.created,
+            requisit__car=requisition.car,
+            requisit__branch_company = requisition.branch_company
+        ).values_list('product', 'requisit__created')
+    }
+
+    #set alert_level text ภายใน 7, 15, 30
+    for item in users:
+        created = distinct_products.get(item.product.id)
+        if created:
+            diff_days = (item.requisit.created - created).days
+            if diff_days <= 7:
+                item.alert_level = "***"
+            elif diff_days <= 15:
+                item.alert_level = "**"
+            elif diff_days <= 30:
+                item.alert_level = "*"
+            else:
+                item.alert_level = ""
+
 
     #form save
     form = RequisitionForm(request, instance=requisition)
@@ -1656,6 +1707,32 @@ def showRequisition(request, requisition_id, mode):
         pr = PurchaseRequisition.objects.get(id = requisition.purchase_requisition_id)
     except:
         pr = ""
+
+    #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 7, 15, 30 
+    distinct_products = {
+        product : created 
+        for product, created in RequisitionItem.objects.filter(
+            ~Q(requisition_id=requisition_id),
+            Q(requisit__rq_type__id=1) | Q(requisit__rq_type__id=2),
+            requisit__created__lt=requisition.created,
+            requisit__car=requisition.car,
+            requisit__branch_company = requisition.branch_company
+        ).values_list('product', 'requisit__created')
+    }
+
+    #set alert_level text ภายใน 7, 15, 30
+    for item in items:
+        created = distinct_products.get(item.product.id)
+        if created:
+            diff_days = (item.requisit.created - created).days
+            if diff_days <= 7:
+                item.alert_level = "***"
+            elif diff_days <= 15:
+                item.alert_level = "**"
+            elif diff_days <= 30:
+                item.alert_level = "*"
+            else:
+                item.alert_level = ""
             
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
@@ -2186,6 +2263,7 @@ def removePR(request, pr_id):
 def editPR(request, pr_id):
     active = request.session['company_code']
     pr = PurchaseRequisition.objects.get(id=pr_id)
+    bc = BaseBranchCompany.objects.get(code = pr.branch_company)
     form = PurchaseRequisitionForm(request, instance=pr)
 
     items= RequisitionItem.objects.filter(requisition_id = pr.requisition.id, quantity_pr__gt=0)
@@ -2218,6 +2296,7 @@ def editPR(request, pr_id):
         'form':form,
         'baseProduct':baseProduct,
         'pr': pr,
+        'bc': bc,
         'create_mode': False,
         'pr_page': "tab-active",
         'pr_show': "show",
@@ -5811,6 +5890,78 @@ def exportExcelRQ(request):
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename=Requisition_Report_({active}).xlsx'
+
+    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+        result.to_excel(writer, index=False)
+
+    return response
+
+def exportExcelIVToExpress(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    ref_no = request.GET.get('ref_no') or None
+    bring_name = request.GET.get('bring_name') or None
+    payer_name = request.GET.get('payer_name') or None
+    expense_dept = request.GET.get('expense_dept') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    my_q = Q()
+    if ref_no is not None:
+        my_q &= Q(iv__ref_no__icontains = ref_no)
+    if bring_name is not None:
+        my_q &= Q(iv__bring_name__startswith = bring_name)
+    if start_created is not None:
+        my_q &= Q(iv__created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(iv__created__lte = end_created)
+    if payer_name is not None:
+        my_q &= Q(iv__payer_name = payer_name)
+    if expense_dept is not None :
+        my_q &=Q(iv__expense_dept = expense_dept)
+
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(iv__branch_company__code__in = company_in)
+
+    queryset = InvoiceItem.objects.filter(my_q).order_by('iv__id')
+    if not queryset.exists():
+        return HttpResponse("No data to export.")
+
+    data1 = {'เลขที่ใบจ่ายสินค้าภายใน': queryset.values_list('iv__ref_no', flat=True),
+            'วันที่': queryset.values_list('iv__created', flat=True),
+            'รหัสบริษัท': queryset.values_list('iv__branch_company__code', flat=True),
+            'บริษัท': queryset.values_list('iv__branch_company__name', flat=True),
+            'แผนกคชจ.': queryset.values_list('iv__expense_dept__name', flat=True),
+            'รหัสสินค้า' : queryset.values_list('item__product__id', flat=True),
+            'รายการสินค้า' : queryset.values_list('item__product__name', flat=True),
+            'จำนวน' : queryset.values_list('quantity', flat=True),
+            'หน่วย' : queryset.values_list('unit', flat=True),
+            'ผู้เบิก' : queryset.values_list(
+                        Concat(F('iv__bring_name__first_name'),  Value(" "), F('iv__bring_name__last_name')), 
+                        flat=True
+                    ),
+            'ผู้จ่าย' : queryset.values_list(
+                        Concat(F('iv__payer_name__first_name'),  Value(" "), F('iv__payer_name__last_name')),
+                        flat=True
+                    ),
+            'หน่วย' : queryset.values_list('unit', flat=True),
+            'หมายเหตุ' :queryset.values_list(
+                            Concat(F('iv__car__name'), F('iv__car__code')), 
+                            flat=True
+                        ),
+            'หมายเหตุเพิ่มเติม' : queryset.values_list('iv__note', flat=True),
+            }
+
+    df1 = pd.DataFrame(data1)
+    frames = [df1]
+    result = pd.concat(frames)
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=IB_to_Express_Report_({active}).xlsx'
 
     with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
         result.to_excel(writer, index=False)

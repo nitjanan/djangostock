@@ -610,7 +610,7 @@ class Requisition(models.Model):
     expenses = models.ManyToManyField(BaseExpenses, blank=True, null=True, verbose_name="ค่าใช้จ่าย")#ค่าใช้จ่าย checkbox
     note = models.CharField(max_length = 255, null = True, blank = True, verbose_name="หมายเหตุ/เหตุผล")
     agency = models.ForeignKey(BaseAgency, on_delete=models.CASCADE, blank=True, null=True) #หน่วยงาน
-    mile = models.CharField(max_length = 255, null = True, blank = True, verbose_name="เลขไมล์")
+    mile = models.CharField(max_length = 255, null = True, blank = True, verbose_name="เลขไมล์/เลขชั่วโมง")
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
