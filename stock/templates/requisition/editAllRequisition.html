@@ -368,6 +368,7 @@
           {% csrf_token %}
           <div class="modal-body">
             <div id="add_alert" class="alert alert-warning d-none" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
+            <input class="form-control" type="checkbox" name="add_have_product"><!-- checkbox have product id -->
             <label for="product" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required onblur="setDataProductExpress(1);">
             <datalist id="idExpresslist">
@@ -424,6 +425,7 @@
           {% csrf_token %}
         <div class="modal-body">
             <div id="update_alert" class="alert alert-warning d-none" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
+            <input class="form-control" type="checkbox" name="update_have_product"><!-- checkbox have product id -->
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
             <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required onblur="setDataProductExpress(2);">
@@ -510,6 +512,7 @@
             dataType: 'json',
             success: function (data) {
               if(mode == 1){
+                $('input[name="add_have_product"]').prop('checked', data.have_product);//set have product id in add
                 if (data.exp_name) { //add
                   $('input[name="name_pd"]').val(data.exp_name);
                 }
@@ -526,6 +529,7 @@
                   $("#add_alert").addClass("d-none");
                 }
               }else if(mode == 2){ //edit
+                $('input[name="update_have_product"]').prop('checked', data.have_product);//set have product id in update
                 if (data.exp_name) {
                   $('#form-name').val(data.exp_name);
                 }
@@ -636,6 +640,7 @@ $(document).on('submit','form#addUser',function(){
     var urgencyInput = '';
     var descriptionInput = '';
     var productInput = $('input[name="product"]').val().trim(); //product_id
+    var have_product = $('input[name="add_have_product"]').is(":checked"); //สถานะว่ามีรหัสสินค้าในระบบ
 
     /*
     var machineInput = $('input[name="machine"]').val().trim();
@@ -645,7 +650,7 @@ $(document).on('submit','form#addUser',function(){
     if (desireddateInput == '')
       desireddateInput = null;
     */
-    if (nameInput && quantityInput) {
+    if (nameInput && quantityInput && have_product) {
         // Create Ajax Call
         $.ajax({
             url: '{% url "crud_ajax_create" requisition.id %}',
@@ -669,13 +674,13 @@ $(document).on('submit','form#addUser',function(){
             }
         });
 
+      $('form#addUser').trigger("reset");
+      $(this).find('form#addUser')[0].reset();
+      $('#myModal-create').modal('hide');
+      window.location.reload();
     } else {
-        alert("All fields must have a valid value.");
+      alert("ไม่มีรหัสสินค้านี้ในระบบ กรุณาเปลี่ยนรหัสสินค้า");
     }
-    $('form#addUser').trigger("reset");
-    $(this).find('form#addUser')[0].reset();
-    $('#myModal-create').modal('hide');
-    window.location.reload();
     return false;
   });
 });
@@ -714,6 +719,7 @@ $(document).on('submit','form#updateUser',function(){
     var urgencyInput = '';
     var descriptionInput = '';
     var productInput = $('input[name="formProduct"]').val().trim();
+    var have_product = $('input[name="update_have_product"]').is(":checked"); //สถานะว่ามีรหัสสินค้าในระบบ
     /*
     var machineInput = $('input[name="formMachine"]').val().trim();
     var desireddateInput = $('input[name="formDesiredDate"]').val();
@@ -721,7 +727,7 @@ $(document).on('submit','form#updateUser',function(){
     var descriptionInput = $('input[name="formDescription"]').val().trim();
     */
 
-    if (nameInput && quantityInput) {
+    if (nameInput && quantityInput && have_product) {
         // Create Ajax Call
         $.ajax({
             url: '{% url "crud_ajax_update" requisition.id %}',
@@ -746,13 +752,13 @@ $(document).on('submit','form#updateUser',function(){
             }
         });
 
+      $('form#updateUser').trigger("reset");
+      $(this).find('form#updateUser')[0].reset();
+      $('#myModal').modal('hide');
+      window.location.reload();
     } else {
-        alert("All fields must have a valid value.");
+      alert("ไม่มีรหัสสินค้านี้ในระบบ กรุณาเปลี่ยนรหัสสินค้า");
     }
-    $('form#updateUser').trigger("reset");
-    $(this).find('form#updateUser')[0].reset();
-    $('#myModal').modal('hide');
-    window.location.reload();
     return false;
   });
 });
