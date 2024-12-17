@@ -474,10 +474,16 @@ $(".discount")
   .focusout(function() {
   })  
   .blur(function() {
+    var tmp_val = $(this).val();
+    
+    if(isNaN(tmp_val) || tmp_val == ''){
+        tmp_val = 0.00;
+    }
+
     if($(this).val().indexOf('%') != -1){
         //ไม่ต้องทำอะไร
     }else{
-        $(this).val(parseFloat($(this).val()).toFixed(2));
+        $(this).val(parseFloat(tmp_val).toFixed(2));
     }
 });
 
@@ -485,10 +491,16 @@ $("#id_discount")
   .focusout(function() {
   })  
   .blur(function() {
+    var tmp_val = $(this).val();
+    
+    if(isNaN(tmp_val) || tmp_val == ''){
+        tmp_val = 0.00;
+    }
+
     if($(this).val().indexOf('%') != -1){
         //ไม่ต้องทำอะไร
     }else{
-        $(this).val(parseFloat($(this).val()).toFixed(2));
+        $(this).val(parseFloat(tmp_val).toFixed(2));
     }
 });
 
