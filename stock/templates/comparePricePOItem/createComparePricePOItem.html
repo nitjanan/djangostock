@@ -12,6 +12,35 @@
     max-width: 80%;
 }
 
+/* Adjust the Select2 container */
+.select2-container .select2-selection--single {
+  height: 37px !important;
+  line-height: 50px !important;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  width: 190px !important;
+}
+
+/* Adjust the dropdown arrow height and alignment */
+.select2-container .select2-selection--single .select2-selection__arrow {
+  height: 37px !important;
+  top: 0;
+  right: 6px;
+}
+
+/* Ensure dropdown menu adapts properly */
+.select2-container .select2-dropdown {
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  width: 190px !important;
+}
+
+/* Align the clear button */
+.select2-container .select2-selection__clear {
+  line-height: 37px !important;
+}
+
 </style>
 {% endblock %}
 
@@ -287,9 +316,15 @@
 <link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
 <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+<!-- Select2 CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<!-- Select2 JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 <script type="text/javascript">
 
 $(function() {
+    //search cradit 06-01-2024
+    $('#id_credit').select2();
 
     //หาจำนวนที่จะสร้างช่อง
     let len = 0; 
