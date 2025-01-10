@@ -4337,7 +4337,7 @@ def reApprovePR(request, pr_id):
         
         #พัสดุ
         #pr.stockman_user_id = request.user.id
-        pr.stockman_update = datetime.datetime.now()
+        #pr.stockman_update = datetime.datetime.now()
         pr.is_complete = False
         pr.save()
 

@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load widget_tweaks %}
 {% load humanize %}
+{% load templatehelpers %}
 
 {% block css %}
 <style>
@@ -209,14 +210,14 @@
         {% csrf_token %}
         <div class="row my-4">
             <div class="card-group col">
-                    <div class="card" style="max-width: 13rem; max-height:8rem;">
+                    <div class="card" style="max-width: 13rem; max-height:10rem;">
                         <div class="card-body text-center pt-1 pb-1">
                         ผู้จัดทำ <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                         ( {{cp.organizer}} )<br>
                         {{cp.organizer.userprofile.position}}
                         </div>
                     </div>
-                    <div class="card" style="max-height:8rem;">
+                    <div class="card" style="max-height:10rem;">
                         <div class="card-body text-center pt-1 pb-1">
                             ผู้ตรวจสอบ
                             {% if cp.examiner_status.id == 3 %}
@@ -225,7 +226,7 @@
                                 {% if cp.examiner_status.id == 2 %}
                                 <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.examiner_user}} )<br>
-                                    {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
+                                    {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| format_datetime }}
                                 {% endif %}
                                 {% if cp.examiner_status.id == 1 and isExaminer %}
                                     <br>
@@ -235,7 +236,7 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div class="card" style="max-height:8rem;">
+                    <div class="card" style="max-height:10rem;">
                         <div class="card-body text-center pt-1 pb-1">
                             ผู้อนุมัติ
                             {% if cp.approver_status.id == 3 %}
@@ -244,7 +245,7 @@
                                 {% if cp.approver_status.id == 2 %}
                                 <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.approver_user}} )<br>
-                                    {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
+                                    {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| format_datetime }}
                                 {% endif %}
                                 {% if isApprover and isExaminer and cp.examiner_status.id == 1%}
                                     <br>
@@ -268,7 +269,7 @@
                                     {% if cp.special_approver_user %}
                                     <img src="/media/{{cp.special_approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                         ( {{cp.special_approver_user}} )<br>
-                                        {{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| date:"d/m/Y"}}
+                                        {{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| format_datetime }}
                                     {% endif %}
                                 {% elif cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 1 and isApproverSpecial%}
                                     <br>

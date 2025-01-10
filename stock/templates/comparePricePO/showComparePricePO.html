@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load widget_tweaks %}
 {% load humanize %}
+{% load templatehelpers %}
 
 {% block css %}
 <style>
@@ -225,7 +226,7 @@
                                 {% if cp.examiner_user %}
                                 <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.examiner_user}} )<br>
-                                    {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| date:"d/m/Y"}}
+                                    {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| format_datetime}}
                                 {% endif %}
                             {% endif %}
 
@@ -243,7 +244,7 @@
                                 {% if cp.approver_user %}
                                 <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                     ( {{cp.approver_user}} )<br>
-                                    {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| date:"d/m/Y"}}
+                                    {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| format_datetime}}
                                 {% endif %}
                             {% endif %}
                         </div>
@@ -260,7 +261,7 @@
                                     {% if cp.special_approver_user %}
                                     <img src="/media/{{cp.special_approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
                                         ( {{cp.special_approver_user}} )<br>
-                                        {{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| date:"d/m/Y"}}
+                                        {{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| format_datetime}}
                                     {% endif %}
                                 {% endif %}
                             </div>

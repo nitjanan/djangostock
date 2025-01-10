@@ -715,7 +715,7 @@ class PurchaseRequisition(models.Model):
         related_name='stockman_user',
         null=True
     )
-    stockman_update = models.DateField(blank=True, null=True)
+    stockman_update = models.DateTimeField(blank=True, null=True)
     purchase_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -728,7 +728,7 @@ class PurchaseRequisition(models.Model):
         related_name='purchase_status',
         null=True
     )
-    purchase_update = models.DateField(blank=True, null=True)
+    purchase_update = models.DateTimeField(blank=True, null=True)
     approver_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -741,7 +741,7 @@ class PurchaseRequisition(models.Model):
         related_name='approver_status',
         null=True
     )
-    approver_update = models.DateField(blank=True, null=True)
+    approver_update = models.DateTimeField(blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     note = models.CharField(max_length = 255, null = True, blank = True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
@@ -992,7 +992,7 @@ class ComparisonPrice(models.Model):
         related_name='cp_approver_status',
         null=True
     )
-    approver_update = models.DateField(blank=True, null=True)
+    approver_update = models.DateTimeField(blank=True, null=True)
     examiner_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -1005,7 +1005,7 @@ class ComparisonPrice(models.Model):
         related_name='cp_examiner_status',
         null=True
     )
-    examiner_update = models.DateField(blank=True, null=True)  
+    examiner_update = models.DateTimeField(blank=True, null=True)  
     special_approver_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -1019,7 +1019,7 @@ class ComparisonPrice(models.Model):
         related_name='cp_special_approver_status',
         null=True
     )
-    special_approver_update = models.DateField(blank=True, null=True)
+    special_approver_update = models.DateTimeField(blank=True, null=True)
     is_special_approve_cm = models.BooleanField(default=False)
     select_bidder_update = models.DateField(blank=True, null=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
@@ -1077,7 +1077,7 @@ class PurchaseOrder(models.Model):
         related_name='approver_status_po',
         null=True
     )
-    approver_update = models.DateField(blank=True, null=True)
+    approver_update = models.DateTimeField(blank=True, null=True)
     created = models.DateField(default=timezone.now) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True, blank = True)

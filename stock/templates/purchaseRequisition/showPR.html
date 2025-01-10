@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load widget_tweaks %}
 {% load humanize %}
+{% load templatehelpers %}
 
 {% block css %}
 <style>
@@ -240,7 +241,7 @@ u.dotted {
                   <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
                   <div class="row">
                     <div class="col-sm-8">
-                      <p class="card-text">วันที่ {{pr.stockman_update | date:"d/m/Y"}}</p>
+                      <p class="card-text">วันที่ {{pr.stockman_update | format_datetime }}</p>
                     </div>
                   </div>
                 </div>
@@ -260,7 +261,7 @@ u.dotted {
                   <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
                   <div class="row">
                     <div class="col-sm-8">
-                      <p class="card-text">วันที่ {{pr.purchase_update | date:"d/m/Y"}}</p>
+                      <p class="card-text">วันที่ {{pr.purchase_update | format_datetime }}</p>
                     </div>
                   </div>  
                 </div>
@@ -280,7 +281,7 @@ u.dotted {
                       <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
                       <div class="row">
                         <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.approver_update | date:"d/m/Y"}}</p>
+                          <p class="card-text">วันที่ {{pr.approver_update | format_datetime }}</p>
                         </div>
                       </div>  
                   </div>

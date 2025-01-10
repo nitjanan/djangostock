@@ -1,4 +1,6 @@
 from django import template
+import datetime
+from django.utils.timezone import localtime
 
 register = template.Library()
 
@@ -15,3 +17,11 @@ def my_url(value, field_name, urlencode=None):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key, None)
+
+@register.filter
+def format_datetime(value):
+    if isinstance(value, datetime.datetime):
+        if value.time() == datetime.time(0, 0, 0):
+            return localtime(value).strftime("%d/%m/%Y")
+        return localtime(value).strftime("%d/%m/%Y %H:%M")
+    return value
