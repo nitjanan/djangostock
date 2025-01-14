@@ -54,6 +54,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
 from datetime import date, timedelta
+from django.utils.timezone import is_aware, make_naive
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -5075,6 +5076,13 @@ def cal_days_between_nagative(day1, day2):
             strDate = str(days_between_nagative(str(day1), str(day2))) + " วัน"
     return strDate
 
+def normalize_datetime(value):
+    if value is None:
+        return None
+    if is_aware(value):
+        value = make_naive(value)  #Convert to naive datetime
+    return value.strftime('%Y-%m-%d')  #Format as string
+
 def exportExcelPOToExpress(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -5139,7 +5147,12 @@ def exportExcelPOToExpress(request):
                         When(po__vat_type_id = 2, then= F('po__total_price')-F('po__total_after_discount')),
                         )).values_list('save_price', flat=True),        
             'เลขที่ใบขอซื้อ': queryset.values_list('item__requisit__pr_ref_no', flat=True),
-            'วันที่อนุมัติใบขอซื้อ' : queryset.values_list('po__pr__approver_update', flat=True),
+            'วันที่อนุมัติใบขอซื้อ' :[
+                normalize_datetime(
+                    PurchaseRequisition.objects.filter(requisition = rq).values_list('approver_update', flat=True).first()
+                )
+                for rq in queryset.values_list('item__requisit', flat=True)
+            ],
             'รหัสสินค้า' : queryset.values_list('item__product__id', flat=True),
             'รายการสินค้า' : queryset.values_list('item__product__name', flat=True),
             'กลุ่มสินค้า' : queryset.values_list('item__product__category__name', flat=True),
@@ -5261,7 +5274,16 @@ def exportExcelPO(request):
                         When(vat_type_id = 2, then= F('total_price')-F('total_after_discount')),
                         )).values_list('save_price', flat=True),
             'เลขที่ใบขอซื้อ': [ PurchaseOrderItem.objects.filter(po = id).values_list('item__requisit__pr_ref_no', flat=True).first() for id in queryset.values_list('id', flat=True)],
-            'วันที่อนุมัติใบขอซื้อ' : [ PurchaseRequisition.objects.filter(requisition = PurchaseOrderItem.objects.filter(po = id).values_list('item__requisit', flat=True).first()).values_list('approver_update', flat=True).first() for id in queryset.values_list('id', flat=True)],
+            'วันที่อนุมัติใบขอซื้อ' : [
+                normalize_datetime(
+                    PurchaseRequisition.objects.filter(
+                        requisition=PurchaseOrderItem.objects.filter(po=id)
+                        .values_list('item__requisit', flat=True)
+                        .first()
+                    ).values_list('approver_update', flat=True).first()
+                )
+                for id in queryset.values_list('id', flat=True)
+            ],
             'รหัสสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__id', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'รายการสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__name', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
             'ใช้ในระบบงาน' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id)
