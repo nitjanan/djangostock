@@ -32,7 +32,7 @@ class ContentTypeRestrictedFileField(FileField):
             content_type = file.content_type
             if content_type in self.content_types:
                 if file.size > self.max_upload_size:
-                    raise forms.ValidationError(_('ไม่สามารถอัพโหลดไฟล์ เนื่องจากไฟล์มีขนาดใหญ่เกิน %s. กรุณาบีบอัดไฟล์ และอัพโหลดไฟล์อีกครั้ง') % (filesizeformat(self.max_upload_size), filesizeformat(file.size)))
+                    raise forms.ValidationError(_('ไม่สามารถอัพโหลดไฟล์ เนื่องจากไฟล์มีขนาดใหญ่เกิน %s. กรุณาบีบอัดไฟล์ และอัพโหลดไฟล์อีกครั้ง') % (filesizeformat(self.max_upload_size)))
             else:
                 raise forms.ValidationError(_('ไม่สามารถอัพโหลดชนิดไฟล์ '+ str(file.content_type)+ ' ได้'))
         except AttributeError:

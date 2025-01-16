@@ -411,7 +411,7 @@ class Product(models.Model):
     unit = models.ForeignKey(BaseUnit, on_delete=models.CASCADE, null=True, blank = True, verbose_name="หน่วยสินค้า")
     slug = models.SlugField(max_length=255,unique=True, verbose_name="ลิ้งค์") #เก็บ url ไว้ผูกข้อมูล Product
     description = models.TextField(blank=True, verbose_name="รายละเอียด") #เป็นค่าว่างได้
-    price = models.DecimalField(max_digits=20,decimal_places=2, null=True, blank = True, verbose_name="ราคา") #ราคา Product มีเลข 20 หลัก ทศนิยม 2 ตำแหน่ง
+    price = models.DecimalField(max_digits=12,decimal_places=2, null=True, blank = True, verbose_name="ราคา") #ราคา Product มีเลข 12 หลัก ทศนิยม 2 ตำแหน่ง
     category = models.ForeignKey(Category,on_delete=models.CASCADE, null=True, blank = True, verbose_name="หมวดหมู่สินค้า") #ดึงข้อมูล Category มาใช้ใน Product และ on_delete = models.CASCADE คือหากลบอันใดอันนึงให้ลบทั้งหมดเลย
     image = models.ImageField(upload_to="product",blank=True, verbose_name="รูปภาพ") #เก็บรูปภาพ
     stock = models.IntegerField(null=True, blank = True, verbose_name="จำนวนสินค้าในสต็อก") #จำนวนชิ้นของ Product
@@ -631,7 +631,7 @@ class RequisitionItem(models.Model):
     requisition_id = models.IntegerField()
     product_name = models.CharField(max_length=255,blank=True)
     description = models.TextField(blank=True) #เป็นค่าว่างได้
-    quantity = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
     machine = models.CharField(max_length=255,blank=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
@@ -640,9 +640,9 @@ class RequisitionItem(models.Model):
     urgency = models.IntegerField(blank=True, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True, blank=True)
-    quantity_pr = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
-    quantity_take = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
-    quantity_used = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True, default = 0.0)#จำนวนสินค้าที่ดึงไปทำแล้ว
+    quantity_pr = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
+    quantity_take = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
+    quantity_used = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True, default = 0.0)#จำนวนสินค้าที่ดึงไปทำแล้ว
     is_used = models.BooleanField(default=False)#สถานะที่บอกว่านำไปใช้ใน pr หรือ cm หรือยัง
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
 
@@ -691,10 +691,10 @@ class Invoice(models.Model):
 class InvoiceItem(models.Model):
     iv = models.ForeignKey(Invoice,on_delete=models.CASCADE, null=True)
     item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
-    quantity = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
     unit = models.CharField(max_length=255, blank=True, null=True)
-    unit_price = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
-    price = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
 
@@ -780,7 +780,7 @@ class BasePermission(models.Model):
     codename = models.CharField(max_length=255,unique=True, verbose_name="โค้ด")
     codename_th = models.CharField(max_length=255,unique=True, verbose_name="โค้ดไทย")
     ap_amount_min = models.DecimalField(max_digits=10, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบน้อยสุด")#ยอดเงินอนุมัติใบเปรียบเทียบน้อยสุด
-    ap_amount_max = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบมากสุด")#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
+    ap_amount_max = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True, verbose_name="ยอดเงินที่อนุมัติใบเปรียบเทียบมากสุด")#ยอดเงินอนุมัติใบเปรียบเทียบมากสุด
 
     class Meta:
         db_table = 'BasePermission'
@@ -1028,7 +1028,7 @@ class ComparisonPrice(models.Model):
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     is_re_approve = models.BooleanField(default=False)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
-    amount_diff = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#ราคาที่เทียบกันระหว่างร้านที่ 1 และ 2
+    amount_diff = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ราคาที่เทียบกันระหว่างร้านที่ 1 และ 2
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -1051,13 +1051,13 @@ class PurchaseOrder(models.Model):
     vat_type = models.ForeignKey(BaseVatType,on_delete=models.CASCADE)
     credit = models.ForeignKey(BaseCredit,on_delete=models.CASCADE,null = True,blank = True)
     shipping = models.CharField(max_length=255, blank = True)
-    total_price = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
     discount = models.CharField(max_length=255, blank = True, null = True)#หักส่วนลด
-    total_after_discount = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
-    vat = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#ภาษี
-    amount = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
+    total_after_discount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
+    vat = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ภาษี
+    amount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
     note = models.CharField(max_length=255, null = True, blank = True)
-    freight = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
+    freight = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
     stockman_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -1144,11 +1144,11 @@ class PurchaseOrder(models.Model):
 class PurchaseOrderItem(models.Model):
     po = models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE, null=True)
     item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
-    quantity = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
-    unit_price = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
     discount = models.CharField(max_length=255, blank = True, null = True)#ส่วนลด ทศนิยม and %
-    price = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     is_receive = models.BooleanField(default=False) #สถานะว่ารับเข้าไปแล้ว
@@ -1162,12 +1162,12 @@ class ComparisonPriceDistributor(models.Model):
     distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE, null = True)
     credit = models.ForeignKey(BaseCredit,on_delete=models.CASCADE,null = True, blank = True)
     vat_type = models.ForeignKey(BaseVatType,on_delete=models.CASCADE)
-    total_price = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#รวมเป็นเงิน
     discount = models.CharField(max_length=255, blank = True, null = True)#หักส่วนลด
-    total_after_discount = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
-    vat = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#ภาษี
-    amount = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
-    freight = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
+    total_after_discount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
+    vat = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ภาษี
+    amount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
+    freight = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp =  models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE, null=True)
@@ -1180,12 +1180,12 @@ class ComparisonPriceDistributor(models.Model):
 
 class ComparisonPriceItem(models.Model):
     item = models.ForeignKey(RequisitionItem,on_delete=models.CASCADE, null=True)
-    quantity = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
     unit = models.ForeignKey(BaseUnit,on_delete=models.CASCADE, null=True)
     brand = models.CharField(max_length=255, blank=True)
-    unit_price = models.DecimalField(max_digits=20, decimal_places=4, blank = True, null = True)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=4, blank = True, null = True)
     discount = models.CharField(max_length=255, blank = True, null = True)#ส่วนลด ทศนิยม and %
-    price = models.DecimalField(max_digits=20, decimal_places=2, blank = True, null = True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     bidder =  models.ForeignKey(ComparisonPriceDistributor,on_delete=models.CASCADE, null=True)
