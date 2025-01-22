@@ -368,7 +368,7 @@
           {% csrf_token %}
           <div class="modal-body">
             <div id="add_alert" class="alert alert-warning d-none" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
-            <input class="form-control" type="checkbox" name="add_have_product"><!-- checkbox have product id -->
+            <input class="form-control d-none" type="checkbox" name="add_have_product"><!-- checkbox have product id -->
             <label for="product" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required onblur="setDataProductExpress(1);">
             <datalist id="idExpresslist">
@@ -425,7 +425,7 @@
           {% csrf_token %}
         <div class="modal-body">
             <div id="update_alert" class="alert alert-warning d-none" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
-            <input class="form-control" type="checkbox" name="update_have_product"><!-- checkbox have product id -->
+            <input class="form-control d-none" type="checkbox" name="update_have_product"><!-- checkbox have product id -->
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
             <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}" required onblur="setDataProductExpress(2);">

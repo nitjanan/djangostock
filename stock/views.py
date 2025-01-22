@@ -1334,6 +1334,7 @@ def CUInvoiceAndItem(request, rq_id):
     rqs = Requisition.objects.get(id = rq_id)
     have_iv_id = Invoice.objects.filter(requisit = rq_id).first()
 
+    have_item = RequisitionItem.objects.filter(requisit = rqs).exists()#มีสินค้าในใบขอเบิกไหม
     have_take_item = RequisitionItem.objects.filter(requisit = rqs, quantity_take__gt = 0).exists()#มีจำนวนที่จ่าย
     have_pr_item = RequisitionItem.objects.filter(requisit = rqs, quantity_pr__gt = 0).exists()#มีจำนวนที่ซื้อ
 
@@ -1374,7 +1375,7 @@ def CUInvoiceAndItem(request, rq_id):
 
             rqs.save()
 
-    else:#กรณีหน่วยงานภายนอก ไม่มีการออกใบจ่าย
+    elif have_item and rqs.branch_company.invoice_code and rqs.agency.id == 2:#กรณีหน่วยงานภายนอก ไม่มีการออกใบจ่าย
         #ถ้าเป็นหน่วยงานภายนอกให้ลบ iv
         if have_iv_id:
           #ลบ iv item ก่อน
@@ -1392,6 +1393,9 @@ def CUInvoiceAndItem(request, rq_id):
             rqs.is_edit = False #ปิดใบเบิกเลย กรณีหน่วยงานภายนอกและไม่มีจำนวนที่ซื้อ
         rqs.save()
 
+    if not have_item:#ถ้าไม่มีสินค้าในใบขอเบิก
+        messages.error(request, "ไม่สามารถสร้างใบขอซื้อหรือใบจ่ายสินค้าภายในได้ เนื่องจากไม่มีสินค้าในใบขอเบิก")
+        return redirect('preparePR')
     if have_pr_item: #มีจำนวนที่ต้องซื้อ เข้า createPR
         return HttpResponseRedirect(reverse('createPR', args=(rq_id,)))
     elif iv: #มีการจ่ายภายใน
