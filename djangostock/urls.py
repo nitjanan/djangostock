@@ -138,7 +138,8 @@ urlpatterns = [
     path('receive/remove/<int:rc_id>',views.removeReceive,name="removeReceive"),
     path('receive/show/<int:rc_id>',views.showReceive,name="showReceive"),
     path('receive/upload', views.uploadReceive,name="uploadReceive"),
-    
+    path('receive/confirmUpload', views.confirmUpload,name="confirmUpload"),
+
     path('receiveItem/edit/<int:rc_id>',views.editReceiveItem,name="editReceiveItem"),
 
     path('export/', views.export ,name="export"),

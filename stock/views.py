@@ -4421,102 +4421,112 @@ def correct_date_format(date_str):
 def uploadReceive(request):
     active = request.session['company_code']
     if request.method == 'POST':
-        dataset = Dataset()
-        new_persons = request.FILES.get('myfile', False)
+        uploaded_file = request.FILES.get('myfile', False)
+        df = pd.read_excel(uploaded_file)
+        df = df.dropna(how='all')
+        filtered_data = df.values.tolist()
 
-        if new_persons:
-            imported_data = dataset.load(new_persons.read(),format='xlsx')
-            for data in imported_data:
-                if not(data[1] is None) and not(data[10] is None):
+        if filtered_data:
+            preview_data = []
+
+            for data in filtered_data:
+
+                if not data or len(data) <= 10 or data[1] is None or data[10] is None:
+                    continue
+                else:
                     strRefNo = data[10]
-                    try:
-                        refNo = strRefNo.split(' ')[0]
-                    except:
-                        refNo = strRefNo
+                    refNo = strRefNo.split(' ')[0] if ' ' in strRefNo else strRefNo
 
-                    try:
-                        #change data[1] to corract format
-                        data_col_1 = correct_date_format(str(data[1]))
+                    #change data[1] to corract format
+                    data_col_1 = correct_date_format(str(data[1]))
 
-                        po = PurchaseOrder.objects.get(ref_no = refNo)
-                        po.is_receive = True
-                        po.receive_update = data_col_1
-                        po.save()
+                    preview_data.append({
+                        "po_ref_no": refNo,
+                        "po_receive_update": data_col_1,
+                    })
 
-                        try:
-                            rd = RateDistributor.objects.filter(po=po).order_by('-id').first()
-                            #คำนวน rating (duration_rate) ระยะเวลาที่รับจริง - วันที่กำหนดรับของ
-                            #ถ้าปีห่างกันมากกว่าแสดงว่าปีเป็น คศ และ พศ ให้ทำการแปลงเป็นคศ ก่อน
+        # Store preview data in session temporarily
+        request.session['preview_data'] = preview_data
 
-                            if rd:
-                                if years_between(po.due_receive_update, data_col_1) > 500:
-                                    durationRate = calculateDurationRate(convertDateBEtoBC(str(data_col_1)), po.due_receive_update)
-                                else:
-                                    durationRate = calculateDurationRate(data_col_1, po.due_receive_update)
-                                
-                                #ต้องมีคะแนนประเมินทุกรายการถึงจะให้คำนวน totalRate ได้
-                                if rd.price_rate and rd.quantity_rate and durationRate and rd.service_rate and rd.safety_rate:
-                                    #คำนวน rating (total_rate)
-                                    totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
-                                    #คำนวน grade rate
-                                    grade_rate = calculateGradeRate(totalRate)
+        # Return preview data to the template for rendering
+        context = {
+            'preview_data': preview_data,
+            'rc_page': "tab-active",
+            'rc_show': "show",
+            active: "active show",
+            "disableTab": "disableTab",
+            "colorNav": "disableNav",
+        }
+        return render(request, 'receive/uploadReceive.html', context)
 
-                                    rd.duration_rate = durationRate
-                                    rd.total_rate = totalRate
-                                    rd.grade_id = grade_rate
-                                    rd.save()
-                        except RateDistributor.DoesNotExist:
-                            pass
-
-                        #เปลี่ยนเป็นแบบนี้
-                        try:
-                            po_item = PurchaseOrderItem.objects.filter(po__ref_no = refNo)
-                            for i in po_item: 
-                                i.is_receive = True
-                                i.save()
-                                try:
-                                    item = RequisitionItem.objects.get(id = i.item_id)
-                                    item.is_receive = True
-                                    item.save()
-                                except RequisitionItem.DoesNotExist:
-                                    pass
-                        except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
-                            pass
-                        #เปลี่ยนเป็นแบบนี้
-                    except PurchaseOrder.DoesNotExist:
-                        pass
-                '''
-                elif data[1] is None and data[2] is None and not(data[3] is None):
-                    #เช็คว่ามี po item หรือเปล่าถ้ามีถึงจะเอาไป save
-                    strRefNo = data[12]
-                    try:
-                        refNo = strRefNo.split(' ')[0]
-                        try:
-                            po_item = PurchaseOrderItem.objects.filter(po__ref_no = refNo, item__product__id = data[4])
-                            for i in po_item: 
-                                i.is_receive = True
-                                i.save()
-                                try:
-                                    item = RequisitionItem.objects.get(id = i.item_id)
-                                    item.is_receive = True
-                                    item.save()
-                                except RequisitionItem.DoesNotExist:
-                                    pass
-                        except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
-                            pass
-                    except:
-                        pass                
-                '''
-
-            return redirect('viewReceive')
+    # If no POST data, render the upload form
     context = {
         'rc_page': "tab-active",
         'rc_show': "show",
-        active :"active show",
-		"disableTab":"disableTab",
-		"colorNav":"disableNav"
+        active: "active show",
+        "disableTab": "disableTab",
+        "colorNav": "disableNav",
     }
-    return render(request, 'receive/uploadReceive.html',context)
+    return render(request, 'receive/uploadReceive.html', context)
+
+def confirmUpload(request):
+    if request.method == 'POST':
+        preview_data = request.session.get('preview_data', [])
+
+        for data in preview_data:
+            try:
+                po = PurchaseOrder.objects.get(ref_no=data['po_ref_no'])
+                po.is_receive = True
+                po.receive_update = data['po_receive_update']
+                po.save()
+                
+                try:
+                    rd = RateDistributor.objects.filter(po=po).order_by('-id').first()
+                    #คำนวน rating (duration_rate) ระยะเวลาที่รับจริง - วันที่กำหนดรับของ
+                    #ถ้าปีห่างกันมากกว่าแสดงว่าปีเป็น คศ และ พศ ให้ทำการแปลงเป็นคศ ก่อน
+
+                    if rd:
+                        if years_between(po.due_receive_update, data['po_receive_update']) > 500:
+                            durationRate = calculateDurationRate(convertDateBEtoBC(str(data['po_receive_update'])), po.due_receive_update)
+                        else:
+                            durationRate = calculateDurationRate(data['po_receive_update'], po.due_receive_update)
+                                
+                        #ต้องมีคะแนนประเมินทุกรายการถึงจะให้คำนวน totalRate ได้
+                        if rd.price_rate and rd.quantity_rate and durationRate and rd.service_rate and rd.safety_rate:
+                            #คำนวน rating (total_rate)
+                            totalRate = calculateTotalRate(rd.price_rate, rd.quantity_rate, durationRate, rd.service_rate, rd.safety_rate)
+                            #คำนวน grade rate
+                            grade_rate = calculateGradeRate(totalRate)
+
+                            rd.duration_rate = durationRate
+                            rd.total_rate = totalRate
+                            rd.grade_id = grade_rate
+                            rd.save()
+                except RateDistributor.DoesNotExist:
+                    pass
+
+                try:
+                    po_item = PurchaseOrderItem.objects.filter(po__ref_no = data['po_ref_no'])
+                    for i in po_item: 
+                        i.is_receive = True
+                        i.save()
+                        try:
+                            item = RequisitionItem.objects.get(id = i.item_id)
+                            item.is_receive = True
+                            item.save()
+                        except RequisitionItem.DoesNotExist:
+                            pass
+                except PurchaseOrderItem.DoesNotExist or PurchaseOrderItem.MultipleObjectsReturned:
+                    pass
+
+            except PurchaseOrder.DoesNotExist:
+                pass
+
+        # Clear preview data from session after saving
+        request.session.pop('preview_data', None)
+        return redirect('viewReceive')
+
+    return redirect('uploadReceive')
 
 def showReceive(request, rc_id):
     rc = Receive.objects.get(id = rc_id)

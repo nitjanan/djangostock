@@ -9,13 +9,71 @@
             <h5>Upload ไฟล์รับสินค้า</h5>
         </div>
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
+            <form id="uploadForm" enctype="multipart/form-data" method="post">
                 {% csrf_token %}
-                <input  class="form-control" type="file" name="myfile">
-                <br>
-                <button class="btn btn-primary" type="submit">Upload</button>
+                <label for="myfile">Upload File:</label>
+                <input class="form-control" type="file" name="myfile" id="myfile" required>
+                <button class="btn btn-primary my-2" type="submit" id="uploadButton">Upload & Preview</button>
             </form>
         </div>
-      </div>
+    </div>
+
+    <div id="previewContainer" style="display: {% if preview_data %}block{% else %}none{% endif %};">
+        <h3>Preview Data</h3>
+        <table class="table table-striped">
+            <thead class="table-success">
+                <tr>
+                    <th>No.</th>
+                    <th>เลขที่ใบสั่งซื้อ</th>
+                    <th>วันที่รับสินค้า</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in preview_data %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.po_ref_no }}</td>
+                    <td>{{ row.po_receive_update}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <form method="post" action="{% url 'confirmUpload' %}">
+            {% csrf_token %}
+            <button class="btn btn-success" type="submit" id="confirmButton">Confirm Upload</button>
+        </form>
+    </div>
 </div>
 {% endblock%}
+{% block javascript %}
+<script>
+document.getElementById('previewButton').addEventListener('click', function () {
+    const formData = new FormData(document.getElementById('uploadForm'));
+    
+    fetch('', {  // Send to the same URL for preview
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const tbody = document.querySelector('#previewTable tbody');
+        tbody.innerHTML = ''; // Clear existing rows
+
+        data.preview.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.po_ref_no}</td>
+                <td>${row.po_receive_update}</td>
+                <!-- Add other columns -->
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(error => console.error('Error:', error));
+});
+</script>
+{% endblock %}
