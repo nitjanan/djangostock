@@ -180,6 +180,7 @@
                             {{form.id}} 
                             {{form.item | add_class:"item"}}
                             <b id="id_comparisonpriceitem_set-{{forloop.counter0}}-lb" name="comparisonpriceitem_set-{{forloop.counter0}}-lb" class="lb">1&nbsp;</b>
+                            <input id="id_comparisonpriceitem_set-{{forloop.counter0}}-oldquantity" name="comparisonpriceitem_set-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
                             <input id="id_comparisonpriceitem_set-{{forloop.counter0}}-express" name="comparisonpriceitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <!--datalist id="idExpressList">
                               {% for results in itemList %}
@@ -343,8 +344,10 @@ $(function() {
         if($(inputs[i]).val()){
           var val = $(inputs[i]).val();
           var show = $('#idExpressList option[data-id='+val+']').attr('data-show');
+          var quantity = $("#id_comparisonpriceitem_set-"+i+"-quantity").val();
           //set value to form.item
           $("#id_comparisonpriceitem_set-"+i+"-express").val(show);
+          $("#id_comparisonpriceitem_set-"+i+"-oldquantity").val(quantity);
         }
     }
 
@@ -361,10 +364,21 @@ $(function() {
 });
 
 $('form').submit(function() {
-  var inputId = $("#div-None div.col div.input-group input").attr("id").match(/\d+/);
-  var data = $('#id_comparisonpriceitem_set-'+inputId+'-item').val();
-  if(data == "")
-     $("#div-None" ).remove();
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        quantity = parseFloat($("#id_comparisonpriceitem_set-"+i+"-quantity").val());
+        oldquantity = parseFloat($("#id_comparisonpriceitem_set-"+i+"-oldquantity").val());
+        if (quantity > oldquantity){
+            alert('ไม่สามารถบันทึกข้อมูลได้เนื่องจาก จำนวนสินค้า มากกว่าที่เบิกมา ' + oldquantity.toFixed(4));
+            $("#id_comparisonpriceitem_set-"+i+"-quantity").focus();
+            return false;
+        }
+    }
+    
+    var inputId = $("#div-None div.col div.input-group input").attr("id").match(/\d+/);
+    var data = $('#id_comparisonpriceitem_set-'+inputId+'-item').val();
+    if(data == "")
+        $("#div-None" ).remove();
 });
 
 function updateElementIndex(el, prefix, ndx) {
@@ -717,7 +731,7 @@ function searchDataDistributor(){
             success: function (data) {
                 if (data.credit) {
                     //set id_credit , id_vat_type
-                    $("#id_credit").val(data.credit);
+                    $('#id_credit').val(data.credit).trigger('change');
                     $("#id_vat_type").val(data.vat_type);
                 }
             }

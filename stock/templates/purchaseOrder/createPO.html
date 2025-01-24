@@ -396,7 +396,7 @@
                     success: function (data) {
                         if (data.credit) {
                             //set id_credit , id_vat_type
-                            $("#id_credit").val(data.credit);
+                            $('#id_credit').val(data.credit).trigger('change');
                             $("#id_vat_type").val(data.vat_type);
                         }
                     }

@@ -117,6 +117,7 @@
                 <div class="col">
                     <div class="input-group">
                           {{form.item}}
+                          <input id="id_form-{{forloop.counter0}}-oldquantity" name="form-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
                           <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                           <!--datalist id="idExpressList">
                             {% for results in itemList %}
@@ -263,6 +264,7 @@ for (let i = 1; i < len; i++) {
         $("#id_form-{{forloop.counter0}}-item").val("{{it.item.id}}");
         $("#id_form-{{forloop.counter0}}-description").val("{{it.description}}");
         $("#id_form-{{forloop.counter0}}-quantity").val("{{it.quantity}}");
+        $("#id_form-{{forloop.counter0}}-oldquantity").val("{{it.quantity}}");
         $("#id_form-{{forloop.counter0}}-unit").val("{{it.unit.id}}");
         $("#id_form-{{forloop.counter0}}-unit_price").val("{{it.unit_price}}");
         $("#id_form-{{forloop.counter0}}-price").val("{{it.price}}");
@@ -281,6 +283,19 @@ for(var i = 0; i < inputs.length; i++){
       var val = $("#id_form-"+i+"-express").val(show);
     }
 }
+
+$('form').submit(function() {
+  var inputs = $(".item");
+  for(var i = 0; i < inputs.length; i++){
+    quantity = parseFloat($("#id_form-"+i+"-quantity").val());
+    oldquantity = parseFloat($("#id_form-"+i+"-oldquantity").val());
+    if (quantity > oldquantity){
+      alert('ไม่สามารถบันทึกข้อมูลได้เนื่องจาก จำนวนสินค้า มากกว่าที่เบิกมา ' + oldquantity.toFixed(4));
+      $("#id_form-"+i+"-quantity").focus();
+      return false;
+    }
+  }
+});
 
 //price ราคารวม, vat, รวมทั้งสิ้น
 $("#id_total_price").val("{{cpd_price.total_price}}");

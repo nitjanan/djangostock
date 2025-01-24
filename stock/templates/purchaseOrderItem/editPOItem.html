@@ -163,6 +163,7 @@
                     <div class="input-group">
                         {{form.id}} 
                         {{form.item}}
+                        <input id="id_purchaseorderitem_set-{{forloop.counter0}}-oldquantity" name="comparisonpriceitem_set-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
                         <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
                         <!--datalist id="idExpressList">
                           {% for results in itemList %}
@@ -171,7 +172,7 @@
                         </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
                         <datalist id="idExpressList">
                           {% for results in itemList %}
-                            <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.unit__id}}"></option>
+                            <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.unit__id}}" data-remain="{{results.q_remain}}" data-used="{{results.item__quantity_used}}" data-cp="{{results.po__cp}}"></option>
                           {% endfor %}
                         </datalist>
                         {{form.description|add_class:"form-control"}} {{form.quantity }} {{form.unit| add_class:"form-control" |attr:"required:true"}} {{form.unit_price}}  {{form.discount}} {{form.price}} {{ form.DELETE| add_class:"del"}}
@@ -354,10 +355,21 @@ $(function() {
           var val = $(inputs[i]).val();
           var show = $('#idExpressList option[data-id='+val+']').attr("data-show");
           var unit = $('#idExpressList option[data-id='+val+']').attr("data-unit");
+          var remain = $('#idExpressList option[data-id='+val+']').attr("data-remain");
+          var used = $('#idExpressList option[data-id='+val+']').attr("data-used");
+          var tmp_quantity = $("#id_purchaseorderitem_set-"+i+"-quantity").val();
+          var cp = $('#idExpressList option[data-id='+val+']').attr("data-cp");
+
+          if (parseFloat(tmp_quantity) == parseFloat(used) || cp != "None"){
+            quantity = tmp_quantity
+          }else{
+            quantity = remain  
+          }
 
           //set value to form.item
           $("#id_purchaseorderitem_set-"+i+"-express").val(show);
           $("#id_purchaseorderitem_set-"+i+"-unit").val(unit);
+          $("#id_purchaseorderitem_set-"+i+"-oldquantity").val(quantity);
         }
     }
 
@@ -386,6 +398,17 @@ $(function() {
 });
 
 $('form').submit(function() {
+  var inputs = $(".item");
+  for(var i = 0; i < inputs.length; i++){
+    quantity = parseFloat($("#id_purchaseorderitem_set-"+i+"-quantity").val());
+    oldquantity = parseFloat($("#id_purchaseorderitem_set-"+i+"-oldquantity").val());
+    if (quantity > oldquantity){
+      alert('ไม่สามารถบันทึกข้อมูลได้เนื่องจาก จำนวนสินค้า มากกว่าที่เบิกมา ' + oldquantity.toFixed(4));
+      $("#id_purchaseorderitem_set-"+i+"-quantity").focus();
+      return false;
+    }
+  }
+  
   var inputId = $("#div-None div.col div.input-group input").attr("id").match(/\d+/);
   var data = $('#id_purchaseorderitem_set-'+inputId+'-item').val();
   if(data == "")
@@ -738,7 +761,7 @@ function searchDataDistributor(){
             success: function (data) {
                 if (data.credit) {
                     //set id_credit , id_vat_type
-                    $("#id_credit").val(data.credit);
+                    $('#id_credit').val(data.credit).trigger('change');
                     $("#id_vat_type").val(data.vat_type);
                 }
             }

@@ -176,6 +176,7 @@
                     <div class="col-12">
                         <div class="input-group">
                             <b id="id_form-0-lb" name="form-0-lb" class="lb">1&nbsp;</b>
+                            <input id="id_form-{{forloop.counter0}}-oldquantity" name="form-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
                             {{form.item | add_class:"item"}}
                             <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
                             <!--datalist id="idExpressList">
@@ -345,6 +346,7 @@ $(function() {
             $("#id_form-{{forloop.counter0}}-item").val("{{it.item.id}}");
             $("#id_form-{{forloop.counter0}}-description").val("{{it.description}}");
             $("#id_form-{{forloop.counter0}}-quantity").val("{{it.quantity}}");
+            $("#id_form-{{forloop.counter0}}-oldquantity").val("{{it.quantity}}");
             $("#id_form-{{forloop.counter0}}-unit").val("{{it.unit.id}}");
         "{% endif %}"
     "{% endfor %}"
@@ -386,6 +388,17 @@ $('form').submit(function() {
 
     if(haveDistributor){
         return false;
+    }
+
+    var inputs = $(".item");
+    for(var i = 0; i < inputs.length; i++){
+        quantity = parseFloat($("#id_form-"+i+"-quantity").val());
+        oldquantity = parseFloat($("#id_form-"+i+"-oldquantity").val());
+        if (quantity > oldquantity){
+            alert('ไม่สามารถบันทึกข้อมูลได้เนื่องจาก จำนวนสินค้า มากกว่าที่เบิกมา ' + oldquantity.toFixed(4));
+            $("#id_form-"+i+"-quantity").focus();
+            return false;
+        }
     }
 });
 
@@ -760,7 +773,7 @@ function searchDataDistributor(){
             success: function (data) {
                 if (data.credit) {
                     //set id_credit , id_vat_type
-                    $("#id_credit").val(data.credit);
+                    $('#id_credit').val(data.credit).trigger('change');
                     $("#id_vat_type").val(data.vat_type);
                 }
             }
