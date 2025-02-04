@@ -1991,7 +1991,7 @@ def calculateSumQuantityCPItem(r_item, cp):
 def calculateSumQuantityPOItem(r_item, po):
     quantity_po_item = None
     #ค้นหาจำนวนสินค้าในใบสั่งซื้อเพื่อดูว่าดึงสินค้าจากใบขอซื้อไปใช้หมดหรือยัง
-    po_item_query = PurchaseOrderItem.objects.filter(item = r_item, po = po, po__cp__isnull = True)
+    po_item_query = PurchaseOrderItem.objects.filter(item = r_item, po = po, po__cp__isnull = True, po__is_cancel = False)
     quantity_po_item = po_item_query.aggregate(Sum('quantity'))
     sum_po_item = quantity_po_item['quantity__sum'] if po_item_query else Decimal(0.00)
     return sum_po_item
@@ -2011,7 +2011,7 @@ def calculateSumQuantityCPAndPOItem(r_item):
     sum_cp_item = total_sum if total_sum else Decimal(0.00)
 
     #ค้นหาจำนวนสินค้าในใบสั่งซื้อเพื่อดูว่าดึงสินค้าจากใบขอซื้อไปใช้หมดหรือยัง
-    po_item_query = PurchaseOrderItem.objects.filter(item = r_item, po__cp__isnull = True).values('po').distinct()
+    po_item_query = PurchaseOrderItem.objects.filter(item = r_item, po__cp__isnull = True, po__is_cancel = False).values('po').distinct()
     quantity_po_item = po_item_query.aggregate(Sum('quantity'))
     sum_po_item = quantity_po_item['quantity__sum'] if po_item_query else Decimal(0.00)
 
@@ -2799,7 +2799,8 @@ def showPO(request, po_id, mode):
             cc = cancel_form.save(commit=False)
             if cc.cancel_reason is not None:
                 cc.is_cancel = True
-            cc.save()
+                cc.save()
+                rePOItemIsUse(po_id)#หากยกเลิกรายการ เช็ค item และนำใบขอซื้อกลับมาทำใหม่
             return redirect('showPO', po_id = po_id , mode = mode)
 
     #ถ้า user login เป็นจัดซื้อ
@@ -2829,6 +2830,40 @@ def showPO(request, po_id, mode):
 			"colorNav":"disableNav"
     }
     return render(request, 'purchaseOrder/showPO.html',context)
+
+def rePOItemIsUse(po_id):
+    items = PurchaseOrderItem.objects.filter(po = po_id)
+    for obj in items:
+        try:
+            d_item = RequisitionItem.objects.get(id = obj.item.id)
+            #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+            po_sum_quantity = calculateSumQuantityPOItem(obj.item, po_id)
+            sum_po_cp = calculateSumQuantityCPAndPOItem(obj.item)
+            remain = d_item.quantity_pr - (sum_po_cp - po_sum_quantity)
+
+            #save จำนวนสินค้าที่ใช้ไปแล้ว
+            d_item.quantity_used = sum_po_cp - po_sum_quantity
+
+            if remain <= 0:
+                d_item.is_used = True
+                d_item.save()
+                #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                if check_item:
+                    try:
+                        pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                        pr.is_complete = True
+                        pr.save()
+                    except:
+                        pass
+            else:
+                d_item.is_used = False
+                d_item.save()
+                pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                pr.is_complete = False
+                pr.save()
+        except RequisitionItem.DoesNotExist:
+            pass
 
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
