@@ -4475,7 +4475,7 @@ def uploadReceive(request):
 
             for data in filtered_data:
 
-                if not data or len(data) <= 10 or data[1] is None or data[10] is None:
+                if not data or len(data) <= 10 or data[1] is None or data[10] is None or pd.isna(data[1]) or pd.isna(data[10]):
                     continue
                 else:
                     strRefNo = data[10]
