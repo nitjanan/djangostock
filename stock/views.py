@@ -1425,7 +1425,7 @@ class CrudView(TemplateView):
         except:
             pr = ""
 
-        #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 7, 15, 30 
+        #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 30, 90, 365 
         distinct_products = {
             product : created 
             for product, created in RequisitionItem.objects.filter(
@@ -1437,16 +1437,16 @@ class CrudView(TemplateView):
             ).values_list('product', 'requisit__created')
         }
 
-        #set alert_level text ภายใน 7, 15, 30
+        #set alert_level text ภายใน 30, 90, 365
         for item in users:
             created = distinct_products.get(item.product.id)
             if created:
                 diff_days = (item.requisit.created - created).days
-                if diff_days <= 7:
+                if diff_days <= 30:
                     item.alert_level = "***"
-                elif diff_days <= 15:
+                elif diff_days <= 90:
                     item.alert_level = "**"
-                elif diff_days <= 30:
+                elif diff_days <= 365:
                     item.alert_level = "*"
                 else:
                     item.alert_level = ""
@@ -1628,7 +1628,7 @@ def editAllRequisition(request, requisition_id):
     baseUnit = BaseUnit.objects.all()
     baseProduct = Product.objects.all().values('id', 'name')
 
-    #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 7, 15, 30 
+    #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 30, 90, 365
     distinct_products = {
         product : created 
         for product, created in RequisitionItem.objects.filter(
@@ -1640,16 +1640,16 @@ def editAllRequisition(request, requisition_id):
         ).values_list('product', 'requisit__created')
     }
 
-    #set alert_level text ภายใน 7, 15, 30
+    #set alert_level text ภายใน 30, 90, 365
     for item in users:
         created = distinct_products.get(item.product.id)
         if created:
             diff_days = (item.requisit.created - created).days
-            if diff_days <= 7:
+            if diff_days <= 30:
                 item.alert_level = "***"
-            elif diff_days <= 15:
+            elif diff_days <= 90:
                 item.alert_level = "**"
-            elif diff_days <= 30:
+            elif diff_days <= 365:
                 item.alert_level = "*"
             else:
                 item.alert_level = ""
@@ -1714,7 +1714,7 @@ def showRequisition(request, requisition_id, mode):
     except:
         pr = ""
 
-    #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 7, 15, 30 
+    #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 30, 90, 365
     distinct_products = {
         product : created 
         for product, created in RequisitionItem.objects.filter(
@@ -1726,16 +1726,16 @@ def showRequisition(request, requisition_id, mode):
         ).values_list('product', 'requisit__created')
     }
 
-    #set alert_level text ภายใน 7, 15, 30
+    #set alert_level text ภายใน 30, 90, 365
     for item in items:
         created = distinct_products.get(item.product.id)
         if created:
             diff_days = (item.requisit.created - created).days
-            if diff_days <= 7:
+            if diff_days <= 30:
                 item.alert_level = "***"
-            elif diff_days <= 15:
+            elif diff_days <= 90:
                 item.alert_level = "**"
-            elif diff_days <= 30:
+            elif diff_days <= 365:
                 item.alert_level = "*"
             else:
                 item.alert_level = ""

@@ -164,7 +164,7 @@
     <div class="col-md-12">
       <div class="panel panel-default">
             <div class="panel-heading">
-                <h3 class="panel-title">
+                <h5 class="panel-title">
                   <div class="row">
                     <div class="col-3">
                      <strong>รายการใบขอเบิก</strong> 
@@ -177,7 +177,7 @@
                       </button>
                     </div>
                   </div>
-                </h3>
+                </h5>
             </div>
         <div class="panel-body">
           <div class="table-responsive">
@@ -283,11 +283,7 @@
     {% if requisition.rq_type.id == 1 or requisition.rq_type.id == 2%}
     <div class="col text-danger">
       <b>หากมีการเบิกสินค้านี้ซ้ำ ในทะเบียนรถหรือเครื่องจักรเดียวกัน</b>
-      <ul>
-          <li>ภายใน 7 วัน ***</li>
-          <li>ภายใน 15 วัน **</li>
-          <li>ภายใน 30 วัน *</li>
-      </ul>
+      <h6>ภายใน 30 วัน *** , ภายใน 90 วัน ** , ภายใน 365 วัน *</h6>
     </div>
     {%endif%}
     <div class="col text-right">
