@@ -56,6 +56,17 @@ from django.db.models import Avg
 from datetime import date, timedelta
 from django.utils.timezone import is_aware, make_naive
 from django.db import models
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework import generics, viewsets, permissions, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.request import Request
+from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
+
+from stock.serializers import PurchaseOrderSerializer, PurchaseOrderItemSerializer
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -6057,3 +6068,30 @@ def exportExcelIVToExpress(request):
         result.to_excel(writer, index=False)
 
     return response
+
+#################################
+############# API ###############
+#################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiOverviewPO(request):
+    api_urls = {
+        'Api Overview Po': '/po/api/',
+        'Detail PO View':'/po/api/detail/<str:ref_no>/',
+        'Detail PO Item View':'/po/items/api/detail/<str:ref_no>/',
+    }
+    return Response(api_urls)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def detailPO(request, ref_no):
+    queryset = PurchaseOrder.objects.get(ref_no = ref_no)
+    serializer = PurchaseOrderSerializer(queryset, many = False)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def detailPOItems(request, ref_no):
+    queryset = PurchaseOrderItem.objects.filter(po__ref_no = ref_no)
+    serializer = PurchaseOrderItemSerializer(queryset, many = True)
+    return Response(serializer.data)

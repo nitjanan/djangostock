@@ -178,6 +178,10 @@ urlpatterns = [
 
     path('car-search/', views.car_search, name='car_search'),
 
+    path('po/api/',views.apiOverviewPO,name="apiOverviewPO"),
+    path('po/api/detail/<str:ref_no>/',views.detailPO,name="detailPO"),
+    path('po/items/api/detail/<str:ref_no>/',views.detailPOItems,name="detailPOItems"),
+
 ]
 
 if settings.DEBUG :

@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'django_filters',
     'import_export',
     'django_select2',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -164,6 +165,19 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+REST_FRAMEWORK = {
+    'NON_FIELD_ERRORS_KEY': 'errors',
+    'DEFAULT_AUTHENTICATION_CLASSES':(
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES':(
+        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
+    )
+}
 
 
 # Static files (CSS, JavaScript, Images)
