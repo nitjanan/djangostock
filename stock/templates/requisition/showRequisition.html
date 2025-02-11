@@ -141,6 +141,7 @@
                     <td class="text-center"><strong>สินค้า</strong></td>
                     <!--td class="text-center"><strong>เหตุผลและวัตถุประสงค์</strong></td-->
                     <td class="text-center"><strong>จำนวนที่ขอเบิก</strong></td>
+                    <td class="text-center text-success"><strong>จำนวนที่ซื้อแล้ว</strong></td>
                     <td class="text-center"><strong>จำนวนที่จ่ายไป</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
@@ -158,6 +159,7 @@
                     <td class="text-center userProduct userData" name="product"><b class="text-danger">{{item.alert_level}}</b>{{item.product.id}}</td>
                     <td class="userName userData" name="name">{{item.product_name}}</td>
                     <td class="text-center userQuantity userData" name="quantity">{{item.quantity |floatformat:"-4"}}</td>
+                    <td class="text-center userQuantityUsed userData text-success" name="quantityUsed">{{item.quantity_used |floatformat:"-4"}}</td>
                     <td class="text-center userQuantityTake userData" name="quantityTake">{{item.quantity_take |floatformat:"-4"}}</td>
                     <td class="text-center userUnit userData" name="unit" data-val="{{item.unit}}">
                       {{item.unit}}
