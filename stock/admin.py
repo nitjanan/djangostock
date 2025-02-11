@@ -87,7 +87,8 @@ class PositionBasePermissionAdmin(ImportExportModelAdmin):
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
     autocomplete_fields = ['position',]
-    list_display = ['position']
+    list_display = ['id', 'position',]
+    search_fields = ['id', 'position__name', 'branch_company__name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseDistributorGenreAdmin(ImportExportModelAdmin):
