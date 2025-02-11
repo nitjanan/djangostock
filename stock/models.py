@@ -611,6 +611,7 @@ class Requisition(models.Model):
     note = models.CharField(max_length = 255, null = True, blank = True, verbose_name="หมายเหตุ/เหตุผล")
     agency = models.ForeignKey(BaseAgency, on_delete=models.CASCADE, blank=True, null=True) #หน่วยงาน
     mile = models.CharField(max_length = 255, null = True, blank = True, verbose_name="เลขไมล์/เลขชั่วโมง")
+    qr_code = models.ImageField(null=True, blank=True, upload_to = "r_qr_codes/", verbose_name="qr code")
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -618,6 +619,34 @@ class Requisition(models.Model):
             self.address_company = company.address
         if self.ref_no is None:
             self.ref_no = requisition_ref_number(self.branch_company)
+
+        # ใบขอเบิก QR Code 10-02-2025
+        if not self.qr_code:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=5,
+                border=1,  # Set border size to 2
+            )
+            qr.add_data(self.ref_no)
+            qr.make(fit=True)
+            qrcode_img = qr.make_image(fill_color="black", back_color="white")
+
+            # Crop the QR code image to remove the border
+            image_data = qrcode_img.get_image()
+            image_data = image_data.crop((2, 2, image_data.size[0] - 2, image_data.size[1] - 2))
+
+            # Create a new image and paste the cropped QR code onto it
+            canvas = Image.new('RGB', (image_data.size[0], image_data.size[1]), 'white')
+            canvas.paste(image_data)
+
+            # Save the QR code image
+            fname = f'qr_code-{self.ref_no}.png'
+            buffer = BytesIO()
+            canvas.save(buffer, 'PNG')
+            self.qr_code.save(fname, File(buffer), save=False)
+            canvas.close()
+
         super(Requisition, self).save(*args, **kwargs)
 
     class Meta:

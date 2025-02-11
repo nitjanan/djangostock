@@ -15,39 +15,55 @@
 
 {% block content %}
 <div class="container">
-    <div class="row my-2">
-      <div class="text-left col">
-        <h4>{{requisition.address_company.name_th}}</h4>
+  <div class="row"><!-- ใบขอเบิก QR Code 10-02-2025 -->
+    <div class="col-1">
+      {% if requisition.qr_code %}
+      <img src="{{ requisition.qr_code.url }}" width="95" height="95">
+      {% else %}
+        <img src="/media/{{requisition.address_company.logo}}" class="rounded float-left" width="95" height="95"/>
+      {% endif %}
+    </div>
+    <div class="col-7">
+      <div class="row">
+        <div class="col text-right">
+          <h4>{{requisition.address_company.name_th}}</h4>
+        </div>
       </div>
-      <div class="text-right col">
-        <h5>เลขที่. {{requisition.ref_no}}
-          {% if requisition.memorandum_pdf %}
-            {% ifchanged requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-            {% endifchanged %}
-          {% endif %}
-        </h5>
+      <div class="row my-2">
+        <div class="col text-right">
+          <h4>ใบขอเบิก{% if requisition.rq_type %} ({{requisition.rq_type}}){%endif%}</h4>          
+        </div>
       </div>
     </div>
-    <hr>
-    <div class="row my-2">
-      <div class="col-7 text-right">
-          <h4>ใบขอเบิก{% if requisition.rq_type %} ({{requisition.rq_type}}){%endif%}</h4>
+    <div class="col-4">
+      <div class="row">
+        <div class="col text-right">
+          <h5>เลขที่. {{requisition.ref_no}}
+            {% if requisition.memorandum_pdf %}
+              {% ifchanged requisition.memorandum_pdf %}
+                <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+              {% endifchanged %}
+            {% endif %}
+          </h5>
+        </div>
       </div>
-      <div class="col-5 text-right">
-        <description>
-          <strong>ระดับความเร่งด่วน: </strong>
-          {% if requisition.urgency %}
-            {{requisition.urgency}}
-          {%else%}
-            {% for bu in baseUrgency %}
-              {% if users.1.urgency == bu.id %}
-                {{bu.name}} {{bu.description}}
-              {% endif %}
-            {% endfor %}
-          {%endif%}
-        </description>
+      <div class="row my-2">
+        <div class="col text-right">
+          <description>
+            <strong>ระดับความเร่งด่วน: </strong>
+            {% if requisition.urgency %}
+              {{requisition.urgency}}
+            {%else%}
+              {% for bu in baseUrgency %}
+                {% if users.1.urgency == bu.id %}
+                  {{bu.name}} {{bu.description}}
+                {% endif %}
+              {% endfor %}
+            {%endif%}
+          </description>
+        </div>
       </div>
+    </div>
   </div>
   <hr>
   <div class="row">
