@@ -21,6 +21,11 @@ from django.conf import settings
 from stock import views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import views as auth_views
+from rest_framework_simplejwt.views import(
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -177,6 +182,13 @@ urlpatterns = [
     path('invoice/remove/<int:iv_id>',views.removeInvoice,name="removeInvoice"),
 
     path('car-search/', views.car_search, name='car_search'),
+
+    path('login/api/', views.LoginApiView.as_view(), name="login_api"),
+    path('signup/api/', views.SignUpApiView.as_view(), name="signup_api"),
+
+    path('jwt/create/', TokenObtainPairView.as_view(), name="jwt_create"),
+    path('jwt/refresh/', TokenRefreshView.as_view(), name="token_refresh"),
+    path('jwt/verify/', TokenVerifyView.as_view(), name="token_verify"),
 
     path('po/api/',views.apiOverviewPO,name="apiOverviewPO"),
     path('po/api/detail/<str:ref_no>/',views.detailPO,name="detailPO"),

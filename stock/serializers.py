@@ -1,6 +1,48 @@
-from rest_framework import serializers
 from stock.models import PurchaseOrder, PurchaseOrderItem
+from rest_framework import serializers
 from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ValidationError
+
+class SignUpSerializer(serializers.ModelSerializer):
+    email = serializers.CharField(max_length=80)
+    username = serializers.CharField(max_length=45)
+    password = serializers.CharField(min_length=8, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["email", "username", "password"]
+
+    def validate(self, attrs):
+        if User.objects.filter(email=attrs["email"]).exists():
+            raise ValidationError("Email has already been used")
+        return attrs
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = User.objects.create(**validated_data)
+        user.set_password(password)  # Hash the password
+        user.save()
+
+        # Ensure Token is properly created for the user
+        token, created = Token.objects.get_or_create(user=user)
+
+        return user
+    
+class UserSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = User
+		fields = ('username', 'email', 'password')
+		
+		extra_kwargs = {'password': {'write_only': True}}
+	def create(self, validated_data):
+		user = User(
+			email=validated_data['email'],
+			username=validated_data['username']
+		)
+		user.set_password(validated_data['password'])
+		user.save()
+		return user
 
 class PurchaseOrderItemSerializer(serializers.ModelSerializer):
     ref_no = serializers.CharField(source='po.ref_no', read_only=True)
