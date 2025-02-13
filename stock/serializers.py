@@ -45,7 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
 		return user
 
 class PurchaseOrderItemSerializer(serializers.ModelSerializer):
-    ref_no = serializers.CharField(source='po.ref_no', read_only=True)
+    po_ref_no = serializers.CharField(source='po.ref_no', read_only=True)
     prod_id = serializers.CharField(source='item.product.id', read_only=True)
     prod_nam = serializers.CharField(source='item.product_name', read_only=True)
     descr = serializers.CharField(source='description', read_only=True)
@@ -53,7 +53,7 @@ class PurchaseOrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseOrderItem
-        fields = ('ref_no', 'prod_id', 'prod_nam', 'descr', 'quantity', 'unit_nam', 'unit_price', 'discount', 'price')
+        fields = ('po_ref_no', 'prod_id', 'prod_nam', 'descr', 'quantity', 'unit_nam', 'unit_price', 'discount', 'price')
         extra_fields = ['id']
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
@@ -68,6 +68,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     distr_nam = serializers.CharField(source='distributor.name', read_only=True)
     distr_add = serializers.CharField(source='distributor.address', read_only=True)
     distr_tel = serializers.CharField(source='distributor.tel', read_only=True)
+    vat_type = serializers.CharField(source='vat_type.name', read_only=True)
     credit = serializers.CharField(source='credit.name', read_only=True)
     delivery = serializers.CharField(source='delivery.name', read_only=True)
     price = serializers.CharField(source='total_price', read_only=True)
@@ -76,12 +77,15 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     cc_reason = serializers.CharField(source='cancel_reason', read_only=True)
     desc = serializers.SerializerMethodField()
 
+    # Include the related PurchaseOrderItem objects
+    items = PurchaseOrderItemSerializer(source='purchaseorderitem_set', many=True, read_only=True)
+
     class Meta:
         model = PurchaseOrder
         fields = ('ref_no','created', 'comp_nam', 'comp_add', 'comp_tel', 'comp_tex', 'po_type',
-                   'distr_id', 'distr_pf', 'distr_nam', 'distr_add', 'distr_tel' , 'credit', 'shipping',
+                   'distr_id', 'distr_pf', 'distr_nam', 'distr_add', 'distr_tel', 'vat_type', 'credit', 'shipping',
                    'desc', 'note','delivery', 'price', 'discount', 'af_discount', 'freight', 'vat', 'amount',
-                   'is_cc', 'cc_reason',
+                   'is_cc', 'cc_reason', 'items',
                    )
         extra_fields = ['id']
 
