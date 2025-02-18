@@ -25,3 +25,7 @@ def format_datetime(value):
             return localtime(value).strftime("%d/%m/%Y")
         return localtime(value).strftime("%d/%m/%Y %H:%M")
     return value
+
+@register.filter
+def first_chars(value, num=2):
+    return value[:num] if value else ''

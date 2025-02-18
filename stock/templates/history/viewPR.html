@@ -44,6 +44,7 @@
 <div class="card div-shadow">
   <div class="card-body">
     <span class="text-success">* รายการที่ดำเนินการเปรียบเทียบราคาหรือทำการสั่งซื้อแล้ว</span>
+    <span class="text-warning">* รายการใบขอซื้อที่ถูกปิดรายการ</span>
     <div class="table-responsive">
       <table class="table table-bordered my-3">
         <thead class="table-info">
@@ -63,7 +64,7 @@
         {% for pr in prs %}
           <tr>
             <td>{{pr.created |date:"d/m/Y"}}</td>
-            <th scope="row"><a href="{% url 'showPR' pr.id 4 %}">{{pr.ref_no}}</a></th>
+            <th scope="row"><a href="{% url 'showPR' pr.id 4 %}" class="{% if pr.note|first_chars:2 == 'C#' %}text-warning{% endif %}">{{pr.ref_no}}</a></th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 4 %}">{{pr.requisition.ref_no}}</a></td>
             <!--td old 8 ms>
                 {% for item in ri%}
@@ -75,7 +76,7 @@
             <td>
               <ul>
                 {% for requisition_item in pr.requisition.requisitionitem_set.all %}
-                  {% if requisition_item.is_used %}
+                  {% if requisition_item.quantity_used > 0 %}
                     <li class="text-success">{{ requisition_item.product_name }}</li>
                   {% else %}
                     <li>{{ requisition_item.product_name }}</li>

@@ -4395,6 +4395,12 @@ def reApprovePR(request, pr_id):
         #พัสดุ
         #pr.stockman_user_id = request.user.id
         #pr.stockman_update = datetime.datetime.now()
+
+        #ถ้า 2 ตัวแรก เกิดจากการ CLOSE ให้ตัดออก
+        first_two = pr.note[:2]
+        if first_two == 'C#':
+            pr.note = pr.note[2:]
+
         pr.is_complete = False
         pr.save()
 
@@ -4450,6 +4456,12 @@ def closePR(request, pr_id):
     r_items = RequisitionItem.objects.filter(requisit = requisition.id)
     #set pr ทำรายการสำเร็จ
     pr.is_complete = True
+    #ใส่ stamp ว่าเกิดจากการ CLOSE
+    if pr.note:
+        pr.note = "C#" + pr.note
+    else:
+        pr.note = "C#"
+
     pr.save()
     #set รายการสินค้า นำไปใช้แล้ว
     for i in r_items:

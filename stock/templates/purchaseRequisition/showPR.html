@@ -168,6 +168,7 @@ u.dotted {
                     <td class="text-center"><strong>รายการ</strong></td>
                     <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
                     <td class="text-center"><strong>จำนวน</strong></td>
+                    <td class="text-center text-success d-print-none"><strong>ซื้อแล้ว</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
                     <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
@@ -182,6 +183,9 @@ u.dotted {
                     <td name="name">{{item.product_name}}</td>
                     <td name="description">{{item.description}}</td>
                     <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
+                    <td class="text-center text-success d-print-none" name="used">
+                      {{item.quantity_used |floatformat:"-4"}}
+                    </td>
                     <td class="text-center" name="unit">
                       {{item.unit}}
                     </td>
