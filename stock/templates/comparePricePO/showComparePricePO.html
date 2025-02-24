@@ -7,21 +7,60 @@
 
 {% block css %}
 <style>
-    @media print {
+@media print {
     .hidden-print {
-      display: none;
+        display: none;
     }
+
     @page {
-    margin: 0mm 10mm 0mm 0mm;
-    size: A4 landscape;
+        size: A4 landscape;
+        margin: 0;
     }
-    body {
+
+    /* Print */
+    body, html {
         font-size: 8pt;
         font-family: serif;
         color: black;
-        float: right;
+        margin: 1;
+        padding: 1;
+        width: 100%;
+        height: 100%;
     }
-  }
+
+    .container {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        margin: 1 !important;
+        padding: 1 !important;
+    }
+
+    table {
+        width: 92vw !important;
+        max-width: 92vw !important;
+        border-collapse: collapse;
+    }
+
+    tr, td, th {
+        padding: 1;
+        margin: 1;
+        border: 1px solid black;
+    }
+
+    * {
+        margin: 1 !important;
+        padding: 1 !important;
+        box-sizing: border-box;
+    }
+
+}
+    /* No Print */
+   .container {
+        width: 80vw ;
+        max-width: 80vw ;
+        margin: 1 !important;
+        padding: 1 !important;
+    }
 
   b.dblUnderlined { border-bottom: 3px double; }
   u.dotted {

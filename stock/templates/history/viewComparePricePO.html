@@ -66,7 +66,7 @@
                   <td>
                     {% for pr in prs %}
                         {% if cp.id == pr.cp %}
-                          {% ifchanged pr.item__requisit__pr_ref_no a%}
+                          {% ifchanged pr.item__requisit__pr_ref_no %}
                             <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
                           {% endifchanged %}
                         {%endif%}
