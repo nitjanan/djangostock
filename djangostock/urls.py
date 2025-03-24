@@ -193,6 +193,7 @@ urlpatterns = [
     path('po/api/',views.apiOverviewPO,name="apiOverviewPO"),
     path('po/api/detail/<str:ref_no>/',views.detailPO,name="detailPO"),
     path('po/items/api/detail/<str:ref_no>/',views.detailPOItems,name="detailPOItems"),
+    path('po/product/api/detail/<str:ref_no>/<str:prod_id>',views.detailPOProductItems,name="detailPOProductItems"),
 
 ]
 

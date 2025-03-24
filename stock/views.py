@@ -6136,6 +6136,7 @@ def apiOverviewPO(request):
         'Api Overview Po': '/po/api/',
         'Detail PO View':'/po/api/detail/<str:ref_no>/',
         'Detail PO Item View':'/po/items/api/detail/<str:ref_no>/',
+        'Detail PO Item by Product Id View':'/po/product/api/detail/<str:ref_no>/<str:prod_id>',
     }
     return Response(api_urls)
 
@@ -6151,5 +6152,12 @@ def detailPO(request, ref_no):
 @permission_classes([IsAuthenticated])
 def detailPOItems(request, ref_no):
     queryset = PurchaseOrderItem.objects.filter(po__ref_no = ref_no)
+    serializer = PurchaseOrderItemSerializer(queryset, many = True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def detailPOProductItems(request, ref_no, prod_id):
+    queryset = PurchaseOrderItem.objects.filter(po__ref_no = ref_no, item__product_id = prod_id)
     serializer = PurchaseOrderItemSerializer(queryset, many = True)
     return Response(serializer.data)
