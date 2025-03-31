@@ -6160,8 +6160,8 @@ def detailPOItems(request, ref_no):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def detailPOProductItems(request, ref_no, prod_id):
-    queryset = PurchaseOrderItem.objects.filter(po__ref_no = ref_no, item__product_id = prod_id)
-    serializer = PurchaseOrderItemSerializer(queryset, many = True)
+    queryset = PurchaseOrderItem.objects.get(po__ref_no = ref_no, item__product_id = prod_id)
+    serializer = PurchaseOrderItemSerializer(queryset, many = False)
     return Response(serializer.data)
 
 
