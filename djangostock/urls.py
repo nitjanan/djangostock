@@ -176,6 +176,7 @@ urlpatterns = [
 
     path('report/purchaseOrderItem/export/excel/by/value', views.exportExcelSummaryByProductValue, name='exportExcelSummaryByProductValue'),
     path('report/purchaseOrderItem/export/excel/by/frequently', views.exportExcelSummaryByProductFrequently, name='exportExcelSummaryByProductFrequently'),
+    path('report/purchaseOrderItem/export/excel/by/expense', views.exportExcelByExpense, name='exportExcelByExpense'),
 
     path('invoice/',views.viewInvoice,name="viewInvoice"),
     path('invoice/show/<int:iv_id>/<int:mode>',views.showInvoice,name="showInvoice"),

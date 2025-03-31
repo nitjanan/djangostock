@@ -68,6 +68,8 @@ from rest_framework.decorators import api_view
 
 from .tokens import create_jwt_pair_for_user
 from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer
+from openpyxl.styles import Alignment, Font
+from openpyxl.utils import get_column_letter
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -6161,3 +6163,283 @@ def detailPOProductItems(request, ref_no, prod_id):
     queryset = PurchaseOrderItem.objects.filter(po__ref_no = ref_no, item__product_id = prod_id)
     serializer = PurchaseOrderItemSerializer(queryset, many = True)
     return Response(serializer.data)
+
+
+def exportExcelByExpense(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    stockman_user = request.GET.get('stockman_user') or None
+    ref_no = request.GET.get('ref_no') or None
+    distributor = request.GET.get('distributor') or None
+    amount_min = request.GET.get('amount_min') or None
+    amount_max = request.GET.get('amount_max') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    start_date, end_date = get_month_start_end()
+    if not start_created:
+        start_created = start_date
+    if not end_date:
+        end_created = end_date
+
+    my_q = Q()
+    if stockman_user is not None:
+        my_q = Q(po__stockman_user = stockman_user)
+    if ref_no is not None:
+        my_q &= Q(po__ref_no__icontains = ref_no)
+    if distributor is not None:
+        my_q &= Q(po__distributor__name__startswith = distributor)
+    if start_created is not None:
+        my_q &= Q(po__created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(po__created__lte = end_created)
+    if amount_min is not None:
+        my_q &= Q(po__amount__gte = amount_min)
+    if amount_max is not None :
+        my_q &=Q(po__amount__lte = amount_max)
+
+    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
+    my_q &=Q(item__requisit__agency__name__isnull = False, item__requisit__expense_dept__name__isnull = False)
+    
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(po__branch_company__code__in = company_in)
+
+    # Your existing queryset
+    queryset = PurchaseOrderItem.objects.filter(my_q).values(
+        'item__requisit__agency__name',
+        'item__requisit__expense_dept__name'
+    ).annotate(
+        sum_amount=Sum('price'),
+        oil_lir=Sum(Case(When(item__product__category__slug='OL', then='quantity'), output_field=models.DecimalField())),
+        oil_amount=Sum(Case(When(item__product__category__slug='OL', then='price'), output_field=models.DecimalField())),
+        sum_other=Sum(Case(When(~Q(item__product__category__slug='OL'), then='price'), output_field=models.DecimalField()))
+    ).order_by(
+        'item__requisit__agency__name', 'item__requisit__expense_dept__name'
+    )
+
+    if not queryset.exists():
+        return HttpResponse("No data to export.")
+
+    # Prepare data
+    internal_data = []
+    external_data = []
+
+    for item in queryset:
+        row = {
+            'แผนก': item['item__requisit__expense_dept__name'],
+            'ลิตร': item['oil_lir'] or '',
+            'บาท': item['oil_amount'] or '',
+            'น้ำมันม.หล่อลื่น+': item['sum_other'] or '',
+            'รวม': item['sum_amount'] or 0
+        }
+        
+        if "ภายนอก" in item['item__requisit__agency__name']:
+            external_data.append(row)
+        else:
+            internal_data.append(row)
+
+    internal_data = prepare_data(internal_data) or []
+    external_data = prepare_data(external_data) or []
+
+    # สร้าง Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "รายงานค่าใช้จ่ายพัสดุ"
+
+    # สไตล์
+    header_font = Font(bold=True, size=12)
+    section_font = Font(bold=True)
+    center_alignment = Alignment(horizontal='center', vertical='center')
+    border = Border(
+        left=Side(style='thin'), 
+        right=Side(style='thin'),
+        top=Side(style='thin'), 
+        bottom=Side(style='thin')
+    )
+
+    start_created = safe_str_to_date(start_created) or start_date
+    end_created = safe_str_to_date(end_created)  or end_date
+
+    # ส่วนหัวหลัก
+    ws.merge_cells('A1:E1')
+    ws['A1'] = "รายงานค่าใช้จ่ายพัสดุ " + start_created.strftime('%d/%m/%Y') + " ถึง " + end_created.strftime('%d/%m/%Y')
+    ws['A1'].font = header_font
+    ws['A1'].alignment = center_alignment
+
+    # หัวคอลัมน์
+    ws.append(['แผนกคชจ.', 'น้ำมันโซล่า', '', 'น้ำมันม.หล่อลื่น+', 'รวมจำนวนเงิน'])
+    ws.append(['', 'ลิตร', 'บาท', 'ค่าอะไหล่/สิ่งของ', 'บาท'])
+
+    # Merge และจัดรูปแบบเซลล์ A2 และ A3
+    ws.merge_cells('A2:A3')
+    ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
+    ws['A2'].font = Font(bold=True)
+    ws['A2'] = "แผนก"  # ข้อความที่คุณต้องการแสดง
+        
+    # รวมหัวคอลัมน์และจัดสไตล์
+    ws.merge_cells('B2:C2')
+    for row in ws.iter_rows(min_row=2, max_row=3):
+        for cell in row:
+            cell.font = Font(bold=True)
+            cell.alignment = center_alignment
+            cell.border = border
+
+    current_row = 4
+    if internal_data:
+        # ข้อมูลหน่วยงานภายใน
+        ws.merge_cells(f'A{current_row}:E{current_row}')
+        ws[f'A{current_row}'] = "หน่วยงานภายใน"
+        ws[f'A{current_row}'].font = section_font
+        ws[f'A{current_row}'].alignment = center_alignment
+        current_row += 1
+
+        for item in internal_data:
+            ws.append([
+                item['แผนก'],
+                item['ลิตร'],
+                item['บาท'],
+                item['น้ำมันม.หล่อลื่น+'],
+                item['รวม']
+            ])
+            current_row += 1
+
+        # ผลรวมหน่วยงานภายใน
+        ws.append([
+            "รวมหน่วยงานภายใน",
+            safe_sum(internal_data, 'ลิตร'),
+            safe_sum(internal_data, 'บาท'),
+            safe_sum(internal_data, 'น้ำมันม.หล่อลื่น+'),
+            safe_sum(internal_data, 'รวม')
+        ])
+        for col in range(1, 6):
+            cell = ws.cell(row=current_row, column=col)
+            cell.font = Font(bold=True)
+            if col in [2, 3, 4, 5]:  # Numeric columns
+                cell.number_format = '#,##0.00'
+        current_row += 1
+
+    if external_data:
+        # ข้อมูลหน่วยงานภายนอก
+        ws.merge_cells(f'A{current_row}:E{current_row}')
+        ws[f'A{current_row}'] = "หน่วยงานภายนอก"
+        ws[f'A{current_row}'].font = section_font
+        ws[f'A{current_row}'].alignment = center_alignment
+        current_row += 1
+
+        for item in external_data:
+            ws.append([
+                item['แผนก'],
+                item['ลิตร'],
+                item['บาท'],
+                item['น้ำมันม.หล่อลื่น+'],
+                item['รวม']
+            ])
+            current_row += 1
+            
+        # ผลรวมหน่วยงานภายนอก
+        ws.append([
+            "รวมหน่วยงานภายนอก",
+            safe_sum(external_data, 'ลิตร'),
+            safe_sum(external_data, 'บาท'),
+            safe_sum(external_data, 'น้ำมันม.หล่อลื่น+'),
+            safe_sum(external_data, 'รวม')
+        ])
+        for col in range(1, 6):
+            cell = ws.cell(row=current_row, column=col)
+            cell.font = Font(bold=True)
+            if col in [2, 3, 4, 5]:  # Numeric columns
+                cell.number_format = '#,##0.00'
+        current_row += 1
+
+    # Add one empty row as separator
+    ws.append([''] * 5)  # Empty row separator
+
+    # Add GRAND TOTAL row (sum of both internal and external)
+    grand_total_row = current_row + 1
+
+    # Calculate grand totals
+    grand_total_liter = safe_sum(internal_data, 'ลิตร') + safe_sum(external_data, 'ลิตร')
+    grand_total_baht = safe_sum(internal_data, 'บาท') + safe_sum(external_data, 'บาท')
+    grand_total_other = safe_sum(internal_data, 'น้ำมันม.หล่อลื่น+') + safe_sum(external_data, 'น้ำมันม.หล่อลื่น+')
+    grand_total_amount = safe_sum(internal_data, 'รวม') + safe_sum(external_data, 'รวม')
+
+    # Create grand total row (showing all sums)
+    ws[f'A{grand_total_row}'] = "รวมทั้งหมด"
+    ws[f'B{grand_total_row}'] = grand_total_liter
+    ws[f'C{grand_total_row}'] = grand_total_baht
+    ws[f'D{grand_total_row}'] = grand_total_other
+    ws[f'E{grand_total_row}'] = grand_total_amount
+
+    # Apply formatting to grand total row
+    for col in range(1, 6):
+        cell = ws.cell(row=grand_total_row, column=col)
+        cell.font = Font(bold=True)
+        if col in [2, 3, 4, 5]:  # Numeric columns
+            cell.number_format = '#,##0.00'
+        if col == 1:  # Label column
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Apply special border style
+    for col in range(1, 6):
+        ws.cell(row=grand_total_row, column=col).border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='double')  # Double line for emphasis
+        )
+
+    # ใส่กรอบให้ทุกเซลล์
+    for row in ws.iter_rows(min_row=1, max_row=current_row, max_col=5):
+        for cell in row:
+            cell.border = border
+
+    # Adjust column widths if needed
+    column_widths = {'A': 40, 'B': 15, 'C': 15, 'D': 20, 'E': 15}
+    for col, width in column_widths.items():
+        ws.column_dimensions[col].width = width
+
+    # สร้าง HttpResponse
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=agency_expense_report_({active}).xlsx'
+    
+    wb.save(response)
+    return response
+
+# แก้ไขการคำนวณผลรวมให้รองรับค่าว่าง
+def safe_sum(items, key):
+    return sum(float(item[key]) for item in items if item[key] and str(item[key]).replace('.','',1).isdigit())
+
+# แปลงข้อมูลให้ปลอดภัย
+def prepare_data(data):
+    for item in data:
+        for key in item:
+            if item[key] is None:
+                item[key] = ''
+            elif isinstance(item[key], (int, float)):
+                continue
+            elif str(item[key]).replace('.','',1).isdigit():
+                item[key] = float(item[key])
+        return data
+    
+def get_month_start_end(date=None):
+    if date is None:
+        date = datetime.date.today()
+    
+    start_date = date.replace(day=1)  # First day of the month
+    next_month = date.month % 12 + 1
+    next_month_year = date.year + (1 if next_month == 1 else 0)
+    end_date = datetime.date(next_month_year, next_month, 1) - datetime.timedelta(days=1)  # Last day of the month
+    
+    return start_date, end_date
+
+def safe_str_to_date(date_str):
+    if date_str and isinstance(date_str, str):  # Check if it's a valid string
+        try:
+            return datetime.datetime.strptime(date_str, '%Y-%m-%d')  # Convert only if valid
+        except ValueError:
+            pass  # In case of an invalid format, ignore and return None
+    return None  # Return None if input is invalid or empty

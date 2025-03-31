@@ -60,8 +60,9 @@
     </form>
     <div class="row">
         <div class="col">
-          <a class="btn" style="background-color:#5CB881;color:white;" href="{% url 'exportExcelSummaryByProductValue' %}?{{request.GET.urlencode}}">รายงานสรุปตามมูลค่าสินค้า <i class="fas fa-file-excel"></i></a>
-          <a class="btn" style="background-color:#5CB899;color:white;" href="{% url 'exportExcelSummaryByProductFrequently' %}?{{request.GET.urlencode}}">รายงานสรุปตามจำนวนครั้งที่สั่งซื้อ <i class="fas fa-file-excel"></i></a>
+          <a class="btn btn-success" href="{% url 'exportExcelSummaryByProductValue' %}?{{request.GET.urlencode}}">รายงานสรุปตามมูลค่าสินค้า <i class="fas fa-file-excel"></i></a>
+          <a class="btn" style="background-color:#5CB881;color:white;" href="{% url 'exportExcelSummaryByProductFrequently' %}?{{request.GET.urlencode}}">รายงานสรุปตามจำนวนครั้งที่สั่งซื้อ <i class="fas fa-file-excel"></i></a>
+          <a class="btn" style="background-color:#5CB899;color:white;" href="{% url 'exportExcelByExpense' %}?{{request.GET.urlencode}}">รายงานสรุปค่าใช้จ่ายพัสดุ <i class="fas fa-file-excel"></i></a>
         </div>
     </div>
   </div>
