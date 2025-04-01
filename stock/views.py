@@ -6160,10 +6160,10 @@ def detailPOItems(request, ref_no):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def detailPOProductItems(request, ref_no, prod_id):
-    queryset = PurchaseOrderItem.objects.get(po__ref_no = ref_no, item__product_id = prod_id)
-    serializer = PurchaseOrderItemSerializer(queryset, many = False)
-    return Response(serializer.data)
-
+    queryset = PurchaseOrderItem.objects.filter(po__ref_no = ref_no, item__product_id = prod_id)
+    serializer = PurchaseOrderItemSerializer(queryset, many = True)
+    items_as_dict = {str(i): item for i, item in enumerate(serializer.data)}
+    return Response({"items": items_as_dict})
 
 def exportExcelByExpense(request):
     active = request.session['company_code']
