@@ -6519,7 +6519,6 @@ def updateInvoiceFromExpress(request):
 #เฉพาะศิลาชัยก่อน 28/04/2025
 def update_invoice(all_company):
     for b_com in all_company:
-        print('iv_code = '+ str(b_com.invoice_code) + ', comcod = ' + str(b_com.affiliated.name))
         find_iv_id = list(
             InvoiceItem.objects.filter(
                 is_express=False,
