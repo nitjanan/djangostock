@@ -83,14 +83,13 @@
       <table class="table table-striped my-3">
         <thead class="thead-dark">
           <tr>
-            <th scope="col">รหัสจ่ายสินค้าภายใน - อะไหล่</th>
+            <th scope="col">เลขที่เอกสาร</th>
             <th scope="col">รหัสใบขอเบิก</th>
             <th scope="col">วันที่จ่าย</th>
             <th scope="col">สินค้า</th>
-            <th scope="col">ชื่อผู้เบิก</th>
-            <th scope="col">ชื่อผู้จ่าย</th>
-            <th scope="col">หมายเหตุ</th>
             <th scope="col">แผนกคชจ.</th>
+            <th scope="col">หมายเหตุ</th>
+            <th scope="col">จำนวนเงิน</th>
           </tr>
         </thead>
         <tbody>
@@ -104,10 +103,9 @@
                 <li>{{ i.item.product_name }}</li>
               {% endfor %}
             </td>
-            <td>{{iv.bring_name}}</td>
-            <td>{{iv.payer_name}}</td>
+            <td>{{iv.expense_dept.id}} : {{iv.expense_dept}}</td>
             <td>{{iv.car}}</td>
-            <td>{{iv.expense_dept}}</td>
+            <td class="text-right">{{iv.total_price | intcomma}}</td>
           </tr>
         {% endfor %}
         </tbody>

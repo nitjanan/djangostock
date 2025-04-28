@@ -21,6 +21,7 @@ from io import BytesIO
 from django.core.files import File
 from PIL import Image, ImageDraw, ImageOps
 import segno
+from django.db.models import Sum
 
 def requisition_ref_number(branch_company):
     #tz = pytz.timezone('Asia/Bangkok')
@@ -1351,6 +1352,10 @@ class ExOESTNH(models.Model):
     def get_depnam(self):
         details = BaseExpenseDepartment.objects.filter(id = self.depcod)
         return ", ".join([f"{d.id} : {d.name}" for d in details])
+    
+    def get_total_price(self):
+        result = ExOESTND.objects.using('pg_db').filter(docnum=self.docnum, comcod=self.comcod).aggregate(sum_amount=Sum('trnval'))
+        return result['sum_amount'] or 0
     
     def __str__(self):
         return f"{self.docnum} - {self.refnum}"

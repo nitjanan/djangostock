@@ -219,7 +219,7 @@ class ExOESTNHFilter(django_filters.FilterSet):
     remark = django_filters.CharFilter(field_name="remark", lookup_expr='icontains')
     start_created = django_filters.DateFilter(field_name = "docdat", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "docdat", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
-    depcod =  django_filters.CharFilter(field_name="depcod")
+    depcod =  django_filters.CharFilter(field_name="depcod", label='exp รหัสแผนกคชจ.')
     depname = django_filters.CharFilter(method='filter_by_depname', label='แผนกคชจ.')
 
     def filter_by_depname(self, queryset, name, value):

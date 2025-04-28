@@ -61,7 +61,7 @@
       <table class="table table-striped my-3">
         <thead class="thead-dark">
           <tr>
-            <th scope="col">รหัส</th>
+            <th scope="col">เลขที่เอกสาร</th>
             <th scope="col">วันที่ขาย</th>
             <th scope="col">ลูกค้า</th>
             <th scope="col">สินค้า</th>
@@ -75,7 +75,7 @@
           <tr>
             <th scope="row"><a href="">{{ie.docnum}}</a></th>
             <td>{{ie.docdate |date:"d/m/Y" }}</td>
-            <td>{{ie.cuscod}} {{ie.cusnam}}</td>
+            <td>{{ie.cusnam}}</td>
             <td>{{ie.get_items|safe }}</td>
             <td class="text-right">{{ie.total | intcomma}}</td>
             <td class="text-right">{{ie.vatamt | intcomma}}</td>
