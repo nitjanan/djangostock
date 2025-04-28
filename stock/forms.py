@@ -314,6 +314,18 @@ class PurchaseRequisitionAddressCompanyForm(forms.ModelForm):
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
         }
 
+class PurchaseRequisitionOrganizerForm(forms.ModelForm):
+    def __init__(self,request,*args,**kwargs):
+        super (PurchaseRequisitionOrganizerForm,self).__init__(*args,**kwargs)
+        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+    
+    class Meta:
+       model = PurchaseRequisition
+       fields = ('organizer',)
+       labels = {
+            'organizer': _('ที่อยู่ตามจดทะเบียน'),
+}
+
 #ใบเปรียบเทียบราคา
 class ComparisonPriceForm(forms.ModelForm):
     class Meta:

@@ -17,7 +17,7 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render, get_object_or_404
 from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -2416,6 +2416,7 @@ def showPR(request, pr_id, mode):
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
     form = RequisitionMemorandumForm(instance=requisition)
     pr_form = PurchaseRequisitionAddressCompanyForm(instance=pr)
+    pro_form = PurchaseRequisitionOrganizerForm(request, instance=pr)
 
     if request.method == 'POST' and 'btnformR' in request.POST:
         form = RequisitionMemorandumForm(request.POST, request.FILES, instance=requisition)
@@ -2428,6 +2429,12 @@ def showPR(request, pr_id, mode):
         if pr_form.is_valid():
             pr_form.save()
             return redirect('showPR', pr_id = pr.id , mode = mode)
+    
+    if request.method == 'POST' and 'btnformPRO' in request.POST:
+        pro_form = PurchaseRequisitionOrganizerForm(request, request.POST, request.FILES, instance=pr)
+        if pro_form.is_valid():
+            pro_form.save()
+            return redirect('viewPRHistory')
 
     context = {
             'items':items,
@@ -2445,6 +2452,7 @@ def showPR(request, pr_id, mode):
             show: "show",
             'form':form,
             'pr_form': pr_form,
+            'pro_form': pro_form,
             'isReApprove': isReApprove,
             'isRePr':isRePr,
             active :"active show",

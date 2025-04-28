@@ -210,7 +210,7 @@ u.dotted {
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="9" class="text-center">
+                  <td colspan="10" class="text-center">
                     <div class="alert alert-warning" role="alert">
                       ไม่มีสินค้า
                     </div>
@@ -221,11 +221,19 @@ u.dotted {
                   <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
                   <td class="text-center">{{items | length}}</td>
                   <td class="text-center">รายการ</td>
-                  <td colspan="3" class="text-center"></td>
+                  <td colspan="4" class="text-center"></td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% if isSupplies and not pr.is_complete %}
+              <div class="row my-2">
+                <div class="col-2 text-danger">{{ pro_form.organizer.label}}</div>
+                <div class="col">{{ pro_form.organizer | add_class:"form-control is-invalid" }}</div>
+              </div>
+            {%endif%}
           <div class="row">
             <div class="card-group col">
               <div class="card col">
@@ -313,8 +321,12 @@ u.dotted {
           </div>
           <div class="row my-2">
             <div class="col-6">
+              {% if isSupplies and not pr.is_complete %}
+                <button name="btnformPRO" type="submit" class="btn btn-warning hidden-print"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
                 <!-- a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a-->
+              {%endif%}
             </div>
+          </form>
             <div class="col-6 text-right">
               {% if isRePr %}
                 <a class="btn btn-success d-print-none" onclick="return confirm('คุณต้องการนำรายการนี้กลับมาหรือไม่ ?\n *** รายการใบขอซื้อนี้จะกลับไปที่หน้าสร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อ')" href="{%url 'reBuyPR' pr.id %}" role="button"><i class="fas fa-redo"></i> นำรายการกลับมา</a>
