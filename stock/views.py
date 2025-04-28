@@ -5899,6 +5899,7 @@ def viewInvoice(request):
     context = {
         'ivs': dataPage,
         'isDelIv' : is_del_iv(request.user),
+        'isSupplies' : is_supplies(request.user),
         'filter':myFilter,
         'iv_page': "tab-active",
         'iv_show': "show",
