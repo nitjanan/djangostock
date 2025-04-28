@@ -120,10 +120,10 @@
                     <tr>
                         <td class="text-center">{{ forloop.counter }}</td>
                         <td class="text-left">{{item.item.product.id}} {{item.item.product_name}}</td>
-                        <td class="text-right">{{item.quantity | floatformat:"4"}}</td>
+                        <td class="text-right">{{item.quantity | intcomma }}</td>
                         <td class="text-left">{{item.unit}}</td>
-                        <td class="text-center">{% if item.unit_price %}{{item.unit_price | floatformat:"4"}}{%else%}0.0000{%endif%}</td>
-                        <td class="text-center">{% if item.unit_price %}{{item.price | floatformat:"2"}}{%else%}0.00{%endif%}</td>
+                        <td class="text-right">{% if item.unit_price %}{{item.unit_price | intcomma }}{%else%}0.0000{%endif%}</td>
+                        <td class="text-right">{% if item.unit_price %}{{item.price | intcomma }}{%else%}0.00{%endif%}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -136,7 +136,7 @@
                     {% endfor %}
                     <tr>
                         <td class="text-right" colspan="5">รวม</td>
-                        <td class="text-center" colspan="6">0.00</td>
+                        <td class="text-right" colspan="6">{% if iv.total_price %}{{iv.total_price | intcomma}}{%else%}0.00{%endif%}</td>
                     </tr>
                   </tbody>
                 </table>

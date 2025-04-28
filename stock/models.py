@@ -342,7 +342,10 @@ class BaseBranchCompany(models.Model):
     code = models.CharField(max_length=255,unique=True, verbose_name="โค้ดสาขาบริษัท")
     affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True,related_name='branch_affiliated', verbose_name="ชื่อสังกัดบริษัท")
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อสาขาบริษัท", blank = True, null = True)
-    invoice_code = models.CharField(max_length=255, verbose_name="โค้ดใบจ่ายสินค้าภายใน", blank = True, null = True)
+    invoice_code = models.CharField(max_length=255, verbose_name="โค้ดจ่ายสินค้าภายใน - อะไหล่", blank = True, null = True)
+    oi_invoice_code = models.CharField(max_length=255, verbose_name="โค้ดจ่ายสินค้าภายใน - น้ำมัน", blank = True, null = True)
+    soc_code = models.CharField(max_length=255, verbose_name="โค้ดขายเชื่อบุคคลภายนอก - อะไหล่", blank = True, null = True)
+    oi_soc_code = models.CharField(max_length=255, verbose_name="โค้ดขายเชื่อบุคคลภายนอก - น้ำมัน", blank = True, null = True)
 
     class Meta:
         db_table = 'BaseBranchCompany'
@@ -703,6 +706,9 @@ class Invoice(models.Model):
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True) #บริษัท
     requisit = models.ForeignKey(Requisition, on_delete=models.CASCADE, null=True, blank=True) #เก็บเลขที่ใบขอเบิก
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)
+    v_stamp = models.DateTimeField(auto_now=True)
+    is_express = models.BooleanField(default=False) #นำข้อมูลเข้า express แล้ว
 
     def save(self, *args, **kwargs):
         if self.ref_no is None:
@@ -726,6 +732,8 @@ class InvoiceItem(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    v_stamp = models.DateTimeField(auto_now=True)
+    is_express = models.BooleanField(default=False) #นำข้อมูลเข้า express แล้ว
 
     class Meta:
         db_table = 'InvoiceItem'
@@ -778,6 +786,7 @@ class PurchaseRequisition(models.Model):
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     is_complete = models.BooleanField(default=False) #ทำรายการขอซื้อหมดแล้ว
+    is_re_approve = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -1301,3 +1310,206 @@ class RateDistributor(models.Model):
     class Meta:
         db_table = 'RateDistributor'
         ordering=('id',)
+
+###############################################################################
+############################## Express DB #####################################
+###############################################################################
+
+############################ ใบจ่ายภายใน อะไหล่, น้ำมัน ###########################
+class ExOESTNH(models.Model):
+    recordid = models.AutoField(primary_key=True)
+    docnum = models.CharField(max_length=12, blank=True, null=True)
+    docdat = models.DateField(blank=True, null=True)
+    posopr = models.CharField(max_length=1, blank=True, null=True)
+    depcod = models.CharField(max_length=2, blank=True, null=True)
+    loccod = models.CharField(max_length=4, blank=True, null=True)
+    refnum = models.CharField(max_length=12, blank=True, null=True)
+    comcod = models.CharField(max_length=10, blank=True, null=True)
+    remark = models.CharField(max_length=120, blank=True, null=True)
+    note1 = models.CharField(max_length=120, blank=True, null=True)
+    note2 = models.CharField(max_length=120, blank=True, null=True)
+    note3 = models.CharField(max_length=120, blank=True, null=True)
+    audtuser = models.CharField(max_length=120, blank=True, null=True)
+    audttime = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'OESTNH'
+        managed = False
+        indexes = [
+            models.Index(fields=['docnum', 'comcod'], name='OESTNH_ID1'),
+            models.Index(fields=['docdat', 'comcod'], name='OESTNH_ID2'),
+            models.Index(fields=['docdat', 'posopr', 'comcod'], name='OESTNH_ID3'),
+            models.Index(fields=['comcod', 'refnum'], name='OESTNH_ID4'),
+            models.Index(fields=['docnum', 'remark'], name='OESTNH_ID5'),
+            models.Index(fields=['docnum', 'comcod', 'note1', 'note2', 'note3'], name='OESTNH_ID6'),
+        ]
+
+    def get_items(self):
+        details = ExOESTND.objects.using('pg_db').filter(docnum=self.docnum, comcod=self.comcod)
+        return "<br>".join([f"{d.stkcod} : {d.stktyp}" for d in details])
+    
+    def get_depnam(self):
+        details = BaseExpenseDepartment.objects.filter(id = self.depcod)
+        return ", ".join([f"{d.id} : {d.name}" for d in details])
+    
+    def __str__(self):
+        return f"{self.docnum} - {self.refnum}"
+    
+
+class ExOESTND(models.Model):
+    recordid = models.AutoField(primary_key=True)
+    docnum = models.CharField(max_length=12, blank=True, null=True)
+    seqnum = models.IntegerField(blank=True, null=True)
+    loccod = models.CharField(max_length=10, blank=True, null=True)
+    comcod = models.CharField(max_length=10, blank=True, null=True)
+    stktyp = models.CharField(max_length=10, blank=True, null=True)
+    stkcod = models.CharField(max_length=20, blank=True, null=True)
+    stkdes = models.CharField(max_length=60, blank=True, null=True)
+    ordqty = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    tfactor = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    unitpr = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    tqucod = models.CharField(max_length=10, blank=True, null=True)
+    trnval = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    unitnam = models.CharField(max_length=35, blank=True, null=True)
+    stknote = models.CharField(max_length=50, blank=True, null=True)
+    audtuser = models.CharField(max_length=50, blank=True, null=True)
+    audttime = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'OESTND'
+        managed = False
+        indexes = [
+            models.Index(fields=['docnum', 'comcod'], name='OESTND_ID1'),
+            models.Index(fields=['docnum', 'loccod', 'comcod'], name='OESTND_ID2'),
+            models.Index(fields=['comcod', 'stkcod', 'stktyp'], name='OESTND_ID3'),
+        ]
+
+    def __str__(self):
+        return f"{self.docnum} - {self.stkcod}"
+
+############################ ขายเงินเชื่อ อะไหล่, น้ำมัน ###########################
+class ExOEINVD(models.Model):
+    recordid = models.AutoField(primary_key=True)
+    docnum = models.CharField(max_length=12, null=True, blank=True)
+    sonum = models.CharField(max_length=12, null=True, blank=True)
+    seqnum = models.IntegerField(null=True, blank=True)
+    loccod = models.CharField(max_length=10, null=True, blank=True)
+    stktyp = models.CharField(max_length=10, null=True, blank=True)
+    stkcod = models.CharField(max_length=20, null=True, blank=True)
+    stkdes = models.CharField(max_length=60, null=True, blank=True)
+    ordqty = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    cancelqty = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    remqty = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    tfactor = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    unitpr = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    tqucod = models.CharField(max_length=10, null=True, blank=True)
+    disc = models.CharField(max_length=10, null=True, blank=True)
+    discamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    trnval = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    trnwg = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    unitnam = models.CharField(max_length=35, null=True, blank=True)
+    stknote = models.CharField(max_length=50, null=True, blank=True)
+    audtuser = models.CharField(max_length=50, null=True, blank=True)
+    audttime = models.DateTimeField(auto_now_add=True)
+    stkdisc = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    apmpr = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    qtybag = models.IntegerField(default=0)
+    qtykg = models.IntegerField(default=0)
+    rectyp = models.IntegerField(default=3)
+    advamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    cfactor = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    comcod = models.CharField(max_length=10, null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'OEINVD'
+        indexes = [
+            models.Index(fields=['sonum'], name='OEINVD_ID1'),
+            models.Index(fields=['stkcod'], name='OEINVD_ID2'),
+            models.Index(fields=['docnum'], name='OEINVD_ID3'),
+            models.Index(fields=['sonum', 'loccod', 'stkcod'], name='OEINVD_ID4'),
+        ]
+        verbose_name = "OEINVD"
+        verbose_name_plural = "OEINVD"
+
+    def __str__(self):
+        return f"{self.docnum} - {self.stkcod}"
+    
+class ExOEINVH(models.Model):
+    recordid = models.AutoField(primary_key=True)
+    docnum = models.CharField(max_length=12, null=True, blank=True)
+    docdate = models.DateField(null=True, blank=True)
+    sorectyp = models.IntegerField(null=True, blank=True)
+    flgvat = models.IntegerField(null=True, blank=True)
+    depcod = models.CharField(max_length=5, null=True, blank=True)
+    slmcod = models.CharField(max_length=10, null=True, blank=True)
+    cuscod = models.CharField(max_length=10, null=True, blank=True)
+    youref = models.CharField(max_length=30, null=True, blank=True)
+    paytrm = models.IntegerField(null=True, blank=True)
+    dlvdate = models.DateField(null=True, blank=True)
+    nxtseq = models.IntegerField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    disc = models.CharField(max_length=10, null=True, blank=True)
+    discamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    vatrat = models.IntegerField(null=True, blank=True)
+    vatamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    netamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    netval = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    docstat = models.CharField(max_length=1, null=True, blank=True)
+    cusnam = models.CharField(max_length=60, null=True, blank=True)
+    addr01 = models.CharField(max_length=50, null=True, blank=True)
+    addr02 = models.CharField(max_length=120, null=True, blank=True)
+    addr03 = models.CharField(max_length=30, null=True, blank=True)
+    zipcod = models.CharField(max_length=5, null=True, blank=True)
+    contact = models.CharField(max_length=40, null=True, blank=True)
+    telnum = models.CharField(max_length=50, null=True, blank=True)
+    term = models.CharField(max_length=85, null=True, blank=True)
+    sonum = models.CharField(max_length=15, null=True, blank=True)
+    areacod = models.CharField(max_length=10, null=True, blank=True)
+    shipto = models.CharField(max_length=10, null=True, blank=True)
+    sogrp1 = models.IntegerField(default=0)
+    sogrp2 = models.IntegerField(default=0)
+    note1 = models.CharField(max_length=150, null=True, blank=True)
+    note2 = models.CharField(max_length=150, null=True, blank=True)
+    note3 = models.CharField(max_length=150, null=True, blank=True)
+    truck = models.CharField(max_length=35, null=True, blank=True)
+    bagtot = models.IntegerField(default=0)
+    kgtot = models.IntegerField(default=0)
+    queue = models.IntegerField(default=0)
+    audtuser = models.CharField(max_length=50, null=True, blank=True)
+    audttime = models.DateTimeField(auto_now_add=True)
+    rectyp = models.IntegerField(default=3)
+    dlvamt = models.IntegerField(default=0)
+    dlvqty = models.IntegerField(default=1)
+    posttime = models.DateTimeField(null=True, blank=True)
+    accpost = models.DateTimeField(null=True, blank=True)
+    ivgrp1 = models.IntegerField(default=0)
+    remamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    rcvamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    apmtot = models.DecimalField(max_digits=15, decimal_places=3, default=0)
+    advamt = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    cmplapp = models.CharField(max_length=1, null=True, blank=True)
+    cusship1 = models.CharField(max_length=50, null=True, blank=True)
+    cusship2 = models.CharField(max_length=50, null=True, blank=True)
+    comcod = models.CharField(max_length=10, null=True, blank=True)
+    cusgrp = models.CharField(max_length=50, null=True, blank=True)
+    custyp = models.CharField(max_length=4, null=True, blank=True)
+
+    class Meta:
+        db_table = 'OEINVH'
+        managed = False
+        unique_together = (('docnum', 'comcod'),)
+        indexes = [
+            models.Index(fields=['sonum'], name='OEINVH_ID1'),
+            models.Index(fields=['docdate'], name='OEINVH_ID2'),
+        ]
+        verbose_name = "OEINVH"
+        verbose_name_plural = "OEINVHs"
+
+    def get_items(self):
+        details = ExOEINVD.objects.using('pg_db').filter(docnum=self.docnum, comcod=self.comcod)
+        return "<br>".join([f"{d.stkcod} : {d.stkdes}" for d in details])
+
+    def __str__(self):
+        return f"{self.docnum} - {self.cuscod}"

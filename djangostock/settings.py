@@ -124,6 +124,14 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': 'localhost',
         'PORT': '',
+    },
+    'pg_db': {  # Remote PostgreSQL Server
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'dbslc',
+        'USER': 'silachai', #'silachai'
+        'PASSWORD': 'Suratthani89/*' ,#'Suratthani89/*'
+        'HOST': '27.254.142.147',  #'27.254.142.147'
+        'PORT': '',
     }
 }
 
@@ -167,6 +175,9 @@ USE_I18N = True
 
 USE_L10N = True
 
+DATETIME_FORMAT = '%d-%m-%Y %H:%M:%S' 
+
+#USE_TZ = False
 USE_TZ = True
 
 REST_FRAMEWORK = {

@@ -99,7 +99,16 @@ u.dotted {
         </div>
       </form>
     </div>
-    <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
+    <div class="row">
+      <div class="col-2">
+        {% if pr.is_re_approve == True %}
+          <b class="text-danger"><h5>***ฉบับแก้ไข</h5></b>
+        {% endif %}
+      </div>
+      <div class="col text-center">
+        <h3>ใบขอซื้อ/ใบขอซ่อม</h3>
+      </div>
+    </div>
     <div class="row">
       <div class="col invoice-title text-left">
         <h5>รหัสใบขอเบิก # <u><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></u></h5>
@@ -304,7 +313,7 @@ u.dotted {
           </div>
           <div class="row my-2">
             <div class="col-6">
-                <a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+                <!-- a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a-->
             </div>
             <div class="col-6 text-right">
               {% if isRePr %}

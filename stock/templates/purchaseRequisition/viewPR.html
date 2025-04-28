@@ -81,7 +81,7 @@
         <tbody>
         {% for pr in prs %}
           <tr>
-            <th scope="row"><a href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a></th>
+            <th scope="row"><a class="{% if pr.is_re_approve %}text-danger{%endif%}" href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a></th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 1 %}">{{pr.requisition.ref_no}}</a></td>
             <td>
               <ul>
@@ -115,7 +115,7 @@
                 <a href="{% url 'closePR' pr.id %}" onclick="return confirm('คุณต้องการปิดรายการนี้หรือไม่ ?\n *** รายการใบขอซื้อจะไปอยู่หน้า History ใช้ในกรณี\n 1. ดึงสินค้าไปทำรายการแล้ว แต่ระบบไม่นำใบขอซื้อออกอัตโนมัติ\n 2. รายการใบขอซื้อที่ไม่ต้องการซื้อแล้ว')" class="btn btn-secondary btn-sm">ปิดรายการ</a>             
               </div>
               {% else %}
-                {% if pr.approver_status_id == 1 %}
+                {% if pr.approver_status_id == 1 and pr.is_re_approve == False %}
                 <div style="display: flex;">
                   <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
                   <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?\n *** หากลบใบขอซื้อนี้จะลบใบจ่ายสินค้าภายในด้วย')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>

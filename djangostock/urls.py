@@ -182,6 +182,18 @@ urlpatterns = [
     path('invoice/show/<int:iv_id>/<int:mode>',views.showInvoice,name="showInvoice"),
     path('invoice/remove/<int:iv_id>',views.removeInvoice,name="removeInvoice"),
 
+
+    path('ex/invoice/',views.viewExInvoice,name="viewExInvoice"),
+    path('report/invoice/export/excel/by/expense', views.exportExcelByIVExpense, name='exportExcelByIVExpense'),
+    path('report/invoice/export/excel/by/registration/repair', views.exportToExcelRegistrationAndRepair, name='exportToExcelRegistrationAndRepair'),
+    path('report/invoice/export/excel/expenses/by/registration', views.exportToExcelAllExpensesRegistration, name='exportToExcelAllExpensesRegistration'),
+    path('updateInvoiceFromExpress/',views.updateInvoiceFromExpress,name="updateInvoiceFromExpress"),
+
+
+    path('ex/oil/invoice',views.viewExOiInvoice,name="viewExOiInvoice"),
+    path('ex/soc/',views.viewExSOC,name="viewExSOC"),
+    path('ex/oil/soc/',views.viewExOiSOC,name="viewExOiSOC"),
+
     path('car-search/', views.car_search, name='car_search'),
 
     path('login/api/', views.LoginApiView.as_view(), name="login_api"),

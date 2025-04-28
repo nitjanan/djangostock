@@ -71,7 +71,7 @@
                       {% for pr in prs %}
                           {% if po.id == pr.po %}
                             {% ifchanged pr.item__requisit__pr_ref_no a%}
-                              <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
+                              <a class="{% if pr.is_re_approve %}text-danger{%endif%}"  href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
                             {% endifchanged %}
                           {%endif%}
                       {%endfor%}

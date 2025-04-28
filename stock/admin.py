@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -113,6 +113,10 @@ class BaseAffiliatedCompanyAdmin(ImportExportModelAdmin):
     logo_preview.short_description = 'โลโก้บริษัท preview'
     logo_preview.allow_tags = True
 
+class BaseBranchCompanyAdmin(ImportExportModelAdmin):
+    list_display = ['id','code','affiliated', 'name', 'invoice_code' , 'oi_invoice_code', 'soc_code', 'oi_soc_code'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
 class BasePrefixAdmin(ImportExportModelAdmin):
     search_fields = ['name']
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -190,7 +194,7 @@ class UserProfileAdmin(ImportExportModelAdmin):
 
     list_display = ['user','position','department'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
-    list_editable = ['position','department']
+    #list_editable = ['position','department']
     search_fields = ['user__first_name', 'user__last_name', 'position__name']
     readonly_fields = ('signature_preview',)
 
@@ -308,6 +312,17 @@ class BaseExpenseDepartmentAdmin(ImportExportModelAdmin):
 class BaseAgencyAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['name']
+
+class InvoiceAdmin(ImportExportModelAdmin):
+    autocomplete_fields = ['bring_name','payer_name','car']
+    list_display = ['ref_no', 'created', 'bring_name', 'payer_name', 'car', 'v_stamp'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+    search_fields = ['ref_no', 'created', 'bring_name__first_name', 'payer_name__first_name', 'car']
+
+class InvoiceItemAdmin(RelatedFieldAdmin):
+    autocomplete_fields = ['item',]
+    list_display = ('iv__ref_no','created' ,'quantity','unit','unit_price','price')
+    search_fields = ('iv__ref_no','created' ,'quantity','unit','unit_price','price')
     
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
@@ -334,7 +349,7 @@ admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(BaseDistributorType, BaseDistributorTypeAdmin)
 admin.site.register(BaseDistributorGenre, BaseDistributorGenreAdmin)
 admin.site.register(BaseAffiliatedCompany, BaseAffiliatedCompanyAdmin)
-admin.site.register(BaseBranchCompany)
+admin.site.register(BaseBranchCompany, BaseBranchCompanyAdmin)
 admin.site.register(BasePrefix, BasePrefixAdmin)
 admin.site.register(Distributor, DistributorAdmin)
 admin.site.register(BaseVatType, BaseVatTypeAdmin)
@@ -357,3 +372,5 @@ admin.site.register(BaseBrokeType, BaseBrokeTypeAdmin)
 admin.site.register(BaseRequisitionType, BaseRequisitionTypeAdmin)
 admin.site.register(BaseExpenseDepartment, BaseExpenseDepartmentAdmin)
 admin.site.register(BaseAgency, BaseAgencyAdmin)
+admin.site.register(Invoice, InvoiceAdmin)
+admin.site.register(InvoiceItem, InvoiceItemAdmin)

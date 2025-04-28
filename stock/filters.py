@@ -213,3 +213,43 @@ InvoidFilter.base_filters['payer_name'].label = 'ผู้จ่าย'
 InvoidFilter.base_filters['expense_dept'].label = 'แผนกค่าใช้จ่าย'
 InvoidFilter.base_filters['start_created'].label = 'วันที่จ่าย'
 InvoidFilter.base_filters['end_created'].label = 'ถึง'
+
+class ExOESTNHFilter(django_filters.FilterSet):
+    docnum  = django_filters.CharFilter(field_name="docnum", lookup_expr='icontains')
+    remark = django_filters.CharFilter(field_name="remark", lookup_expr='icontains')
+    start_created = django_filters.DateFilter(field_name = "docdat", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
+    end_created = django_filters.DateFilter(field_name = "docdat", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
+    depcod =  django_filters.CharFilter(field_name="depcod")
+    depname = django_filters.CharFilter(method='filter_by_depname', label='แผนกคชจ.')
+
+    def filter_by_depname(self, queryset, name, value):
+        matching_depcodes = list(
+            BaseExpenseDepartment.objects.filter(name__icontains=value).values_list('id', flat=True)
+        )
+        return queryset.filter(depcod__in=matching_depcodes)
+
+    class Meta:
+        model = ExOESTNH
+        fields = ['docnum', 'remark','docdat']
+
+ExOESTNHFilter.base_filters['docnum'].label = 'รหัส'
+ExOESTNHFilter.base_filters['remark'].label = 'หมายเหตุ'
+ExOESTNHFilter.base_filters['start_created'].label = 'วันที่จ่าย'
+ExOESTNHFilter.base_filters['end_created'].label = 'ถึง'
+
+class ExOEINVHFilter(django_filters.FilterSet):
+    docnum  = django_filters.CharFilter(field_name="docnum", lookup_expr='icontains')
+    cuscod = django_filters.CharFilter(field_name="cuscod", lookup_expr='icontains')
+    cusnam = django_filters.CharFilter(field_name="cusnam", lookup_expr='icontains')
+    start_created = django_filters.DateFilter(field_name = "docdate", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
+    end_created = django_filters.DateFilter(field_name = "docdate", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
+
+    class Meta:
+        model = ExOEINVH
+        fields = ('docnum', 'cuscod', 'docdate')
+
+ExOEINVHFilter.base_filters['docnum'].label = 'รหัส'
+ExOEINVHFilter.base_filters['cuscod'].label = 'รหัสลูกค้า'
+ExOEINVHFilter.base_filters['cusnam'].label = 'ชื่อลูกค้า'
+ExOEINVHFilter.base_filters['start_created'].label = 'วันที่จ่าย'
+ExOEINVHFilter.base_filters['end_created'].label = 'ถึง'

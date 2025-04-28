@@ -147,6 +147,28 @@
                 </ul>
             </li>
             {% endif %}
+            {% if 'Express' in tab.name %}
+            <li class="">
+                <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <i class="fab fa-xing"></i>
+                    Express
+                </a>
+                <ul class="collapse list-unstyled {{ex_iv_show}} {{ex_o_i_show}} {{ex_ie_show}} {{ex_o_ie_show}}" id="expressSubmenu">
+                    <li>
+                        <a class="{{ex_iv_page}}" href="{% url 'viewExInvoice' %}">ใบจ่ายสินค้าภายใน - อะไหล่</a>
+                    </li>
+                    <li>
+                        <a class="{{ex_o_i_page}}" href="{% url 'viewExOiInvoice' %}">ใบจ่ายสินค้าภายใน - น้ำมัน</a>
+                    </li>
+                    <li>
+                        <a class="{{ex_ie_page}}" href="{% url 'viewExSOC' %}">ใบขายเงินเชื่อ - อะไหล่</a>
+                    </li>
+                    <li>
+                        <a class="{{ex_o_ie_page}}" href="{% url 'viewExOiSOC' %}">ใบขายเงินเชื่อ - น้ำมัน</a>
+                    </li>
+                </ul>
+            </li>
+            {% endif %}
             {% if 'Report' in tab.name %}
             <li class="">
                 <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page %}true{% else %}false{% endif %}" class="dropdown-toggle">

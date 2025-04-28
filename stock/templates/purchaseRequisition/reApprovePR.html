@@ -164,9 +164,9 @@ u.dotted {
                     <td align="center" class="hidden-print">
                       <button class="btn btn-secondary form-control" onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" ><i class="fas fa-pen"></i></button>
                     </td>
-                    <td align="center" class="hidden-print">
+                    <!--td align="center" class="hidden-print">
                       <button class="btn btn-danger form-control" onClick="deleteUser('{{user.id}}')"><i class="fas fa-trash-alt"></i></button>
-                    </td>
+                    </td-->
                     {% endif %}
                 </tr>
                 {% empty %}
@@ -374,8 +374,6 @@ u.dotted {
           {% csrf_token %}
         <div class="modal-body">
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
-            <label for="name">สินค้า/รายละเอียด</label>
-            <input class="form-control" id="form-name" type="text" name="formName"/>
             <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
             <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
             <datalist id="idExpresslist">
@@ -383,6 +381,8 @@ u.dotted {
               <option value="{{results.id}}">{{results.name}}</option>
             {% endfor %}
             </datalist>
+            <label for="name">สินค้า/รายละเอียด</label>
+            <input class="form-control" id="form-name" type="text" name="formName"/>
             <label for="description">รายละเอียด/ประเภทการซ่อม</label>
             <!--input class="form-control" id="form-description" type="text" name="formDescription"/-->
             <select id="form-description" name="formDescription" class="select form-control" required>
@@ -393,8 +393,8 @@ u.dotted {
             </select>
             <label for="quantity">จำนวนที่ขอเบิก</label>
             <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
-            <label for="quantityTake" class="text-danger">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
-            <input class="form-control is-invalid" id="form-quantitytake" type="number" name="formQuantityTake" min="0"  step="any"/>
+            <label for="quantityTake" class="text-danger d-none">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
+            <input class="form-control is-invalid d-none" id="form-quantitytake" type="number" name="formQuantityTake" min="0"  step="any"/>
             <label for="name">หน่วย</label>
             <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">
             <datalist id="formUnitList">
