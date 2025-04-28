@@ -6508,8 +6508,9 @@ def updateInvoiceFromExpress(request):
     if request.method == "GET":
         active = request.session.get('company_code')
         company_in = findCompanyIn(request)
+        b_com = BaseBranchCompany.objects.filter(code = active)
 
-        update_invoice(company_in)
+        update_invoice(b_com)
 
         return JsonResponse({"success": True, "message": "Invoices updated successfully"})
 
@@ -6517,25 +6518,27 @@ def updateInvoiceFromExpress(request):
 
 #เฉพาะศิลาชัยก่อน 28/04/2025
 def update_invoice(all_company):
-    for comp in all_company:
+    for b_com in all_company:
+        print('iv_code = '+ str(b_com.invoice_code) + ', comcod = ' + str(b_com.affiliated.name))
         find_iv_id = list(
             InvoiceItem.objects.filter(
-                is_express=False, 
-                iv__branch_company__affiliated__name = 'SLC'
+                is_express=False,
+                iv__ref_no__startswith = b_com.invoice_code,
+                iv__branch_company__affiliated__name = b_com.affiliated.name
             )
             .values_list('iv__ref_no', flat=True)
             .order_by('iv__ref_no').distinct()
         )
             
         iv_ex = ExOESTND.objects.using('pg_db').filter(
-            docnum__in = find_iv_id , comcod='SLC'
+            docnum__in = find_iv_id , comcod = b_com.affiliated.name
         ).order_by('docnum', 'seqnum').values('seqnum', 'docnum', 'stkcod', 'ordqty', 'unitpr', 'trnval')
 
         for ex in iv_ex:
             invoice_item = InvoiceItem.objects.filter(
                 iv__ref_no=ex['docnum'], 
                 item__product__id=ex['stkcod'], 
-                iv__branch_company__affiliated__name = 'SLC',
+                iv__branch_company__affiliated__name = b_com.affiliated.name,
             ).first()
 
             if invoice_item:
@@ -6547,7 +6550,9 @@ def update_invoice(all_company):
 
         try:
             af_iv = InvoiceItem.objects.filter(
-                is_express = True, iv__branch_company__affiliated__name = 'SLC'
+                is_express = True,
+                iv__branch_company__affiliated__name = b_com.affiliated.name,
+                iv__ref_no__startswith = b_com.invoice_code,
             ).values_list('iv', flat=True).distinct()
 
             iv = Invoice.objects.filter(id__in=af_iv, is_express=False)
@@ -6561,7 +6566,7 @@ def update_invoice(all_company):
 #เฉพาะศิลาชัยก่อน 28/04/2025
 def send_4am_summary():
     try:
-        all_company = ['SLC', ]
+        all_company = BaseBranchCompany.objects.filter(~Q(code = 'ALL'))
         update_invoice(all_company)
     except :
         pass
