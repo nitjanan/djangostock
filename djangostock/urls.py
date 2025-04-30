@@ -183,13 +183,14 @@ urlpatterns = [
     path('invoice/remove/<int:iv_id>',views.removeInvoice,name="removeInvoice"),
 
 
-    path('ex/invoice/',views.viewExInvoice,name="viewExInvoice"),
+    path('ex/invoice/old',views.viewExInvoice_old,name="viewExInvoice_old"),
     path('report/invoice/export/excel/by/expense', views.exportExcelByIVExpense, name='exportExcelByIVExpense'),
     path('report/invoice/export/excel/by/registration/repair', views.exportToExcelRegistrationAndRepair, name='exportToExcelRegistrationAndRepair'),
     path('report/invoice/export/excel/expenses/by/registration', views.exportToExcelAllExpensesRegistration, name='exportToExcelAllExpensesRegistration'),
     path('updateInvoiceFromExpress/',views.updateInvoiceFromExpress,name="updateInvoiceFromExpress"),
 
 
+    path('ex/invoice/',views.viewExInvoice,name="viewExInvoice"),
     path('ex/oil/invoice',views.viewExOiInvoice,name="viewExOiInvoice"),
     path('ex/soc/',views.viewExSOC,name="viewExSOC"),
     path('ex/oil/soc/',views.viewExOiSOC,name="viewExOiSOC"),

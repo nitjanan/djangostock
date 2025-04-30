@@ -82,6 +82,7 @@ from openpyxl.utils import get_column_letter
 from collections import defaultdict
 from itertools import groupby
 from operator import itemgetter
+from dateutil.rrule import rrule, MONTHLY
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -6471,7 +6472,8 @@ def safe_str_to_date(date_str):
             pass  # In case of an invalid format, ignore and return None
     return None  # Return None if input is invalid or empty
 
-def viewExInvoice(request):
+# Flow เก่า 29/04/2568
+def viewExInvoice_old(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
     '''
@@ -6496,12 +6498,12 @@ def viewExInvoice(request):
     context = {
         'ivs': dataPage,
         'filter':myFilter,
-        'ex_iv_page': "tab-active",
-        'ex_iv_show': "show",
+        'ex_old_iv_page': "tab-active",
+        'ex_old_iv_show': "show",
         active :"active show",
         "colorNav":"enableNav"
     }
-    return render(request, "express/viewExInvoice.html", context)
+    return render(request, "express/viewExInvoice_old.html", context)
 
 #เฉพาะศิลาชัยก่อน 28/04/2025
 def updateInvoiceFromExpress(request):
@@ -6612,95 +6614,65 @@ def exportExcelByIVExpense(request):
         my_q &=Q(iv__branch_company__code__in = company_in)
 
     #หน่วยงานภายใน - อะไหล่
-    in_queryset = InvoiceItem.objects.filter(my_q).values(
-        'iv__requisit__agency__name',
-        'iv__expense_dept__id',
-        'iv__expense_dept__name'
-
-    ).annotate(
-        sum_amount=Sum('price'),
-        oil_lir=Sum(Case(When(item__product__category__slug='OL', then='quantity'), output_field=models.DecimalField())),
-        oil_amount=Sum(Case(When(item__product__category__slug='OL', then='price'), output_field=models.DecimalField())),
-        sum_other=Sum(Case(When(~Q(item__product__category__slug='OL'), then='price'), output_field=models.DecimalField()))
-    ).order_by(
-        'iv__requisit__agency__name','iv__expense_dept__id', 'iv__expense_dept__name'
+    l_iv = list(
+        ExOESTNH.objects.using('pg_db')
+        .filter(
+            Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
+            comcod=b_com.affiliated.name,
+            docdat__range=(start_created, end_created)
+        )
+        .values_list('docnum', flat=True)
     )
 
-    #หน่วยงานภายใน - น้ำมัน
-    l_iv_oil = list(
-                    ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_invoice_code, docdat__range=(start_created, end_created)).values_list('docnum', flat=True)
-                )
-
-    depcod_subquery = ExOESTNH.objects.using('pg_db').filter(
-        comcod = b_com.affiliated.name,
-        docnum__startswith = b_com.oi_invoice_code,
-        docdat__range=(start_created, end_created)
-    ).filter(
-        docnum=OuterRef('docnum'),
-        comcod=OuterRef('comcod'),
-    ).values('depcod')[:1]
-
-    
-    #หน่วยงานภายใน - อะไหล่
-    in_oil_queryset = ExOESTND.objects.using('pg_db').filter(
-        comcod = b_com.affiliated.name,
-        docnum__in=l_iv_oil
-    ).annotate(
-        depcod=Subquery(depcod_subquery)
+    in_queryset = ExOESTND.objects.using('pg_db').filter(
+        comcod=b_com.affiliated.name,
+        docnum__in=l_iv
+    ).extra(
+        select={
+            'depcod': """(
+                SELECT depcod 
+                FROM "OESTNH" 
+                WHERE "OESTNH"."docnum" = "OESTND"."docnum" 
+                AND "OESTNH"."comcod" = "OESTND"."comcod" 
+                LIMIT 1
+            )"""
+        }
     ).values(
         'depcod'
     ).annotate(
-        oil_lir=Sum('ordqty'),
-        oil_amount=Sum('trnval')
-    ).order_by(
-        'depcod'
-    )
-
-    # Step 1: Get all department IDs from both querysets
-    ids_from_main = {item['iv__expense_dept__id'] for item in in_queryset}
-    ids_from_oil = {item['depcod'] for item in in_oil_queryset if item['depcod'] is not None}
-    all_dept_ids = ids_from_main.union(ids_from_oil)
-
-    # Step 2: Build a mapping from dept_id to name
-    dept_map = {
-        dept['id']: dept['name']
-        for dept in BaseExpenseDepartment.objects.filter(id__in=all_dept_ids).values('id', 'name')
-    }
-
-    # Step 3: Create mapping from oil data
-    in_oil_map = {
-        item['depcod']: {
-            'oil_lir': item['oil_lir'],
-            'oil_amount': item['oil_amount']
-        }
-        for item in in_oil_queryset if item['depcod'] is not None
-    }
-
-    # Step 4: Create mapping from main data
-    in_main_map = {
-        item['iv__expense_dept__id']: item
-        for item in in_queryset
-    }
+        sum_amount=Sum('trnval'),
+        oil_lir=Sum(Case(
+            When(stkcod__startswith='OL', then='ordqty'),
+            output_field=models.DecimalField()
+        )),
+        oil_amount=Sum(Case(
+            When(stkcod__startswith='OL', then='trnval'),
+            output_field=models.DecimalField()
+        )),
+        sum_other=Sum(Case(
+            When(~Q(stkcod__startswith='OL'), then='trnval'),
+            output_field=models.DecimalField()
+        ))
+    ).order_by('depcod')
 
     #หน่วยงานภายนอก - อะไหล่
     l_soc = list(
                     ExOEINVH.objects.using('pg_db').filter(Q(docnum__startswith = b_com.soc_code) | Q(docnum__startswith = b_com.oi_soc_code), comcod = b_com.affiliated.name, docdate__range=(start_created, end_created)).values_list('docnum', flat=True)
                 )
-    
-    cusnam_subquery = ExOEINVH.objects.using('pg_db').filter(
-        Q(docnum__startswith = b_com.soc_code) | Q(docnum__startswith = b_com.oi_soc_code),
-        comcod = b_com.affiliated.name, docdate__range=(start_created, end_created)
-    ).filter(
-        docnum=OuterRef('docnum'),
-        comcod=OuterRef('comcod'),
-    ).values('cusnam')[:1]
 
-    # Queryset with annotations
     ex_queryset = ExOEINVD.objects.using('pg_db').filter(
         comcod = b_com.affiliated.name,
         docnum__in=l_soc
-    ).annotate(
-        cusnam=Subquery(cusnam_subquery)
+    ).extra(
+        select={
+            'cusnam': """(
+                SELECT cusnam 
+                FROM "OEINVH" 
+                WHERE "OEINVH"."docnum" = "OEINVD"."docnum" 
+                AND "OEINVH"."comcod" = "OEINVD"."comcod" 
+                LIMIT 1
+            )"""
+        }
     ).values(
         'cusnam'
     ).annotate(
@@ -6726,30 +6698,33 @@ def exportExcelByIVExpense(request):
     internal_data = []
     external_data = []
 
-    # Step 5: Combine all departments into final list
+    # 1. สร้าง Dict depcod -> name
+    dept_map = {
+        d['id']: d['name']
+        for d in BaseExpenseDepartment.objects.filter(
+            id__in=[item['depcod'] for item in in_queryset if item['depcod'] is not None]
+        ).values('id', 'name')
+    }
+
+    # 2. วนลูปสร้าง internal_data
     internal_data = []
-    for dept_id in all_dept_ids:
-        item = in_main_map.get(dept_id, {})
-        oil_data = in_oil_map.get(dept_id, {})
-
-        oil_amount = oil_data.get('oil_amount') or 0
-        sum_other = item.get('sum_other') or 0
-
+    for item in in_queryset:
+        dep_name = dept_map.get(item['depcod'], '-')  # ถ้าไม่มี depcod ก็ใส่ '-'
         row = {
-            'แผนก': dept_map.get(dept_id, dept_id),
-            'ลิตร': oil_data.get('oil_lir', ''),
-            'บาท': oil_amount,
-            'น้ำมันม.หล่อลื่น+': sum_other,
-            'รวม': oil_amount + sum_other
+            'แผนก': dep_name,
+            'ลิตร': item['oil_lir'] or '-',
+            'บาท': item['oil_amount'] or '-',
+            'น้ำมันม.หล่อลื่น+': item['sum_other'] or '-',
+            'รวม': item['sum_amount'] or 0
         }
         internal_data.append(row)
 
     for item in ex_queryset:
         row = {
-            'แผนก': item['cusnam'],
-            'ลิตร': item['oil_lir'] or '',
-            'บาท': item['oil_amount'] or '',
-            'น้ำมันม.หล่อลื่น+': item['sum_other'] or '',
+            'แผนก': item['cusnam'] or '-',
+            'ลิตร': item['oil_lir'] or '-',
+            'บาท': item['oil_amount'] or '-',
+            'น้ำมันม.หล่อลื่น+': item['sum_other'] or '-',
             'รวม': item['sum_amount'] or 0
         }
         external_data.append(row)
@@ -6778,7 +6753,7 @@ def exportExcelByIVExpense(request):
 
     # ส่วนหัวหลัก
     ws.merge_cells('A1:E1')
-    ws['A1'] = "IB รายงานค่าใช้จ่ายพัสดุ " + start_created.strftime('%d/%m/%Y') + " ถึง " + end_created.strftime('%d/%m/%Y')
+    ws['A1'] = "รายงานค่าใช้จ่ายพัสดุ " + start_created.strftime('%d/%m/%Y') + " ถึง " + end_created.strftime('%d/%m/%Y')
     ws['A1'].font = header_font
     ws['A1'].alignment = center_alignment
 
@@ -6921,6 +6896,11 @@ def exportExcelByIVExpense(request):
     wb.save(response)
     return response
 
+def sanitize_sheet_name(name):
+    # Remove invalid characters and limit length to 31
+    name = re.sub(r'[\\/*?:[\]]', '_', name)
+    return name[:31]
+
 def exportToExcelRegistrationAndRepair(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -6937,18 +6917,23 @@ def exportToExcelRegistrationAndRepair(request):
 
     my_q = Q()
     if start_created is not None:
-        my_q &= Q(iv__created__gte = start_created)
+        my_q &= Q(docdat__gte = start_created)
     if end_created is not None:
-        my_q &=Q(iv__created__lte = end_created)
+        my_q &=Q(docdat__lte = end_created)
 
-    my_q &=Q(is_express = True, iv__requisit__rq_type = 2)#ประเภทใบขอเบิก รถ/เครื่องจักรหนัก
-    my_q &=Q(iv__requisit__agency__name__isnull = False, iv__expense_dept__isnull = False)
-    
-    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
-    if  is_view_report_all(request.user) and active == 'ALL':
-        pass
-    else:
-        my_q &=Q(iv__branch_company__affiliated = b_com.affiliated, iv__ref_no__startswith = b_com.oi_soc_code)#ตามบริษัท และ เลขที่เอกสาร
+    my_q &=Q(comcod = b_com.affiliated.name)
+    my_q &=Q(docnum__startswith=b_com.invoice_code)
+
+    if isinstance(start_created, str):
+        date_start = datetime.datetime.strptime(start_created, '%Y-%m-%d').date()
+
+    if isinstance(end_created, str):
+        date_end = datetime.datetime.strptime(end_created, '%Y-%m-%d').date()
+
+    # Generate (month, year) pairs within the selected range
+    month_year_range = [
+        (dt.month, dt.year) for dt in rrule(MONTHLY, dtstart=date_start, until=date_end)
+    ]
 
     thin_border = Border(
         left=Side(style='thin'),
@@ -6962,7 +6947,30 @@ def exportToExcelRegistrationAndRepair(request):
         '7': 'ก.ค.', '8': 'ส.ค.', '9': 'ก.ย.', '10': 'ต.ค.', '11': 'พ.ย.', '12': 'ธ.ค.'
     }
 
-    base_car = InvoiceItem.objects.filter(my_q).values('iv__car__id', 'iv__car__name', 'iv__car__code').annotate(year=ExtractYear('iv__created')).order_by('iv__car__id').distinct()
+    base_car = ExOESTNH.objects.using('pg_db').filter(
+       my_q, 
+       remark__isnull = False,
+    ).values(
+        'remark'
+    ).distinct().order_by('remark')
+
+    docdat_subquery = ExOESTNH.objects.using('pg_db').filter(
+        remark__isnull = False
+    ).filter(
+        my_q
+    ).filter(
+        docnum=OuterRef('docnum'),
+        comcod=OuterRef('comcod'),
+    ).values('docdat')[:1]
+
+    note2_subquery = ExOESTNH.objects.using('pg_db').filter(
+        remark__isnull = False
+    ).filter(
+        my_q
+    ).filter(
+        docnum=OuterRef('docnum'),
+        comcod=OuterRef('comcod'),
+    ).values('note2')[:1]
 
     if not base_car.exists():
         return HttpResponse("No data to export.")
@@ -6970,31 +6978,45 @@ def exportToExcelRegistrationAndRepair(request):
     workbook = openpyxl.Workbook()
     if base_car:
         for car in base_car:
-            queryset = InvoiceItem.objects.filter( Q(iv__car__code = car['iv__car__code']) & my_q).annotate(
-                year=ExtractYear('iv__created'),
-                month=ExtractMonth('iv__created'),
+            queryset = ExOESTND.objects.using('pg_db').filter(
+                Q(docnum__startswith=b_com.invoice_code),
+                comcod=b_com.affiliated.name,
+                stkdes=car['remark']
+            ).annotate(
+                docdat=Subquery(docdat_subquery)
+            ).values(
+                'docdat'
+            ).annotate(
+                note2=Subquery(note2_subquery)
+            ).values(
+                'note2'
+            ).annotate(
+                year=ExtractYear('docdat'),
+                month=ExtractMonth('docdat'),
             ).annotate(
                 month_year=Concat(
-                    Cast('month', CharField()),
+                    Cast('month', models.CharField()),
                     Value('-'),
-                    Cast('year', CharField()),
-                    output_field=CharField() 
+                    Cast('year', models.CharField()),
+                    output_field=models.CharField()
                 )
             ).values(
-                'iv__requisit__repair_type__name',
-                'month_year','year', 'month'
+                'note2',
+                'month_year', 'year', 'month'
             ).annotate(
-                sum_amount=Sum('price'),
-            ).order_by(
-                'month', 'year',
-            )
+                sum_amount=Sum(Case(
+                    When(~Q(stkcod__startswith='OL'), then='trnval'),
+                    output_field=models.DecimalField()
+                ))
+            ).order_by('year', 'month')
 
-            sheet = workbook.create_sheet(title=car['iv__car__name'] + ' ' +  car['iv__car__code'] )
+            sheet_name = sanitize_sheet_name(car['remark'])
+            sheet = workbook.create_sheet(title=sheet_name)
 
-            headers1 = [car['iv__car__name'] + ' ' +  car['iv__car__code']] + [f"{thai_months[str(m)]} {car['year']}" for m in range(1, 13)]
+            headers1 = [car['remark']] + [f"{thai_months[str(m)]} {y}" for m, y in month_year_range]
             sheet.append(headers1)
 
-            headers2 = ['', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง', 'ค่าอะไหล่ + ค่าแรง']
+            headers2 = [''] + ['ค่าอะไหล่ + ค่าแรง'] * len(month_year_range)
             sheet.append(headers2)
 
             sheet.merge_cells(f'A1:A2')
@@ -7002,29 +7024,27 @@ def exportToExcelRegistrationAndRepair(request):
             header_row = next(sheet.iter_rows(min_row=1, max_row=1))
             header_map = {cell.value: idx for idx, cell in enumerate(header_row)}
 
-            # Group data by repair_type__name
+            # Group data by repair type
             grouped_data = defaultdict(dict)
             for item in queryset:
-                repair_type = str(item['iv__requisit__repair_type__name'])
-                month = str(item['month'])  # as int string
-                year = str(item['year'])
-                month_th = f"{thai_months[month]} {year}"
-                amount = float(item['sum_amount'])
-                grouped_data[repair_type][month_th] = amount
+                if item['year'] and item['month'] and item['note2']:
+                    month = str(int(item['month']))  # convert to int, then back to str
+                    year = str(item['year'])
+                    repair_type = str(item['note2'])
+                    month_th = f"{thai_months[month]} {year}"
+                    amount = float(item['sum_amount'] or 0)
+                    grouped_data[repair_type][month_th] = amount
 
-            # Write one row per repair_type__name
             for repair_type, month_data in grouped_data.items():
                 row_data = [''] * len(header_row)
-                row_data[0] = repair_type  # First column: repair type
-                
+                row_data[0] = repair_type
                 for month, amount in month_data.items():
                     col_idx = header_map.get(month)
                     if col_idx is not None:
                         row_data[col_idx] = float(amount)
-                
                 sheet.append(row_data)
 
-            column_index = 14
+            column_index = len(month_year_range) + 2
             row_index = sheet.max_row + 1
 
             #คำนวนรวมทั้งสิ้น
@@ -7053,7 +7073,7 @@ def exportToExcelRegistrationAndRepair(request):
                 adjusted_width = max_length + 2
                 sheet.column_dimensions[column].width = adjusted_width
                 sheet.column_dimensions[column].height = 20
-                
+
         workbook.remove(workbook['Sheet'])
     else:
         worksheet = workbook.active
@@ -7089,6 +7109,16 @@ def exportToExcelAllExpensesRegistration(request):
     my_q &=Q(comcod = b_com.affiliated.name)
     my_q &=Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code)
 
+    if isinstance(start_created, str):
+        date_start = datetime.datetime.strptime(start_created, '%Y-%m-%d').date()
+
+    if isinstance(end_created, str):
+        date_end = datetime.datetime.strptime(end_created, '%Y-%m-%d').date()
+
+    # Generate (month, year) pairs within the selected range
+    month_year_range = [
+        (dt.month, dt.year) for dt in rrule(MONTHLY, dtstart=date_start, until=date_end)
+    ]
 
     thin_border = Border(
         left=Side(style='thin'),
@@ -7098,15 +7128,14 @@ def exportToExcelAllExpensesRegistration(request):
     )
 
     thai_months = {
-        '1': 'ม.ค.', '2': 'ก.พ.', '3': 'มี.ค.', '4': 'เม.ย.', '5': 'พ.ค.', '6': 'มิ.ย.',
-        '7': 'ก.ค.', '8': 'ส.ค.', '9': 'ก.ย.', '10': 'ต.ค.', '11': 'พ.ย.', '12': 'ธ.ค.'
+        "1": "ม.ค.", "2": "ก.พ.", "3": "มี.ค.", "4": "เม.ย.",
+        "5": "พ.ค.", "6": "มิ.ย.", "7": "ก.ค.", "8": "ส.ค.",
+        "9": "ก.ย.", "10": "ต.ค.", "11": "พ.ย.", "12": "ธ.ค."
     }
 
     all_car = ExOESTNH.objects.using('pg_db').filter(
-        my_q
-    ).values('remark'
-    ).annotate(year=ExtractYear('docdat')
-    ).order_by('remark').distinct()
+       my_q
+    ).values('remark').distinct().order_by('remark')
 
     docdat_subquery = ExOESTNH.objects.using('pg_db').filter(
         my_q
@@ -7118,111 +7147,86 @@ def exportToExcelAllExpensesRegistration(request):
     if not all_car.exists():
         return HttpResponse("No data to export.")
 
+    # Create Excel workbook
     workbook = openpyxl.Workbook()
     sheet = workbook.active
 
-    if all_car:
-        headers1 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] +  [f"{thai_months[str(m)]} 2025" for m in range(1, 13) for j in range(1, 4)]
-        sheet.append(headers1)
+    # Generate dynamic headers
+    headers1 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + [
+        f"{thai_months[str(m)]} {y}" for m, y in month_year_range for _ in range(3)
+    ]
+    sheet.append(headers1)
 
-        headers2 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร']  + ['น้ำมันดีเซล', 'น้ำมันดีเซล', 'ค่าอะไหล่'] * 12
-        sheet.append(headers2)
+    headers2 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['น้ำมันดีเซล', 'น้ำมันดีเซล', 'ค่าอะไหล่'] * len(month_year_range)
+    sheet.append(headers2)
 
-        headers3 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['ลิตร', 'บาท', 'ค่าแรง'] * 12
-        sheet.append(headers3)
+    headers3 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['ลิตร', 'บาท', 'ค่าแรง'] * len(month_year_range)
+    sheet.append(headers3)
 
-        sheet.merge_cells(f'A1:A3')
-        sheet.merge_cells(f'B1:B3')
-        sheet.merge_cells(f'C1:C3')
+    sheet.merge_cells('A1:A3')
+    sheet.merge_cells('B1:B3')
+    sheet.merge_cells('C1:C3')
 
-        for index, car in enumerate(all_car, start=1):
-
-            '''
-            iv = InvoiceItem.objects.filter(
-                Q(iv__car__code=car['iv__car__code']) & my_q
-            ).annotate(
-                year=ExtractYear('iv__created'),
-                month=ExtractMonth('iv__created'),
-            ).annotate(
-                month_year=Concat(
-                    Cast('month', CharField()),
-                    Value('-'),
-                    Cast('year', CharField()),
-                    output_field=CharField()
-                )
-            ).values(
-                'iv__requisit__repair_type__name',
-                'month_year', 'year', 'month'
-            ).annotate(
-                sum_amount=Sum('price'),
-            ).order_by(
-                'year', 'month'
+    for index, car in enumerate(all_car, start=1):
+        iv = ExOESTND.objects.using('pg_db').filter(
+            Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
+            comcod=b_com.affiliated.name,
+            stkdes=car['remark']
+        ).annotate(
+            docdat=Subquery(docdat_subquery)
+        ).values('docdat').annotate(
+            year=ExtractYear('docdat'),
+            month=ExtractMonth('docdat'),
+        ).annotate(
+            month_year=Concat(
+                Cast('month', models.CharField()),
+                Value('-'),
+                Cast('year', models.CharField()),
+                output_field=models.CharField()
             )
-            '''
+        ).values('month_year', 'year', 'month').annotate(
+            sum_amount=Sum('trnval'),
+            oil_lir=Sum(Case(
+                When(stkcod__startswith='OL', then='ordqty'),
+                output_field=models.DecimalField()
+            )),
+            oil_amount=Sum(Case(
+                When(stkcod__startswith='OL', then='trnval'),
+                output_field=models.DecimalField()
+            )),
+            sum_other=Sum(Case(
+                When(~Q(stkcod__startswith='OL'), then='trnval'),
+                output_field=models.DecimalField()
+            ))
+        ).order_by('year', 'month')
 
-            iv = ExOESTND.objects.using('pg_db').filter(
-                Q(docnum__startswith= b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
-                comcod = b_com.affiliated.name,
-                stkdes = car['remark']
-            ).annotate(
-                docdat=Subquery(docdat_subquery)
-            ).values(
-                'docdat'
-            ).annotate(
-                year=ExtractYear('docdat'),
-                month=ExtractMonth('docdat'),
-            ).annotate(
-                month_year=Concat(
-                    Cast('month', CharField()),
-                    Value('-'),
-                    Cast('year', CharField()),
-                    output_field=CharField()
-                )
-            ).values(
-                'month_year', 'year', 'month'
-            ).annotate(
-                sum_amount=Sum('trnval'),
-                oil_lir=Sum(Case(
-                    When(stkcod__startswith='OL', then='ordqty'),
-                    output_field=models.DecimalField()
-                )),
-                oil_amount=Sum(Case(
-                    When(stkcod__startswith='OL', then='trnval'),
-                    output_field=models.DecimalField()
-                )),
-                sum_other=Sum(Case(
-                    When(~Q(stkcod__startswith='OL'), then='trnval'),
-                    output_field=models.DecimalField()
-                ))
-            ).order_by('year', 'month')
+        iv = [item for item in iv if item['month'] is not None and item['year'] is not None]
+        iv.sort(key=itemgetter('year', 'month'))
 
-            iv = [item for item in iv if item['month'] is not None and item['year'] is not None]
-            iv.sort(key=itemgetter('month', 'year'))
+        sum_dict = defaultdict(Decimal)
+        sum_o_l_dict = defaultdict(Decimal)
+        sum_oil_a_dict = defaultdict(Decimal)
 
-            sum_dict = defaultdict(Decimal)
-            sum_o_l_dict = defaultdict(Decimal)
-            sum_oil_a_dict = defaultdict(Decimal)
+        for key, group in groupby(iv, key=itemgetter('month', 'year')):
+            for item in group:
+                sum_dict[key] += item['sum_other'] or Decimal('0')
+                sum_o_l_dict[key] += item['oil_lir'] or Decimal('0')
+                sum_oil_a_dict[key] += item['oil_amount'] or Decimal('0')
 
-            for key, group in groupby(iv, key=itemgetter('month', 'year')):
-                for item in group:
-                    sum_dict[key] += item['sum_other'] or Decimal('0')
-                    sum_o_l_dict[key] += item['oil_lir'] or Decimal('0')
-                    sum_oil_a_dict[key] += item['oil_amount'] or Decimal('0')
-
-            row1 = [index, "", car['remark']] + [
-                val for m in range(1, 13) for val in (
-                    sum_o_l_dict.get((m, car['year']), ''),
-                    sum_oil_a_dict.get((m, car['year']), ''),
-                    sum_dict.get((m, car['year']), ''),
-                )
-            ]
-            sheet.append(row1)
+        row1 = [index, '', car['remark']] + [
+            val for m, y in month_year_range for val in (
+                sum_o_l_dict.get((m, y), ''),
+                sum_oil_a_dict.get((m, y), ''),
+                sum_dict.get((m, y), ''),
+            )
+        ]
+        sheet.append(row1)
 
         #merge_cells เดือนเดียวกัน
         count = 0
-        for i in range(12):
+        for i in range(len(month_year_range)):
             count = count + 3
-            sheet.merge_cells(start_row = 1, start_column = 1 + count, end_row = 1, end_column = 3 + count)
+            sheet.merge_cells(start_row = 1, start_column = 1 + count, end_row = 1, end_column = 3 + count)        
 
         # Set column widths , number format and กรอบ
         for column_cells in sheet.columns:
@@ -7250,12 +7254,44 @@ def exportToExcelAllExpensesRegistration(request):
     workbook.save(response)
     return response
 
+def viewExInvoice(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+    b_com = BaseBranchCompany.objects.get(code = active)
+
+
+    if b_com.oi_invoice_code:
+        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.invoice_code))
+        data = ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.invoice_code).order_by('-docdat', '-docnum')
+    else:
+        data = ExOESTNH.objects.using('pg_db').none()
+
+    #กรองข้อมูล
+    myFilter = ExOESTNHFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+    
+    context = {
+        'ois': dataPage,
+        'filter':myFilter,
+        'ex_iv_page': "tab-active",
+        'ex_iv_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "express/viewExInvoice.html", context)
+
 def viewExOiInvoice(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
     b_com = BaseBranchCompany.objects.get(code = active)
 
     if b_com.oi_invoice_code:
+        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.oi_invoice_code))
         data = ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_invoice_code).order_by('-docdat', '-docnum')
     else:
         data = ExOESTNH.objects.using('pg_db').none()
@@ -7285,6 +7321,7 @@ def viewExSOC(request):
     b_com = BaseBranchCompany.objects.get(code = active)
 
     if b_com.soc_code:
+        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.soc_code))
         data = ExOEINVH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.soc_code).order_by('-docdate', '-docnum')
     else:
         data = ExOEINVH.objects.using('pg_db').none()
@@ -7314,6 +7351,7 @@ def viewExOiSOC(request):
     b_com = BaseBranchCompany.objects.get(code = active)
 
     if b_com.oi_soc_code:
+        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.oi_soc_code))
         data = ExOEINVH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_soc_code).order_by('-docdate', '-docnum')
     else:
         data = ExOEINVH.objects.using('pg_db').none()

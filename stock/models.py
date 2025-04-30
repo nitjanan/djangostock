@@ -1346,8 +1346,9 @@ class ExOESTNH(models.Model):
         ]
 
     def get_items(self):
-        details = ExOESTND.objects.using('pg_db').filter(docnum=self.docnum, comcod=self.comcod)
-        return "<br>".join([f"{d.stkcod} : {d.stktyp}" for d in details])
+        list_stkcod = list(ExOESTND.objects.using('pg_db').filter(docnum=self.docnum, comcod=self.comcod).values_list('stkcod',flat=True))
+        product = Product.objects.filter(id__in = list_stkcod)
+        return "<br>".join([f"{p.id} : {p.name}" for p in product])
     
     def get_depnam(self):
         details = BaseExpenseDepartment.objects.filter(id = self.depcod)

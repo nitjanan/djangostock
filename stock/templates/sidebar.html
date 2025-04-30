@@ -30,9 +30,11 @@
                                 {% endif %}
                             </a>
                         </li>
+                        {% if request.user.is_superuser %}
                         <li>
-                            <a class="{{iv_page}}" href="{% url 'viewInvoice' %}">ใบจ่ายสินค้าภายใน</a>
+                            <a class="{{iv_page}}" href="{% url 'viewInvoice' %}">OLD ใบจ่ายสินค้าภายใน</a>
                         </li>
+                        {% endif %}
                         <li>
                             <a class="{{cp_page}}" href="{% url 'viewComparePricePO' %}">ใบเปรียบเทียบราคา
                                 {% if add_po_all > 0%}
@@ -149,11 +151,16 @@
             {% endif %}
             {% if 'Express' in tab.name %}
             <li class="">
-                <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ex_old_iv_show or ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fab fa-xing"></i>
                     Express
                 </a>
-                <ul class="collapse list-unstyled {{ex_iv_show}} {{ex_o_i_show}} {{ex_ie_show}} {{ex_o_ie_show}}" id="expressSubmenu">
+                <ul class="collapse list-unstyled {{ex_old_iv_show}} {{ex_iv_show}} {{ex_o_i_show}} {{ex_ie_show}} {{ex_o_ie_show}}" id="expressSubmenu">
+                    {% if request.user.is_superuser %}
+                    <li>
+                        <a class="{{ex_old_iv_page}}" href="{% url 'viewExInvoice_old' %}">OLD ใบจ่ายสินค้าภายใน - อะไหล่</a>
+                    </li>
+                    {%endif%}
                     <li>
                         <a class="{{ex_iv_page}}" href="{% url 'viewExInvoice' %}">ใบจ่ายสินค้าภายใน - อะไหล่</a>
                     </li>
