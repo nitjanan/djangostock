@@ -7361,7 +7361,6 @@ def viewExInvoice(request):
 
 
     if b_com.oi_invoice_code:
-        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.invoice_code))
         data = ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.invoice_code).order_by('-docdat', '-docnum')
     else:
         data = ExOESTNH.objects.using('pg_db').none()
@@ -7391,7 +7390,6 @@ def viewExOiInvoice(request):
     b_com = BaseBranchCompany.objects.get(code = active)
 
     if b_com.oi_invoice_code:
-        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.oi_invoice_code))
         data = ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_invoice_code).order_by('-docdat', '-docnum')
     else:
         data = ExOESTNH.objects.using('pg_db').none()
@@ -7421,7 +7419,6 @@ def viewExSOC(request):
     b_com = BaseBranchCompany.objects.get(code = active)
 
     if b_com.soc_code:
-        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.soc_code))
         data = ExOEINVH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.soc_code).order_by('-docdate', '-docnum')
     else:
         data = ExOEINVH.objects.using('pg_db').none()
@@ -7451,7 +7448,6 @@ def viewExOiSOC(request):
     b_com = BaseBranchCompany.objects.get(code = active)
 
     if b_com.oi_soc_code:
-        print('comcod = '+ str(b_com.affiliated.name)+ ", docnum = "+ str(b_com.oi_soc_code))
         data = ExOEINVH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_soc_code).order_by('-docdate', '-docnum')
     else:
         data = ExOEINVH.objects.using('pg_db').none()
