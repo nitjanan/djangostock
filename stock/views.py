@@ -6567,7 +6567,8 @@ def update_invoice(all_company):
 #เฉพาะศิลาชัยก่อน 28/04/2025
 def send_4am_summary():
     try:
-        all_company = BaseBranchCompany.objects.filter(~Q(code = 'ALL'))
+        #all_company = BaseBranchCompany.objects.filter(~Q(code = 'ALL'))
+        all_company = BaseBranchCompany.objects.filter(code = 'SLC')
         update_invoice(all_company)
     except :
         pass
@@ -6642,15 +6643,23 @@ def exportExcelByIVExpense(request):
     ).annotate(
         sum_amount=Sum('trnval'),
         oil_lir=Sum(Case(
-            When(stkcod__startswith='OL', then='ordqty'),
+            When(stktyp ='น้ำมันดีเซล', then='ordqty'),
+            output_field=models.DecimalField()
+        )),
+        eg_o_amount=Sum(Case(
+            When(stktyp ='น้ำมันหล่อลื่น', then='trnval'),
+            output_field=models.DecimalField()
+        )),
+        eg_o_oil_lir=Sum(Case(
+            When(stktyp ='น้ำมันหล่อลื่น', then='ordqty'),
             output_field=models.DecimalField()
         )),
         oil_amount=Sum(Case(
-            When(stkcod__startswith='OL', then='trnval'),
+            When(stktyp ='น้ำมันดีเซล', then='trnval'),
             output_field=models.DecimalField()
         )),
         sum_other=Sum(Case(
-            When(~Q(stkcod__startswith='OL'), then='trnval'),
+            When(stktyp ='อะไหล่', then='trnval'),
             output_field=models.DecimalField()
         ))
     ).order_by('depcod')
@@ -6678,15 +6687,23 @@ def exportExcelByIVExpense(request):
     ).annotate(
         sum_amount=Sum('trnval'),
         oil_lir=Sum(Case(
-            When(stkcod__startswith='OL', then='ordqty'),
+            When(stktyp ='น้ำมันดีเซล', then='ordqty'),
+            output_field=models.DecimalField()
+        )),
+        eg_o_amount=Sum(Case(
+            When(stktyp ='น้ำมันหล่อลื่น', then='trnval'),
+            output_field=models.DecimalField()
+        )),
+        eg_o_oil_lir=Sum(Case(
+            When(stktyp ='น้ำมันหล่อลื่น', then='ordqty'),
             output_field=models.DecimalField()
         )),
         oil_amount=Sum(Case(
-            When(stkcod__startswith='OL', then='trnval'),
+            When(stktyp ='น้ำมันดีเซล', then='trnval'),
             output_field=models.DecimalField()
         )),
         sum_other=Sum(Case(
-            When(~Q(stkcod__startswith='OL'), then='trnval'),
+            When(stktyp ='อะไหล่', then='trnval'),
             output_field=models.DecimalField()
         ))
     ).order_by('cusnam')
@@ -6714,7 +6731,9 @@ def exportExcelByIVExpense(request):
             'แผนก': dep_name,
             'ลิตร': item['oil_lir'] or '-',
             'บาท': item['oil_amount'] or '-',
-            'น้ำมันม.หล่อลื่น+': item['sum_other'] or '-',
+            'ลิตร.': item['eg_o_oil_lir'] or '-',
+            'บาท.': item['eg_o_amount'] or '-',
+            'ค่าอะไหล่': item['sum_other'] or '-',
             'รวม': item['sum_amount'] or 0
         }
         internal_data.append(row)
@@ -6724,7 +6743,9 @@ def exportExcelByIVExpense(request):
             'แผนก': item['cusnam'] or '-',
             'ลิตร': item['oil_lir'] or '-',
             'บาท': item['oil_amount'] or '-',
-            'น้ำมันม.หล่อลื่น+': item['sum_other'] or '-',
+            'ลิตร.': item['eg_o_oil_lir'] or '-',
+            'บาท.': item['eg_o_amount'] or '-',
+            'ค่าอะไหล่': item['sum_other'] or '-',
             'รวม': item['sum_amount'] or 0
         }
         external_data.append(row)
@@ -6752,14 +6773,14 @@ def exportExcelByIVExpense(request):
     end_created = safe_str_to_date(end_created)  or end_date
 
     # ส่วนหัวหลัก
-    ws.merge_cells('A1:E1')
+    ws.merge_cells('A1:G1')
     ws['A1'] = "รายงานค่าใช้จ่ายพัสดุ " + start_created.strftime('%d/%m/%Y') + " ถึง " + end_created.strftime('%d/%m/%Y')
     ws['A1'].font = header_font
     ws['A1'].alignment = center_alignment
 
     # หัวคอลัมน์
-    ws.append(['แผนกคชจ.', 'น้ำมันโซล่า', '', 'น้ำมันม.หล่อลื่น+', 'รวมจำนวนเงิน'])
-    ws.append(['', 'ลิตร', 'บาท', 'ค่าอะไหล่/สิ่งของ', 'บาท'])
+    ws.append(['แผนกคชจ.', 'น้ำมันโซล่า', '', 'น้ำมันหล่อลื่น', '', 'ค่าอะไหล่/สิ่งของ+', 'รวมจำนวนเงิน'])
+    ws.append(['', 'ลิตร', 'บาท', 'ลิตร.', 'บาท.', 'ค่าแรง', 'บาท'])
 
     # Merge และจัดรูปแบบเซลล์ A2 และ A3
     ws.merge_cells('A2:A3')
@@ -6769,6 +6790,7 @@ def exportExcelByIVExpense(request):
         
     # รวมหัวคอลัมน์และจัดสไตล์
     ws.merge_cells('B2:C2')
+    ws.merge_cells('D2:E2')
     for row in ws.iter_rows(min_row=2, max_row=3):
         for cell in row:
             cell.font = Font(bold=True)
@@ -6789,9 +6811,15 @@ def exportExcelByIVExpense(request):
                 item['แผนก'],
                 item['ลิตร'],
                 item['บาท'],
-                item['น้ำมันม.หล่อลื่น+'],
+                item['ลิตร.'],
+                item['บาท.'],
+                item['ค่าอะไหล่'],
                 item['รวม']
             ])
+            for col in range(1, 8):
+                cell = ws.cell(row=current_row, column=col)
+                if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
+                    cell.number_format = '#,##0.00'
             current_row += 1
 
         # ผลรวมหน่วยงานภายใน
@@ -6799,13 +6827,15 @@ def exportExcelByIVExpense(request):
             "รวมหน่วยงานภายใน",
             safe_sum(internal_data, 'ลิตร'),
             safe_sum(internal_data, 'บาท'),
-            safe_sum(internal_data, 'น้ำมันม.หล่อลื่น+'),
+            safe_sum(internal_data, 'ลิตร.'),
+            safe_sum(internal_data, 'บาท.'),
+            safe_sum(internal_data, 'ค่าอะไหล่'),
             safe_sum(internal_data, 'รวม')
         ])
-        for col in range(1, 6):
+        for col in range(1, 8):
             cell = ws.cell(row=current_row, column=col)
             cell.font = Font(bold=True)
-            if col in [2, 3, 4, 5]:  # Numeric columns
+            if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
                 cell.number_format = '#,##0.00'
         current_row += 1
 
@@ -6822,9 +6852,15 @@ def exportExcelByIVExpense(request):
                 item['แผนก'],
                 item['ลิตร'],
                 item['บาท'],
-                item['น้ำมันม.หล่อลื่น+'],
+                item['ลิตร.'],
+                item['บาท.'],
+                item['ค่าอะไหล่'],
                 item['รวม']
             ])
+            for col in range(1, 8):
+                cell = ws.cell(row=current_row, column=col)
+                if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
+                    cell.number_format = '#,##0.00'
             current_row += 1
             
         # ผลรวมหน่วยงานภายนอก
@@ -6832,18 +6868,20 @@ def exportExcelByIVExpense(request):
             "รวมหน่วยงานภายนอก",
             safe_sum(external_data, 'ลิตร'),
             safe_sum(external_data, 'บาท'),
-            safe_sum(external_data, 'น้ำมันม.หล่อลื่น+'),
+            safe_sum(external_data, 'ลิตร.'),
+            safe_sum(external_data, 'บาท.'),
+            safe_sum(external_data, 'ค่าอะไหล่'),
             safe_sum(external_data, 'รวม')
         ])
-        for col in range(1, 6):
+        for col in range(1, 8):
             cell = ws.cell(row=current_row, column=col)
             cell.font = Font(bold=True)
-            if col in [2, 3, 4, 5]:  # Numeric columns
+            if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
                 cell.number_format = '#,##0.00'
         current_row += 1
 
     # Add one empty row as separator
-    ws.append([''] * 5)  # Empty row separator
+    ws.append([''] * 7)  # Empty row separator
 
     # Add GRAND TOTAL row (sum of both internal and external)
     grand_total_row = current_row + 1
@@ -6851,27 +6889,31 @@ def exportExcelByIVExpense(request):
     # Calculate grand totals
     grand_total_liter = safe_sum(internal_data, 'ลิตร') + safe_sum(external_data, 'ลิตร')
     grand_total_baht = safe_sum(internal_data, 'บาท') + safe_sum(external_data, 'บาท')
-    grand_total_other = safe_sum(internal_data, 'น้ำมันม.หล่อลื่น+') + safe_sum(external_data, 'น้ำมันม.หล่อลื่น+')
+    grand_eg_total_liter = safe_sum(internal_data, 'ลิตร.') + safe_sum(external_data, 'ลิตร.')
+    grand_eg_total_baht = safe_sum(internal_data, 'บาท.') + safe_sum(external_data, 'บาท.')
+    grand_total_other = safe_sum(internal_data, 'ค่าอะไหล่') + safe_sum(external_data, 'ค่าอะไหล่')
     grand_total_amount = safe_sum(internal_data, 'รวม') + safe_sum(external_data, 'รวม')
 
     # Create grand total row (showing all sums)
     ws[f'A{grand_total_row}'] = "รวมทั้งหมด"
     ws[f'B{grand_total_row}'] = grand_total_liter
     ws[f'C{grand_total_row}'] = grand_total_baht
-    ws[f'D{grand_total_row}'] = grand_total_other
-    ws[f'E{grand_total_row}'] = grand_total_amount
+    ws[f'D{grand_total_row}'] = grand_eg_total_liter
+    ws[f'E{grand_total_row}'] = grand_eg_total_baht
+    ws[f'F{grand_total_row}'] = grand_total_other
+    ws[f'G{grand_total_row}'] = grand_total_amount
 
     # Apply formatting to grand total row
-    for col in range(1, 6):
+    for col in range(1, 8):
         cell = ws.cell(row=grand_total_row, column=col)
         cell.font = Font(bold=True)
-        if col in [2, 3, 4, 5]:  # Numeric columns
+        if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
             cell.number_format = '#,##0.00'
         if col == 1:  # Label column
             cell.alignment = Alignment(horizontal='center', vertical='center')
 
     # Apply special border style
-    for col in range(1, 6):
+    for col in range(1, 8):
         ws.cell(row=grand_total_row, column=col).border = Border(
             left=Side(style='thin'),
             right=Side(style='thin'),
@@ -6880,18 +6922,18 @@ def exportExcelByIVExpense(request):
         )
 
     # ใส่กรอบให้ทุกเซลล์
-    for row in ws.iter_rows(min_row=1, max_row=current_row, max_col=5):
+    for row in ws.iter_rows(min_row=1, max_row=current_row, max_col=7):
         for cell in row:
             cell.border = border
 
     # Adjust column widths if needed
-    column_widths = {'A': 40, 'B': 15, 'C': 15, 'D': 20, 'E': 15}
+    column_widths = {'A': 40, 'B': 15, 'C': 15, 'D': 15, 'E': 15, 'F': 20, 'G': 15}
     for col, width in column_widths.items():
         ws.column_dimensions[col].width = width
 
     # สร้าง HttpResponse
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=IB_agency_expense_report_({active}).xlsx'
+    response['Content-Disposition'] = f'attachment; filename=agency_expense_report_({active}).xlsx'
     
     wb.save(response)
     return response
@@ -7010,10 +7052,16 @@ def exportToExcelRegistrationAndRepair(request):
                 ))
             ).order_by('year', 'month')
 
-            sheet_name = sanitize_sheet_name(car['remark'])
+            try:
+                car_name, car_code = car['remark'].split(":")
+            except:
+                car_code = ''
+                car_name = car['remark']
+            
+            sheet_name = sanitize_sheet_name(car_name + " " + car_code)
             sheet = workbook.create_sheet(title=sheet_name)
 
-            headers1 = [car['remark']] + [f"{thai_months[str(m)]} {y}" for m, y in month_year_range]
+            headers1 = [ car_name + " " + car_code ] + [f"{thai_months[str(m)]} {y}" for m, y in month_year_range]
             sheet.append(headers1)
 
             headers2 = [''] + ['ค่าอะไหล่ + ค่าแรง'] * len(month_year_range)
@@ -7030,7 +7078,13 @@ def exportToExcelRegistrationAndRepair(request):
                 if item['year'] and item['month'] and item['note2']:
                     month = str(int(item['month']))  # convert to int, then back to str
                     year = str(item['year'])
-                    repair_type = str(item['note2'])
+
+                    #ดึงประเภทการซ่อมจากในระบบ
+                    try:
+                        repair_type = BaseRepairType.objects.get(id = item['note2'].strip()) 
+                    except BaseRepairType.DoesNotExist:
+                        repair_type = str(item['note2'])
+
                     month_th = f"{thai_months[month]} {year}"
                     amount = float(item['sum_amount'] or 0)
                     grouped_data[repair_type][month_th] = amount
@@ -7157,76 +7211,118 @@ def exportToExcelAllExpensesRegistration(request):
     ]
     sheet.append(headers1)
 
-    headers2 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['น้ำมันดีเซล', 'น้ำมันดีเซล', 'ค่าอะไหล่'] * len(month_year_range)
+    headers2 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['น้ำมันดีเซล', 'น้ำมันดีเซล', 'น้ำมันหล่อลื่น', 'น้ำมันหล่อลื่น', 'ค่าอะไหล่+'] * len(month_year_range)
     sheet.append(headers2)
 
-    headers3 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['ลิตร', 'บาท', 'ค่าแรง'] * len(month_year_range)
+    headers3 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['ลิตร', 'บาท', 'ลิตร.', 'บาท.', 'ค่าแรง'] * len(month_year_range)
     sheet.append(headers3)
 
     sheet.merge_cells('A1:A3')
     sheet.merge_cells('B1:B3')
     sheet.merge_cells('C1:C3')
 
-    for index, car in enumerate(all_car, start=1):
-        iv = ExOESTND.objects.using('pg_db').filter(
-            Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
-            comcod=b_com.affiliated.name,
-            stkdes=car['remark']
-        ).annotate(
-            docdat=Subquery(docdat_subquery)
-        ).values('docdat').annotate(
-            year=ExtractYear('docdat'),
-            month=ExtractMonth('docdat'),
-        ).annotate(
-            month_year=Concat(
-                Cast('month', models.CharField()),
-                Value('-'),
-                Cast('year', models.CharField()),
-                output_field=models.CharField()
-            )
-        ).values('month_year', 'year', 'month').annotate(
-            sum_amount=Sum('trnval'),
-            oil_lir=Sum(Case(
-                When(stkcod__startswith='OL', then='ordqty'),
-                output_field=models.DecimalField()
-            )),
-            oil_amount=Sum(Case(
-                When(stkcod__startswith='OL', then='trnval'),
-                output_field=models.DecimalField()
-            )),
-            sum_other=Sum(Case(
-                When(~Q(stkcod__startswith='OL'), then='trnval'),
-                output_field=models.DecimalField()
-            ))
-        ).order_by('year', 'month')
+    if all_car:
+        for index, car in enumerate(all_car, start=1):
+            iv = ExOESTND.objects.using('pg_db').filter(
+                Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
+                comcod=b_com.affiliated.name,
+                stkdes=car['remark']
+            ).annotate(
+                docdat=Subquery(docdat_subquery)
+            ).values('docdat').annotate(
+                year=ExtractYear('docdat'),
+                month=ExtractMonth('docdat'),
+            ).annotate(
+                month_year=Concat(
+                    Cast('month', models.CharField()),
+                    Value('-'),
+                    Cast('year', models.CharField()),
+                    output_field=models.CharField()
+                )
+            ).values('month_year', 'year', 'month').annotate(
+                sum_amount=Sum('trnval'),
+                oil_lir=Sum(Case(
+                    When(stktyp ='น้ำมันดีเซล', then='ordqty'),
+                    output_field=models.DecimalField()
+                )),
+                eg_o_amount=Sum(Case(
+                    When(stktyp ='น้ำมันหล่อลื่น', then='trnval'),
+                    output_field=models.DecimalField()
+                )),
+                eg_o_oil_lir=Sum(Case(
+                    When(stktyp ='น้ำมันหล่อลื่น', then='ordqty'),
+                    output_field=models.DecimalField()
+                )),
+                oil_amount=Sum(Case(
+                    When(stktyp ='น้ำมันดีเซล', then='trnval'),
+                    output_field=models.DecimalField()
+                )),
+                sum_other=Sum(Case(
+                    When(stktyp ='อะไหล่', then='trnval'),
+                    output_field=models.DecimalField()
+                ))
+            ).order_by('year', 'month')
 
-        iv = [item for item in iv if item['month'] is not None and item['year'] is not None]
-        iv.sort(key=itemgetter('year', 'month'))
+            iv = [item for item in iv if item['month'] is not None and item['year'] is not None]
+            iv.sort(key=itemgetter('year', 'month'))
 
-        sum_dict = defaultdict(Decimal)
-        sum_o_l_dict = defaultdict(Decimal)
-        sum_oil_a_dict = defaultdict(Decimal)
+            sum_dict = defaultdict(Decimal)
+            sum_oil_l_dict = defaultdict(Decimal)
+            sum_oil_a_dict = defaultdict(Decimal)
+            sum_eg_l_dict = defaultdict(Decimal)
+            sum_eg_a_dict = defaultdict(Decimal)
+            
 
-        for key, group in groupby(iv, key=itemgetter('month', 'year')):
-            for item in group:
-                sum_dict[key] += item['sum_other'] or Decimal('0')
-                sum_o_l_dict[key] += item['oil_lir'] or Decimal('0')
-                sum_oil_a_dict[key] += item['oil_amount'] or Decimal('0')
+            for key, group in groupby(iv, key=itemgetter('month', 'year')):
+                for item in group:
+                    sum_dict[key] += item['sum_other'] or Decimal('0')
+                    sum_oil_l_dict[key] += item['oil_lir'] or Decimal('0')
+                    sum_oil_a_dict[key] += item['oil_amount'] or Decimal('0')
+                    sum_eg_l_dict[key] += item['eg_o_oil_lir'] or Decimal('0')
+                    sum_eg_a_dict[key] += item['eg_o_amount'] or Decimal('0')
 
-        row1 = [index, '', car['remark']] + [
-            val for m, y in month_year_range for val in (
-                sum_o_l_dict.get((m, y), ''),
-                sum_oil_a_dict.get((m, y), ''),
-                sum_dict.get((m, y), ''),
-            )
-        ]
-        sheet.append(row1)
+            try:
+                car_name, car_code = car['remark'].split(":")
+            except:
+                car_code = ''
+                car_name = car['remark']
+
+            row1 = [index, car_code, car_name] + [
+                val for m, y in month_year_range for val in (
+                    sum_oil_l_dict.get((m, y), ''),
+                    sum_oil_a_dict.get((m, y), ''),
+                    sum_eg_l_dict.get((m, y), ''),
+                    sum_eg_a_dict.get((m, y), ''),
+                    sum_dict.get((m, y), ''),
+                )
+            ]
+            sheet.append(row1)
 
         #merge_cells เดือนเดียวกัน
-        count = 0
+        count = 3
         for i in range(len(month_year_range)):
-            count = count + 3
-            sheet.merge_cells(start_row = 1, start_column = 1 + count, end_row = 1, end_column = 3 + count)        
+            #merge_cells เดือนเดียวกัน
+            sheet.merge_cells(start_row = 1, start_column = 1 + count, end_row = 1, end_column = 5 + count)
+            #merge_cells น้ำมันดีเซล
+            sheet.merge_cells(start_row = 2, start_column = 1 + count, end_row = 2, end_column = 2 + count)
+            #merge_cells น้ำมันหล่อลื่น
+            sheet.merge_cells(start_row = 2, start_column = 3 + count, end_row = 2, end_column = 4 + count)
+            count = count + 5
+
+
+        #คำนวนรวมทั้งสิ้น
+        column_index = sheet.max_column + 1
+        row_index = sheet.max_row + 1
+
+        sheet.cell(row=row_index, column=1, value='รวมทั้งสิ้น')
+        sum_by_col = Decimal('0.00')
+
+        for col in range(4, column_index):
+            for row in range(4, row_index):
+                sum_by_col = sum_by_col + Decimal( sheet.cell(row=row, column=col).value or '0.00' )
+            sheet.cell(row=row_index, column=col, value=sum_by_col).number_format = '#,##0.00'
+            sheet.cell(row=row_index, column=col).font = Font(bold=True)
+            sum_by_col = Decimal('0.00')
 
         # Set column widths , number format and กรอบ
         for column_cells in sheet.columns:
@@ -7235,16 +7331,20 @@ def exportToExcelAllExpensesRegistration(request):
             for cell in column_cells:
                 cell.border = thin_border
                 try:
-                    if isinstance(cell.value, float):
+                    if cell.value == Decimal('0') :
+                        cell.value = ''
+                    if isinstance(cell.value, Decimal):
                         cell.number_format = '#,##0.00'
                     if len(str(cell.value)) > max_length:
                         max_length = len(cell.value)
                 except:
                     pass
-            adjusted_width = max_length + 2
-            sheet.column_dimensions[column].width = adjusted_width
+            adjusted_width = 14
+            if column == 'C':
+                sheet.column_dimensions[column].width = 25
+            else:
+                sheet.column_dimensions[column].width = adjusted_width
             sheet.column_dimensions[column].height = 20
-
     else:
         sheet.cell(row = 1, column = 1, value = f'ไม่มีข้อมูลรายงานสรุปค่าใช่จ่ายทะเบียนรถทั้งหมด')
 

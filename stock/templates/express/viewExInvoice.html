@@ -59,7 +59,7 @@
     <div class="row">
         <div class="col">
           <!-- a class="btn btn-success" href="{% url 'exportExcelByExpense' %}?{{request.GET.urlencode}}">รายงานสรุปค่าใช้จ่ายพัสดุ PO <i class="fas fa-file-excel"></i></a-->
-          <a class="btn" style="background-color:#24493d;color:white;" href="{% url 'exportExcelByIVExpense' %}?{{request.GET.urlencode}}" download>รายงานสรุปค่าใช้จ่ายพัสดุ<i class="fas fa-file-excel"></i></a>
+          <a class="btn" style="background-color:#24493d;color:white;" href="{% url 'exportExcelByIVExpense' %}?{{request.GET.urlencode}}" download>รายงานสรุปค่าใช้จ่ายพัสดุ <i class="fas fa-file-excel"></i></a>
           <a class="btn" style="background-color:#376e5b;color:white;" href="{% url 'exportToExcelAllExpensesRegistration' %}?{{request.GET.urlencode}}" download>รายงานสรุปค่าใช่จ่ายทะเบียนรถทั้งหมด <i class="fas fa-file-excel"></i></a>
           <a class="btn" style="background-color:#49937a;color:white;" href="{% url 'exportToExcelRegistrationAndRepair' %}?{{request.GET.urlencode}}" download>รายงานสรุปตามทะเบียนรถและประเภทการซ่อม <i class="fas fa-file-excel"></i></a>
         </div>
@@ -79,7 +79,7 @@
             <th scope="col">แผนกคชจ.</th>
             <th scope="col">หมายเหตุ</th>
             <th scope="col">จำนวนเงิน</th>
-            <th scope="col">note3</th>
+            <th scope="col">ประเภทการซ่อม</th>
           </tr>
         </thead>
         <tbody>
@@ -92,7 +92,7 @@
             <td>{{oi.get_depnam}}</td>
             <td>{{oi.remark}}</td>
             <td class="text-right">{{oi.get_total_price | intcomma}}</td>
-            <td>{{oi.note3}}</td>
+            <td>{{oi.note2}}</td>
           </tr>
         {% endfor %}
         </tbody>
