@@ -92,7 +92,7 @@
             <td>{{oi.get_depnam}}</td>
             <td>{{oi.remark}}</td>
             <td class="text-right">{{oi.get_total_price | intcomma}}</td>
-            <td>{{oi.note2}}</td>
+            <td>{% if oi.get_repair %}{{oi.get_repair}}{%else%}{{oi.note2}}{%endif%}</td>
           </tr>
         {% endfor %}
         </tbody>

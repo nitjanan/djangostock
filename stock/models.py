@@ -1352,7 +1352,11 @@ class ExOESTNH(models.Model):
     
     def get_depnam(self):
         details = BaseExpenseDepartment.objects.filter(id = self.depcod)
-        return ", ".join([f"{d.id} : {d.name}" for d in details])
+        return ", ".join([f"{d.id} {d.name}" for d in details])
+    
+    def get_repair(self):
+        details = BaseRepairType.objects.filter(id = self.note2.strip())
+        return ", ".join([f"{d.id} {d.name}" for d in details])
     
     def get_total_price(self):
         result = ExOESTND.objects.using('pg_db').filter(docnum=self.docnum, comcod=self.comcod).aggregate(sum_amount=Sum('trnval'))

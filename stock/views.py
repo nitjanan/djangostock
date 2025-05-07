@@ -7081,7 +7081,8 @@ def exportToExcelRegistrationAndRepair(request):
 
                     #ดึงประเภทการซ่อมจากในระบบ
                     try:
-                        repair_type = BaseRepairType.objects.get(id = item['note2'].strip()) 
+                        rt = BaseRepairType.objects.get(id = item['note2'].strip())
+                        repair_type = rt.name
                     except BaseRepairType.DoesNotExist:
                         repair_type = str(item['note2'])
 
