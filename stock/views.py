@@ -6573,6 +6573,7 @@ def send_4am_summary():
     except :
         pass
 
+''' ปิด BackgroundScheduler 08-05-2025
 # Schedule the tasks
 #เฉพาะศิลาชัยก่อน 28/04/2025
 scheduler = BackgroundScheduler()
@@ -6583,7 +6584,7 @@ scheduler.add_job(
     replace_existing=True,
 )
 scheduler.start()
-
+'''
 
 def exportExcelByIVExpense(request):
     active = request.session['company_code']
@@ -6717,16 +6718,16 @@ def exportExcelByIVExpense(request):
 
     # 1. สร้าง Dict depcod -> name
     dept_map = {
-        d['id']: d['name']
+        str(d['id']): d['name']
         for d in BaseExpenseDepartment.objects.filter(
-            id__in=[item['depcod'] for item in in_queryset if item['depcod'] is not None]
+            id__in=[item['depcod'].strip() for item in in_queryset if item['depcod'] is not None]
         ).values('id', 'name')
     }
 
     # 2. วนลูปสร้าง internal_data
     internal_data = []
     for item in in_queryset:
-        dep_name = dept_map.get(item['depcod'], '-')  # ถ้าไม่มี depcod ก็ใส่ '-'
+        dep_name = dept_map.get(item['depcod'].strip(), item['depcod'].strip())  # ถ้าไม่มี depcod ก็ใส่ '-'
         row = {
             'แผนก': dep_name,
             'ลิตร': item['oil_lir'] or '-',
