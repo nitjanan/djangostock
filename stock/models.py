@@ -423,6 +423,38 @@ class Product(models.Model):
     created = models.DateField(auto_now_add=True, verbose_name="วันที่สร้าง") #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True, verbose_name="วันที่อัพเดท") #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True, verbose_name="สังกัดบริษัท")
+    qr_code = models.ImageField(null=True, blank=True, upload_to = "pd_qr_codes/", verbose_name="qr code")
+
+    def save(self, *args, **kwargs):
+
+        # สินค้า QR Code 27-05-2025
+        if not self.qr_code:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=5,
+                border=1,  # Set border size to 2
+            )
+            qr.add_data(self.id)
+            qr.make(fit=True)
+            qrcode_img = qr.make_image(fill_color="black", back_color="white")
+
+            # Crop the QR code image to remove the border
+            image_data = qrcode_img.get_image()
+            image_data = image_data.crop((2, 2, image_data.size[0] - 2, image_data.size[1] - 2))
+
+            # Create a new image and paste the cropped QR code onto it
+            canvas = Image.new('RGB', (image_data.size[0], image_data.size[1]), 'white')
+            canvas.paste(image_data)
+
+            # Save the QR code image
+            fname = f'qr_code_{self.id}.png'
+            buffer = BytesIO()
+            canvas.save(buffer, 'PNG')
+            self.qr_code.save(fname, File(buffer), save=False)
+            canvas.close()
+
+        super(Product, self).save(*args, **kwargs)
      
     def __str__(self):
         return self.name

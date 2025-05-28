@@ -14,7 +14,7 @@ from django import http
 from django.core import paginator
 from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
-from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed
+from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm
@@ -83,6 +83,12 @@ from collections import defaultdict
 from itertools import groupby
 from operator import itemgetter
 from dateutil.rrule import rrule, MONTHLY
+import os
+from openpyxl.drawing.image import Image as XLImage
+import qrcode
+from io import BytesIO
+from django.core.files import File
+from PIL import Image, ImageDraw, ImageOps
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -179,6 +185,9 @@ def newOld(old_product_id, new_product_id):
                             #แก้ชื่อ new_product
                             new_product.name =  new_product.name[:-3]
                             new_product.save()
+
+                            # Create product QR code
+                            create_product_qr(new_product)
 
                             alertStr = "new โอน รหัสสินค้า '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
                             alertType = messages.SUCCESS
@@ -7472,3 +7481,113 @@ def viewExOiSOC(request):
         "colorNav":"enableNav"
     }
     return render(request, "express/viewExOiSOC.html", context)
+
+def sanitize_sheet_title(title):
+    # Remove invalid characters and truncate to 31 characters
+    return re.sub(r'[\\/*?:[\]]', '_', title)[:31]
+
+def export_products(request):
+    wb = Workbook()
+    wb.remove(wb.active)  # Remove the default sheet
+
+    headers = ['รหัสสินค้า', 'ชื่อสินค้า', 'หน่วย', 'สังกัด', '']
+
+    products = Product.objects.select_related('unit', 'category', 'affiliated').all()
+
+    # Group products by category
+    category_map = {}
+    for product in products:
+        raw_category_name = product.category.name if product.category else 'ไม่ระบุหมวดหมู่'
+        safe_category_name = sanitize_sheet_title(raw_category_name)
+        if safe_category_name not in category_map:
+            category_map[safe_category_name] = []
+        category_map[safe_category_name].append(product)
+
+    for sheet_name, category_products in category_map.items():
+        ws = wb.create_sheet(title=sheet_name)
+
+        # Show full category name as a merged header in row 1
+        full_category_name = category_products[0].category.name if category_products[0].category else 'ไม่ระบุหมวดหมู่'
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=6)
+        ws.cell(row=1, column=1, value=f"หมวดหมู่: {full_category_name}")
+        ws.row_dimensions[1].height = 25
+
+        # Write column headers on row 2
+        ws.append(headers)
+
+        for idx, product in enumerate(category_products, start=2):
+            ws.cell(row=idx, column=1, value=product.id)
+            ws.cell(row=idx, column=2, value=product.name)
+            ws.cell(row=idx, column=3, value=product.unit.name if product.unit else '')
+            ws.cell(row=idx, column=4, value=product.affiliated.name if product.affiliated else '')
+
+            ws.row_dimensions[idx].height = 40
+
+            if product.qr_code:
+                img_path = os.path.join(settings.MEDIA_ROOT, product.qr_code.name)
+                if os.path.exists(img_path):
+                    img = XLImage(img_path)
+                    img.width = 48
+                    img.height = 48
+                    img.anchor = f"E{idx}"
+                    ws.add_image(img)
+
+        # Optional column width settings
+        ws.column_dimensions['A'].width = 20
+        ws.column_dimensions['B'].width = 40
+        ws.column_dimensions['E'].width = 10
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = StreamingHttpResponse(
+        output,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=products_by_category.xlsx'
+    return response
+
+def create_qr_code(request):
+    products = Product.objects.all()
+
+    for product in products:
+        if not product.qr_code:
+            # Create product QR code
+            create_product_qr(product)
+
+    return HttpResponse("QR codes generated.")
+
+
+def create_product_qr(product):
+    # Create QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=5,
+        border=1,
+    )
+    qr.add_data(product.id)
+    qr.make(fit=True)
+    qrcode_img = qr.make_image(fill_color="black", back_color="white")
+
+    # Crop the QR code image to remove the border
+    image_data = qrcode_img.get_image()
+    image_data = image_data.crop((2, 2, image_data.size[0] - 2, image_data.size[1] - 2))
+
+    # Create a white canvas and paste the QR code on it
+    canvas = Image.new('RGB', image_data.size, 'white')
+    canvas.paste(image_data)
+
+    # Save image to in-memory buffer
+    buffer = BytesIO()
+    canvas.save(buffer, format='PNG')
+    buffer.seek(0)  # Rewind the buffer
+
+    # Save to model
+    filename = f'qr_code_{product.id}.png'
+    product.qr_code.save(filename, File(buffer), save=True)
+
+    # Close resources
+    buffer.close()
+    canvas.close()

@@ -44,7 +44,7 @@ class ProductAdmin(ImportExportModelAdmin):
     autocomplete_fields = ['unit','category']
 
     resource_class = ProductResource
-    list_display = ('id', 'name', 'unit', 'slug', 'affiliated') #แสดงรายการสินค้าในรูปแบบตาราง
+    list_display = ('id', 'name', 'unit', 'slug', 'affiliated', 'qr_code') #แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['id', 'name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     #new admin check error id 23-03-2023

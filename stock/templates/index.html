@@ -8,6 +8,10 @@
   {% if products %}
   <h4>
     <span class="badge badge-pill badge-dark notification mr-2">{% if category.name %}{{category.name}}{%else%}สินค้าทั้งหมด{%endif%}</span>
+    {% if request.user.is_superuser %}
+    <a class="btn btn-secondary" href="{%url 'create_qr_code' %}" role="button"><i class="fas fa-plus-square"></i> create qr code product</a>
+    {% endif %}
+    <a class="badge badge-pill badge-danger notification mr-2" style="background-color:#376e5b;color:white;" href="{% url 'export_products' %}?{{request.GET.urlencode}}" download>รายงานสินค้า <i class="fas fa-file-excel"></i></a>
     {% if isEditNewOld %}
       <span class="badge badge-pill badge-warning notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldModal">New โอน รหัสสินค้า <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
     {% endif %}
@@ -19,7 +23,9 @@
     {% endif %}
     {% if messages %}
       {% for message in messages %}
-        <span{% if message.tags %} class="text-{{ message.tags }}"{% endif %}>*{{ message }}</span>
+        <div class="alert {{ message.tags }} my-2">
+          <strong>* </strong>{{ message }}
+        </div>
       {% endfor %}
     {% endif %}
   </h4>
