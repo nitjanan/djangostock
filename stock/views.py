@@ -2412,6 +2412,10 @@ def showPR(request, pr_id, mode):
     #ถ้า user login เป็นจัดซื้อ
     isSupplies = is_supplies(request.user)
 
+    is_staff = False
+    if isPurchasing or isSupplies:
+        is_staff = True
+
     # re approver แสดงเฉพาะหน้า history complete และ history incomplete เท่านั้น
     isReApprove = False
     if (mode == 4 or mode == 5) and (isPurchasing or isSupplies):
@@ -2456,6 +2460,7 @@ def showPR(request, pr_id, mode):
             'pr': pr,
             'isPurchasing': isPurchasing,
             'isSupplies': isSupplies,
+            'is_staff': is_staff,
             'bc':bc,
             'create_mode': False,
             page: "tab-active",

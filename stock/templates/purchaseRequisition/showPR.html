@@ -228,7 +228,7 @@ u.dotted {
           </div>
           <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            {% if isSupplies and not pr.is_complete %}
+            {% if is_staff and not pr.is_complete %}
               <div class="row my-2">
                 <div class="col-2 text-danger">{{ pro_form.organizer.label}}</div>
                 <div class="col">{{ pro_form.organizer | add_class:"form-control is-invalid" }}</div>
@@ -321,7 +321,7 @@ u.dotted {
           </div>
           <div class="row my-2">
             <div class="col-6">
-              {% if isSupplies and not pr.is_complete %}
+              {% if is_staff and not pr.is_complete %}
                 <button name="btnformPRO" type="submit" class="btn btn-warning hidden-print"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
                 <!-- a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a-->
               {%endif%}
