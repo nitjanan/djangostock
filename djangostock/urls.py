@@ -208,6 +208,9 @@ urlpatterns = [
     path('po/api/detail/<str:ref_no>/',views.detailPO,name="detailPO"),
     path('po/items/api/detail/<str:ref_no>/',views.detailPOItems,name="detailPOItems"),
     path('po/product/api/detail/<str:ref_no>/<str:prod_id>',views.detailPOProductItems,name="detailPOProductItems"),
+    
+    path('po/api/all/',views.allPO,name="allPO"),
+    path('po/items/api/all/',views.allPOItems,name="allPOItems"),
 
     path('export/products/', views.export_products, name='export_products'),
     path('products/create_qr_code/', views.create_qr_code, name='create_qr_code'),

@@ -65,6 +65,7 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 
 from .tokens import create_jwt_pair_for_user
 from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer
@@ -6173,6 +6174,9 @@ class SignUpApiView(generics.GenericAPIView):
         return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 ############# PO API ###############
+class SmallResultsSetPagination(PageNumberPagination):
+    page_size = 100  # or any number suitable for your frontend
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def apiOverviewPO(request):
@@ -6181,6 +6185,8 @@ def apiOverviewPO(request):
         'Detail PO View':'/po/api/detail/<str:ref_no>/',
         'Detail PO Item View':'/po/items/api/detail/<str:ref_no>/',
         'Detail PO Item by Product Id View':'/po/product/api/detail/<str:ref_no>/<str:prod_id>',
+        'All PO View':'/po/api/all/',
+        'All PO Item View':'/po/items/api/all/',
     }
     return Response(api_urls)
 
@@ -6206,6 +6212,37 @@ def detailPOProductItems(request, ref_no, prod_id):
     serializer = PurchaseOrderItemSerializer(queryset, many = True)
     items_as_dict = {str(i): item for i, item in enumerate(serializer.data)}
     return Response({"items": items_as_dict})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def allPO(request):
+    queryset = PurchaseOrder.objects.select_related(
+        'address_company',
+        'po_type',
+        'distributor',
+        'vat_type',
+        'credit',
+        'delivery',
+    ).prefetch_related(
+        'purchaseorderitem_set__item__requisit__car'
+    )
+    paginator = SmallResultsSetPagination()
+    result_page = paginator.paginate_queryset(queryset, request)
+    serializer = PurchaseOrderSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def allPOItems(request):
+    queryset = PurchaseOrderItem.objects.select_related(
+        'po',
+        'item__product',
+        'unit',
+    )
+    paginator = SmallResultsSetPagination()
+    result_page = paginator.paginate_queryset(queryset, request)
+    serializer = PurchaseOrderItemSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 def exportExcelByExpense(request):
     active = request.session['company_code']

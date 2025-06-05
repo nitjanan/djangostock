@@ -54,14 +54,12 @@ class PurchaseOrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseOrderItem
         fields = ('po_ref_no', 'prod_id', 'prod_nam', 'descr', 'quantity', 'unit_nam', 'unit_price', 'discount', 'price')
-        extra_fields = ['id']
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
     comp_nam = serializers.CharField(source='address_company.name_th', read_only=True)
     comp_add = serializers.CharField(source='address_company.address', read_only=True)
     comp_tel = serializers.CharField(source='address_company.tel', read_only=True)
     comp_tex = serializers.CharField(source='address_company.tex', read_only=True)
-    po_type = serializers.CharField(source='po_type.name', read_only=True)
     po_type = serializers.CharField(source='po_type.name', read_only=True)
     distr_id = serializers.CharField(source='distributor.id', read_only=True)
     distr_pf = serializers.CharField(source='distributor.prefix', read_only=True)
@@ -78,18 +76,22 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
     desc = serializers.SerializerMethodField()
 
     # Include the related PurchaseOrderItem objects
-    items = PurchaseOrderItemSerializer(source='purchaseorderitem_set', many=True, read_only=True)
+    #items = PurchaseOrderItemSerializer(source='purchaseorderitem_set', many=True, read_only=True)
 
     class Meta:
         model = PurchaseOrder
         fields = ('ref_no','created', 'comp_nam', 'comp_add', 'comp_tel', 'comp_tex', 'po_type',
                    'distr_id', 'distr_pf', 'distr_nam', 'distr_add', 'distr_tel', 'vat_type', 'credit', 'shipping',
                    'desc', 'note','delivery', 'price', 'discount', 'af_discount', 'freight', 'vat', 'amount',
-                   'is_cc', 'cc_reason', 'items',
+                   'is_cc', 'cc_reason', #'items',
                    )
         extra_fields = ['id']
 
     def get_desc(self, obj):
-        # Get the first related PurchaseOrderItem and retrieve its car name
-        first_item = obj.purchaseorderitem_set.first()  # Change if you have a related_name
-        return first_item.item.requisit.car.name + first_item.item.requisit.car.code if first_item and first_item.item.requisit.car else None
+        try:
+            item = obj.purchaseorderitem_set.first()
+            if item and item.item and item.item.requisit and item.item.requisit.car:
+                return f"{item.item.requisit.car.name}{item.item.requisit.car.code}"
+        except AttributeError:
+            return None
+        return None
