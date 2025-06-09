@@ -6666,11 +6666,17 @@ def exportExcelByIVExpense(request):
     else:
         my_q &=Q(iv__branch_company__code__in = company_in)
 
+    iv_filters = Q()
+    if b_com.invoice_code:
+        iv_filters |= Q(docnum__startswith=b_com.invoice_code)
+    if b_com.oi_invoice_code:
+        iv_filters |= Q(docnum__startswith=b_com.oi_invoice_code)
+
     #หน่วยงานภายใน - อะไหล่
     l_iv = list(
         ExOESTNH.objects.using('pg_db')
         .filter(
-            Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
+            iv_filters,
             comcod=b_com.affiliated.name,
             docdat__range=(start_created, end_created)
         )
@@ -6717,8 +6723,14 @@ def exportExcelByIVExpense(request):
     ).order_by('depcod')
 
     #หน่วยงานภายนอก - อะไหล่
+    soc_filters = Q()
+    if b_com.soc_code:
+        soc_filters |= Q(docnum__startswith=b_com.soc_code)
+    if b_com.oi_soc_code:
+        soc_filters |= Q(docnum__startswith=b_com.oi_soc_code)
+
     l_soc = list(
-                    ExOEINVH.objects.using('pg_db').filter(Q(docnum__startswith = b_com.soc_code) | Q(docnum__startswith = b_com.oi_soc_code), comcod = b_com.affiliated.name, docdate__range=(start_created, end_created)).values_list('docnum', flat=True)
+                    ExOEINVH.objects.using('pg_db').filter(soc_filters, comcod = b_com.affiliated.name, docdate__range=(start_created, end_created)).values_list('docnum', flat=True)
                 )
 
     ex_queryset = ExOEINVD.objects.using('pg_db').filter(
@@ -6990,11 +7002,6 @@ def exportExcelByIVExpense(request):
     wb.save(response)
     return response
 
-def sanitize_sheet_name(name):
-    # Remove invalid characters and limit length to 31
-    name = re.sub(r'[\\/*?:[\]]', '_', name)
-    return name[:31]
-
 def exportToExcelRegistrationAndRepair(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -7110,7 +7117,7 @@ def exportToExcelRegistrationAndRepair(request):
                 car_code = ''
                 car_name = car['remark']
             
-            sheet_name = sanitize_sheet_name(car_name + " " + car_code)
+            sheet_name = sanitize_sheet_title(car_name + " " + car_code)
             sheet = workbook.create_sheet(title=sheet_name)
 
             headers1 = [ car_name + " " + car_code ] + [f"{thai_months[str(m)]} {y}" for m, y in month_year_range]
@@ -7525,8 +7532,8 @@ def viewExOiSOC(request):
     return render(request, "express/viewExOiSOC.html", context)
 
 def sanitize_sheet_title(title):
-    # Remove invalid characters and truncate to 31 characters
-    return re.sub(r'[\\/*?:[\]]', '_', title)[:31]
+    # Remove invalid characters and truncate to 30 characters
+    return re.sub(r'[\\/*?:[\]]', '_', title)[:30]
 
 def export_products(request):
     wb = Workbook()
