@@ -6185,8 +6185,8 @@ def apiOverviewPO(request):
         'Detail PO View':'/po/api/detail/<str:ref_no>/',
         'Detail PO Item View':'/po/items/api/detail/<str:ref_no>/',
         'Detail PO Item by Product Id View':'/po/product/api/detail/<str:ref_no>/<str:prod_id>',
-        'All PO View':'/po/api/all/',
-        'All PO Item View':'/po/items/api/all/',
+        'All PO View Between Date':'/po/api/all/between/<str:start_date>/<str:end_date>/',
+        'All PO Item View Between Date':'/po/items/api/all/between/<str:start_date>/<str:end_date>/',
     }
     return Response(api_urls)
 
@@ -6215,8 +6215,10 @@ def detailPOProductItems(request, ref_no, prod_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def allPO(request):
-    queryset = PurchaseOrder.objects.select_related(
+def allPO(request, start_date, end_date):
+    queryset = PurchaseOrder.objects.filter(
+       created__range=[start_date, end_date]
+    ).select_related(
         'address_company',
         'po_type',
         'distributor',
@@ -6233,8 +6235,10 @@ def allPO(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def allPOItems(request):
-    queryset = PurchaseOrderItem.objects.select_related(
+def allPOItems(request, start_date, end_date):
+    queryset = PurchaseOrderItem.objects.filter(
+       po__created__range=[start_date, end_date]
+    ).select_related(
         'po',
         'item__product',
         'unit',
