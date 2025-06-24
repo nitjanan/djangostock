@@ -157,7 +157,7 @@ class PurchaseOrderForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf', 'po_type',) #'po_type', 17-05-2024
+       fields = ('created','distributor','credit','shipping','vat_type', 'address_company', 'approver_user', 'due_receive_update', 'quotation_pdf', 'po_type',) #'po_type', 17-05-2024
        widgets = {
         'quotation_pdf' : MyClearableFileInput,
         'distributor': forms.HiddenInput(),#dataList
@@ -166,7 +166,6 @@ class PurchaseOrderForm(forms.ModelForm):
         'po_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
         }
        labels = {
-            'ref_no': _('รหัสใบสั่งซื้อ'),
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'distributor': _('ผู้จำหน่าย'),
             'credit': _('เครดิต'),
@@ -209,7 +208,7 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
 
     class Meta:
        model = PurchaseOrder
-       fields = ('ref_no','created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update', 'po_type',) #'po_type', 17-05-2024
+       fields = ('created','cp','shipping', 'address_company', 'approver_user', 'due_receive_update', 'po_type',) #'po_type', 17-05-2024
        widgets = {
         'cp': forms.HiddenInput(),
         'created': forms.DateInput(attrs={'class':'form-control','size': 3 , 'placeholder':'Select a date', 'type':'date'}),
@@ -218,7 +217,6 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
         }
        labels = {
             'shipping': _('ขนส่งโดย'),
-            'ref_no': _('รหัสใบสั่งซื้อ'),
             'created': _('วันที่สร้างใบสั่งซื้อ'),
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
             'due_receive_update': _('วันที่กำหนดรับของ'),
