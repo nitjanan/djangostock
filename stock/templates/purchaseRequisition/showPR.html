@@ -230,8 +230,8 @@ u.dotted {
             {% csrf_token %}
             {% if is_staff and not pr.is_complete %}
               <div class="row my-2">
-                <div class="col-2 text-danger">{{ pro_form.organizer.label}}</div>
-                <div class="col">{{ pro_form.organizer | add_class:"form-control is-invalid" }}</div>
+                <div class="col-2 text-success">{{ pro_form.organizer.label}}</div>
+                <div class="col">{{ pro_form.organizer | add_class:"form-control is-valid" }}</div>
               </div>
             {%endif%}
           <div class="row">
