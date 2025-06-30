@@ -299,6 +299,15 @@
               </a>
             </li>
             {%endif%}
+            {% if 'Y5' in tab.code %}
+            <li class="nav-item flex-sm-fill pointer">
+              <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{Y5}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}
+                {% if request.session.NUM_Y5 > 0%}
+                  <span class="badge badge-pill badge-dark notification">{{request.session.NUM_Y5}}</span>
+                {% endif %}
+              </a>
+            </li>
+            {%endif%}
             {%endfor%}
             </ul>
       </div>
