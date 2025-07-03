@@ -177,7 +177,7 @@ u.dotted {
                     <td class="text-center"><strong>รายการ</strong></td>
                     <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
                     <td class="text-center"><strong>จำนวน</strong></td>
-                    <td class="text-center text-success d-print-none"><strong>ซื้อแล้ว</strong></td>
+                    <td class="text-center text-success"><strong>ซื้อแล้ว</strong></td>
                     <td class="text-center"><strong>หน่วย</strong></td>
                     <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
@@ -192,7 +192,7 @@ u.dotted {
                     <td name="name">{{item.product_name}}</td>
                     <td name="description">{{item.description}}</td>
                     <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
-                    <td class="text-center text-success d-print-none" name="used">
+                    <td class="text-center text-success" name="used">
                       {{item.quantity_used |floatformat:"-4"}}
                     </td>
                     <td class="text-center" name="unit">
@@ -229,7 +229,7 @@ u.dotted {
           <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             {% if is_staff and not pr.is_complete %}
-              <div class="row my-2">
+              <div class="row my-2 d-print-none">
                 <div class="col-2 text-success">{{ pro_form.organizer.label}}</div>
                 <div class="col">{{ pro_form.organizer | add_class:"form-control is-valid" }}</div>
               </div>
@@ -321,9 +321,11 @@ u.dotted {
           </div>
           <div class="row my-2">
             <div class="col-6">
+              {%if isEditPR and isSupplies and pr.approver_status.id == 2 %}<!-- 03/07/2025 ถ้าอยู่ในกลุ่ม edit pr สามารถ re approve pr ได้ -->
+                <a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+              {% endif %}
               {% if is_staff and not pr.is_complete %}
-                <button name="btnformPRO" type="submit" class="btn btn-warning hidden-print"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
-                <!-- a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a-->
+                <button name="btnformPRO" type="submit" class="btn btn-success hidden-print"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
               {%endif%}
             </div>
           </form>

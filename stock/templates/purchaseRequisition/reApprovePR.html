@@ -134,9 +134,7 @@ u.dotted {
                     <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
                     <td class="text-center"><strong>วันที่ต้องการ</strong></td>
                     <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                    {% if request.user.is_superuser %} <!-- 30/10/2024 ขอเปลี่ยนแปลงสินค้า ใบ pr ต้องเป็น admin เท่านั้น -->
                     <td class="text-right hidden-print" colspan="2"><strong>Action</strong></td>
-                    {% endif %}
                 </tr>
               </thead>
               <tbody>
@@ -160,7 +158,7 @@ u.dotted {
                         {% endif %}
                       {% endfor %}
                     </td>
-                    {% if request.user.is_superuser %} <!-- 30/10/2024 ขอเปลี่ยนแปลงสินค้า ใบ pr ต้องเป็น admin เท่านั้น -->
+                    {% if isEditPR %} <!-- 03/07/2025 ถ้าอยู่ในกลุ่ม edit pr สามารถ re approve pr ได้ -->
                     <td align="center" class="hidden-print">
                       <button class="btn btn-secondary form-control" onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" ><i class="fas fa-pen"></i></button>
                     </td>

@@ -1898,6 +1898,9 @@ def is_edit_new_old_distributor(user):
 def is_del_iv(user):
     return user.groups.filter(name='DeleteInvoice').exists()
 
+def is_edit_pr(user):
+    return user.groups.filter(name='EditPR').exists()
+
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
     return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
@@ -2412,6 +2415,8 @@ def showPR(request, pr_id, mode):
     isPurchasing = is_purchasing(request.user)
     #ถ้า user login เป็นจัดซื้อ
     isSupplies = is_supplies(request.user)
+    #ถ้า user มีสิทธิ edit pr
+    isEditPR = is_edit_pr(request.user)
 
     is_staff = False
     if isPurchasing or isSupplies:
@@ -2462,6 +2467,7 @@ def showPR(request, pr_id, mode):
             'isPurchasing': isPurchasing,
             'isSupplies': isSupplies,
             'is_staff': is_staff,
+            'isEditPR': isEditPR,
             'bc':bc,
             'create_mode': False,
             page: "tab-active",
@@ -4439,9 +4445,10 @@ def reApprovePR(request, pr_id):
         #pr.stockman_update = datetime.datetime.now()
 
         #ถ้า 2 ตัวแรก เกิดจากการ CLOSE ให้ตัดออก
-        first_two = pr.note[:2]
-        if first_two == 'C#':
-            pr.note = pr.note[2:]
+        if pr.note:
+            first_two = pr.note[:2]
+            if first_two == 'C#':
+                pr.note = pr.note[2:]
 
         pr.is_complete = False
 
@@ -4474,6 +4481,9 @@ def reApprovePR(request, pr_id):
                 form_pr.save()
                 return HttpResponseRedirect(reverse('viewPRHistory'))
 
+        #ถ้า user มีสิทธิ edit pr
+        isEditPR = is_edit_pr(request.user)
+
         context = {
             'users' : items,
             'requisition' : requisition,
@@ -4485,6 +4495,7 @@ def reApprovePR(request, pr_id):
             'baseRepairType': baseRepairType,
             'bc':bc,
             'form_pr':form_pr,
+            'isEditPR' : isEditPR,
             'pr_page': "tab-active",
             'pr_show': "show",
             active :"active show",
