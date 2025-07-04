@@ -2803,8 +2803,9 @@ def removePO(request, po_id):
 
     #ลบรายการประเมินร้านค้าที่ผูกไว้
     try:
-        rd = RateDistributor.objects.get(po = po)
-        rd.delete()
+        rd = RateDistributor.objects.filter(po = po)
+        for r in rd:
+            r.delete()
     except (RateDistributor.DoesNotExist, AttributeError):
         pass
 
