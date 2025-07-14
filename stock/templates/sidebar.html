@@ -30,11 +30,13 @@
                                 {% endif %}
                             </a>
                         </li>
+                        <!--
                         {% if request.user.is_superuser %}
                         <li>
                             <a class="{{iv_page}}" href="{% url 'viewInvoice' %}">OLD ใบจ่ายสินค้าภายใน</a>
                         </li>
-                        {% endif %}
+                        {% endif %}                        
+                        -->
                         <li>
                             <a class="{{cp_page}}" href="{% url 'viewComparePricePO' %}">ใบเปรียบเทียบราคา
                                 {% if add_po_all > 0%}
@@ -156,11 +158,13 @@
                     Express
                 </a>
                 <ul class="collapse list-unstyled {{ex_old_iv_show}} {{ex_iv_show}} {{ex_o_i_show}} {{ex_ie_show}} {{ex_o_ie_show}}" id="expressSubmenu">
+                    <!--
                     {% if request.user.is_superuser %}
                     <li>
                         <a class="{{ex_old_iv_page}}" href="{% url 'viewExInvoice_old' %}">OLD ใบจ่ายสินค้าภายใน - อะไหล่</a>
                     </li>
                     {%endif%}
+                    -->
                     <li>
                         <a class="{{ex_iv_page}}" href="{% url 'viewExInvoice' %}">ใบจ่ายสินค้าภายใน - อะไหล่</a>
                     </li>
