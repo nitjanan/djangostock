@@ -471,7 +471,7 @@ $("#id_vat_type" ).change(function() {
 
   setValueTotalAfterDiscount(totalAfterDiscount, vat);
 
-  var amount =  calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
+  var amount =  calculateAmount(vat.toFixed(2), $("#id_total_after_discount").val(), $("#id_freight").val());
   vat = calculateVat(parseFloat(tempTotal.innerHTML));
 
   $("#id_vat").val(vat.toFixed(2));
@@ -489,7 +489,7 @@ $("#id_total_price, #id_discount").change(function() {
   setValueTotalAfterDiscount(totalAfterDiscount, vat);
 
   //คำนวน amount
-  var amount = calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
+  var amount = calculateAmount(vat.toFixed(2), $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
 });
 
@@ -534,7 +534,8 @@ function calculateDiscount(prmDiscount){
     //แสดง จำนวนภาษีมูลค่าเพิ่ม
     $("#id_vat").val(vat.toFixed(2));
     //แสดง จำนวนเงินรวมทั้งสิ้น
-    var amount =  calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
+    //alert('vat = '+ $("#id_vat").val() + 'total_after_discount = '+ $("#id_total_after_discount").val() + 'freight = '+ $("#id_freight").val())
+    var amount =  calculateAmount(vat.toFixed(2), $("#id_total_after_discount").val(), $("#id_freight").val());
     $("#id_amount").val(amount.toFixed(2));
 }
 

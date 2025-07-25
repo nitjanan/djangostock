@@ -332,7 +332,7 @@ $("#id_total_price, #id_discount").change(function() {
   setValueTotalAfterDiscount(totalAfterDiscount, vat);
 
   //คำนวน amount
-  var amount = calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
+  var amount = calculateAmount(vat.toFixed(2), $("#id_total_after_discount").val(), $("#id_freight").val());
   $("#id_amount").val(amount.toFixed(2));
   //แสดงจำนวนเงินตัวสะกด
   var thaibath = ArabicNumberToText($("#id_amount").val());
@@ -372,7 +372,7 @@ function calculateAll(){
     $("#id_vat").val(vat.toFixed(2));
     //document.getElementById("vat").innerHTML = vat.toFixed(2) + " บาท";
     //แสดง จำนวนเงินรวมทั้งสิ้น
-    var amount =  calculateAmount(vat, $("#id_total_after_discount").val(), $("#id_freight").val());
+    var amount =  calculateAmount(vat.toFixed(2), $("#id_total_after_discount").val(), $("#id_freight").val());
     $("#id_amount").val(amount.toFixed(2));
     //document.getElementById("amount").innerHTML = amount.toFixed(2) + " บาท";
     //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
