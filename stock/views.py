@@ -4986,7 +4986,7 @@ def showRateDistributor(request, pk):
     num_grade_all = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).count()
     ratings = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
-    rd_data = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in)
+    rd_data = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).order_by('-po__created')
     
     paginator = Paginator(rd_data, 10)
     page_number = request.GET.get('page')
