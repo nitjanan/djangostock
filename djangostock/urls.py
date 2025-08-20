@@ -214,6 +214,13 @@ urlpatterns = [
 
     path('export/products/', views.export_products, name='export_products'),
     path('products/create_qr_code/', views.create_qr_code, name='create_qr_code'),
+
+    path("api/sheet-to-mysql/", views.sheet_to_mysql_api, name="sheet_to_mysql_api"),
+    path("api/sheet-to-mysql/update/", views.update_sheet_to_mysql_api, name="update_sheet_to_mysql_api"),
+
+    path('maintenance/',views.viewMA,name="viewMA"),
+    path('maintenance/show/<int:ma_id>/<int:mode>',views.showMA,name="showMA"),
+    path('maintenance/edit/<int:ma_id>',views.editMA,name="editMA"),
     
 ]
 

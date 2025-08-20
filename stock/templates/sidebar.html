@@ -12,14 +12,14 @@
         {% for tab in visible_tab %}
             {% if 'Request' in tab.name %}
                 <li class="">
-                    <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page or ma_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                         <i class="fas fa-file"></i>
                         Request
                         {% if pc_all > 0%}
                             <span class="float-right badge badge-pill badge-warning notification mr-5">{{pc_all}}</span>
                         {% endif %}
                     </a>
-                    <ul class="collapse list-unstyled {{requisitions_show}} {{pr_show}} {{po_show}} {{cp_show}} {{iv_show}}" id="requestSubmenu">
+                    <ul class="collapse list-unstyled {{requisitions_show}} {{pr_show}} {{po_show}} {{cp_show}} {{iv_show}} {{ma_show}}" id="requestSubmenu">
                         <li>
                             <a id="requisitionsPage" class="{{requisitions_page}}" href="{% url 'requisition' %}">ใบขอเบิก</a>
                         </li>
@@ -46,6 +46,13 @@
                         </li>
                         <li>
                             <a class="{{po_page}}" href="{% url 'viewPO' %}">ใบสั่งซื้อ</a>
+                        </li>
+                        <li>
+                            <a class="{{ma_page}}" href="{% url 'viewMA' %}">ใบแจ้งซ่อม
+                                {% if ma_all > 0%}
+                                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{ma_all}}</span>
+                                {% endif %}
+                            </a>
                         </li>
                     </ul>
                 </li>

@@ -1,0 +1,363 @@
+{% extends 'layouts.html' %}
+{% load crispy_forms_tags %}
+{% load humanize %}
+{% load static %}
+{% load widget_tweaks %}
+{% load templatehelpers %}
+
+{% block css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+
+<style>
+    /* When inside col-12 */
+    .form-group .select2-container .select2-selection--single {
+        width: 55.5vw !important;
+    }
+
+    /* When inside col-6 */
+    .col-md-6 .select2-container .select2-selection--single {
+        width: 27.4vw !important;
+    }
+
+    /* Adjust the Select2 container */
+    .select2-container .select2-selection--single {
+        height: 37px !important;
+        line-height: 50px !important;
+        padding: 5px 12px;
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+    }
+
+    /* Adjust the dropdown arrow height and alignment */
+    .select2-container .select2-selection--single .select2-selection__arrow {
+        height: 37px !important;
+        top: 0;
+        right: 6px;
+    }
+
+    /* Ensure dropdown menu adapts properly */
+    .select2-container .select2-dropdown {
+        border-radius: 4px;
+        border: 1px solid #ced4da;
+    }
+
+    /* Align the clear button */
+    .select2-container .select2-selection__clear {
+        line-height: 37px !important;
+    }
+
+    .custom-control-label::before{
+        background-color:lightblue;
+        width: 1.85rem;
+        height: 1.85rem;
+    }
+    .custom-control-label::after {
+        width: 1.85rem;
+        height: 1.85rem;
+    }
+
+    .big-checkbox{
+        width: 16px; /* Adjust the width as needed */
+        height: 16px; /* Adjust the height as needed */
+        transform: scale(1.15); /* Adjust the scale as needed */
+        -webkit-transform: scale(1.15); /* For Safari and Chrome */
+        -moz-transform: scale(1.15); /* For Firefox */
+        -ms-transform: scale(1.15); /* For Internet Explorer */
+        -o-transform: scale(1.15); /* For Opera */
+    }
+
+    .inline-checkboxes{
+        display: inline-block;
+        margin-right: 15px; /* Adjust spacing as needed */
+    }
+
+    .radio-inline {
+        display: inline-flex;
+        gap: 50px;           /* ← spacing between options */
+        padding: 2px;     /* remove default <ul> padding */
+        margin: 0;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+    }
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h2 align="center">ใบแจ้งซ่อม</h2>
+    <h6 class="text-right">รายละเอียดใบแจ้งซ่อม</h6>
+    <form class="form" method="post" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+    <div class="card div-shadow my-2">
+        <div class="card-content">
+          <div class="card-body">
+            <div class="row">
+                <div class="col-6">
+                    <h5 class="card-title text-primary">เลขที่ {{ma.ref_no}}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">วันที่ {{ma.created |date:"d/m/Y" }} ทะเบียนรถ {{ma.car}}</h6>
+                </div>
+                <div class="col-6" style="display: flex; align-items: center;">
+                {{form.location | add_class:"form-control form-control border border-primary"}}
+                </div>
+            </div>
+            <hr>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                    <label>{{form.repair_type.label}}</label> 
+                    {{form.repair_type | add_class:"form-control"}}
+                    </div>
+                    <div class="form-group col-md-6">
+                    <label>{{form.ma_type.label}}</label><br>
+                    {{form.ma_type}}
+                    </div>
+                </div>
+
+                <div class="in_rp form-group">
+                    <label>{{form.repair_name.label}}</label>
+                    {{form.repair_name | add_class:"form-control in_input"}}
+                </div>
+                <div class="form-row out_rp">
+                    <div class="form-group col-md-8">
+                    <label>{{form.distributor.label}}</label>
+                    {{form.distributor | add_class:"form-control is-valid out_input"}}
+
+                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control is-valid"
+                        Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"
+                        onfocusout="searchDataDistributor();">
+                    
+                    </div>
+                    <div class="form-group col-md-4">
+                    <label>{{form.amount.label}}</label>
+                    {{form.amount | add_class:"form-control is-valid out_input"}}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                    <label>{{form.start_rp.label}}</label>
+                    {{form.start_rp | add_class:"form-control"}}
+                    </div>
+                    <div class="form-group col-md-6">
+                    <label>{{form.end_rp.label}}</label>
+                    {{form.end_rp | add_class:"form-control"}}
+                    </div>
+                </div>
+                <div class="in_rp form-group">
+                    <label>{{form.detail.label}}</label>
+                    {{form.detail | add_class:"form-control in_input"}}
+                </div>
+                <div class="in_rp form-row">
+                    <div class="form-group col-md-6">
+                    <label>{{form.work_hour.label}}</label>
+                    {{form.work_hour | add_class:"form-control in_input"}}
+                    </div>
+                    <div class="form-group col-md-4">
+                    <label>{{form.force_day.label}}</label>
+                    {{form.force_day | add_class:"form-control in_input"}}
+                    </div>
+                    <div class="form-group col-md-2">
+                    <label>{{form.force_hour.label}}</label>
+                    {{form.force_hour | add_class:"form-control in_input"}}
+                    </div>
+                </div>
+                <div class="out_rp form-row">
+                    <div class="form-group col-md-6">
+                    <label>{{form.contact_name.label}}</label>
+                    {{form.contact_name | add_class:"form-control out_input"}}
+                    </div>
+                    <div class="form-group col-md-6">
+                    <label>{{form.sender_name.label}}</label>
+                    {{form.sender_name | add_class:"form-control out_input"}}
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                    <label>{{form.chief_name.label}}</label>
+                    {{form.chief_name | add_class:"form-control"}}
+                    </div>
+                    <div class="form-group col-md-6">
+                    <label>{{form.chief_update.label}}</label>
+                    {{form.chief_update | add_class:"form-control"}}
+                    </div>
+                </div>
+          </div>
+        </div>
+      </div>
+    <h6 class="my-3 text-right">สรุปงานซ่อม</h6>
+    <div class="card div-shadow my-2">
+        <div class="card-content">
+          <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                    <label>{{form.sum_up.label}}</label>
+                    {{form.sum_up | add_class:"form-control"}}
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>ความเห็นผู้ใช้งานหลังตรวจรับงาน</label>
+                        {{form.is_complete}}
+                        <div class="row">
+                            <div class="col">
+                                {{form.fail_reason | add_class:"form-control"}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="pdf">
+                        {% if form.ma_pdf.errors %}
+                        <div class="alert alert-warning" role="alert">
+                            {{ form.ma_pdf.errors }}
+                        </div>
+                        {% endif %}
+                        ไฟล์แนบ {{form.ma_pdf | add_class:"form-control text-right"}}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col text-right">
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </div>
+          </div>
+        </div>
+    </div>
+    </form>
+</div>
+{% endblock %}
+{% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+<!-- Select2 CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+<!-- Select2 JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+
+<script>
+    $('div.pdf a').addClass('btn btn-outline-success btn-sm');
+    $('div.pdf a').text('Download');
+
+    //after load
+    $(document).ready(function() {
+        $('#id_start_rp').val('{{ ma.start_rp|get_localtime|date:"Y-m-d\\TH:i"}}');
+        $('#id_end_rp').val('{{ ma.end_rp|get_localtime|date:"Y-m-d\\TH:i"}}');
+        $('#id_chief_update').val('{{ ma.chief_update|get_localtime|date:"Y-m-d\\TH:i"}}');
+        $('#id_repair_name').select2();
+        $('#id_chief_name').select2();
+        $('#id_repair_type').select2();
+        $('#id_contact_name').select2();
+        $('#id_sender_name').select2();
+        visibleRepair();
+        requiredFail();
+        setDataDistributor();
+    });
+
+    //ก่อน save
+    $('form').submit(function(){
+        resetVal();
+    });
+
+    function resetVal(){
+      loc = $('#id_location').val();
+
+      if(loc == 'ซ่อมเอง')
+        var input = $(".out_input");
+      else if(loc == 'ส่งซ่อมนอก')
+        var input = $(".in_input");
+
+      for(var i = 0; i < input.length; i++){
+        $(input[i]).val("");         
+      }
+    }
+
+    $('input[name="is_complete"]').change(function() {
+        requiredFail();
+    });
+
+    function requiredFail(){
+        is_complete = $('input[name="is_complete"]:checked').val();
+        if(is_complete == 'False'){
+            $('#id_fail_reason').focus();
+            $('#id_fail_reason').prop('required', true);
+        }else if(is_complete == 'True'){
+            $('#id_fail_reason').prop('required', false);
+        }
+    }
+
+    $('#id_location').change(function() {
+        visibleRepair();
+    });
+
+    function visibleRepair(){
+        val = $('#id_location').val();
+        if(val == 'ซ่อมเอง'){
+            $(".in_rp").removeClass("d-none");
+            $(".out_rp").addClass("d-none");
+        }else if(val == 'ส่งซ่อมนอก'){
+            $(".out_rp").removeClass("d-none")
+            $(".in_rp").addClass("d-none");
+        }
+    }
+
+    $(function () {
+        $("#id-form-distributor").autocomplete({
+            source: '{% url "autocompalteDistributor" %}',
+            minLength: 1,
+        });
+    });
+
+    function searchDataDistributor(){
+        if($('#id-form-distributor').val() != ""){
+            var str = $('#id-form-distributor').val();
+            var items = str.split( "-" );
+            var idInput = items[0];
+            // Create Ajax Call
+            if(idInput){
+                //set id_distributor
+                $("#id_distributor").val(idInput);
+
+                $.ajax({
+                url: '{% url "searchDataDistributor" %}',
+                data: {
+                        'id_distributor': idInput,
+                    },
+                dataType: 'json',
+                success: function (data) {
+                }
+                });
+            }
+            return false;
+        }
+    }
+
+    function setDataDistributor(){
+        if($('#id_distributor').val() != ""){
+            var idInput = $('#id_distributor').val();
+            // Create Ajax Call
+            if(idInput){
+                $.ajax({
+                    url: '{% url "setDataDistributor" %}',
+                    data: {
+                        'id_distributor': idInput,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.val) {
+                            //set id_credit , id_vat_type
+                            $('#id-form-distributor').val(data.val);
+                        }
+                    }
+                });
+            }
+            return false;
+        }
+    }
+
+    $("#id_amount").focusout(function() {}) .blur(function() {
+        $(this).val(parseFloat($(this).val()).toFixed(2));
+    });
+
+</script>
+{% endblock %}

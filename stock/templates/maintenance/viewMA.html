@@ -1,0 +1,185 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+
+{% block css %}
+<style>
+.ma{
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 2px;
+  width: 60px;
+}
+
+.ma:hover {
+  box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container my-3">
+<h3 align="center">ใบแจ้งซ่อม</h3>
+<div class="card my-3 bg-light div-shadow">
+  <div class="card-body">
+    <form method="get">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.ref_no|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.car|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.name|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.broke_type|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.car_state|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.repair_type|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.location|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.start_created|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.end_created|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-1 mb-0">
+          <div>
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped my-3">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">รหัสใบแจ้งซ่อม</th>
+            <th scope="col">วันที่</th>
+            <th scope="col">ชื่อผู้แจ้งซ่อม</th>
+            <th scope="col">ทะเบียนรถ</th>
+            <th scope="col">อาการเสีย</th>
+            <th scope="col">สภาพรถ</th>
+            <th scope="col">ไฟล์แนบ</th>
+            <th scope="col" style="width: 15px;">รูปภาพ</th>
+            <th scope="col" style="width: 100px;">สถานะอนุมัติ</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for ma in mas %}
+          <tr>
+            <th scope="row"><a href="{%url 'showMA' ma.id 1 %}">{{ma.ref_no}}</a></th>
+            <td>{{ma.created |date:"d/m/Y" }}</td>
+            <td>{{ma.name}}</td>
+            <td>{{ma.car}}</td>
+            <td>{{ma.broke_reason}}</td>
+            <td>{{ma.car_state}}</td>
+            <td style="width: 15px;">
+              {% if ma.ma_pdf %}
+                <a href="/media/{{ma.ma_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
+              {% endif %}
+            </td>
+            <td style="width: 150px;">{% if ma.image1 %}
+                <a target="_blank" href="{{ ma.image1.url }}">
+                    <img class="ma" src="{{ ma.image1.url }}" style="width:60px;height: 60px;">
+                </a>
+                {% endif %}
+                {% if ma.image2 %}
+                <a target="_blank" href="{{ ma.image2.url }}">
+                    <img class="ma" src="{{ ma.image2.url }}" style="width:60px;height: 60px;">
+                </a>
+                {% endif %}
+                {% if ma.image3 %}
+                <a target="_blank" href="{{ ma.image3.url }}">
+                    <img class="ma" src="{{ ma.image3.url }}" style="width:60px;height: 60px;">
+                </a>
+                {% endif %}
+                {% if ma.image4 %}
+                <a target="_blank" href="{{ ma.image4.url }}">
+                    <img class="ma" src="{{ ma.image4.url }}" style="width:60px;height: 60px;">
+                </a>
+                {% endif %}
+            </td>
+            <td>
+              {% if ma.approve_status == 'อนุมัติซ่อม' %}
+                <a style="width: 100px;" href="{%url 'editMA' ma.id %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
+                <a style="width: 100px;" onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</a>
+              {%else%}
+                <button style="width: 100px;" type="button"
+                  class="btn btn-sm btn-block btn-outline-warning"
+                >ขออนุมัติซ่อม
+                </button>
+              {%endif%}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+      <br/>
+      <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if mas.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="{% my_url mas.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if mas.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="{% my_url mas.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in mas.paginator.page_range %}
+            {% if mas.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > mas.number|add:'-5' and i < mas.number|add:'5' %}
+                 <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if mas.paginator.num_pages > mas.number|add:'4' %}
+           <li class="page-item"><a class="page-link" href="{% my_url mas.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% if mas.has_next %}
+            <li class="page-item">
+            <a class="page-link"  href="{% my_url mas.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}

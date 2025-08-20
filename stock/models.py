@@ -197,6 +197,35 @@ def invoice_ref_number(branch_company):
         new_no = None
     return new_no
 
+def maintenance_ref_number(branch_company):
+    #tz = pytz.timezone('Asia/Bangkok')
+    today = datetime.datetime.now()
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
+    month = str(today.strftime('%m'))
+    YM = year + month
+    format = 'M'+ str(branch_company) + YM
+
+    try:
+        last_no = Maintenance.objects.all().filter(ref_no__contains=format).order_by('id').last()
+    except:
+        last_no = None
+
+    if not last_no:
+        return format + '001'
+
+    ref_no = last_no.ref_no
+    oldDate =  ref_no[3:-3]
+    if YM == oldDate:
+        no_int = int(ref_no.split(format)[-1])
+    elif YM != oldDate:
+        no_int = 000
+    
+    width = 3
+    new_no_int = no_int + 1
+    formatted = (width - len(str(new_no_int))) * "0" + str(new_no_int)
+    new_no = format + str(formatted)
+    return new_no
+
 # Create your models here.
 def get_first_name(self):
     return self.first_name + " " + self.last_name
@@ -886,6 +915,19 @@ class BasePOType(models.Model):
     
     def __str__(self):
         return str(self.name)
+    
+class BaseMAType(models.Model):
+    id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสประเภทใบแจ้งซ่อม")#เก็บไอดีประเภทใบสั่งซื้อ
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อประเภทใบแจ้งซ่อม")
+
+    class Meta:
+        db_table = 'BaseMAType'
+        ordering=('id',)
+        verbose_name = 'ประเภทใบแจ้งซ่อม'
+        verbose_name_plural = 'ข้อมูลประเภทใบแจ้งซ่อม'
+    
+    def __str__(self):
+        return str(self.name)
 
 
 class PositionBasePermission(models.Model):
@@ -1555,3 +1597,94 @@ class ExOEINVH(models.Model):
 
     def __str__(self):
         return f"{self.docnum} - {self.cuscod}"
+
+class Maintenance(models.Model):
+    id = models.IntegerField(primary_key=True, unique=True , verbose_name="รหัสการซ่อม")#เก็บไอดีรหัสการซ่อม
+    created = models.DateTimeField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True) #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน
+    name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_name',
+        verbose_name="ผู้แจ้งซ่อม"
+    )
+    broke_reason = models.CharField(max_length=255, blank=True, null = True, verbose_name="อาการเสีย")
+    car_state = models.CharField(max_length=255, blank=True, null = True, verbose_name="สภาพรถ")#สามารถเคลื่อนที่ได้และไม่สามารถเคลื่อนที่ได้
+    image1 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 1")
+    image2 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 2")
+    image3 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 3")
+    image4 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 4")
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    ref_no = models.CharField(max_length = 255, null = True, blank = True)
+    approve_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_ap_name',
+        verbose_name="ผู้อนุมัติซ่อม"
+    )
+    approve_update = models.DateTimeField(null=True, blank=True)
+    approve_status = models.CharField(blank=True, null=True, max_length=255, verbose_name="สถานะอนุมัติซ่อม")
+    ma_type = models.ForeignKey(BaseMAType, on_delete=models.CASCADE, blank=True, null=True)#ประเภทใบแจ้งซ่อม
+    location = models.CharField(blank=True, null=True, max_length=255, verbose_name="สถานที่ซ่อม")
+    start_rp = models.DateTimeField(blank=True, null = True, verbose_name="วันที่เริ่มดำเนินการ")
+    end_rp = models.DateTimeField(blank=True, null = True, verbose_name="วันที่กำหนดเสร็จ")
+    repair_type = models.ForeignKey(BaseRepairType, on_delete=models.CASCADE, blank=True, null=True)#ประเภทการซ่อม
+    # ส่วนที่ 2
+    repair_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_rp_name',
+        verbose_name="ช่างซ่อม"
+    )
+    chief_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_ch_name',
+        verbose_name="หัวหน้าช่างซ่อม"
+    )
+    chief_update = models.DateTimeField(null=True, blank=True)
+    detail = models.TextField(blank=True, null = True, verbose_name="อธิบายงาน/รายละเอียด")
+    repair_note = models.TextField(blank=True, null = True, verbose_name="ช่างผู้ดำเนินการ")
+    work_hour = models.IntegerField(null=True, blank = True, verbose_name="ชม.ทำงาน (ชม.)")
+    force_day = models.IntegerField(null=True, blank = True, verbose_name="ใช้แรง (วัน)")
+    force_hour = models.IntegerField(null=True, blank = True, verbose_name="ใช้แรง (ชม.)")
+    #ส่วนที่ 3
+    distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE,null = True,blank = True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
+    contact_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_ct_name',
+        verbose_name="ผู้ติดต่อ"
+    )
+    sender_name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_sd_name',
+        verbose_name="ผู้จัดส่งงาน"
+    )
+    #ส่วนสรุป
+    sum_up = models.TextField(blank=True, null = True, verbose_name="สรุปงานซ่อม/ความคิดเห็น")
+    is_complete = models.BooleanField(blank=True, null = True)#สถานะ ปิดสรุปใช้งานได้
+    fail_reason = models.TextField(blank=True, null = True, verbose_name="เหตุผลที่ปิดสรุปไม่ได้")#เหตุผลที่ปิดสรุปไม่ได้
+    ma_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/maintenance/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="ไฟล์แนบ")
+
+    def save(self, *args, **kwargs):
+        if self.address_company is None:
+            company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
+            self.address_company = company.address
+        if self.ref_no is None:
+            self.ref_no = maintenance_ref_number(self.branch_company)
+        super(Maintenance, self).save(*args, **kwargs)
+
+    class Meta:
+        db_table = 'Maintenance'
+        ordering=('-id',)

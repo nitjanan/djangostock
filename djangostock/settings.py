@@ -103,6 +103,7 @@ TEMPLATES = [
                 'stock.context_processors.receiveCounter',
                 'stock.context_processors.companyVisibleTab',
                 'stock.context_processors.document',
+                'stock.context_processors.MAAll'
             ],
 
         },

@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -567,3 +567,79 @@ class BaseCarAdminForm(forms.ModelForm):
         cleaned_data['code'] = code
         cleaned_data['name'] = name
         return cleaned_data
+
+#####################################################
+#################### ใบแจ้งซ่อม #######################
+#####################################################
+LC_CHOICES =( 
+    ("ซ่อมเอง", "ซ่อมเอง"), 
+    ("ส่งซ่อมนอก", "ส่งซ่อมนอก"),
+) 
+
+BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
+
+class MaintenanceForm(forms.ModelForm):
+    repair_name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ช่างช่อม',
+        required=False
+    )
+    chief_name = forms.ModelChoiceField(
+        queryset = User.objects.filter(groups__name='หัวหน้างาน'),
+        label='หัวช่างซ่อมบำรุง',
+        required=True
+    )
+    contact_name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ผู้ติดต่อ',
+        required=False
+    )
+    sender_name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ผู้จัดส่งงาน',
+        required=False
+    )
+    location = forms.ChoiceField(choices = LC_CHOICES, label='สถานที่ซ่อม')
+    is_complete = forms.TypedChoiceField(
+                   coerce=lambda x: x == 'True',
+                   choices=((True, 'ปิดสรุปได้ กลับมาใช้งานได้ปกติ'), (False, 'ปิดสรุปไม่ได้ เหตุผล')),
+                   widget=forms.RadioSelect
+                )
+
+    class Meta:
+       model = Maintenance
+       fields = ('location', 'repair_type', 'repair_name', 'chief_name', 'chief_update', 'detail', 'repair_note', 'work_hour', 'force_day', 'force_hour', 'start_rp', 'end_rp', 'sum_up', 'ma_type', 'is_complete', 'fail_reason', 'distributor', 'amount','contact_name', 'sender_name', 'ma_pdf')
+       widgets = {
+         'distributor': forms.HiddenInput(),#dataList
+         'detail': forms.Textarea(attrs={'rows': 3}),
+         'repair_note': forms.Textarea(attrs={'rows': 3}),
+         'sum_up': forms.Textarea(attrs={'rows': 5}),
+         'chief_update': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+         'start_rp': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+         'end_rp': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+         'ma_type': forms.RadioSelect(attrs={'class': 'radio-inline list-unstyled'}),
+         'fail_reason': forms.Textarea(attrs={'rows': 3, 'style': 'height: 70px;'}),
+         'ma_pdf': MyClearableFileInput,
+        }
+       labels = {
+            'location': _('สถานที่ซ่อม'),
+            'distributor': _('ชื่อร้าน ส่งซ่อมนอก/ Sub-Contract'),
+            'amount': _('ราคา'),
+            'chief_update': _('วันที่ / เวลา'),
+            'repair_type': _('ประเภทการซ่อม'),
+            'ma_type':  _('ประเภทใบแจ้งซ่อม'),
+        }
+
+class MaintenanceAddressCompanyForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+       if self.instance.branch_company is not None:
+           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
+           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+
+    class Meta:
+       model = Maintenance
+       fields = ('address_company',)
+       labels = {
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
+        }

@@ -1,0 +1,488 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+
+{% block css %}
+<style>
+  @media print {
+    .hidden-print {
+      display: none;
+    }
+    .bd-line{
+        border-style: solid;
+        border-width: thin;
+    }
+  }
+  u.dotted {
+  border-bottom: 1px dashed #999;
+  text-decoration: none;
+  }
+
+  p.line75 {
+    line-height:75%;
+  }
+
+  .verybigmodal {
+    max-width: 80%;
+  }
+
+  .vertical-text {
+    writing-mode: sideways-lr;
+    text-orientation: mixed; /* หรือ upright, sideways */
+  }
+  .col-md-0-5 {
+    flex: 0 0 4.166% !important;
+    max-width: 4.166% !important;
+  }
+  .col-md-11-5 {
+    flex: 0 0 94.69% !important;
+    max-width: 94.69% !important;
+  }
+
+  .ma{
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    padding: 2px;
+    width: 60px;
+  }
+
+  .ma:hover {
+    box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+  }
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="container bd-line">
+    <div class="row my-2">
+        <div class="col-md-12">
+        <div class="row">
+            <div class="text-left col-5" style="display: flex; align-items: center;">
+                <img src="/media/{{ma.address_company.logo}}" class="rounded float-left" width="60" height="60"/>
+                <h1 style="font-size:13px" class="pl-1">
+                    <strong style="font-size:15px">{{ma.address_company.name_th}}{% if isUploadeReceipt %}  <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</strong>
+                    <br>{{ma.address_company.address}}
+                    {% if ma.address_company.tel %}<br>โทร {{ma.address_company.tel}}{%endif%}
+                    {% if ma.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{ma.address_company.tex}}{%endif%}{% if ma.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
+                </h1>
+            </div>
+          <form  class="float-right" method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+                {% if mode == 4 and isUploadeReceipt %}
+                  <div class="col d-print-none">
+                    <!-- แก้ไขที่อยู่หัวรายงาน -->
+                    <button type="submit" name="btnformPOr" class="btn btn-primary my-1">
+                      <i class="fas fa-save"></i>
+                      บันทึก
+                    </button>
+                  </div>
+                  {%endif%}
+                  <!-- แก้ไขที่อยู่หัวรายงาน -->
+                  <div class="modal fade" id="addressCompany" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="exampleModalLongTitle">แก้ไขที่อยู่ตามจดทะเบียน</h5>
+                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                          </button>
+                        </div>
+                        <div class="modal-body">
+                          {{maa_form.address_company | add_class:"form-control"}}
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                          <button type="submit"  name="btnformMAa" class="btn btn-primary" onclick="">บันทึกการแก้ไข</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+          </form>
+          <!-- QR Code 17-05-2024 -->
+          <!--div class="col-4 float-right" style="display: flex; align-items: center;">
+            {% if ma.qr_code %}
+                <img src="{{ ma.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
+            <ul class="list-unstyled my-3 text-left">
+                {% for bp in base_po_type %}
+                    <li>
+                        {% if bp == ma.po_type %}
+                            <i class="fas fa-square"></i>
+                        {% else %}
+                            <i class="far fa-square"></i>
+                        {% endif %}
+                        {{ bp.name }}
+                    </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+          </div-->
+          <div class="col-2" style="display: flex; align-items: center;">
+            <h4>ใบแจ้งซ่อม</h4>
+          </div>
+          <div class="col-5" style="display: flex; align-items: center;">
+            <h5 style="font-size:17px" class="px-2">เลขที่ {{ma.ref_no}}</h5>
+            <img src="/media/company/ff_years_logo.png" class="rounded float-right" width="70" height="60"/>
+            <img src="/media/company/iso_14001.png" class="rounded float-right" width="140" height="60"/>
+            &nbsp;
+            {% if ma.ma_pdf %}
+                <a href="/media/{{ma.ma_pdf}}" class="btn btn-success btn-sm d-print-none" target="_blank"><i class="fas fa-file-download"></i></a>
+            {% endif %}
+          </div>
+        </div>
+        <!------ ส่วนที่ 1 ------>
+        <div class="row border border-secondary my-1">
+            <div class="col-md-0-5 border border-secondary d-flex justify-content-center align-items-center vertical-text">
+                <h1 style="font-size:17px">ส่วนที่ 1 ฝ่ายร้องขอ</h1>
+            </div>
+            <div class="col-md-11-5 pl-3">
+                <div class="row my-2">
+                    <div class="col">
+                      <h5 style="font-size:18px" class="mb-2">วันที่ <u class="dotted">{{ma.created |date:"d/m/Y"}}</u></h5>
+                      <h5 style="font-size:18px" class="mb-2">ทะเบียนรถ/ ชื่อเครื่องจักร/ หน่วยงาน <u class="dotted">{{ma.car.name}}</u></h5>
+                      <h5 style="font-size:18px" class="mb-2">แผนก/ หน่วยงาน ...........................</h5>
+                    </div>
+                    <div class="col">
+                      <h5 style="font-size:18px" class="mb-2">
+                        <ul class="list-unstyled text-left">
+                            {% for mat in base_ma_type %}
+                              {% if mat == ma.ma_type%}
+                                <i class="fas fa-square"></i>
+                              {% else %}
+                                <i class="far fa-square"></i>
+                              {% endif %}
+                              {{mat.name}} &nbsp&nbsp&nbsp
+                            {% endfor %}
+                        </ul>
+                      </h5>
+                      <h5 style="font-size:18px" class="mb-2">รหัสเครื่องจักร <u class="dotted">{{ma.car.code}}</u></h5>
+                      <h5 style="font-size:18px" class="mb-2">เลขไมล์/ เลขชั่วโมง ตอนแจ้งซ่อม ...........................</h5>
+                    </div>
+                </div>
+                <div class="row border-top border-secondary">
+                    <div class="col border-right border-secondary">
+                      <h5 style="font-size:18px" class="text-center">อาการ/ สาเหตุที่เสีย/ สถานะรถ</h5>
+                      <h5 style="font-size:18px">
+                        <u class="dotted">
+                          1. {{ma.broke_reason}}<br>
+                          2. {{ma.car_state}}
+                        </u>
+                      </h5>
+                    </div>
+                    <div class="col-3">
+                      <div class="row">
+                        <div class="col"><h5 style="font-size:18px" class="text-center">รูปภาพ</h5></div>
+                      </div>
+                      <div class="row">
+                        <div class="col text-center">
+                          {% if ma.image1 %}
+                          <a target="_blank" href="{{ ma.image1.url }}">
+                              <img class="ma" src="{{ ma.image1.url }}" style="width:82px;height: 82px;">
+                          </a>
+                          {% endif %}
+                          {% if ma.image2 %}
+                          <a target="_blank" href="{{ ma.image2.url }}">
+                              <img class="ma" src="{{ ma.image2.url }}" style="width:82px;height: 82px;">
+                          </a>
+                          {% endif %}
+                          {% if ma.image3 %}
+                          <a target="_blank" href="{{ ma.image3.url }}">
+                              <img class="ma" src="{{ ma.image3.url }}" style="width:82px;height: 82px;">
+                          </a>
+                          {% endif %}
+                          {% if ma.image4 %}
+                          <a target="_blank" href="{{ ma.image4.url }}">
+                              <img class="ma" src="{{ ma.image4.url }}" style="width:82px;height: 82px;">
+                          </a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-3">
+                     <div class="row border-left border-secondary">
+                      <div class="col">
+                        <div class="row">
+                          <div class="col"><h5 style="font-size:18px" class="text-center">เกย์น้ำมันก่อน/ หลังซ่อม</h5></div>
+                        </div>
+                        <div class="row">
+                          <div class="col">
+                            ก่อน
+                          </div>
+                          <div class="col text-left">
+                            <br><img src="/media/company/oil_gauge.png" class="rounded float-right" width="120" height="60"/>
+                          </div>
+                        </div>
+                      </div>
+                     </div>
+                     <div class="row border-top border-left border-secondary">
+                        <div class="col">
+                          หลัง
+                        </div>
+                        <div class="col text-left">
+                            <br><img src="/media/company/oil_gauge.png" class="rounded float-right" width="120" height="60"/>
+                        </div>
+                     </div>
+                    </div>
+                </div>
+                <div class="row border-top border-secondary" style="height: 80px;">
+                  <div class="col border-right border-secondary" style="display: flex; align-items: center;">
+                    <h1 style="font-size:16px" class="pl-1">
+                      <strong>ผู้แจ้ง (ผู้ขับ/ ผู้ใช้งาน/ ผู้พบเห็น)</strong><br>
+                      <address class="mt-2">
+                        <u class="dotted">{{ma.name}}</u> วันที่ <u class="dotted">{{ma.created | format_datetime}}</u>
+                      </address>
+                    </h1>
+                  </div>
+                  <div class="col" style="display: flex; align-items: center;">
+                    <h1 style="font-size:16px" class="pl-1">
+                      <strong>หัวหน้างาน รับทราบ/อนุมัติการซ่อม</strong><br>
+                      <address class="mt-2">
+                        {% if ma.approve_name %}
+                          <u class="dotted">{{ma.approve_name}}</u> วันที่ <u class="dotted">{{ma.approve_update | format_datetime}}</u>
+                        {%else%}
+                          ........................................ วันที่ ............./............./.............
+                        {% endif %}
+                      </address>
+                    </h1>
+                  </div>
+                </div>
+            </div>
+        </div>
+        <!------ ส่วนที่ 2 ------>
+        <div class="row border border-secondary my-2">
+            <div class="col-md-0-5 border border-secondary d-flex justify-content-center align-items-center vertical-text">
+                <h1 style="font-size:17px">ส่วนที่ 1 ฝ่ายซ่อมบำรุง</h1>
+            </div>
+            <div class="col-md-11-5 pl-3">
+                <div class="row my-2">
+                    <div class="col">
+                      <h5 style="font-size:18px">1. หัวหน้าช่างซ่อมบำรุง พิจารณาร่วมกับวิศวกร / ผู้จัดการเหมือง</h5>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">
+                      <h5 style="font-size:18px">{% if ma.location == 'ซ่อมเอง' %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ซ่อมเอง มอบหมายช่างซ่อมบำรุง {% if ma.repair_name %}<u class="dotted">{{ma.repair_name}}</u>{%else%}..................................................{%endif%}</h5>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">
+                      <h5 style="font-size:18px">{% if ma.location == 'ส่งซ่อมนอก' %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ส่งซ่อมนอก (บันทึกข้อ 3)</h5>
+                    </div>
+                    <div class="col">
+                      <h5 style="font-size:18px">หัวหน้าช่างซ่อมบำรุง {% if ma.chief_update %}<u class="dotted">{{ma.chief_update | format_datetime}}</u>{%else%}.......................... #........../........../..........{%endif%}</h5>
+                    </div>
+                </div>
+                <div class="row border-top border-secondary">
+                    <div class="col my-2">
+                      <h5 style="font-size:18px">2. ช่างซ่อมบำรุง ผู้รับงาน</h5>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">
+                      <h5 style="font-size:18px">เริ่มดำเนินการวันที่ {% if ma.location == 'ซ่อมเอง' and ma.start_rp %}<u class="dotted">{{ma.start_rp | format_datetime}}</u>{%else%}........../........../.......... เวลา ..................{%endif%}</h5>
+                    </div>
+                    <div class="col">
+                      <h5 style="font-size:18px">กำหนดเสร็จ วันที่ {% if  ma.location == 'ซ่อมเอง' and ma.end_rp %}<u class="dotted">{{ma.end_rp | format_datetime}}</u>{%else%}........../........../.......... เวลา ..................{%endif%}</h5>
+                    </div>
+                </div>
+                <div class="row border-top border-secondary text-center">
+                    <div class="col border-right border-secondary">
+                      <h5 style="font-size:18px">อธิบายงาน/รายละเอียด</h5>
+                    </div>
+                    <div class="col-4">
+                      <h5 style="font-size:18px">ประเภทการซ่อม</h5>
+                    </div>
+                </div>
+                <div class="row border-top border-secondary" style="height: 250px;">
+                    <div class="col border-right border-secondary">
+                          {% if ma.detail %}
+                            <u class="dotted" style="font-size:15px">{{ma.detail |truncatechars:600}}</u>
+                          {% endif %}
+                        <h5 style="font-size:17px; position: absolute; bottom: 0;">ชม.ทำงาน {% if ma.location == 'ซ่อมเอง' and ma.work_hour%}<u class="dotted">{{ma.work_hour}}</u>{%else%}........................{%endif%} ชม.
+                          ใช้แรง {% if ma.location == 'ซ่อมเอง' and ma.force_day %}<u class="dotted">{{ma.force_day}}</u>{%else%}..............{%endif%} วัน {% if ma.location == 'ซ่อมเอง' and ma.force_hour %}<u class="dotted">{{ma.force_hour}}</u>{%else%}..........{%endif%} ชม.<br>
+                          ลงนาม ช่างผู้ดำเนินการซ่อม {% if ma.repair_name %}<u class="dotted">{{ma.repair_name}}</u>{%else%}..................................................{%endif%}
+                        </h5>
+                    </div>
+                    <div class="col-4">
+                      <ul class="list-unstyled text-left row no-gutters">
+                        {% for rpt in base_rp_type %}
+                          <li class="col-6">
+                            <h5 style="font-size:13px;">
+                            {% if rpt == ma.repair_type %}
+                              <i class="fas fa-square"></i>
+                            {% else %}
+                              <i class="far fa-square"></i>
+                            {% endif %}
+                            {{ rpt.name }}</h5>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                </div>
+                <div class="row border-top border-secondary">
+                    <div class="col-8 my-2">
+                      <h5 style="font-size:18px">3. ชื่อร้าน ส่งซ่อมนอก/ Sub-Contract {% if ma.distributor %}<u class="dotted">{{ma.distributor.id}}-{{ma.distributor}}</u>{%else%}..................................................................{%endif%}</h5>
+                    </div>
+                    <div class="col my-2">
+                      <h5 style="font-size:18px">ราคา {% if ma.amount %}<u class="dotted">{{ma.amount}}</u>{%else%}...............................................{%endif%} บาท</h5>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">
+                      <h5 style="font-size:18px">ส่งงานวันที่ {% if ma.location == 'ส่งซ่อมนอก' and ma.start_rp %}<u class="dotted">{{ma.start_rp | format_datetime}}</u>{%else%}............../............../..............{%endif%}</h5>
+                    </div>
+                    <div class="col">
+                      <h5 style="font-size:18px">กำหนดเสร็จ {% if ma.location == 'ส่งซ่อมนอก' and  ma.end_rp %}<u class="dotted">{{ma.end_rp | format_datetime}}</u>{%else%}............../............../..............{%endif%}</h5>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">
+                      <h5 style="font-size:18px">ผู้ติดต่อ {% if ma.location == 'ส่งซ่อมนอก' and ma.contact_name %}<u class="dotted">{{ma.contact_name}}</u>{%else%}...........................{%endif%}</h5>
+                    </div>
+                    <div class="col">
+                      <h5 style="font-size:18px">ผู้จัดส่งงาน {% if ma.location == 'ส่งซ่อมนอก' and ma.sender_name %}<u class="dotted">{{ma.sender_name}}</u>{%else%}...........................{%endif%}</h5>
+                    </div>
+                </div>
+                <!--div class="row border-top border-secondary" style="height: 50px;">
+                    <div class="col border-right border-secondary" style="display: flex; align-items: center;">
+                      <h5 style="font-size:18px">ขอเปลี่ยนแปลงกำหนดเสร็จ วันที่ ............./............./.............</h5>
+                    </div>
+                    <div class="col" style="display: flex; align-items: center;">
+                      <h5 style="font-size:18px">ฝ่ายร้องขอ รับทราบ ...........................................</h5>
+                    </div>
+                </div-->
+            </div>
+        </div>
+        <!------ ส่วนที่ 3 ------>
+        <div class="row border border-secondary">
+            <div class="col-md-0-5 border border-secondary d-flex justify-content-center align-items-center vertical-text">
+                <h1 style="font-size:17px">ส่วนที่ 3 ปิดสรุป</h1>
+            </div>
+            <div class="col-md-11-5 pl-3">
+                <div class="row border-top border-secondary" style="height: 185px;">
+                    <div class="col border-right border-secondary">
+                        <h5 style="font-size:18px">สรุปงานซ่อม/ความคิดเห็น</h5>
+                        {% if ma.sum_up %}
+                          <u class="dotted" style="font-size:15px">{{ma.sum_up |truncatechars:340}}</u>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <h5 class="mb-2" style="font-size:18px">ความเห็นผู้ใช้งานหลังตรวจรับงาน</h5>
+                        <h5 class="mb-2" style="font-size:18px">{% if ma.is_complete == 1 %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ปิดสรุปได้ กลับมาใช้งานได้ปกติ</h5>
+                        <h5 class="mb-2" style="font-size:18px">{% if ma.is_complete == 0 %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ปิดสรุปไม่ได้ เพราะ</h5>
+                        {% if ma.fail_reason %}
+                          <u class="dotted" style="font-size:15px">{{ma.fail_reason |truncatechars:220}}</u>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row border border-secondary my-2">
+          <div class="col mt-2">
+            <h5 class="mb-2" style="font-size:18px">หัวหน้างาน ..........................................</h5>
+            <h5 class="mb-2" style="font-size:18px"> วันที่ ........../........../..........</h5>
+          </div>
+          <div class="col mt-2">
+            <h5 class="mb-2" style="font-size:18px">หัวหน้าฝ่ายซ่อมบำรุง ................................</h5>
+            <h5 class="mb-2" style="font-size:18px"> วันที่ ........../........../..........</h5>
+          </div>
+          <div class="col mt-2">
+            <h5 class="mb-2" style="font-size:18px">ผู้รับรถ / เครื่องจักร ...................................</h5>
+            <h5 class="mb-2" style="font-size:18px"> วันที่ ........../........../..........</h5>
+          </div>
+        </div>
+        <div class="row my-1">
+          <div class="col">
+            <h5 style="font-size:18px"><ins>* หมายเหตุ</ins>  ต้องตอบกลับฝ่ายร้องขอภายใน ............ วันทำการ</h5>
+          </div>
+          <div class="col text-right">
+            <h5 style="font-size:18px">FM.MN.006</h5>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row my-3 d-print-none">
+      <div class="col text-right">
+        <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
+          <i class="fas fa-print"></i>
+            ปริ้นใบแจ้งซ่อม
+         </button>
+      </div>
+    </div>
+</div>
+<!-- Modal Search-->
+<div class="modal fade" id="myEdit" role="dialog">
+  <div class="modal-dialog modal-lg verybigmodal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="pShowSearch"></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block javascript %}
+<script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
+<script type="text/javascript">
+
+$("#fake").click(function() {
+  $("html").toggleClass("csstransforms");
+});
+
+$('div.pdf a').addClass('btn btn-outline-success btn-sm');
+$('div.pdf a').text('Download');
+
+$(function() {
+    //แสดง จำนวนเงินรวมทั้งสิ้นสะกด
+    var amount = "{{ma.amount}}";
+		var thaibath = ArabicNumberToText(amount);
+    document.getElementById("total-spell").innerHTML = "(" + thaibath + ")";
+});
+
+//ค้นหา 5 รายการล่าสุด
+function searchLastPoItem(){
+    var itemList = [];
+
+    "{% for it in items %}"
+        itemList.push('{{it.item.id}}');
+    "{% endfor %}"
+
+    if (itemList) {
+        // Create Ajax Call
+        $.ajax({
+            url: '{% url "searchLastPoItem" %}',
+            data: { itemList },
+            dataType: 'json',
+            success: function (data) {
+              if (data.instance) {
+                openModal(data.instance);
+                e.preventDefault();
+              }else{
+                $("#pShowSearch").html('ไม่พบรายการที่สั่งซื้อล่าสุด');
+              }
+            }
+        });
+    } else {
+      
+    }
+    return false;
+}
+
+function openModal(instance) {
+  $("#pShowSearch").html(instance);
+  $('#myEdit').modal('show');
+}
+
+function setDateTimePrint(){
+	var currentdate = new Date();
+	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
+	$("#dt_print").text(datetime);
+}
+</script>
+{% endblock %}

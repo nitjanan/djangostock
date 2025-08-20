@@ -16,8 +16,8 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -28,7 +28,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -90,6 +90,8 @@ import qrcode
 from io import BytesIO
 from django.core.files import File
 from PIL import Image, ImageDraw, ImageOps
+from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ObjectDoesNotExist
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -1077,6 +1079,18 @@ def IVShowMode(mode):
         return 'iv_show'
     elif mode == 4:
         return 'h_ex_iv_show'
+    
+def MAPageMode(mode):
+    if mode == 1:
+        return 'ma_page'
+    elif mode == 4:
+        return 'h_ma_page'
+
+def MAShowMode(mode):
+    if mode == 1:
+        return 'ma_show'
+    elif mode == 4:
+        return 'h_ma_show'
 
 @login_required(login_url='signIn')
 @permission_required('auth.view_user', login_url='requisition')
@@ -7656,3 +7670,198 @@ def create_product_qr(product):
     # Close resources
     buffer.close()
     canvas.close()
+
+@csrf_exempt
+def sheet_to_mysql_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
+
+            col1 = data.get("column1")
+            col2 = data.get("column2")
+            col3 = data.get("column3")
+            col4 = data.get("column4")
+            col5 = data.get("column5")
+            col6 = data.get("column6")
+            col7 = data.get("column7")
+            approve_status = data.get("columnX")
+            id = data.get("column24")
+            comp_code = data.get("column25")
+            
+            try:
+                comp = BaseBranchCompany.objects.get(code = comp_code)
+            except BaseBranchCompany.DoesNotExist:
+                comp = BaseBranchCompany.objects.get(code = 'S1')
+
+            try:
+                car = BaseCar.objects.get(name = col4)
+            except BaseCar.DoesNotExist:
+                car = BaseCar.objects.none()
+
+            try:
+                name = User.objects.annotate(
+                    full_name=Concat('first_name', Value(' '), 'last_name')
+                ).get(full_name=col5)
+            except ObjectDoesNotExist:
+                name = User.objects.none()
+
+
+            have_id = Maintenance.objects.filter(id = id).exists()
+            if not have_id:
+                # บันทึกลง MySQL ตามต้องการ
+                Maintenance.objects.create(
+                    id = id,
+                    car = car,
+                    name = name,
+                    broke_reason = col6,
+                    car_state = col7,
+                    branch_company = comp,
+                    approve_status = approve_status,
+                )
+
+                obj = Maintenance.objects.get(id = id)
+
+                if "image1" in request.FILES and request.FILES["image1"]:
+                    obj.image1 = request.FILES["image1"]
+
+                if "image2" in request.FILES and request.FILES["image2"]:
+                    obj.image2 = request.FILES["image2"]
+
+                if "image3" in request.FILES and request.FILES["image3"]:
+                    obj.image3 = request.FILES["image3"]
+
+                if "image4" in request.FILES and request.FILES["image4"]:
+                    obj.image4 = request.FILES["image4"]
+
+                obj.save()
+
+                return JsonResponse({"status": "success", "id": obj.id})
+            else:
+                return JsonResponse({"status": "error", "message": "dupilcate id"}, status=400)
+            
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+        
+    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
+@csrf_exempt
+def update_sheet_to_mysql_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
+            N = data.get("columnN")
+            O = data.get("columnO")
+            col_p = data.get("columnP")
+            approve_status = data.get("columnX")
+            id = data.get("columnId")
+
+            try:
+                approve_name = User.objects.annotate(
+                    full_name=Concat('first_name', Value(' '), 'last_name')
+                ).get(full_name=col_p)
+            except ObjectDoesNotExist:
+                approve_name = User.objects.none()
+            
+            try:
+                if approve_status == 'อนุมัติซ่อม':
+                    ma = Maintenance.objects.get(id = id)
+                    ma.approve_name = approve_name
+                    ma.approve_status = approve_status
+                    ma.approve_update = datetime.datetime.now()
+                    ma.save()
+                    return JsonResponse({"status": "success", "id":"update approve status"})
+                
+            except Maintenance.DoesNotExist:
+                pass
+            
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+        
+    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
+@login_required(login_url='signIn')
+def viewMA(request):
+    active = request.session['company_code']
+    data = Maintenance.objects.filter(branch_company__code = active)
+
+    #กรองข้อมูล
+    myFilter = MaintenanceFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'mas':dataPage,
+        'filter':myFilter,
+        'ma_page': "tab-active",
+        'ma_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "maintenance/viewMA.html", context)
+
+def showMA(request, ma_id, mode):
+    active = request.session['company_code']
+    base_ma_type = BaseMAType.objects.all()
+
+    ma = Maintenance.objects.get(id = ma_id)
+    base_rp_type = BaseRepairType.objects.filter(Q(rq_type = ma.car.rq_type)| Q(rq_type = 4))
+
+    page = MAPageMode(mode)
+    show = MAShowMode(mode)
+
+    maa_form = PurchaseOrderAddressCompanyForm(instance=ma)
+    if request.method == 'POST' and 'btnformMAa' in request.POST:
+        maa_form = PurchaseOrderAddressCompanyForm(request.POST, request.FILES, instance=ma)
+        if maa_form.is_valid():
+            maa_form.save()
+            return redirect('showMA', ma_id = ma_id , mode = mode)
+        
+    #ถ้า user login เป็นจัดซื้อ
+    isPurchasing = is_purchasing(request.user)
+    #ถ้า user login เป็นจัดซื้อ
+    isSupplies = is_supplies(request.user)
+    isUploadeReceipt = False
+    if isPurchasing or isSupplies:
+        isUploadeReceipt = True
+
+    context = {
+        'ma':ma,
+        'base_ma_type': base_ma_type,
+        'base_rp_type': base_rp_type,
+        'isUploadeReceipt':isUploadeReceipt,
+        'maa_form': maa_form,
+        page: "tab-active",
+        show: "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
+    }
+    return render(request, 'maintenance/showMA.html',context)
+
+def editMA(request, ma_id):
+    active = request.session['company_code']
+
+    ma = Maintenance.objects.get(id=ma_id)
+    if request.method == 'POST':
+        form = MaintenanceForm(request.POST, request.FILES, instance=ma)
+        if form.is_valid():
+            form.save()
+            return redirect('viewMA')
+    else:
+        form = MaintenanceForm(instance=ma)
+
+    context = {
+        'ma':ma,
+        'form':form,
+        'ma_page': "tab-active",
+        'ma_show': "show",
+        active :"active show",
+		"disableTab":"disableTab",
+		"colorNav":"disableNav"
+    }
+
+    return render(request, "maintenance/editMA.html", context)

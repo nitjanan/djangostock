@@ -5,6 +5,9 @@ import django_filters
 from django_filters import DateFilter
 from .models import *
 from django.utils.translation import gettext_lazy as _
+from django.utils.timezone import make_aware
+from datetime import datetime, time
+from .models import Maintenance 
 
 class RequisitionFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
@@ -213,6 +216,59 @@ InvoidFilter.base_filters['payer_name'].label = 'ผู้จ่าย'
 InvoidFilter.base_filters['expense_dept'].label = 'แผนกค่าใช้จ่าย'
 InvoidFilter.base_filters['start_created'].label = 'วันที่จ่าย'
 InvoidFilter.base_filters['end_created'].label = 'ถึง'
+
+CAR_STATE_CHOICES = (
+    ('สามารถเคลื่อนที่ได้', 'สามารถเคลื่อนที่ได้'),
+    ('ไม่สามารถเคลื่อนที่ได้', 'ไม่สามารถเคลื่อนที่ได้'),
+)
+
+LC_CHOICES =( 
+    ("ซ่อมเอง", "ซ่อมเอง"), 
+    ("ส่งซ่อมนอก", "ส่งซ่อมนอก"),
+)
+
+class MaintenanceFilter(django_filters.FilterSet):
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    start_created = django_filters.DateFilter(
+        field_name='created',
+        method='filter_start_created',
+        widget=DateInput(attrs={'type': 'date'})
+    )
+    end_created = django_filters.DateFilter(
+        field_name='created',
+        method='filter_end_created',
+        widget=DateInput(attrs={'type': 'date'})
+    )
+    car = django_filters.CharFilter(field_name="car", lookup_expr='icontains')
+    name = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
+    broke_type = django_filters.CharFilter(field_name="broke_type", lookup_expr='icontains')
+    car_state = django_filters.ChoiceFilter(choices=CAR_STATE_CHOICES)
+    repair_type = django_filters.CharFilter(field_name="repair_type", lookup_expr='icontains')
+    location = django_filters.ChoiceFilter(choices=LC_CHOICES)
+ 
+    class Meta:
+        model = Receive
+        fields = ('ref_no', 'created', 'car', 'name', 'broke_type', 'car_state', 'repair_type', 'location')
+
+    def filter_start_created(self, queryset, name, value):
+        #Convert it into an aware datetime at 00:00:00.
+        aware_datetime = make_aware(datetime.combine(value, time.min))
+        return queryset.filter(**{name + '__gte': aware_datetime})
+
+    def filter_end_created(self, queryset, name, value):
+        #Convert date into an aware datetime at 23:59:59.
+        aware_datetime = make_aware(datetime.combine(value, time.max))
+        return queryset.filter(**{name + '__lte': aware_datetime})   
+
+MaintenanceFilter.base_filters['ref_no'].label = 'รหัส'
+MaintenanceFilter.base_filters['start_created'].label = 'วันที่แจ้งซ่อม'
+MaintenanceFilter.base_filters['end_created'].label = 'ถึง'
+MaintenanceFilter.base_filters['car'].label = 'ทะเบียนรถ'
+MaintenanceFilter.base_filters['name'].label = 'ชื่อผู้แจ้งซ่อม'
+MaintenanceFilter.base_filters['broke_type'].label = 'อาการเสีย'
+MaintenanceFilter.base_filters['car_state'].label = 'สภาพรถ'
+MaintenanceFilter.base_filters['repair_type'].label = 'ประเภทการซ่อม'
+MaintenanceFilter.base_filters['location'].label = 'สถานที่ซ่อม'
 
 class ExOESTNHFilter(django_filters.FilterSet):
     docnum  = django_filters.CharFilter(field_name="docnum", lookup_expr='icontains')

@@ -29,3 +29,19 @@ def format_datetime(value):
 @register.filter
 def first_chars(value, num=2):
     return value[:num] if value else ''
+
+@register.filter
+def format_datetime(value):
+    if isinstance(value, datetime.datetime):
+        if value.time() == datetime.time(0, 0, 0):
+            return localtime(value).strftime("%d/%m/%Y")
+        return localtime(value).strftime("%d/%m/%Y %H:%M")
+    return value
+
+@register.filter
+def get_localtime(value):
+    if isinstance(value, datetime.datetime):
+        if value.time() == datetime.time(0, 0, 0):
+            return localtime(value)
+        return localtime(value)
+    return value

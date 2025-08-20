@@ -1,4 +1,4 @@
-from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document, Maintenance
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch, Q
@@ -39,8 +39,11 @@ def companyVisibleTab(request):
 
         #ถ้าเป็นจัดซื้อ
         if is_purchasing(request.user):
-                for i in company_tab:
-                    setAlertPurchasingCompanyTab(request, i.code)
+            for i in company_tab:
+                setAlertPurchasingCompanyTab(request, i.code)
+        elif is_supplies(request.user):
+            for i in company_tab:
+                setAlertSupplieCompanyTab(request, i.code)
         elif is_approve(request.user):
             for i in company_tab:
                 setAlertApproveCompanyTab(request, i.code, company_code)
@@ -455,6 +458,9 @@ def isPurchasingPR(request):
 
     return dict(is_purchasing_pr = is_purchasing_pr)
 
+def is_supplies(user):
+    return user.groups.filter(name='พัสดุ').exists()
+
 def is_purchasing(user):
     return user.groups.filter(name='จัดซื้อ').exists()
 
@@ -475,6 +481,20 @@ def addPOCounter(request):
             pass
     return cp_count
 
+def MACounter(request):
+    try:
+        active = request.session['company_code']
+    except:
+        active = ""
+
+    ma_count = 0
+    if(is_supplies(request.user)):
+        try:
+            ma_count = Maintenance.objects.filter(branch_company__code = active).count()
+        except ComparisonPrice.DoesNotExist:
+            pass
+    return ma_count
+
 def addPOAll(request):
     add_po_all = addPOCounter(request)
 
@@ -483,13 +503,24 @@ def addPOAll(request):
 
     return dict(add_po_all = add_po_all)
 
+
+def MAAll(request):
+    ma_all = MACounter(request)
+
+    if 'admin' in request.path:
+        return {} #รีเทริ์นค่าเปล่า
+
+    return dict(ma_all = ma_all)
+
 def purchasingAllConter(request):
     add_po = addPOCounter(request)
     pr_count = isPurchasingPRCounter(request)
+    ma_count = MACounter(request)
+    
     if 'admin' in request.path:
         return {} #รีเทริ์นค่าเปล่า
     else:
-        pc_all = add_po + pr_count
+        pc_all = add_po + pr_count + ma_count
     return dict(pc_all = pc_all)
 
 
@@ -500,7 +531,7 @@ def receiveCounter(request):
         active = ""
 
     rc_count = 0
-    if(is_purchasing(request.user)):
+    if(is_supplies(request.user)):
         try:
             rc_count = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = active).count()
         except PurchaseOrder.DoesNotExist:
@@ -549,6 +580,49 @@ def findAllPurchasingAlert(request, tab):
     except PurchaseOrder.DoesNotExist:
         pr_count = 0
     return cp_count + pr_count
+
+def setAlertSupplieCompanyTab(request, tab):
+    if tab == "S1":
+        request.session['NUM_S1'] = findAllSupplieAlert(request, tab)
+    elif tab == "D1":
+        request.session['NUM_D1'] = findAllSupplieAlert(request, tab)
+    elif tab == "I1":
+        request.session['NUM_I1'] = findAllSupplieAlert(request, tab)
+    elif tab == "U1":
+        request.session['NUM_U1'] = findAllSupplieAlert(request, tab)
+    elif tab == "G1":
+        request.session['NUM_G1'] = findAllSupplieAlert(request, tab)
+    elif tab == "R1":
+        request.session['NUM_R1'] = findAllSupplieAlert(request, tab)
+    elif tab == "Y1":
+        request.session['NUM_Y1'] = findAllSupplieAlert(request, tab)
+    elif tab == "P1":
+        request.session['NUM_P1'] = findAllSupplieAlert(request, tab)
+    elif tab == "B1":
+        request.session['NUM_B1'] = findAllSupplieAlert(request, tab)
+    elif tab == "J1":
+        request.session['NUM_J1'] = findAllSupplieAlert(request, tab)
+    elif tab == "P2":
+        request.session['NUM_P2'] = findAllSupplieAlert(request, tab)
+    elif tab == "Y2":
+        request.session['NUM_Y2'] = findAllSupplieAlert(request, tab)
+    elif tab == "Y4":
+        request.session['NUM_Y4'] = findAllSupplieAlert(request, tab)
+    elif tab == "Y5":
+        request.session['NUM_Y5'] = findAllSupplieAlert(request, tab)
+    return
+
+def findAllSupplieAlert(request, tab):
+    try:
+        ma_count = Maintenance.objects.filter(branch_company__code = tab).count()
+    except ComparisonPrice.DoesNotExist:
+        ma_count = 0
+
+    try:
+        rc_count =  PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = tab).count()
+    except PurchaseOrder.DoesNotExist:
+        rc_count = 0
+    return ma_count + rc_count
 
 
 def setAlertApproveCompanyTab(request, tab, company_code):
