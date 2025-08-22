@@ -252,6 +252,7 @@
         visibleRepair();
         requiredFail();
         setDataDistributor();
+        searchRepairType();
     });
 
     //ก่อน save
@@ -358,6 +359,39 @@
     $("#id_amount").focusout(function() {}) .blur(function() {
         $(this).val(parseFloat($(this).val()).toFixed(2));
     });
+
+    function searchRepairType(){
+        var tempRepairType = $("#id_repair_type").val();
+
+        if("{{ma.car.rq_type.id}}" != ""){
+            var idInput = "{{ma.car.rq_type.id}}";
+
+            // Create Ajax Call
+            if(idInput){
+                //set id_rq_type
+                $.ajax({
+                    url: '{% url "searchRepairType" %}',
+                    data:{
+                            'rq_type': idInput,
+                        },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.repair_type_list) {
+                                $("#id_repair_type").find('option').not(':first').remove();
+                                //set option 
+                                for(var i = 0; i < data.repair_type_list.length; i++){
+                                    $("#id_repair_type").append(new Option(data.repair_type_list[i].name, data.repair_type_list[i].id));
+                                }
+                        }
+                        $('#id_repair_type option[value="'+tempRepairType +'"]').attr('selected','selected');
+                    }
+                });
+            }
+            return false;
+        }else{
+            $("#id_repair_type").find('option').not(':first').remove();
+        }
+    }
 
 </script>
 {% endblock %}

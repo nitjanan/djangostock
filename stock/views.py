@@ -1209,6 +1209,16 @@ def createRequisition(request):
                 except UserProfile.DoesNotExist:
                     pass
                 new_contact.save()
+
+                #อัพเดทประเภทการซ่อม ในใบแจ้งซ่อม
+                try:
+                    mas = Maintenance.objects.filter(id = new_contact.ma_id)
+                    for i in mas:
+                        i.repair_type = new_contact.repair_type
+                        i.save()
+                except Maintenance.DoesNotExist:
+                    pass
+                
                 # บันทึก ManyToMany relationships
                 form.save_m2m()
                 return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
@@ -1729,6 +1739,15 @@ def editAllRequisition(request, requisition_id):
                 obj.purchase_user_id = requisition.chief_approve_user_name
                 obj.save()
             except PurchaseRequisition.DoesNotExist :
+                pass
+
+            #อัพเดทประเภทการซ่อม ในใบแจ้งซ่อม
+            try:
+                mas = Maintenance.objects.filter(id = new_contact.ma_id)
+                for i in mas:
+                    i.repair_type = new_contact.repair_type
+                    i.save()
+            except Maintenance.DoesNotExist:
                 pass
 
             ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายสินค้าภายในแทน
@@ -7849,7 +7868,14 @@ def editMA(request, ma_id):
     if request.method == 'POST':
         form = MaintenanceForm(request.POST, request.FILES, instance=ma)
         if form.is_valid():
-            form.save()
+            ma_form = form.save()
+            try:
+               rqs = Requisition.objects.filter(ma_id = ma_form.pk)
+               for i in rqs:
+                   i.repair_type = ma_form.repair_type
+                   i.save()
+            except Requisition.DoesNotExist:
+                pass
             return redirect('viewMA')
     else:
         form = MaintenanceForm(instance=ma)
@@ -7865,3 +7891,56 @@ def editMA(request, ma_id):
     }
 
     return render(request, "maintenance/editMA.html", context)
+
+def autocompalte_maintenance(request):
+    active = request.session['company_code']
+
+    if 'term' in request.GET:
+        term = request.GET.get('term')
+        qs = Maintenance.objects.filter(Q(ref_no__icontains = term), branch_company__code = active)[:15]
+        titles = list()
+        for obj in qs:
+            titles.append(obj.ref_no)
+    return JsonResponse(titles, safe=False)
+
+def searchDataMaintenance(request):
+    id = None
+    ref_no = None
+    rq_type = None
+    car_id = None
+    car_text = None
+    repair_type_id = None
+    repair_type_name = None
+    have_id = False
+    if 'id_input' in request.GET:
+        id_input = request.GET.get('id_input')
+
+        try:
+            qs = Maintenance.objects.get(ref_no = id_input)
+            id = qs.id
+            ref_no = qs.ref_no
+
+            if qs.car.rq_type.id:
+                rq_type = qs.car.rq_type.id
+            if qs.car:
+                car_id = qs.car.id
+                car_text = f"{qs.car.code} : {qs.car.name}"
+            if qs.repair_type.id:
+                repair_type_id = qs.repair_type.id
+                repair_type_name = qs.repair_type.name
+
+            have_id = True
+        except Maintenance.DoesNotExist:
+            pass
+
+    data = {
+        'id': id,
+        'ref_no': ref_no,
+        'rq_type': rq_type,
+        'car_id': car_id,
+        'car_text': car_text,
+        'repair_type_id': repair_type_id,
+        'repair_type_name': repair_type_name,
+        'have_id': have_id,
+    }
+    return JsonResponse(data)

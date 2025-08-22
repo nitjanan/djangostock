@@ -49,19 +49,20 @@
         <thead class="thead-dark">
           <tr>
             <th scope="col">รหัสใบขอเบิก</th>
+            <th scope="col">รหัสใบแจ้งซ่อม</th>
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
             <th scope="col">สินค้า</th>
             <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">หัวหน้างาน</th>
-            <th scope="col">รายการขอเบิก</th>
-            <th scope="col">ลบ</th>
-            <th scope="col">ใบบันทึก</th>
+            <th scope="col" style="width: 100px;">รายการขอเบิก</th>
+            <th scope="col">ไฟล์แนบ</th>
           </tr>
         </thead>
         <tbody>
         {% for requisition in requisitions %}
           <tr>
             <th scope="row"><a href="{% url 'showRequisition' requisition.id 1 %}">{{requisition.ref_no}}</a></th>
+            <td>{% if requisition.ma_ref_no%}<a href="{%url 'showMA' requisition.ma_id 1 %}">{{requisition.ma_ref_no}}</a>{%endif%}</td>
             <td>{{requisition.name}}</td>
             <td>
               <ul>
@@ -72,13 +73,11 @@
             </td>
             <td>{{requisition.created |date:"d/m/Y" }}</td>
             <td>{{requisition.chief_approve_user_name}}</td>
-            <td>
-                <a href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
+            <td style="width: 100px;">
+                <a style="width: 100px;" href="{% url 'editAllRequisition' requisition.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไขสินค้า</a>
+                <a style="width: 100px;" onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger btn-sm my-2"><i class="fas fa-trash-alt"></i> ลบ</a>
             </td>
-            <td>
-              <a onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="{% url 'removeRequisition' requisition.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
-            </td>
-            <td>
+            <td style="width: 10px;">
               <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
             </td>
           </tr>

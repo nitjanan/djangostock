@@ -66,7 +66,7 @@
                     <strong style="font-size:15px">{{ma.address_company.name_th}}{% if isUploadeReceipt %}  <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</strong>
                     <br>{{ma.address_company.address}}
                     {% if ma.address_company.tel %}<br>โทร {{ma.address_company.tel}}{%endif%}
-                    {% if ma.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{ma.address_company.tex}}{%endif%}{% if ma.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
+                    {% if ma.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{ma.address_company.tex}}{%endif%}{% if ma.address_company.branch %} สาขา{{ma.address_company.branch}}{%endif%}
                 </h1>
             </div>
           <form  class="float-right" method="post" enctype="multipart/form-data">

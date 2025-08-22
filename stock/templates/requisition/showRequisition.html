@@ -76,7 +76,7 @@
     </div>
     <div class="col-4 text-left">
         <description>
-          <strong>ใบแจ้งซ่อมเลขที่: </strong><br>
+          <strong>ใบแจ้งซ่อมเลขที่: {% if requisition.ma_ref_no%}<u style="color: #F28A18;"><a href="{%url 'showMA' requisition.ma_id 1 %}">{{requisition.ma_ref_no}}</a></u>{%endif%}</strong><br>
           <br>
         </description>
     </div>

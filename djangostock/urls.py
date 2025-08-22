@@ -221,6 +221,9 @@ urlpatterns = [
     path('maintenance/',views.viewMA,name="viewMA"),
     path('maintenance/show/<int:ma_id>/<int:mode>',views.showMA,name="showMA"),
     path('maintenance/edit/<int:ma_id>',views.editMA,name="editMA"),
+
+    path('autocompalte_maintenance/',views.autocompalte_maintenance,name="autocompalte_maintenance"),
+    path('searchDataMaintenance', views.searchDataMaintenance, name="searchDataMaintenance"),
     
 ]
 

@@ -37,9 +37,9 @@
                 <h4 class="text-danger">({{po.cancel_reason}})</h4>
               {%endif%}
               <h4>{{po.address_company.name_th}}{% if isUploadeReceipt %}   <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h4>
-              {{po.address_company.address}}
-              {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
-              {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}
+		                {{po.address_company.address}}
+                    {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
+                    {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}{% if po.address_company.branch %} สาขา{{po.address_company.branch}}{%endif%}
             </description>
           </div>
           <form  class="float-right" method="post" enctype="multipart/form-data">

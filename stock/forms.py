@@ -83,7 +83,7 @@ class RequisitionForm(forms.ModelForm):
     expenses = forms.ModelMultipleChoiceField(
         label='ค่าใช้จ่าย',
         queryset=BaseExpenses.objects.all(),
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-select'}),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'radio-inline list-unstyled'}),
         required=True
     )
 
@@ -91,10 +91,12 @@ class RequisitionForm(forms.ModelForm):
 
     class Meta:
         model = Requisition
-        fields = ('name','chief_approve_user_name', 'branch_company', 'agency', 'expense_dept', 'rq_type', 'car', 'repair_type', 'broke_type', 'desired_date', 'urgency', 'mile', 'note', 'expenses', 'memorandum_pdf') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
+        fields = ('name','chief_approve_user_name', 'branch_company', 'agency', 'expense_dept', 'rq_type', 'car', 'repair_type', 'broke_type', 'desired_date', 'urgency', 'mile', 'note', 'expenses', 'memorandum_pdf', 'ma_id', 'ma_ref_no') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
         'memorandum_pdf' : MyClearableFileInput,
         'branch_company': forms.HiddenInput(),
+        'ma_id': forms.HiddenInput(),
+        'ma_ref_no': forms.HiddenInput(),
         'desired_date': forms.DateInput(format=('%d/%m/%Y'), attrs={'class':'form-control', 'placeholder':'Select a date', 'type':'date', 'required':'True'}),
         'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
         }
@@ -108,6 +110,7 @@ class RequisitionForm(forms.ModelForm):
             'expense_dept': _('แผนกค่าใช้จ่าย'),
             'desired_date': _('วันที่ต้องการ'),
             'mile': _('*** เลขไมล์/เลขชั่วโมง'),
+            'ma_ref_no': _('อ้างอิงเลขที่ใบแจ้งซ่อม'),
         }
 
 class RequisitionItemForm(forms.ModelForm):

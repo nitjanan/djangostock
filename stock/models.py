@@ -677,6 +677,8 @@ class Requisition(models.Model):
     agency = models.ForeignKey(BaseAgency, on_delete=models.CASCADE, blank=True, null=True) #หน่วยงาน
     mile = models.CharField(max_length = 255, null = True, blank = True, verbose_name="เลขไมล์/เลขชั่วโมง")
     qr_code = models.ImageField(null=True, blank=True, upload_to = "r_qr_codes/", verbose_name="qr code")
+    ma_id = models.IntegerField(blank=True, null=True)#อ้างอิง id Maintenance
+    ma_ref_no = models.CharField(max_length=255, null = True, blank = True) #อ้างอิง ref_no Maintenance
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

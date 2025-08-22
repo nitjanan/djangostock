@@ -1,6 +1,9 @@
 {% extends 'layouts.html' %}
-{% load static %}
 {% load crispy_forms_tags %}
+{% load humanize %}
+{% load static %}
+{% load widget_tweaks %}
+{% load templatehelpers %}
 
 {% block css %}
 <!-- Select2 CSS -->
@@ -13,6 +16,16 @@
     }
 }
 
+/* When inside col-12 */
+.form-group .select2-container .select2-selection--single {
+  width: 55.5vw !important;
+}
+
+/* When inside col-6 */
+.col-md-6 .select2-container .select2-selection--single {
+  width: 27.4vw !important;
+}
+
 /* Adjust the Select2 container */
 .select2-container .select2-selection--single {
   height: 37px !important;
@@ -20,7 +33,6 @@
   padding: 5px 12px;
   border-radius: 4px;
   border: 1px solid #ced4da;
-  width: 55.5vw !important;
 }
 
 /* Adjust the dropdown arrow height and alignment */
@@ -66,6 +78,23 @@
   margin-right: 15px; /* Adjust spacing as needed */
 }
 
+.radio-inline {
+  display: inline-flex;
+  gap: 30px;           /* ← spacing between options */
+  padding: 1px;     /* remove default <ul> padding */
+  margin: 2px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+}
+
+#id-form-ma{
+  border-color: #F28A18;
+}
+#id-form-ma:focus {
+  border-color: #F28A18; /* Changes the border color to blue */
+  box-shadow: 0 0 7px rgba(243, 149, 47, 0.5); /* Optional: Adds a subtle blue glow */
+  outline: none; /* Removes the default browser outline */
+}
 </style>
 {% endblock %}
 
@@ -133,7 +162,7 @@
     </div>
     <div class="col-4 text-left">
         <description>
-          <strong>ใบแจ้งซ่อมเลขที่: </strong><br>
+          <strong>ใบแจ้งซ่อมเลขที่: {% if requisition.ma_ref_no%}<u style="color: #F28A18;"><a href="{%url 'showMA' requisition.ma_id 1 %}">{{requisition.ma_ref_no}}</a></u>{%endif%}</strong><br>
           <br>
         </description>
     </div>
@@ -306,61 +335,114 @@
       <description id="dt_print"></description>
     </div>
   </div>
-
-  <div class="card bg-light my-3 hidden-print">
-    <div class="card-body">
-        {% if form.memorandum_pdf.errors %}
-        <div class="alert alert-warning" role="alert">
-            {{ form.memorandum_pdf.errors }}
+  <div class="hidden-print">
+   <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{form.branch_company}}
+        <h6 class="text-right">รายละเอียดใบขอเบิก</h6>
+        <div class="card div-shadow my-2">
+            <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                        <label>{{form.name.label}}</label> 
+                        {{form.name | add_class:"form-control"}}
+                        </div>
+                        <div class="form-group col-md-6">
+                        <label>{{form.chief_approve_user_name.label}}</label> 
+                        {{form.chief_approve_user_name | add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                        <label>{{form.agency.label}}</label> 
+                        {{form.agency | add_class:"form-control"}}
+                        </div>
+                        <div class="form-group col-md-6">
+                        <label>{{form.expense_dept.label}}</label> 
+                        {{form.expense_dept | add_class:"form-control"}}
+                        </div>
+                    </div>
+            </div>
         </div>
-        {% endif %}
-        <!--
-        {% if form.name.errors %}
-        <div class="alert alert-danger" role="alert">
-            ชื่อผู้ขอตั้งเบิก {{ form.name.errors }}
+        <h6 class="my-3 text-right">ประเภทใบขอเบิก</h6>
+        <div class="card div-shadow my-2">
+        <div class="card-content">
+          <div class="card-body">
+                    <div class="form-group">
+                        <label>{{form.ma_ref_no.label}}</label> {{form.ma_id}} {{form.ma_ref_no}}
+                          <input type="text" name="form-ma" id="id-form-ma" class="form-control"
+                            Placeholder="ค้นหาเลขที่ใบแจ้งซ่อม ....." autocomplete="off"
+                            onfocusout="searchDataMaintenance();"
+                            oninput="this.value = this.value.toUpperCase()">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                        <label>{{form.rq_type.label}}</label> 
+                        {{form.rq_type | add_class:"form-control"}}
+                        </div>
+                        <div class="form-group col-md-6">
+                        <label>{{form.car.label}}</label> 
+                        {{form.car | add_class:"form-control"}}
+                        </div>                        
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                        <label>{{form.repair_type.label}}</label> 
+                        {{form.repair_type | add_class:"form-control"}}
+                        </div>
+                        <div class="form-group col-md-6">
+                        <label>{{form.broke_type.label}}</label> 
+                        {{form.broke_type | add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                        <label>{{form.desired_date.label}}</label> 
+                        {{form.desired_date | add_class:"form-control"}}
+                        </div>
+                        <div class="form-group col-md-6">
+                        <label>{{form.urgency.label}}</label> 
+                        {{form.urgency | add_class:"form-control"}}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                        <label>{{form.expenses.label}}</label> 
+                        {{form.expenses | add_class:"form-control"}}
+                        </div>
+						            <div class="form-group col-md-6">
+                        <label>{{form.mile.label}}</label> 
+                        {{form.mile | add_class:"form-control"}}
+                        </div>
+                    </div>         
+                    <div class="pdf">
+                      {% if form.memorandum_pdf.errors %}
+                      <div class="alert alert-warning" role="alert">
+                          {{ form.memorandum_pdf.errors }}
+                      </div>
+                      {% endif %}
+                      <div class="form-group">
+                        <label>{{form.memorandum_pdf.label}}</label> 
+                        {{form.memorandum_pdf | add_class:"form-control"}}
+                      </div>
+                    </div>
+                    <div class="form-group">
+                        <label>{{form.note.label}}</label> 
+                        {{form.note | add_class:"form-control"}}
+                    </div>
+                <div class="row">
+                    <div class="col text-right">
+                        <button type="submit" class="btn btn-warning hidden-print"><i class="fas fa-save"></i>  บันทึกการแก้ไข</button>
+                    </div>
+                </div>
+          </div>
         </div>
-        {% endif %}
-        {% if form.chief_approve_user_name.errors %}
-        <div class="alert alert-danger" role="alert">
-            ชื่อหัวหน้างาน {{ form.chief_approve_user_name.errors }}
         </div>
-        {% endif %}
-        -->
-        <form method="post" enctype ="multipart/form-data">
-            <!--
-            <label for="id_name" class=" requiredField">
-                ชื่อผู้ขอตั้งเบิก<span class="asteriskField">*</span>
-            </label>
-            <input id="rName" name="rName" type="text" list="idRequestNameList" class="form-control" Placeholder="ค้นหาชื่อผู้ขอตั้งเบิก ..." class="form-control" autocomplete="off" required>
-            <datalist id="idRequestNameList">
-                {% for results in requestName %}
-                    <option data-id="{{results.id}}" value="{{results.first_name}} {{results.last_name}}"></option>
-                {% endfor %}
-            </datalist>
-            <label for="id_name" class=" requiredField my-3">
-                ชื่อหัวหน้างาน<span class="asteriskField">*</span>
-            </label>
-            <input id="cName" name="cName" type="text" list="idChiefNameList" class="form-control" Placeholder="ค้นหาชื่อหัวหน้างาน ..." class="form-control" autocomplete="off" required>
-            <datalist id="idChiefNameList">
-                {% for cResults in chiefName %}
-                    <option data-id="{{cResults.id}}" value="{{cResults.first_name}} {{cResults.last_name}}"></option>
-                {% endfor %}
-            </datalist>          
-            -->
-            <p>{{ form | crispy}}</p>
-            {% csrf_token %}
-              <button type="submit" class="btn btn-warning hidden-print float-right">
-                <i class="fas fa-save"></i>
-                  บันทึกการแก้ไข
-              </button>
-        </form>
-    </div>
+    </form>
   </div>
-  <div class="row">
+  <div class="row my-3">
     <div class="col">
       <a class="btn btn-primary hidden-print" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
-    </div>
-    <div class="col text-right">
       <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
         <i class="fas fa-print"></i>
         ปริ้นใบขอเบิก
@@ -499,6 +581,10 @@
   </div>
 {% endblock%}
 {% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 <!-- Select2 CSS -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 
@@ -506,6 +592,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 
 <script>
+  $('div.pdf a').addClass('btn btn-outline-success btn-sm');
+  $('div.pdf a').text('Download');
+
   //ดึงชื่อสินค้าและหน่วย จากที่ตั้งค่าไว้
   function setDataProductExpress(mode){
     if(mode == 1)
@@ -1045,6 +1134,9 @@ $("#rName").change(function() {
         if($("#id_rq_type").val() != 2)
           $("#div_id_mile").addClass("d-none");
 
+        //ดึงเลขที่ใบแจ้งซ่อม
+        $('#id-form-ma').val('{% if requisition.ma_ref_no %}{{requisition.ma_ref_no}}{%endif%}');
+
     });
 
     //ระดับความเร่งด่วน
@@ -1057,6 +1149,59 @@ $("#rName").change(function() {
     var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
     $("#dt_print").text(datetime);
   }
+
+  	$(function () {
+        $("#id-form-ma").autocomplete({
+            source: '{% url "autocompalte_maintenance" %}',
+            minLength: 1,
+        });
+    });
+
+    function searchDataMaintenance(){
+        if($('#id-form-ma').val() != ""){
+            var str = $('#id-form-ma').val();
+            var idInput = str.replace(/\s/g, "");
+            // Create Ajax Call
+            if(idInput){
+                $.ajax({
+                url: '{% url "searchDataMaintenance" %}',
+                data: {
+                        'id_input': idInput,
+                    },
+                dataType: 'json',
+                success: function (data) {
+                     if(data.have_id == false){
+                        $("#id_ma_id").val('');
+                        $("#id_ma_ref_no").val('');
+                        //$("#id_repair_type").val('');
+                        //$("#id_rq_type").val('');
+                        //$("#id_car").val('');
+
+                        $("#id-form-ma").val('');
+                        $("#id-form-ma").focus();
+                        alert('ไม่มีเลขที่ใบแจ้งซ่อมนี้ กรุณาใส่เลขที่ใบแจ้งซ่อมอีกครั้ง');
+                    }else if(data.have_id == true){
+                        $("#id_ma_id").val(data.id);
+                        $("#id_ma_ref_no").val(data.ref_no);
+
+                        var repairOption = new Option(data.repair_type_name, data.repair_type_id, true, true);
+                        $("#id_repair_type").append(repairOption).trigger('change');
+                        
+                        $("#id_rq_type").val(data.rq_type);
+                        $('#id_rq_type').trigger('change');
+
+                        var carOption = new Option(data.car_text, data.car_id, true, true);
+                        $('#id_car').append(carOption).trigger('change');
+                    }
+                }
+                });
+            }
+            return false;
+        }else{
+            $("#id_ma_id").val('');
+            $("#id_ma_ref_no").val('');
+        }
+    }
 
 </script> 
 {% endblock %}
