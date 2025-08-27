@@ -247,7 +247,7 @@ class MaintenanceFilter(django_filters.FilterSet):
     location = django_filters.ChoiceFilter(choices=LC_CHOICES)
  
     class Meta:
-        model = Receive
+        model = Maintenance
         fields = ('ref_no', 'created', 'car', 'name', 'broke_type', 'car_state', 'repair_type', 'location')
 
     def filter_start_created(self, queryset, name, value):
@@ -309,3 +309,38 @@ ExOEINVHFilter.base_filters['cuscod'].label = 'รหัสลูกค้า'
 ExOEINVHFilter.base_filters['cusnam'].label = 'ชื่อลูกค้า'
 ExOEINVHFilter.base_filters['start_created'].label = 'วันที่จ่าย'
 ExOEINVHFilter.base_filters['end_created'].label = 'ถึง'
+
+class CarLogbookFilter(django_filters.FilterSet):
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    start_created = django_filters.DateFilter(
+        field_name='created',
+        method='filter_start_created',
+        widget=DateInput(attrs={'type': 'date'})
+    )
+    end_created = django_filters.DateFilter(
+        field_name='created',
+        method='filter_end_created',
+        widget=DateInput(attrs={'type': 'date'})
+    )
+    car = django_filters.CharFilter(field_name="car", lookup_expr='icontains')
+    name = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
+ 
+    class Meta:
+        model = CarLogbook
+        fields = ('ref_no', 'created', 'car', 'name')
+
+    def filter_start_created(self, queryset, name, value):
+        #Convert it into an aware datetime at 00:00:00.
+        aware_datetime = make_aware(datetime.combine(value, time.min))
+        return queryset.filter(**{name + '__gte': aware_datetime})
+
+    def filter_end_created(self, queryset, name, value):
+        #Convert date into an aware datetime at 23:59:59.
+        aware_datetime = make_aware(datetime.combine(value, time.max))
+        return queryset.filter(**{name + '__lte': aware_datetime})   
+
+CarLogbookFilter.base_filters['ref_no'].label = 'รหัส'
+CarLogbookFilter.base_filters['start_created'].label = 'วันที่ใช้รถ'
+CarLogbookFilter.base_filters['end_created'].label = 'ถึง'
+CarLogbookFilter.base_filters['car'].label = 'ทะเบียนรถ'
+CarLogbookFilter.base_filters['name'].label = 'ชื่อผู้ใช้รถ'

@@ -16,7 +16,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -28,7 +28,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter, CarLogbookFilter
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -7691,54 +7691,62 @@ def create_product_qr(product):
     canvas.close()
 
 @csrf_exempt
-def sheet_to_mysql_api(request):
+def maintenance_appsheet(request):
+    err_log = ''
     if request.method == 'POST':
         try:
             data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
 
-            col1 = data.get("column1")
-            col2 = data.get("column2")
-            col3 = data.get("column3")
-            col4 = data.get("column4")
-            col5 = data.get("column5")
-            col6 = data.get("column6")
-            col7 = data.get("column7")
-            approve_status = data.get("columnX")
-            id = data.get("column24")
-            comp_code = data.get("column25")
+            column_car = data.get("column_car")
+            column_name = data.get("column_name")
+            column_broke_re = data.get("column_broke_re")
+            column_car_st = data.get("column_car_st")
+            column_ap_name = data.get("column_ap_name")
+            column_ap_status = data.get("column_ap_status")
+            column_mile = data.get("column_mile")
+            column_id = data.get("column_id")
+            column_comp = data.get("column_comp")
+
+            column_car =  column_car.strip()
+            column_name =  column_name.strip()
+            column_comp = column_comp.strip().split()[0]
             
             try:
-                comp = BaseBranchCompany.objects.get(code = comp_code)
+                comp = BaseBranchCompany.objects.get(code = column_comp)
             except BaseBranchCompany.DoesNotExist:
                 comp = BaseBranchCompany.objects.get(code = 'S1')
 
             try:
-                car = BaseCar.objects.get(name = col4)
+                car = BaseCar.objects.get(name = column_car)
             except BaseCar.DoesNotExist:
-                car = BaseCar.objects.none()
+                car = None
+                err_log += "car : " + str(column_car) + ",\n"
 
             try:
                 name = User.objects.annotate(
                     full_name=Concat('first_name', Value(' '), 'last_name')
-                ).get(full_name=col5)
+                ).get(full_name=column_name)
             except ObjectDoesNotExist:
-                name = User.objects.none()
+                name = None
+                err_log += "name : " + str(column_name) + ",\n"
 
 
-            have_id = Maintenance.objects.filter(id = id).exists()
+            have_id = Maintenance.objects.filter(id = column_id).exists()
             if not have_id:
                 # บันทึกลง MySQL ตามต้องการ
                 Maintenance.objects.create(
-                    id = id,
+                    id = column_id,
                     car = car,
                     name = name,
-                    broke_reason = col6,
-                    car_state = col7,
+                    broke_reason = column_broke_re,
+                    car_state = column_car_st,
+                    mile = column_mile,
                     branch_company = comp,
-                    approve_status = approve_status,
+                    approve_status = column_ap_status,
+                    err_log = err_log,
                 )
-
-                obj = Maintenance.objects.get(id = id)
+                
+                obj = Maintenance.objects.get(id = column_id)
 
                 if "image1" in request.FILES and request.FILES["image1"]:
                     obj.image1 = request.FILES["image1"]
@@ -7764,29 +7772,34 @@ def sheet_to_mysql_api(request):
     return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
 
 @csrf_exempt
-def update_sheet_to_mysql_api(request):
+def update_maintenance_appsheet(request):
+    err_log = ''
     if request.method == 'POST':
         try:
             data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
-            N = data.get("columnN")
-            O = data.get("columnO")
-            col_p = data.get("columnP")
-            approve_status = data.get("columnX")
-            id = data.get("columnId")
+
+            column_ap_name = data.get("column_ap_name")
+            column_ap_status = data.get("column_ap_status")
+            column_id = data.get("column_id")
+
+            column_ap_name =  column_ap_name.strip()
 
             try:
                 approve_name = User.objects.annotate(
                     full_name=Concat('first_name', Value(' '), 'last_name')
-                ).get(full_name=col_p)
+                ).get(full_name=column_ap_name)
             except ObjectDoesNotExist:
-                approve_name = User.objects.none()
+                approve_name = None
+                err_log += "approve_name : " + str(column_ap_name) + ",\n"
             
             try:
-                if approve_status == 'อนุมัติซ่อม':
-                    ma = Maintenance.objects.get(id = id)
+                if column_ap_status == 'อนุมัติซ่อม':
+                    ma = Maintenance.objects.get(id = column_id)
                     ma.approve_name = approve_name
-                    ma.approve_status = approve_status
+                    ma.approve_status = column_ap_status
                     ma.approve_update = datetime.datetime.now()
+                    err_log += ma.err_log
+                    ma.err_log = err_log
                     ma.save()
                     return JsonResponse({"status": "success", "id":"update approve status"})
                 
@@ -7944,3 +7957,305 @@ def searchDataMaintenance(request):
         'have_id': have_id,
     }
     return JsonResponse(data)
+
+def parse_sheet_time(value: str, tz="Asia/Bangkok"):
+    if value:
+        try:
+            # 1) parse ISO string เป็น datetime UTC
+            dt = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+            # 2) แปลงจาก UTC → timezone ของ Spreadsheet
+            tzinfo = pytz.timezone(tz)
+            local_dt = dt.astimezone(tzinfo)
+
+            # 3) ดึงเฉพาะเวลา
+            t = local_dt.time()
+
+            # 4) แปลงเป็น total_seconds ของวัน แล้วปัดเป็น nearest minute
+            seconds = t.hour * 3600 + t.minute * 60 + t.second
+            rounded_seconds = round(seconds, -1)   # ปัดเป็น 10 วินาที (หรือ -2 เพื่อปัดเป็นนาที)
+
+            # 5) สร้าง time object ใหม่
+            corrected_time = (datetime.datetime.min + datetime.timedelta(seconds=rounded_seconds)).time()
+
+            return corrected_time
+        except Exception as e:
+            return None
+        
+def parse_decimal(value):
+    try:
+        if value in (None, '', ' ', 'null'):
+            return Decimal(0)
+        return Decimal(str(value))
+    except Exception:
+        return Decimal(0)
+    
+def parse_int(value):
+    try:
+        if value in (None, '', ' ', 'null'):
+            return int(0)
+        return int(str(value))
+    except Exception:
+        return int(0)
+    
+@csrf_exempt
+def carLogBook_appsheet(request):
+    err_log = ''
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
+            #print('data =========== '+ str(data))
+
+            column_series = data.get("column_series")
+            column_comp = data.get("column_comp")
+            column_name = data.get("column_name")
+            column_car = data.get("column_car")
+
+            column_comp = column_comp.strip().split()[0]
+            column_name =  column_name.strip()
+            column_car =  column_car.strip()
+
+            column_oil = parse_decimal(data.get("column_oil"))
+            column_engine = parse_decimal(data.get("column_engine"))
+            column_hydraulic = parse_decimal(data.get("column_hydraulic"))
+            column_grease = parse_decimal(data.get("column_grease"))
+
+            column_mile_start = data.get("column_mile_start") 
+            column_mile_end = data.get("column_mile_end")
+
+            column_job1 = data.get("column_job1")
+            column_start_job1 = parse_sheet_time(data.get("column_start_job1"))
+            column_end_job1 = parse_sheet_time(data.get("column_end_job1"))
+
+            column_job2 = data.get("column_job2")
+            column_start_job2 = parse_sheet_time(data.get("column_start_job2"))
+            column_end_job2 = parse_sheet_time(data.get("column_end_job2"))
+
+            column_job3 = data.get("column_job3")
+            column_start_job3 = parse_sheet_time(data.get("column_start_job3"))
+            column_end_job3 = parse_sheet_time(data.get("column_end_job3"))
+
+            column_job4 = data.get("column_job4")
+            column_start_job4 = parse_sheet_time(data.get("column_start_job4"))
+            column_end_job4 = parse_sheet_time(data.get("column_end_job4"))
+
+            column_note = data.get("column_note")
+
+            try:
+                comp = BaseBranchCompany.objects.get(code = column_comp)
+            except BaseBranchCompany.DoesNotExist:
+                comp = BaseBranchCompany.objects.get(code = 'S1')
+
+            try:
+                car = BaseCar.objects.get(name = column_car)
+            except BaseCar.DoesNotExist:
+                car = None
+                err_log += "car : " + str(column_car) + ",\n"
+
+            try:
+                name = User.objects.annotate(
+                    full_name=Concat('first_name', Value(' '), 'last_name')
+                ).get(full_name=column_name)
+            except ObjectDoesNotExist:
+                name = None
+                err_log += "name : " + str(column_name) + ",\n"
+
+
+            have_id = CarLogbook.objects.filter(series = column_series , branch_company = comp).exists()
+            if not have_id:
+                try:
+                    # บันทึกลง MySQL ตามต้องการ
+                    CarLogbook.objects.create(
+                        series = column_series,
+                        car = car,
+                        name = name,
+                        branch_company = comp,
+
+                        oil = column_oil,
+                        engine = column_engine,
+                        hydraulic = column_hydraulic,
+                        grease = column_grease,
+
+                        mile_start = column_mile_start,
+                        mile_end = column_mile_end,
+
+                        job1 = column_job1,
+                        start_job1 = column_start_job1,
+                        end_job1 = column_end_job1,
+
+                        job2 = column_job2,
+                        start_job2 = column_start_job2,
+                        end_job2 = column_end_job2,
+
+                        job3 = column_job3,
+                        start_job3 = column_start_job3,
+                        end_job3 = column_end_job3,
+
+                        job4 = column_job4,
+                        start_job4 = column_start_job4,
+                        end_job4 = column_end_job4,
+
+                        note = column_note,
+                        err_log = err_log,
+                    )
+                except Exception as ex:
+                    pass
+
+                return JsonResponse({"status": "success", "series": column_series})
+            else:
+                return JsonResponse({"status": "error", "message": "dupilcate id"}, status=400)
+            
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+        
+    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+@csrf_exempt
+def roi_carLogBook_appsheet(request):
+    err_log = ''
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
+            #print('data =========== '+ str(data))
+
+            column_series = data.get("column_series")
+            column_comp = data.get("column_comp")
+            column_name = data.get("column_name")
+            column_car = data.get("column_car")
+            column_car_tail = data.get("column_car_tail")
+
+            column_comp = column_comp.strip().split()[0]
+            column_name =  column_name.strip()
+            column_car =  column_car.strip()
+            column_car_tail =  column_car_tail.strip()
+
+            column_oil = parse_decimal(data.get("column_oil"))
+            column_engine = parse_decimal(data.get("column_engine"))
+            column_hydraulic = parse_decimal(data.get("column_hydraulic"))
+            column_grease = parse_decimal(data.get("column_grease"))
+
+            column_job1 = data.get("column_job1")
+            column_mile_start_job1 = parse_int(data.get("column_mile_start_job1"))
+            column_mile_end_job1 = parse_int(data.get("column_mile_end_job1"))
+
+            column_job2 = data.get("column_job2")
+            column_mile_start_job2 = parse_int(data.get("column_mile_start_job2"))
+            column_mile_end_job2 = parse_int(data.get("column_mile_end_job2"))
+
+            column_job3 = data.get("column_job3")
+            column_mile_start_job3 = parse_int(data.get("column_mile_start_job3"))
+            column_mile_end_job3 = parse_int(data.get("column_mile_end_job3"))
+
+            column_job4 = data.get("column_job4")
+            column_mile_start_job4 = parse_int(data.get("column_mile_start_job4"))
+            column_mile_end_job4 = parse_int(data.get("column_mile_end_job4"))
+
+            column_job5 = data.get("column_job5")
+            column_mile_start_job5 = parse_int(data.get("column_mile_start_job5"))
+            column_mile_end_job5 = parse_int(data.get("column_mile_end_job5"))
+
+            column_job6 = data.get("column_job6")
+            column_mile_start_job6 = parse_int(data.get("column_mile_start_job6"))
+            column_mile_end_job6 = parse_int(data.get("column_mile_end_job6"))
+
+            try:
+                comp = BaseBranchCompany.objects.get(code = column_comp)
+            except BaseBranchCompany.DoesNotExist:
+                comp = BaseBranchCompany.objects.get(code = 'S1')
+
+            try:
+                car = BaseCar.objects.get(name = column_car)
+            except BaseCar.DoesNotExist:
+                car = None
+                err_log += "car : " + str(column_car) + ",\n"
+
+            try:
+                car_tail = BaseCar.objects.get(name = column_car_tail)
+            except BaseCar.DoesNotExist:
+                car_tail = None
+                err_log += "car_tail : " + str(column_car_tail) + ",\n"
+
+            try:
+                name = User.objects.annotate(
+                    full_name=Concat('first_name', Value(' '), 'last_name')
+                ).get(full_name=column_name)
+            except ObjectDoesNotExist:
+                name = None
+                err_log += "name : " + str(column_name) + ",\n"
+
+            have_id = CarLogbook.objects.filter(series = column_series , branch_company = comp).exists()
+            if not have_id:
+                try:
+                    # บันทึกลง MySQL ตามต้องการ
+                    CarLogbook.objects.create(
+                        series = column_series,
+                        car = car,
+                        car_tail = car_tail,
+                        name = name,
+                        branch_company = comp,
+
+                        oil = column_oil,
+                        engine = column_engine,
+                        hydraulic = column_hydraulic,
+                        grease = column_grease,
+
+                        job1 = column_job1,
+                        mile_start_job1 = column_mile_start_job1,
+                        mile_end_job1 = column_mile_end_job1,
+
+                        job2 = column_job2,
+                        mile_start_job2 = column_mile_start_job2,
+                        mile_end_job2 = column_mile_end_job2,
+
+                        job3 = column_job3,
+                        mile_start_job3 = column_mile_start_job3,
+                        mile_end_job3 = column_mile_end_job3,
+
+                        job4 = column_job4,
+                        mile_start_job4 = column_mile_start_job4,
+                        mile_end_job4 = column_mile_end_job4,
+
+                        job5 = column_job5,
+                        mile_start_job5 = column_mile_start_job5,
+                        mile_end_job5 = column_mile_end_job5,
+
+                        job6 = column_job6,
+                        mile_start_job6 = column_mile_start_job6,
+                        mile_end_job6 = column_mile_end_job6,
+                        err_log = err_log,
+
+                    )
+                except Exception as ex:
+                    pass
+
+                return JsonResponse({"status": "success", "series": column_series})
+            else:
+                return JsonResponse({"status": "error", "message": "dupilcate id"}, status=400)
+            
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+        
+    return JsonResponse({"status": "error", "message": "Invalid request"}, status=400)
+
+@login_required(login_url='signIn')
+def viewCL(request):
+    active = request.session['company_code']
+    data = CarLogbook.objects.filter(branch_company__code = active)
+
+    #กรองข้อมูล
+    myFilter = CarLogbookFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'cls':dataPage,
+        'filter':myFilter,
+        'cl_page': "tab-active",
+        'cl_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "carLogbook/viewCL.html", context)

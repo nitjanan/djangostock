@@ -215,8 +215,8 @@ urlpatterns = [
     path('export/products/', views.export_products, name='export_products'),
     path('products/create_qr_code/', views.create_qr_code, name='create_qr_code'),
 
-    path("api/sheet-to-mysql/", views.sheet_to_mysql_api, name="sheet_to_mysql_api"),
-    path("api/sheet-to-mysql/update/", views.update_sheet_to_mysql_api, name="update_sheet_to_mysql_api"),
+    path("api/maintenance_appsheet/", views.maintenance_appsheet, name="maintenance_appsheet"),
+    path("api/maintenance_appsheet/update/", views.update_maintenance_appsheet, name="update_maintenance_appsheet"),
 
     path('maintenance/',views.viewMA,name="viewMA"),
     path('maintenance/show/<int:ma_id>/<int:mode>',views.showMA,name="showMA"),
@@ -224,7 +224,10 @@ urlpatterns = [
 
     path('autocompalte_maintenance/',views.autocompalte_maintenance,name="autocompalte_maintenance"),
     path('searchDataMaintenance', views.searchDataMaintenance, name="searchDataMaintenance"),
-    
+
+    path("api/carLogBook_appsheet/", views.carLogBook_appsheet, name="carLogBook_appsheet"),
+    path("api/roi_carLogBook_appsheet/", views.roi_carLogBook_appsheet, name="roi_carLogBook_appsheet"),
+    path('carLogBook/',views.viewCL,name="viewCL"),
 ]
 
 if settings.DEBUG :

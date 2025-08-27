@@ -226,6 +226,35 @@ def maintenance_ref_number(branch_company):
     new_no = format + str(formatted)
     return new_no
 
+def carLogbook_ref_number(branch_company):
+    #tz = pytz.timezone('Asia/Bangkok')
+    today = datetime.datetime.now()
+    year = str(int(today.strftime('%Y')) + 543)[2:4]
+    month = str(today.strftime('%m'))
+    YM = year + month
+    format = 'L'+ str(branch_company) + YM
+
+    try:
+        last_no = CarLogbook.objects.all().filter(ref_no__contains=format).order_by('id').last()
+    except:
+        last_no = None
+
+    if not last_no:
+        return format + '001'
+
+    ref_no = last_no.ref_no
+    oldDate =  ref_no[3:-3]
+    if YM == oldDate:
+        no_int = int(ref_no.split(format)[-1])
+    elif YM != oldDate:
+        no_int = 000
+    
+    width = 3
+    new_no_int = no_int + 1
+    formatted = (width - len(str(new_no_int))) * "0" + str(new_no_int)
+    new_no = format + str(formatted)
+    return new_no
+
 # Create your models here.
 def get_first_name(self):
     return self.first_name + " " + self.last_name
@@ -1651,6 +1680,14 @@ class Maintenance(models.Model):
         verbose_name="หัวหน้าช่างซ่อม"
     )
     chief_update = models.DateTimeField(null=True, blank=True)
+    organizer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='ma_og_name',
+        verbose_name="พัสดุซ่อมบำรุง (ผู้จัดทำ)"
+    )
+    mile = models.IntegerField(null=True, blank = True, verbose_name="เลขตอนแจ้งซ่อม")
     detail = models.TextField(blank=True, null = True, verbose_name="อธิบายงาน/รายละเอียด")
     repair_note = models.TextField(blank=True, null = True, verbose_name="ช่างผู้ดำเนินการ")
     work_hour = models.IntegerField(null=True, blank = True, verbose_name="ชม.ทำงาน (ชม.)")
@@ -1678,6 +1715,7 @@ class Maintenance(models.Model):
     is_complete = models.BooleanField(blank=True, null = True)#สถานะ ปิดสรุปใช้งานได้
     fail_reason = models.TextField(blank=True, null = True, verbose_name="เหตุผลที่ปิดสรุปไม่ได้")#เหตุผลที่ปิดสรุปไม่ได้
     ma_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/maintenance/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="ไฟล์แนบ")
+    err_log = models.TextField(blank=True, null = True, verbose_name="error log")
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -1690,3 +1728,78 @@ class Maintenance(models.Model):
     class Meta:
         db_table = 'Maintenance'
         ordering=('-id',)
+        verbose_name = 'ใบแจ้งซ่อม'
+        verbose_name_plural = 'ข้อมูลใบแจ้งซ่อม'
+
+class CarLogbook(models.Model):
+    id = models.AutoField(primary_key=True)#เก็บไอดีรหัสบันทึกการใช้รถ
+    series = models.IntegerField(null=True, blank = True, verbose_name="ลำดับ")
+    created = models.DateTimeField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='cl_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หัว)
+    car_tail = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='cl_car2', verbose_name="ทะเบียนรถ (หาง)") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หาง)
+    name = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='cl_name',
+        verbose_name="ผู้บันทึกการใช้รถ"
+    )
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
+    address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
+    ref_no = models.CharField(max_length = 255, null = True, blank = True)
+    oil = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันโซล่า ( ลิตร )")
+    engine = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันเครื่อง ( ลิตร )")
+    hydraulic = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันไฮโดรลิค ( ลิตร )")
+    grease = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="จารบี ( ลิตร )")
+    mile_start = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่ม")
+    mile_end = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุด")
+    
+    job1 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 1")
+    start_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 1")
+    end_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 1")
+    mile_start_job1 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 1")
+    mile_end_job1 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 1")
+
+    job2 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 2")
+    start_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 2")
+    end_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 2")
+    mile_start_job2 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 2")
+    mile_end_job2 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 2")
+
+    job3 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 3")
+    start_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 3")
+    end_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 3")
+    mile_start_job3 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 3")
+    mile_end_job3 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 3")
+
+    job4 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 4")
+    start_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 4")
+    end_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 4")
+    mile_start_job4 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 4")
+    mile_end_job4 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 4")
+
+    job5 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 5")
+    mile_start_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 5")
+    mile_end_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 5")
+
+    job6 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 6")
+    mile_start_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 6")
+    mile_end_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 6")
+
+    note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ")#หมายเหตุ
+    err_log = models.TextField(blank=True, null = True, verbose_name="error log")
+    
+    def save(self, *args, **kwargs):
+        if self.address_company is None:
+            company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
+            self.address_company = company.address
+        if self.ref_no is None:
+            self.ref_no = carLogbook_ref_number(self.branch_company)
+        super(CarLogbook, self).save(*args, **kwargs)
+
+    class Meta:
+        db_table = 'CarLogbook'
+        ordering=('-id',)
+        verbose_name = 'ใบบันทึกการใช้งานรถ'
+        verbose_name_plural = 'ข้อมูลใบบันทึกการใช้งานรถ'

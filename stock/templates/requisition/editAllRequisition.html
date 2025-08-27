@@ -383,7 +383,7 @@
                         <div class="form-group col-md-6">
                         <label>{{form.car.label}}</label> 
                         {{form.car | add_class:"form-control"}}
-                        </div>                        
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
@@ -1180,6 +1180,10 @@ $("#rName").change(function() {
                         $("#id-form-ma").val('');
                         $("#id-form-ma").focus();
                         alert('ไม่มีเลขที่ใบแจ้งซ่อมนี้ กรุณาใส่เลขที่ใบแจ้งซ่อมอีกครั้ง');
+
+                        $('#id_rq_type').css('pointer-events','auto');
+                        $('#id_car').next('.select2-container').css('pointer-events', 'auto');
+
                     }else if(data.have_id == true){
                         $("#id_ma_id").val(data.id);
                         $("#id_ma_ref_no").val(data.ref_no);
@@ -1192,6 +1196,9 @@ $("#rName").change(function() {
 
                         var carOption = new Option(data.car_text, data.car_id, true, true);
                         $('#id_car').append(carOption).trigger('change');
+
+                        $('#id_rq_type').css('pointer-events','none');
+                        $('#id_car').next('.select2-container').css('pointer-events', 'none');
                     }
                 }
                 });
