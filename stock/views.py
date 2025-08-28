@@ -8009,10 +8009,12 @@ def carLogBook_appsheet(request):
             column_series = data.get("column_series")
             column_comp = data.get("column_comp")
             column_name = data.get("column_name")
+            column_car_code = data.get("column_car_code")
             column_car = data.get("column_car")
 
             column_comp = column_comp.strip().split()[0]
             column_name =  column_name.strip()
+            column_car_code =  column_car_code.strip()
             column_car =  column_car.strip()
 
             column_oil = parse_decimal(data.get("column_oil"))
@@ -8045,12 +8047,12 @@ def carLogBook_appsheet(request):
                 comp = BaseBranchCompany.objects.get(code = column_comp)
             except BaseBranchCompany.DoesNotExist:
                 comp = BaseBranchCompany.objects.get(code = 'S1')
-
-            try:
-                car = BaseCar.objects.get(name = column_car)
-            except BaseCar.DoesNotExist:
-                car = None
-                err_log += "car : " + str(column_car) + ",\n"
+            
+            car = BaseCar.objects.filter(
+                Q(code=column_car_code) | Q(name=column_car)
+            ).first()
+            if not car:
+                err_log += f"car code: {column_car_code}, car name: {column_car}\n"
 
             try:
                 name = User.objects.annotate(
@@ -8098,6 +8100,12 @@ def carLogBook_appsheet(request):
                         note = column_note,
                         err_log = err_log,
                     )
+
+                    obj = CarLogbook.objects.get(series = column_series , branch_company = comp)
+                    if "image_mile" in request.FILES and request.FILES["image_mile"]:
+                        obj.image_mile = request.FILES["image_mile"]
+                    obj.save()
+
                 except Exception as ex:
                     pass
 
@@ -8224,6 +8232,12 @@ def roi_carLogBook_appsheet(request):
                         err_log = err_log,
 
                     )
+
+                    obj = CarLogbook.objects.get(series = column_series , branch_company = comp)
+                    if "image_mile" in request.FILES and request.FILES["image_mile"]:
+                        obj.image_mile = request.FILES["image_mile"]
+                    obj.save()
+                    
                 except Exception as ex:
                     pass
 

@@ -1643,10 +1643,10 @@ class Maintenance(models.Model):
     )
     broke_reason = models.CharField(max_length=255, blank=True, null = True, verbose_name="อาการเสีย")
     car_state = models.CharField(max_length=255, blank=True, null = True, verbose_name="สภาพรถ")#สามารถเคลื่อนที่ได้และไม่สามารถเคลื่อนที่ได้
-    image1 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 1")
-    image2 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 2")
-    image3 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 3")
-    image4 = models.ImageField(null=True, blank=True, upload_to = "maintenance/",verbose_name="รูปภาพที่ 4")
+    image1 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 1")
+    image2 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 2")
+    image3 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 3")
+    image4 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 4")
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
@@ -1789,6 +1789,7 @@ class CarLogbook(models.Model):
 
     note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ")#หมายเหตุ
     err_log = models.TextField(blank=True, null = True, verbose_name="error log")
+    image_mile = models.ImageField(null=True, blank=True, upload_to = "car_log_book/%Y/%m/%d",verbose_name="รูปภาพเลขไมล์เริ่มต้น")
     
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -1796,6 +1797,22 @@ class CarLogbook(models.Model):
             self.address_company = company.address
         if self.ref_no is None:
             self.ref_no = carLogbook_ref_number(self.branch_company)
+        if self.mile_start is None: #ROI คำนวนเลขไมล์เริ่ม auto
+           self.mile_start = self.mile_end_job1
+        if self.mile_end is None: #ROI คำนวนเลขไมล์จบ auto
+            values = [
+                self.mile_end_job1,
+                self.mile_end_job2,
+                self.mile_end_job3,
+                self.mile_end_job4,
+                self.mile_end_job5,
+                self.mile_end_job6,
+            ]
+
+            # Filter out None values
+            values = [v for v in values if v is not None]
+
+            self.mile_end = max(values) if values else None
         super(CarLogbook, self).save(*args, **kwargs)
 
     class Meta:

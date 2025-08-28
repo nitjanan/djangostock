@@ -618,10 +618,13 @@ def findAllSupplieAlert(request, tab):
     except ComparisonPrice.DoesNotExist:
         ma_count = 0
 
+    '''
     try:
         rc_count =  PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, branch_company__code = tab).count()
     except PurchaseOrder.DoesNotExist:
-        rc_count = 0
+        rc_count = 0    
+    '''
+    rc_count = 0
     return ma_count + rc_count
 
 
