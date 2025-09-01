@@ -182,6 +182,10 @@ u.dotted {
             </table>
           </div>
           <div class="row my-2">
+            <div class="col-2">{{ form.address_company.label}}</div>
+            <div class="col">{{ form.address_company | add_class:"form-control" }}</div>
+          </div>
+          <div class="row my-2">
             <div class="col-2 text-danger">{{ form.organizer.label}}</div>
             <div class="col">{{ form.organizer | add_class:"form-control is-invalid" }}</div>
           </div>
@@ -321,6 +325,11 @@ u.dotted {
 //script
 {% block javascript %}
 <script>
+  if($('#id_address_company').val() == "")
+    $('#id_address_company').prop('selectedIndex', 1);
+  else
+    $('#id_address_company option[value="{{pr.address_company}}"]');
+
   function setDateTimePrint(){
   var currentdate = new Date();
   var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";

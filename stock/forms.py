@@ -141,14 +141,19 @@ class PurchaseRequisitionForm(forms.ModelForm):
         position = PositionBasePermission.objects.filter(base_permission__codename='CAAPR', branch_company__code = request.session['company_code']).values('position_id')
         user_profile = UserProfile.objects.filter(position__in = position, branch_company__code = request.session['company_code']).values('user__id')
         self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบขอซื้อ', queryset = User.objects.filter(id__in = user_profile))
+        
+        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
+        self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
 
     class Meta:
        model = PurchaseRequisition 
-       fields = ('note', 'branch_company', 'organizer', 'approver_user')
+       fields = ('note', 'branch_company', 'organizer', 'approver_user', 'address_company')
        widgets = {
         'branch_company': forms.HiddenInput(),
        }
-
+       labels = {
+            'address_company': _('ที่อยู่ตามจดทะเบียน'),
+        }
 #ใบสั่งซื้อ
 class PurchaseOrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

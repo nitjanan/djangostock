@@ -2241,6 +2241,7 @@ def createCMorPO(request, pr_id):
             approver_status_id = 1,
             examiner_status_id = 1,
             branch_company = pr.branch_company,
+            address_company = pr.address_company,
             note = pr.note,
         )
         cp.save()
@@ -2286,6 +2287,7 @@ def createCMorPO(request, pr_id):
             vat_type_id = 0,
             pr = pr,
             branch_company = pr.branch_company,
+            address_company = pr.address_company,
         )
         po.save()
 
