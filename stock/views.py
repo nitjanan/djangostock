@@ -7840,7 +7840,10 @@ def showMA(request, ma_id, mode):
     base_ma_type = BaseMAType.objects.all()
 
     ma = Maintenance.objects.get(id = ma_id)
-    base_rp_type = BaseRepairType.objects.filter(Q(rq_type = ma.car.rq_type)| Q(rq_type = 4))
+    if ma.car:
+        base_rp_type = BaseRepairType.objects.filter(Q(rq_type = ma.car.rq_type)| Q(rq_type = 4))
+    else:
+        base_rp_type = BaseRepairType.objects.filter(Q(rq_type = 2)| Q(rq_type = 4))
 
     page = MAPageMode(mode)
     show = MAShowMode(mode)
@@ -7889,6 +7892,11 @@ def editMA(request, ma_id):
                    i.save()
             except Requisition.DoesNotExist:
                 pass
+
+            #กรณีที่ยังไม่บันทึกผู้จัดทำ
+            if ma.organizer is None:
+                ma.organizer = request.user
+                ma.save()
             return redirect('viewMA')
     else:
         form = MaintenanceForm(instance=ma)
