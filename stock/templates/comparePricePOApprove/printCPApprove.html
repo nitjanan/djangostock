@@ -93,7 +93,7 @@
             <img src="/media/{{cp.address_company.logo}}" class="rounded float-left" width="60" height="60"/>
         </div>
         <div class="col-3 text-center">
-            <p style="font-size:6pt">รหัส {{cp.ref_no}}
+            <b style="font-size:9pt">รหัส {{cp.ref_no}}
                 {% for oldest in items_oldest %}
                     {% if oldest.item.requisit.memorandum_pdf %}
                         {% ifchanged oldest.item.requisit.memorandum_pdf %}
@@ -101,13 +101,13 @@
                         {% endifchanged %}
                     {% endif %}
                 {% endfor %}
-            </p>
-            <h6 style="font-size:6pt">รหัสใบขอซื้อ
+            </b>
+            <h6 style="font-size:9pt">รหัสใบขอซื้อ
                 {% for i in new_pr %}
                     <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
                 {% endfor %}
             </h6>
-            <p style="font-size:6pt">วันที่&emsp;{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</p>
+            <p style="font-size:9pt">วันที่&emsp;{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</p>
         </div>
     </div>
     <div class="table-responsive">
@@ -193,7 +193,7 @@
                     <td rowspan="6"></td>
                     <td class="text-right">{{bd.total_price | intcomma}}</td>
                 {% endfor %}
-                <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note}}</td>
+                <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note|truncatechars:450}}</td>
             </tr>
             <tr>
                 <td colspan="2" class="text-right">หักส่วนลด</td>

@@ -702,7 +702,7 @@ class Requisition(models.Model):
     expense_dept = models.ForeignKey(BaseExpenseDepartment, on_delete=models.CASCADE, blank=True, null=True) #แผนกค่าใช้จ่าย
     desired_date = models.DateField(blank=True, null=True) #วันที่ต้องการ
     expenses = models.ManyToManyField(BaseExpenses, blank=True, null=True, verbose_name="ค่าใช้จ่าย")#ค่าใช้จ่าย checkbox
-    note = models.CharField(max_length = 255, null = True, blank = True, verbose_name="หมายเหตุ/เหตุผล")
+    note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ/เหตุผล")
     agency = models.ForeignKey(BaseAgency, on_delete=models.CASCADE, blank=True, null=True) #หน่วยงาน
     mile = models.CharField(max_length = 255, null = True, blank = True, verbose_name="เลขไมล์/เลขชั่วโมง")
     qr_code = models.ImageField(null=True, blank=True, upload_to = "r_qr_codes/", verbose_name="qr code")
@@ -873,7 +873,7 @@ class PurchaseRequisition(models.Model):
     )
     approver_update = models.DateTimeField(blank=True, null=True)
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
-    note = models.CharField(max_length = 255, null = True, blank = True)
+    note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ/เหตุผล")
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
     organizer = models.ForeignKey(User,on_delete=models.CASCADE, related_name='organizer_user', null = True, blank = True)#เจ้าหน้าที่จัดซื้อที่เป็นผู้จัดทำ
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
@@ -1123,7 +1123,7 @@ class ComparisonPrice(models.Model):
     select_bidder = models.ForeignKey(Distributor,on_delete=models.CASCADE, null=True) #ร้านที่เลือก
     created = models.DateField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
-    note = models.CharField(max_length=255, null = True, blank = True)
+    note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ/เหตุผล")
     approver_user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

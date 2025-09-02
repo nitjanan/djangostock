@@ -99,6 +99,7 @@ class RequisitionForm(forms.ModelForm):
         'ma_ref_no': forms.HiddenInput(),
         'desired_date': forms.DateInput(format=('%d/%m/%Y'), attrs={'class':'form-control', 'placeholder':'Select a date', 'type':'date', 'required':'True'}),
         'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
+        'note': forms.Textarea(attrs={'rows': 3,}),
         }
         labels = {
             'section': _('แผนก'),
@@ -150,6 +151,7 @@ class PurchaseRequisitionForm(forms.ModelForm):
        fields = ('note', 'branch_company', 'organizer', 'approver_user', 'address_company')
        widgets = {
         'branch_company': forms.HiddenInput(),
+        'note': forms.Textarea(attrs={'rows': 3,}),
        }
        labels = {
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
@@ -460,6 +462,7 @@ class CPSelectBidderForm(forms.ModelForm):
             'base_spares_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
             'cm_type': forms.RadioSelect(attrs={'class':'list-unstyled'}),
             'amount_diff': forms.HiddenInput(),
+            'note': forms.Textarea(attrs={'rows': 3,}),
        }
        labels = {
             'select_bidder': _('เลือกผู้จัดจำหน่าย'),
