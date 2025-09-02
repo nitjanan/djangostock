@@ -8028,6 +8028,7 @@ def carLogBook_appsheet(request):
             column_car =  column_car.strip()
 
             column_oil = parse_decimal(data.get("column_oil"))
+            column_gas = parse_decimal(data.get("column_gas"))
             column_engine = parse_decimal(data.get("column_engine"))
             column_hydraulic = parse_decimal(data.get("column_hydraulic"))
             column_grease = parse_decimal(data.get("column_grease"))
@@ -8084,6 +8085,7 @@ def carLogBook_appsheet(request):
                         branch_company = comp,
 
                         oil = column_oil,
+                        gas = column_gas,
                         engine = column_engine,
                         hydraulic = column_hydraulic,
                         grease = column_grease,

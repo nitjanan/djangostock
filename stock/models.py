@@ -1748,7 +1748,9 @@ class CarLogbook(models.Model):
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
+
     oil = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันโซล่า ( ลิตร )")
+    gas = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำเบนซิล ( ลิตร )")
     engine = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันเครื่อง ( ลิตร )")
     hydraulic = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันไฮโดรลิค ( ลิตร )")
     grease = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="จารบี ( ลิตร )")

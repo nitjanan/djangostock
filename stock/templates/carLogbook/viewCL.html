@@ -63,8 +63,8 @@
             <th scope="col">ชื่อผู้ใช้</th>
             <th scope="col">ทะเบียนรถ</th>
             <th scope="col" style="width: 60px;">รูปภาพ</th>
-            <th scope="col">น้ำมันโซล่า</th>
-            <th scope="col">น้ำมันเครื่อง</th>
+            <th scope="col">ไมล์เริ่ม</th>
+            <th scope="col">ไมล์สิ้นสุด</th>
             <th scope="col">รายละเอียดงานที่1</th>
             <th scope="col">เวลาเริ่มงานที่ 1 / เลขไมล์เริ่มงานที่ 1</th>
             <th scope="col">เวลาสิ้นสุดงานที่ 1 / เลขไมล์สิ้นสุดงานที่ 1</th>
@@ -83,8 +83,8 @@
                 </a>
                 {% endif %}
             </td>
-            <td>{{cl.oil}}</td>
-            <td>{{cl.engine}}</td>
+            <td>{{cl.mile_start}}</td>
+            <td>{{cl.mile_end}}</td>
             <td>{{cl.job1}}</td>
             <td>
               {% if cl.start_job1 %}{{cl.start_job1}}{%endif%}
