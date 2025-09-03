@@ -1200,7 +1200,7 @@ class PurchaseOrder(models.Model):
     total_after_discount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินหลังหักส่วนลด
     vat = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ภาษี
     amount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
-    note = models.CharField(max_length=255, null = True, blank = True)
+    note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ")
     freight = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ค่าขนส่ง
     stockman_user = models.ForeignKey(
         User,

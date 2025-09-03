@@ -5,9 +5,13 @@
 
 {% block css %}
 <style>
-    @media print {
+  @media print {
     .hidden-print {
       display: none;
+    }
+    body {
+        font-size: 11pt;
+        color: black;
     }
   }
   input.del[type=checkbox] {
@@ -194,7 +198,6 @@
               <div class="col-7">
                 <p>ทะเบียนรถ/เครื่องจักร/หน่วยงาน&nbsp;&nbsp;{% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% endif %}</p>
               </div>
-
               <div class="col-3">
                 <p class="text-right">รวมเป็นเงิน</p>
               </div>
@@ -205,47 +208,30 @@
             <div class="row">
               <div class="col-2">
                 <p>{{price_form.note.label}}</p>
+                <br>
+                <br>
+                <p>{{price_form.delivery.label}}</p>
+                <br>
+                <br>
               </div>
               <div class="col-5">
                 {{price_form.note | add_class:"form-control"}}
+                {{price_form.delivery | add_class:"form-control my-2"}}
+                <br>
               </div>
               <div class="col-3">
                 <p class="text-right">หักส่วนลด</p>
-              </div>
-              <div class="col-2">
-                {{price_form.discount | add_class:"text-right"}}
-                <p class="text-right" id="tempTotal" hidden>{{po.total_price}}</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-2">
-                <p>{{price_form.delivery.label}}</p>
-              </div>
-              <div class="col-5">
-                {{price_form.delivery | add_class:"form-control"}}
-              </div>
-              <div class="col-3">
                 <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
-              </div>
-              <div class="col-2">
-                {{price_form.total_after_discount | add_class:"text-right"}}
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-10">
                 <p class="text-right">ค่าขนส่ง</p>
-              </div>
-              <div class="col-2">
-                {{price_form.freight | add_class:"text-right"}}
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-10">
                 <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
                 <p id="vat-type" hidden>{{po.vat_type.id}}</p>
               </div>
               <div class="col-2">
-                {{price_form.vat | add_class:"text-right"}}
+                {{price_form.discount | add_class:"text-right"}}
+                <p class="text-right" id="tempTotal" hidden>{{po.total_price}}</p>
+                {{price_form.total_after_discount | add_class:"text-right my-2"}}
+                {{price_form.freight | add_class:"text-right my-2"}}
+                {{price_form.vat | add_class:"text-right my-2"}}
               </div>
             </div>
             <div class="row">

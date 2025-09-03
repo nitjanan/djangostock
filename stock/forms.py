@@ -245,6 +245,7 @@ class PurchaseOrderPriceForm(forms.ModelForm):
         'vat': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'amount': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control','value':'0.00', 'placeholder':'0.00'}),
         'freight': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control', 'placeholder':'0.00'}),
+        'note': forms.Textarea(attrs={'rows': 3,}),
         }
        labels = {
             'note': _('หมายเหตุ'),

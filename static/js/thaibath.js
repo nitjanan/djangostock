@@ -1,114 +1,104 @@
-// "use strict";
-
-function ThaiNumberToText(Number)
-{
-	Number = Number.replace (/๐/gi,'0');  
-	Number = Number.replace (/๑/gi,'1');  
-	Number = Number.replace (/๒/gi,'2');
-	Number = Number.replace (/๓/gi,'3');
-	Number = Number.replace (/๔/gi,'4');
-	Number = Number.replace (/๕/gi,'5');
-	Number = Number.replace (/๖/gi,'6');
-	Number = Number.replace (/๗/gi,'7');
-	Number = Number.replace (/๘/gi,'8');
-	Number = Number.replace (/๙/gi,'9');
-	return 	ArabicNumberToText(Number);
+function ThaiNumberToText(num) {
+    num = num.toString();
+    num = num.replace(/๐/g, '0')
+             .replace(/๑/g, '1')
+             .replace(/๒/g, '2')
+             .replace(/๓/g, '3')
+             .replace(/๔/g, '4')
+             .replace(/๕/g, '5')
+             .replace(/๖/g, '6')
+             .replace(/๗/g, '7')
+             .replace(/๘/g, '8')
+             .replace(/๙/g, '9');
+    return ArabicNumberToText(num);
 }
 
-function ArabicNumberToText(Number)
-{
-	var Number = CheckNumber(Number);
-	var NumberArray = new Array ("ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า", "สิบ");
-	var DigitArray = new Array ("", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน");
-	var BahtText = "";
-	if (isNaN(Number))
-	{
-		return "ข้อมูลนำเข้าไม่ถูกต้อง";
-	} else
-	{
-		if ((Number - 0) > 9999999.9999)
-		{
-			return "ข้อมูลนำเข้าเกินขอบเขตที่ตั้งไว้";
-		} else
-		{
-			Number = Number.split (".");
-			if (Number[1].length > 0)
-			{
-				Number[1] = Number[1].substring(0, 2);
-			}
-			var NumberLen = Number[0].length - 0;
-			for(var i = 0; i < NumberLen; i++)
-			{
-				var tmp = Number[0].substring(i, i + 1) - 0;
-				if (tmp != 0)
-				{
-					if ((i == (NumberLen - 1)) && (tmp == 1))
-					{
-						BahtText += "เอ็ด";
-					} else
-					if ((i == (NumberLen - 2)) && (tmp == 2))
-					{
-						BahtText += "ยี่";
-					} else
-					if ((i == (NumberLen - 2)) && (tmp == 1))
-					{
-						BahtText += "";
-					} else
-					{
-						BahtText += NumberArray[tmp];
-					}
-					BahtText += DigitArray[NumberLen - i - 1];
-				}
-			}
-			BahtText += "บาท";
-			if ((Number[1] == "0") || (Number[1] == "00"))
-			{
-				BahtText += "ถ้วน";
-			} else
-			{
-				DecimalLen = Number[1].length - 0;
-				for (var i = 0; i < DecimalLen; i++)
-				{
-					var tmp = Number[1].substring(i, i + 1) - 0;
-					if (tmp != 0)
-					{
-						if ((i == (DecimalLen - 1)) && (tmp == 1))
-						{
-							BahtText += "เอ็ด";
-						} else
-						if ((i == (DecimalLen - 2)) && (tmp == 2))
-						{
-							BahtText += "ยี่";
-						} else
-						if ((i == (DecimalLen - 2)) && (tmp == 1))
-						{
-							BahtText += "";
-						} else
-						{
-							BahtText += NumberArray[tmp];
-						}
-						BahtText += DigitArray[DecimalLen - i - 1];
-					}
-				}
-				BahtText += "สตางค์";
-			}
-			return BahtText;
-		}
-	}
+function ArabicNumberToText(Number) {
+    Number = CheckNumber(Number);
+    let NumberArray = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+    let DigitArray = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน"];
+    let BahtText = "";
+
+    if (isNaN(Number)) {
+        return "ข้อมูลนำเข้าไม่ถูกต้อง";
+    }
+
+    // แยกจำนวนเต็มกับทศนิยม
+    let parts = Number.split(".");
+    let integerPart = parts[0];
+    let decimalPart = parts[1].substring(0, 2);
+
+    // แปลงจำนวนเต็มเป็นกลุ่มละ 6 หลัก (เพราะไทยใช้ "ล้าน" ซ้ำ)
+    let groups = [];
+    while (integerPart.length > 0) {
+        let cut = integerPart.slice(-6);
+        integerPart = integerPart.slice(0, -6);
+        groups.unshift(cut);
+    }
+
+    groups.forEach((grp, idx) => {
+        let text = "";
+        for (let i = 0; i < grp.length; i++) {
+            let digit = parseInt(grp.charAt(i));
+            if (digit !== 0) {
+                if ((i === grp.length - 1) && (digit === 1) && grp.length > 1) {
+                    text += "เอ็ด";
+                } else if ((i === grp.length - 2) && (digit === 2)) {
+                    text += "ยี่";
+                } else if ((i === grp.length - 2) && (digit === 1)) {
+                    text += "";
+                } else {
+                    text += NumberArray[digit];
+                }
+                text += DigitArray[grp.length - i - 1];
+            }
+        }
+        if (text !== "") {
+            BahtText += text;
+            if (idx < groups.length - 1) {
+                BahtText += "ล้าน";
+            }
+        }
+    });
+
+    BahtText += "บาท";
+
+    // ส่วนสตางค์
+    if (decimalPart === "0" || decimalPart === "00") {
+        BahtText += "ถ้วน";
+    } else {
+        for (let i = 0; i < decimalPart.length; i++) {
+            let digit = parseInt(decimalPart.charAt(i));
+            if (digit !== 0) {
+                if ((i === decimalPart.length - 1) && (digit === 1) && decimalPart.length > 1) {
+                    BahtText += "เอ็ด";
+                } else if ((i === decimalPart.length - 2) && (digit === 2)) {
+                    BahtText += "ยี่";
+                } else if ((i === decimalPart.length - 2) && (digit === 1)) {
+                    BahtText += "";
+                } else {
+                    BahtText += NumberArray[digit];
+                }
+                BahtText += DigitArray[decimalPart.length - i - 1];
+            }
+        }
+        BahtText += "สตางค์";
+    }
+
+    return BahtText;
 }
 
-function CheckNumber(Number){
-	var decimal = false;
-	Number = Number.toString();				
-	Number = Number.replace (/ |,|บาท|฿/gi,'');  		
-	for (var i = 0; i < Number.length; i++)
-	{
-		if(Number[i] =='.'){
-			decimal = true;
-		}
-	}
-	if(decimal == false){
-		Number = Number+'.00';
-	}
-	return Number
+function CheckNumber(Number) {
+    let decimal = false;
+    Number = Number.toString();
+    Number = Number.replace(/ |,|บาท|฿/gi, '');
+    for (let i = 0; i < Number.length; i++) {
+        if (Number[i] === '.') {
+            decimal = true;
+        }
+    }
+    if (!decimal) {
+        Number = Number + '.00';
+    }
+    return Number;
 }

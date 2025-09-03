@@ -88,7 +88,7 @@
             <td>{{item.po.created |date:"d/m/Y"}}</td>
             <td>{{item.item.product.id}}</td>
             <td>{{item.item.product_name}}</td>
-            <td class="text-right">{{item.unit_price}}</td>
+            <td class="text-right">{{item.unit_price | intcomma}}</td>
             <th scope="row"><a href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></th>
             <th scope="row"><a href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></th>
             <th scope="row">{% if item.po.cp.ref_no %}<a class="{% if item.po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' item.po.cp.id 4 %}">{{item.po.cp.ref_no}}</a>{%endif%}</th>

@@ -5,9 +5,13 @@
 
 {% block css %}
 <style>
-    @media print {
+  @media print {
     .hidden-print {
       display: none;
+    }
+    body {
+        font-size: 11pt;
+        color: black;
     }
   }
   u.dotted {
@@ -21,6 +25,21 @@
 
   .verybigmodal {
     max-width: 80%;
+  }
+
+  .col-2-25 {
+    flex: 0 0 18.75%;
+    max-width: 18.75%;
+  }
+
+  .col-2-5 {
+    flex: 0 0 20.8333%; /* 2.5 of 12 = 20.8333% */
+    max-width: 20.8333%;
+  }
+
+  .col-7-5 {
+    flex: 0 0 62.5%;
+    max-width: 62.5%;
   }
 </style>
 {% endblock %}
@@ -202,20 +221,20 @@
             -->
             <!-- New **************** -->
             <div class="row">
-              <div class="col-7">
+              <div class="col-7-5">
                 <div class="row">
                   <div class="col">
                     <p>ทะเบียนรถ/เครื่องจักร/หน่วยงาน : {% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% endif %}</p>
                   </div>
                 </div>
                 <div class="row">
-                  <div class="col"><p>หมายเหตุ : {% if po.note %}{{po.note}}{% endif %}</p></div>
+                  <div class="col"><p>หมายเหตุ : {% if po.note %}{{po.note|truncatechars:290}}{% endif %}</p></div>
                 </div>
                 <div class="row">
                   <div class="col"><p>สถานที่จัดส่ง : {% if po.delivery %}{{po.delivery}}{% endif %}</p></div>
                 </div>
               </div>
-              <div class="col-3">
+              <div class="col-2-25">
                 <div class="row">
                   <div class="col"><p class="text-right">รวมเป็นเงิน</p></div>
                 </div>
@@ -232,7 +251,7 @@
                   <div class="col"><p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p></div>
                 </div>
               </div>
-              <div class="col-2">
+              <div class="col-2-25">
                 <div class="row">
                   <div class="col"><p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p></div>
                 </div>
@@ -260,13 +279,13 @@
             </div>
 
             <div class="row">
-              <div class="col-7">
+              <div class="col-7-5">
                 <p id="total-spell"></p>
               </div>
-              <div class="col-3">
+              <div class="col-2-25">
                 <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
               </div>
-              <div class="col-2">
+              <div class="col-2-25">
                 <p class="text-right">{{po.amount | intcomma}}&ensp;บาท</p>
               </div>
             </div>
