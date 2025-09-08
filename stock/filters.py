@@ -1,4 +1,4 @@
-from django.db.models import fields
+from django.db.models import fields, Q
 from django.db.models.fields import DateField
 from django.forms.widgets import DateInput, TextInput
 import django_filters
@@ -7,7 +7,7 @@ from .models import *
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
 from datetime import datetime, time
-from .models import Maintenance 
+from .models import Maintenance
 
 class RequisitionFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
@@ -239,7 +239,7 @@ class MaintenanceFilter(django_filters.FilterSet):
         method='filter_end_created',
         widget=DateInput(attrs={'type': 'date'})
     )
-    car = django_filters.CharFilter(field_name="car", lookup_expr='icontains')
+    car = django_filters.CharFilter(method='filter_car')
     name = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
     broke_type = django_filters.CharFilter(field_name="broke_type", lookup_expr='icontains')
     car_state = django_filters.ChoiceFilter(choices=CAR_STATE_CHOICES)
@@ -258,7 +258,13 @@ class MaintenanceFilter(django_filters.FilterSet):
     def filter_end_created(self, queryset, name, value):
         #Convert date into an aware datetime at 23:59:59.
         aware_datetime = make_aware(datetime.combine(value, time.max))
-        return queryset.filter(**{name + '__lte': aware_datetime})   
+        return queryset.filter(**{name + '__lte': aware_datetime})
+    
+    def filter_car(self, queryset, name, value):
+        return queryset.filter(
+            Q(car__name__icontains=value) |
+            Q(car__code__icontains=value)
+        )
 
 MaintenanceFilter.base_filters['ref_no'].label = 'รหัส'
 MaintenanceFilter.base_filters['start_created'].label = 'วันที่แจ้งซ่อม'
@@ -322,7 +328,7 @@ class CarLogbookFilter(django_filters.FilterSet):
         method='filter_end_created',
         widget=DateInput(attrs={'type': 'date'})
     )
-    car = django_filters.CharFilter(field_name="car", lookup_expr='icontains')
+    car = django_filters.CharFilter(method='filter_car')
     name = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
  
     class Meta:
@@ -337,7 +343,13 @@ class CarLogbookFilter(django_filters.FilterSet):
     def filter_end_created(self, queryset, name, value):
         #Convert date into an aware datetime at 23:59:59.
         aware_datetime = make_aware(datetime.combine(value, time.max))
-        return queryset.filter(**{name + '__lte': aware_datetime})   
+        return queryset.filter(**{name + '__lte': aware_datetime})
+    
+    def filter_car(self, queryset, name, value):
+        return queryset.filter(
+            Q(car__name__icontains=value) |
+            Q(car__code__icontains=value)
+        )
 
 CarLogbookFilter.base_filters['ref_no'].label = 'รหัส'
 CarLogbookFilter.base_filters['start_created'].label = 'วันที่ใช้รถ'

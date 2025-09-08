@@ -333,14 +333,18 @@ class BaseMATypeAdmin(ImportExportModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class CarLogbookAdmin(ImportExportModelAdmin):
-    list_display = ['ref_no','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    autocomplete_fields = ['car','car_tail', 'name']
+
+    list_display = ['ref_no', 'car', 'name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
-    search_fields = ('ref_no', 'name__first_name')
+    search_fields = ('ref_no', 'name__first_name', 'car__name', 'car__code')
 
 class MaintenanceAdmin(ImportExportModelAdmin):
-    list_display = ['ref_no','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    autocomplete_fields = ['car', 'name', 'approve_name', 'repair_type', 'repair_name', 'chief_name', 'organizer', 'distributor', 'contact_name', 'sender_name']
+
+    list_display = ['ref_no', 'car','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
-    search_fields = ('ref_no', 'name__first_name')
+    search_fields = ('ref_no', 'name__first_name', 'car__name', 'car__code')
 
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
