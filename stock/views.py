@@ -5372,7 +5372,13 @@ def exportExcelPOToExpress(request):
     frames = [df1, df2, df3, df4, df5]
     result = pd.concat(frames)
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xlsx'
 
     with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
@@ -5496,7 +5502,13 @@ def exportExcelPO(request):
     frames = [df1, df2, df3, df4, df5]
     result = pd.concat(frames)
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = f'attachment; filename=PO_Report_({active}).xlsx'
 
     with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
@@ -5508,8 +5520,14 @@ def exportExcelSummaryByProductValue(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="Report_Product_By_Value"'+active+'".xls"'
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/ms-excel'
+    )
+    response['Content-Disposition'] = f'attachment; filename=Report_Product_By_Value({active}).xls'
 
     wb = xlwt.Workbook(encoding='utf-8')
     ws = wb.add_sheet('รายงานสรุปตามมูลค่าสินค้า', cell_overwrite_ok=True) # this will make a sheet named Users Data
@@ -5634,8 +5652,14 @@ def exportExcelSummaryByProductFrequently(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="Report_Product_By_Frequently"'+active+'".xls"'
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/ms-excel'
+    )
+    response['Content-Disposition'] = f'attachment; filename=Report_Product_By_Frequently({active}).xls'
 
     wb = xlwt.Workbook(encoding='utf-8')
     ws = wb.add_sheet('รายงานสรุปตามจำนวนครั้งที่ซื้อ', cell_overwrite_ok=True) # this will make a sheet named Users Data
@@ -5833,8 +5857,14 @@ def exportToExcelRateDistributor(request):
 
     company_name = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).values_list('address__name_th', flat=True)[:1] or None
 
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="rate_distributor_report_"'+active+'".xlsx"'
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/ms-excel'
+    )
+    response['Content-Disposition'] = f'attachment; filename=rate_distributor_report_({active}).xlsx'
 
     wb = Workbook()
     ws = wb.active
@@ -7047,7 +7077,13 @@ def exportExcelByIVExpense(request):
         ws.column_dimensions[col].width = width
 
     # สร้าง HttpResponse
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = f'attachment; filename=agency_expense_report_({active}).xlsx'
     
     wb.save(response)
@@ -7244,8 +7280,14 @@ def exportToExcelRegistrationAndRepair(request):
         worksheet = workbook.active
         worksheet.cell(row = 1, column = 1, value = f'ไม่มีข้อมูลรายงานสรุปตามทะเบียนรถและประเภทการซ่อม')
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="registration_repair_({active}).xlsx"'
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=registration_repair_({active}).xlsx'
 
     workbook.save(response)
     return response
@@ -7459,8 +7501,14 @@ def exportToExcelAllExpensesRegistration(request):
     else:
         sheet.cell(row = 1, column = 1, value = f'ไม่มีข้อมูลรายงานสรุปค่าใช่จ่ายทะเบียนรถทั้งหมด')
 
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="expenses_registration_({active}).xlsx"'
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=expenses_registration_({active}).xlsx'
 
     workbook.save(response)
     return response
