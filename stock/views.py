@@ -7748,6 +7748,7 @@ def maintenance_appsheet(request):
             data = json.loads(request.POST.get('data', '{}'))# <-- จุดนี้ ถ้า body ไม่ใช่ JSON จะ error
 
             column_car = data.get("column_car")
+            column_car_tail = data.get("column_car_tail")
             column_name = data.get("column_name")
             column_broke_re = data.get("column_broke_re")
             column_car_st = data.get("column_car_st")
@@ -7772,6 +7773,13 @@ def maintenance_appsheet(request):
                 car = None
                 err_log += "car : " + str(column_car) + ",\n"
 
+
+            try:
+                car_tail = BaseCar.objects.get(name = column_car_tail)
+            except BaseCar.DoesNotExist:
+                car_tail = None
+                err_log += "car_tail : " + str(column_car_tail) + ",\n"
+
             try:
                 name = User.objects.annotate(
                     full_name=Concat('first_name', Value(' '), 'last_name')
@@ -7787,6 +7795,7 @@ def maintenance_appsheet(request):
                 Maintenance.objects.create(
                     id = column_id,
                     car = car,
+                    car_tail = car_tail,
                     name = name,
                     broke_reason = column_broke_re,
                     car_state = column_car_st,
@@ -7843,7 +7852,7 @@ def update_maintenance_appsheet(request):
                 err_log += "approve_name : " + str(column_ap_name) + ",\n"
             
             try:
-                if column_ap_status == 'อนุมัติซ่อม':
+                if column_ap_status == 'อนุมัติซ่อมบำรุง':
                     ma = Maintenance.objects.get(id = column_id)
                     ma.approve_name = approve_name
                     ma.approve_status = column_ap_status

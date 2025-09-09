@@ -117,7 +117,7 @@
                 {% endif %}
             </td>
             <td>
-              {% if ma.approve_status == 'อนุมัติซ่อม' %}
+              {% if ma.approve_status == 'อนุมัติซ่อมบำรุง' %}
                 <a style="width: 100px;" href="{%url 'editMA' ma.id %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
                 <a style="width: 100px;" onclick="return confirm('คุณต้องการลบใบขอเบิกนี้หรือไม่ ?')" href="" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</a>
               {%else%}
