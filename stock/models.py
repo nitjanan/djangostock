@@ -1631,7 +1631,7 @@ class ExOEINVH(models.Model):
 
 class Maintenance(models.Model):
     id = models.IntegerField(primary_key=True, unique=True , verbose_name="รหัสการซ่อม")#เก็บไอดีรหัสการซ่อม
-    created = models.DateTimeField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
     update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='ma_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน
     car_tail = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='ma_car2', verbose_name="ทะเบียนรถ (หาง)") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หาง)
@@ -1735,7 +1735,7 @@ class Maintenance(models.Model):
 class CarLogbook(models.Model):
     id = models.AutoField(primary_key=True)#เก็บไอดีรหัสบันทึกการใช้รถ
     series = models.IntegerField(null=True, blank = True, verbose_name="ลำดับ")
-    created = models.DateTimeField(auto_now_add=True) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
     update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='cl_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หัว)
     car_tail = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='cl_car2', verbose_name="ทะเบียนรถ (หาง)") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หาง)

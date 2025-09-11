@@ -54,7 +54,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
 from datetime import date, timedelta
-from django.utils.timezone import is_aware, make_naive
+from django.utils.timezone import is_aware, make_naive, make_aware
 from django.db import models
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework import generics, viewsets, permissions, status
@@ -8342,3 +8342,273 @@ def viewCL(request):
         "colorNav":"enableNav"
     }
     return render(request, "carLogbook/viewCL.html", context)
+
+#หาวันแรกของเดือนนี้
+def startDateInMonth(day):
+    dt = datetime.datetime.strptime(f"{day}", '%Y-%m-%d')
+    result = dt.replace(day=1).date()
+    return f"{result}"
+
+def excelDailyCL(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    comp = BaseBranchCompany.objects.get(code = active)
+    
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+    my_q = Q()
+    if start_created is not None:
+        my_q &= Q(created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(created__lte = end_created)
+    my_q &=Q(branch_company__code__in = company_in)
+
+    current_date_time = datetime.datetime.today()
+
+    startDate = datetime.datetime.strptime(start_created or startDateInMonth(current_date_time.strftime('%Y-%m-%d')), "%Y-%m-%d").date()
+    endDate = datetime.datetime.strptime(end_created or current_date_time.strftime('%Y-%m-%d'), "%Y-%m-%d").date()
+
+    list_date = [startDate+timedelta(days=x) for x in range((endDate-startDate).days + 1)]
+
+    #data = CarLogbook.objects.filter(my_q)
+    
+    car_all = CarLogbook.objects.filter(my_q).values_list('car', flat=True).distinct()
+    cars = BaseCar.objects.filter(id__in = car_all)
+
+    workbook = openpyxl.Workbook()
+
+    # Define custom date style only once
+    if "custom_datetime" not in workbook.named_styles:
+        date_style = NamedStyle(name='custom_datetime', number_format='DD/MM/YYYY')
+        workbook.add_named_style(date_style)
+
+    red_font = Font(color="FF0000")  # Hex color for red
+
+    # Define a thin border style
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    if cars:
+        for car in cars:
+            driver = (
+                CarLogbook.objects.filter(
+                    car=car,
+                    created__range=(startDate, endDate),
+                    branch_company__code__in=company_in
+                )
+                .annotate(
+                    full_name=Concat(
+                        F('name__first_name'),
+                        Value(' '),
+                        F('name__last_name'),
+                        output_field=CharField()
+                    )
+                )
+                .values('full_name')
+                .annotate(count=Count('id'))
+                .order_by('-count')
+                .first()
+            )
+            driver_name = driver['full_name'] if driver else ''
+            
+            data_sum = CarLogbook.objects.filter(
+                car=car, 
+                created__range=(startDate, endDate), 
+                branch_company__code__in=company_in
+            ).aggregate(
+                sum_oil=Sum('oil'),
+                sum_gas=Sum('gas'),
+                sum_engine=Sum('engine'),
+                sum_hydraulic=Sum('hydraulic'),
+                sum_grease=Sum('grease')
+            )
+                            
+            sheet = workbook.create_sheet(title=f"{car.code} {car.name}")
+            sheet.cell(row=1, column=1, value='รายงานการใช้รถ').font = Font(bold=True)
+            sheet.cell(row=2, column=1, value='หน่วยงาน')
+            sheet.cell(row=3, column=1, value='ทะเบียนรถ')
+            sheet.cell(row=4, column=1, value='ผู้ขับ')
+            sheet.cell(row=6, column=1, value='วันที่ ' + str(startDate.strftime('%d/%m/%Y')) + " ถึง " + str(endDate.strftime('%d/%m/%Y'))) 
+
+            sheet.cell(row=2, column=2, value=f"{comp.name}")
+            sheet.cell(row=3, column=2, value=f"{car.name}")
+            sheet.cell(row=4, column=2, value=f"{driver_name}")
+            sheet.cell(row=3, column=12, value=f"{car.code}").font = Font(bold=True)
+            
+            sheet.cell(row=7, column=1, value='วันที่')
+            sheet.cell(row=7, column=2, value='น้ำมันโซล่า')
+            sheet.cell(row=7, column=3, value='น้ำมันเบนซิล')
+            sheet.cell(row=7, column=4, value='น้ำมันเครื่อง')
+            sheet.cell(row=7, column=5, value='น้ำมันไฮโดรลิค')
+            sheet.cell(row=7, column=6, value='จารบี')
+            sheet.cell(row=7, column=7, value='ระยะทาง (เลขไมล์)')
+            sheet.cell(row=7, column=9, value='รวม กม.')
+            sheet.cell(row=7, column=10, value='รายละเอียดงาน')
+            sheet.cell(row=7, column=11, value='หมายเหตุ')
+            sheet.cell(row=7, column=12, value='ชื่อผู้ขับ')
+
+
+            sheet.cell(row=8, column=7, value='เริ่มต้น')
+            sheet.cell(row=8, column=8, value='สิ้นสุด')
+
+            sheet.merge_cells(f'A1:L1')
+            sheet.cell(row=1, column=1).alignment = Alignment(horizontal='center', vertical='center')
+
+            sheet.merge_cells(f'A6:L6')
+            sheet.merge_cells(f'A7:A8')
+            sheet.merge_cells(f'B7:B8')
+            sheet.merge_cells(f'C7:C8')
+            sheet.merge_cells(f'D7:D8')
+            sheet.merge_cells(f'E7:E8')
+            sheet.merge_cells(f'F7:F8')
+            sheet.merge_cells(f'G7:H7')
+            sheet.merge_cells(f'I7:I8')
+            sheet.merge_cells(f'J7:J8')
+            sheet.merge_cells(f'K7:K8')
+            sheet.merge_cells(f'L7:L8')
+
+            total_distance = 0
+            row_index = 9
+            for idl, ldate in enumerate(list_date):
+                row_index += 1
+                start_dt = make_aware(datetime.datetime.combine(ldate, datetime.time.min))
+                end_dt   = make_aware(datetime.datetime.combine(ldate, datetime.time.max))
+
+                # aggregate sums
+                data = CarLogbook.objects.filter(
+                    car=car, 
+                    created__range=(start_dt, end_dt), 
+                    branch_company__code__in=company_in
+                ).aggregate(
+                    sum_oil=Sum('oil'),
+                    sum_gas=Sum('gas'),
+                    sum_engine=Sum('engine'),
+                    sum_hydraulic=Sum('hydraulic'),
+                    sum_grease=Sum('grease')
+                )
+
+                # first and last records
+                data_first = CarLogbook.objects.filter(
+                    car=car, created__range=(start_dt, end_dt),
+                    branch_company__code__in=company_in
+                ).order_by('created').first()
+
+                data_last = CarLogbook.objects.filter(
+                    car=car, created__range=(start_dt, end_dt),
+                    branch_company__code__in=company_in
+                ).order_by('created').last()
+
+
+                notes = CarLogbook.objects.filter(
+                    car=car,
+                    created__range=(start_dt, end_dt),
+                    branch_company__code__in=company_in
+                ).annotate(
+                    full_name=Concat(
+                        F('name__first_name'),
+                        Value(' '),
+                        F('name__last_name'),
+                        output_field=CharField()
+                    ),
+                    all_job=ConcatWS(
+                        Value(', '),  # คั่นด้วย comma
+                        F('job1'),
+                        F('job2'),
+                        F('job3'),
+                        F('job4'),
+                        F('job5'),
+                        F('job6'),
+                        output_field=CharField()
+                    )
+                ).values_list('note', 'full_name', 'all_job')
+
+                # separate note and name
+                notes_text = ", ".join([str(row[0]) for row in notes if row[0]])
+                notes_name_text = ", ".join([str(row[1]) for row in notes if row[1]])
+                job_text = ", ".join([str(row[2]) for row in notes if row[2]])
+
+                # write date
+                sheet.cell(row=idl+9, column=1, value=ldate).style = "custom_datetime"
+                sheet.cell(row=idl+9, column=1).alignment = Alignment(horizontal='center')
+
+                # write sums
+                if data:
+                    sheet.cell(row=idl+9, column=2, value=data['sum_oil'] or '')
+                    sheet.cell(row=idl+9, column=3, value=data['sum_gas'] or '')
+                    sheet.cell(row=idl+9, column=4, value=data['sum_engine'] or '')
+                    sheet.cell(row=idl+9, column=5, value=data['sum_hydraulic'] or '')
+                    sheet.cell(row=idl+9, column=6, value=data['sum_grease'] or '')
+                    sheet.cell(row=idl+9, column=10, value=job_text)
+                    sheet.cell(row=idl+9, column=11, value=notes_text)
+                    sheet.cell(row=idl+9, column=12, value=notes_name_text)
+
+                # write mile_start and mile_end
+                if data_first:
+                    sheet.cell(row=idl+9, column=7, value=data_first.mile_start)
+                if data_last:
+                    sheet.cell(row=idl+9, column=8, value=data_last.mile_end)
+
+                # write distance
+                if data_first and data_last:
+                    distance = data_last.mile_end - data_first.mile_start
+                    total_distance += distance
+                    sheet.cell(row=idl+9, column=9, value=distance)
+            
+            sheet.cell(row=row_index, column=1, value='รวม')
+            sheet.cell(row=row_index, column=2, value=data_sum['sum_oil'] or '')
+            sheet.cell(row=row_index, column=3, value=data_sum['sum_gas'] or '')
+            sheet.cell(row=row_index, column=4, value=data_sum['sum_engine'] or '')
+            sheet.cell(row=row_index, column=5, value=data_sum['sum_hydraulic'] or '')
+            sheet.cell(row=row_index, column=6, value=data_sum['sum_grease'] or '')
+            sheet.cell(row=row_index, column=9, value=total_distance)
+
+            for col in range(1, 13):  # columns 1 to 11 (A to K)
+                col_letter = get_column_letter(col)
+                if col > 9:
+                    sheet.column_dimensions[col_letter].width = 40
+                else:
+                    sheet.column_dimensions[col_letter].width = 15
+            
+            # 2. Apply border to all cells from row 7 to last row (row_index)
+            for row in range(7, row_index + 1):
+                for col in range(1, 13):
+                    cell = sheet.cell(row=row, column=col)
+                    cell.border = thin_border
+
+            # 3. Apply red font to the total row
+            for col in [1,2,3,4,5,6,9]:  # only columns with totals
+                sheet.cell(row=row_index, column=col).font = red_font
+
+        workbook.remove(workbook['Sheet'])
+    else:
+        worksheet = workbook.active
+        worksheet.cell(row=1, column=1, value='ไม่มีข้อมูลบันทึกปฎิบัติการโรงโม่ดือนนี้')
+
+    # Save workbook into memory
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    size = output.getbuffer().nbytes
+
+    # Generator to stream file in chunks
+    def file_iterator(buffer, chunk_size=8192):
+        while True:
+            data = buffer.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+    response = StreamingHttpResponse(
+        file_iterator(output),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="carlog_daily({active}).xlsx"'
+    response["Content-Length"] = str(size)
+    return response

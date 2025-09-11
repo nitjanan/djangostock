@@ -228,6 +228,7 @@ urlpatterns = [
     path("api/carLogBook_appsheet/", views.carLogBook_appsheet, name="carLogBook_appsheet"),
     path("api/roi_carLogBook_appsheet/", views.roi_carLogBook_appsheet, name="roi_carLogBook_appsheet"),
     path('carLogBook/',views.viewCL,name="viewCL"),
+    path('carLogBook/excel/daily',views.excelDailyCL,name="excelDailyCL"),
 ]
 
 if settings.DEBUG :
