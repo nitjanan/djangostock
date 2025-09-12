@@ -1717,6 +1717,7 @@ class Maintenance(models.Model):
     fail_reason = models.TextField(blank=True, null = True, verbose_name="เหตุผลที่ปิดสรุปไม่ได้")#เหตุผลที่ปิดสรุปไม่ได้
     ma_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/maintenance/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="ไฟล์แนบ")
     err_log = models.TextField(blank=True, null = True, verbose_name="error log")
+    is_cancel = models.BooleanField(default=False)#สถานะ ยกเลิกรายการ ข้อมูลจะไปอยู่ในแท็ปประวัติ
 
     def save(self, *args, **kwargs):
         if self.address_company is None:

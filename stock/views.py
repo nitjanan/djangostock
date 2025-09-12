@@ -4730,6 +4730,7 @@ def viewRequisitionHistory(request):
 
     return render(request,'history/viewRequisition.html', context)
 
+@login_required(login_url='signIn')
 def viewPRHistory(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -4767,6 +4768,34 @@ def viewPRHistory(request):
               }
 
     return render(request,'history/viewPR.html',context)
+
+
+@login_required(login_url='signIn')
+def viewMAHistory(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    data = Maintenance.objects.filter(Q(is_cancel = True) | Q(is_complete__isnull=False), branch_company__code__in = company_in)
+
+    #กรองข้อมูล
+    myFilter = MaintenanceFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+                'mas':dataPage,
+                'filter':myFilter,
+                'h_ma_page': "tab-active",
+                'h_ma_show': "show",
+                active :"active show",
+                "colorNav":"enableNav"
+              }
+
+    return render(request,'history/viewMA.html',context)
 
 def viewPOHistory(request):
     active = request.session['company_code']
@@ -7873,7 +7902,9 @@ def update_maintenance_appsheet(request):
 @login_required(login_url='signIn')
 def viewMA(request):
     active = request.session['company_code']
-    data = Maintenance.objects.filter(branch_company__code = active)
+    company_in = findCompanyIn(request)
+
+    data = Maintenance.objects.filter(is_cancel = False, is_complete__isnull = True, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = MaintenanceFilter(request.GET, queryset = data)
@@ -7894,6 +7925,7 @@ def viewMA(request):
     }
     return render(request, "maintenance/viewMA.html", context)
 
+@login_required(login_url='signIn')
 def showMA(request, ma_id, mode):
     active = request.session['company_code']
     base_ma_type = BaseMAType.objects.all()
@@ -7936,6 +7968,7 @@ def showMA(request, ma_id, mode):
     }
     return render(request, 'maintenance/showMA.html',context)
 
+@login_required(login_url='signIn')
 def editMA(request, ma_id):
     active = request.session['company_code']
 
@@ -7972,12 +8005,19 @@ def editMA(request, ma_id):
 
     return render(request, "maintenance/editMA.html", context)
 
+def cancelMA(request, ma_id):
+    ma = Maintenance.objects.get(id = ma_id)
+    #set ma ยกเลิกรายการจะไปอยู่ในประวัติ
+    ma.is_cancel = True
+    ma.save()
+    return redirect('viewMA')
+
 def autocompalte_maintenance(request):
     active = request.session['company_code']
 
     if 'term' in request.GET:
         term = request.GET.get('term')
-        qs = Maintenance.objects.filter(Q(ref_no__icontains = term), branch_company__code = active)[:15]
+        qs = Maintenance.objects.filter(Q(ref_no__icontains = term), branch_company__code = active, is_cancel = False, is_complete__isnull = True)[:15]
         titles = list()
         for obj in qs:
             titles.append(obj.ref_no)
@@ -7991,6 +8031,7 @@ def searchDataMaintenance(request):
     car_text = None
     repair_type_id = None
     repair_type_name = None
+    mile = None
     have_id = False
     if 'id_input' in request.GET:
         id_input = request.GET.get('id_input')
@@ -8005,9 +8046,11 @@ def searchDataMaintenance(request):
             if qs.car:
                 car_id = qs.car.id
                 car_text = f"{qs.car.code} : {qs.car.name}"
-            if qs.repair_type.id:
+            if qs.repair_type:
                 repair_type_id = qs.repair_type.id
                 repair_type_name = qs.repair_type.name
+            if qs.mile:
+                mile = qs.mile
 
             have_id = True
         except Maintenance.DoesNotExist:
@@ -8021,6 +8064,7 @@ def searchDataMaintenance(request):
         'car_text': car_text,
         'repair_type_id': repair_type_id,
         'repair_type_name': repair_type_name,
+        'mile': mile,
         'have_id': have_id,
     }
     return JsonResponse(data)

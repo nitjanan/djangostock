@@ -150,6 +150,7 @@ urlpatterns = [
     path('export/', views.export ,name="export"),
 
     path('history/requisition/',views.viewRequisitionHistory,name="viewRequisitionHistory"),
+    path('history/maintenance/',views.viewMAHistory,name="viewMAHistory"),
     path('history/purchaseRequisition/',views.viewPRHistory,name="viewPRHistory"),
     path('history/purchaseOrder/',views.viewPOHistory,name="viewPOHistory"),
     path('history/comparePricePO/',views.viewComparePricePOHistory,name="viewComparePricePOHistory"),
@@ -221,6 +222,7 @@ urlpatterns = [
     path('maintenance/',views.viewMA,name="viewMA"),
     path('maintenance/show/<int:ma_id>/<int:mode>',views.showMA,name="showMA"),
     path('maintenance/edit/<int:ma_id>',views.editMA,name="editMA"),
+    path('maintenance/cancel/<int:ma_id>',views.cancelMA,name="cancelMA"),
 
     path('autocompalte_maintenance/',views.autocompalte_maintenance,name="autocompalte_maintenance"),
     path('searchDataMaintenance', views.searchDataMaintenance, name="searchDataMaintenance"),

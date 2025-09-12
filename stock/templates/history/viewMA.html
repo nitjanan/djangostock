@@ -19,7 +19,7 @@
 {% endblock %}
 {% block content %}
 <div class="container my-3">
-<h3 align="center">ใบแจ้งซ่อม</h3>
+<h3 align="center">ประวัติใบแจ้งซ่อม</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
     <form method="get">
@@ -78,7 +78,7 @@
             <th scope="col">สภาพรถ</th>
             <th scope="col">ไฟล์แนบ</th>
             <th scope="col" style="width: 15px;">รูปภาพ</th>
-            <th scope="col" style="width: 100px;">สถานะอนุมัติ</th>
+            <th scope="col" style="width: 100px;">สถานะ</th>
           </tr>
         </thead>
         <tbody>
@@ -117,14 +117,23 @@
                 {% endif %}
             </td>
             <td>
-              {% if ma.approve_status == 'อนุมัติซ่อมบำรุง' %}
-                <a style="width: 100px;" href="{%url 'editMA' ma.id %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
-                <a style="width: 100px;" onclick="return confirm('คุณต้องการยกเลิกใบแจ้งซ่อมนี้หรือไม่ ?\n ใบแจ้งซ่อมจะไปอยู่ในแท็ป History')" href="{% url 'cancelMA' ma.id %}" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</a>
-              {%else%}
+              {% if ma.is_cancel == 1 %}
                 <button style="width: 100px;" type="button"
-                  class="btn btn-sm btn-block btn-outline-warning"
-                >ขออนุมัติซ่อม
+                  class="btn btn-sm btn-block btn-outline-danger"
+                >รายการยกเลิก
                 </button>
+              {%else%}
+                {% if ma.is_complete == 1%}
+                    <button style="width: 100px;" type="button"
+                    class="btn btn-sm btn-block btn-outline-success"
+                    >ปิดสรุปได้
+                    </button>
+                {% elif ma.is_complete == 0%}
+                    <button style="width: 100px;" type="button"
+                    class="btn btn-sm btn-block btn-outline-warning"
+                    >ปิดสรุปไม่ได้
+                    </button>
+                {%endif%}
               {%endif%}
             </td>
           </tr>

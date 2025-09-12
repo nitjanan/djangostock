@@ -457,17 +457,25 @@
                         $("#id_ma_id").val(data.id);
                         $("#id_ma_ref_no").val(data.ref_no);
 
-                        var repairOption = new Option(data.repair_type_name, data.repair_type_id, true, true);
-                        $("#id_repair_type").append(repairOption).trigger('change');
+                        if(data.repair_type_id != null){
+                            var repairOption = new Option(data.repair_type_name, data.repair_type_id, true, true);
+                            $("#id_repair_type").append(repairOption).trigger('change');
+                        }
                         
                         $("#id_rq_type").val(data.rq_type);
                         $('#id_rq_type').trigger('change');
+                        searchRepairType();
 
                         var carOption = new Option(data.car_text, data.car_id, true, true);
                         $('#id_car').append(carOption).trigger('change');
 
                         $('#id_rq_type').css('pointer-events','none');
                         $('#id_car').next('.select2-container').css('pointer-events', 'none');
+
+                        if(data.mile != null){
+                            $("#id_mile").val(data.mile);
+                            $('#id_mile').prop('readonly', true);
+                        }
                     }
                 }
                 });
