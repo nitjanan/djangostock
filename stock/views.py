@@ -8559,23 +8559,19 @@ def excelDailyCL(request):
                         Value(' '),
                         F('name__last_name'),
                         output_field=CharField()
-                    ),
-                    all_job=ConcatWS(
-                        Value(', '),  # คั่นด้วย comma
-                        F('job1'),
-                        F('job2'),
-                        F('job3'),
-                        F('job4'),
-                        F('job5'),
-                        F('job6'),
-                        output_field=CharField()
                     )
-                ).values_list('note', 'full_name', 'all_job')
+                ).values_list('note', 'full_name', 'job1','job2','job3','job4','job5','job6')
 
-                # separate note and name
-                notes_text = ", ".join([str(row[0]) for row in notes if row[0]])
-                notes_name_text = ", ".join([str(row[1]) for row in notes if row[1]])
-                job_text = ", ".join([str(row[2]) for row in notes if row[2]])
+                # clean job text
+                cleaned_notes = []
+                for note, full_name, *jobs in notes:
+                    job_text = ", ".join([j for j in jobs if j])  # filter None/empty
+                    cleaned_notes.append((note, full_name, job_text))
+
+                # แยกเป็น string สำหรับเขียน Excel
+                notes_text       = ", ".join([row[0] for row in cleaned_notes if row[0]])
+                notes_name_text  = ", ".join([row[1] for row in cleaned_notes if row[1]])
+                job_text         = ", ".join([row[2] for row in cleaned_notes if row[2]])
 
                 # write date
                 sheet.cell(row=idl+9, column=1, value=ldate).style = "custom_datetime"
