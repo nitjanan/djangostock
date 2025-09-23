@@ -7785,6 +7785,7 @@ def maintenance_appsheet(request):
             column_ap_status = data.get("column_ap_status")
             column_mile = data.get("column_mile")
             column_id = data.get("column_id")
+            column_uniq_code = data.get("column_uniq_code")
             column_comp = data.get("column_comp")
 
             column_car =  column_car.strip()
@@ -7850,7 +7851,7 @@ def maintenance_appsheet(request):
 
                 obj.save()
 
-                return JsonResponse({"status": "success", "id": obj.id})
+                return JsonResponse({"status": "success", "id": obj.id}, status=200)
             else:
                 return JsonResponse({"status": "error", "message": "dupilcate id"}, status=400)
             
@@ -7869,6 +7870,7 @@ def update_maintenance_appsheet(request):
             column_ap_name = data.get("column_ap_name")
             column_ap_status = data.get("column_ap_status")
             column_id = data.get("column_id")
+            column_uniq_code = data.get("column_uniq_code")
 
             column_ap_name =  column_ap_name.strip()
 
@@ -7889,7 +7891,7 @@ def update_maintenance_appsheet(request):
                     err_log += ma.err_log
                     ma.err_log = err_log
                     ma.save()
-                    return JsonResponse({"status": "success", "id":"update approve status"})
+                    return JsonResponse({"status": "success", "id":"update approve status"}, status=200)
                 
             except Maintenance.DoesNotExist:
                 pass
@@ -8118,6 +8120,7 @@ def carLogBook_appsheet(request):
             #print('data =========== '+ str(data))
 
             column_series = data.get("column_series")
+            column_uniq_code = data.get("column_uniq_code")
             column_comp = data.get("column_comp")
             column_name = data.get("column_name")
             column_car_code = data.get("column_car_code")
@@ -8222,7 +8225,7 @@ def carLogBook_appsheet(request):
                 except Exception as ex:
                     pass
 
-                return JsonResponse({"status": "success", "series": column_series})
+                return JsonResponse({"status": "success", "series": column_series}, status=200)
             else:
                 return JsonResponse({"status": "error", "message": "dupilcate id"}, status=400)
             
@@ -8239,6 +8242,7 @@ def roi_carLogBook_appsheet(request):
             #print('data =========== '+ str(data))
 
             column_series = data.get("column_series")
+            column_uniq_code = data.get("column_uniq_code")
             column_comp = data.get("column_comp")
             column_name = data.get("column_name")
             column_car = data.get("column_car")
@@ -8354,7 +8358,7 @@ def roi_carLogBook_appsheet(request):
                 except Exception as ex:
                     pass
 
-                return JsonResponse({"status": "success", "series": column_series})
+                return JsonResponse({"status": "success", "series": column_series}, status=200)
             else:
                 return JsonResponse({"status": "error", "message": "dupilcate id"}, status=400)
             

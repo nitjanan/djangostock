@@ -1630,7 +1630,8 @@ class ExOEINVH(models.Model):
         return f"{self.docnum} - {self.cuscod}"
 
 class Maintenance(models.Model):
-    id = models.IntegerField(primary_key=True, unique=True , verbose_name="รหัสการซ่อม")#เก็บไอดีรหัสการซ่อม
+    id = models.AutoField(primary_key=True)#เก็บไอดีรหัสการซ่อม
+    uniq_code = models.CharField(max_length=10, blank = True, null = True)#UNIQUEID() ใน appsheet
     created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
     update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='ma_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน
@@ -1735,6 +1736,7 @@ class Maintenance(models.Model):
 
 class CarLogbook(models.Model):
     id = models.AutoField(primary_key=True)#เก็บไอดีรหัสบันทึกการใช้รถ
+    uniq_code = models.CharField(max_length=10, blank = True, null = True)#UNIQUEID() ใน appsheet
     series = models.IntegerField(null=True, blank = True, verbose_name="ลำดับ")
     created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
     update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
