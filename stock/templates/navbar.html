@@ -107,6 +107,13 @@
         </div>
       </form>
       {% for tab in visible_tab %}
+        {% if 'Mobile' in tab.name %}
+          <li class="nav-item">
+            <a class="nav-link text-uppercase font-weight-bold px-3" href="{% url 'mobileMenu' %}">
+              Mobile
+            </a>
+          </li>
+        {%endif%}
         {% if 'Admin' in tab.name %}
           <li class="nav-item">
             <a class="nav-link text-uppercase font-weight-bold px-3" href="/admin">

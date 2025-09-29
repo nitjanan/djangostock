@@ -223,6 +223,10 @@ urlpatterns = [
     path('maintenance/show/<int:ma_id>/<int:mode>',views.showMA,name="showMA"),
     path('maintenance/edit/<int:ma_id>',views.editMA,name="editMA"),
     path('maintenance/cancel/<int:ma_id>',views.cancelMA,name="cancelMA"),
+    path('maintenance/create/',views.createMA,name="createMA"),
+
+    path('maintenanceApprove',views.viewMAApprove,name="viewMAApprove"),
+    path('maintenanceApprove/edit/<int:ma_id>/<int:mode>',views.editMAApprove,name="editMAApprove"),
 
     path('autocompalte_maintenance/',views.autocompalte_maintenance,name="autocompalte_maintenance"),
     path('searchDataMaintenance', views.searchDataMaintenance, name="searchDataMaintenance"),
@@ -231,6 +235,11 @@ urlpatterns = [
     path("api/roi_carLogBook_appsheet/", views.roi_carLogBook_appsheet, name="roi_carLogBook_appsheet"),
     path('carLogBook/',views.viewCL,name="viewCL"),
     path('carLogBook/excel/daily',views.excelDailyCL,name="excelDailyCL"),
+    path('carLogBook/create/',views.createCL,name="createCL"),
+    path('carLogBook/roi/create/',views.createCLRoi,name="createCLRoi"),
+    path('job_car_dep_autocomplete/',views.job_car_dep_autocomplete,name="job_car_dep_autocomplete"),
+
+    path("mobileMenu/", views.mobileMenu, name="mobileMenu"),
 ]
 
 if settings.DEBUG :

@@ -1,0 +1,91 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block css %}
+<style>
+.container {
+  position: relative;
+  min-height: 80vh;  /* ให้ container สูงเท่ากับความสูงหน้าจอ */
+}
+
+.floating-btn {
+  position: absolute;
+  bottom: 5px;   /* อยู่ก้น container + เว้น 20px */
+  left: 20px;
+  z-index: 1000;
+  border-radius: 50px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+  {% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
+          <i class="fas fa-check-circle"></i>
+          {{ message }}
+        </div>
+    {% endfor %}
+  {% endif %}
+  <div class="row">
+    {% if user_in_comp == "L1" or user_in_comp == "I1"%}
+      <div class="col my-2">
+      <a href="{% url 'createCLRoi' %}">
+        <div class="card div-shadow" style="width: 8rem;">
+          <img class="card-img-top" src="/media/company/roi_car_log.png" alt="Card image cap" height="130" style="background-color: #E74689;">
+          <div class="card-body">
+            <b class="card-title">บันทึกการใช้รถร้อยเกาะ</b>
+          </div>
+        </div>
+      </a>
+    </div>
+    {%else%}
+    <div class="col my-2">
+      <a href="{% url 'createCL' %}">
+        <div class="card div-shadow" style="width: 8rem;">
+          <img class="card-img-top" src="/media/company/car_log.png" alt="Card image cap" height="152" style="background-color: #F297BD;">
+          <div class="card-body">
+            <b class="card-title">บันทึกการใช้รถ</b>
+          </div>
+        </div>
+      </a>
+    </div>
+    {%endif%}
+    <div class="col my-2">
+      <a href="{% url 'createMA' %}">
+        <div class="card div-shadow" style="width: 8rem;">
+          <img class="card-img-top" src="/media/company/ma.png" alt="Card image cap" height="152" style="background-color: #EC6FA3;">
+          <div class="card-body">
+            <b class="card-title">บันทึกแจ้งซ่อม</b>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% if isApproveMA %}
+    <div class="col my-2">
+      <a href="{% url 'viewMAApprove' %}">
+        <div class="card div-shadow" style="width: 8rem;">
+          <img class="card-img-top" src="/media/company/ap_ma.png" alt="Card image cap" height="130" style="background-color: #EC6FA3;">
+          <div class="card-body">
+            <b class="card-title">อนุมัติการซ่อม
+              {% if ma_ap_all > 0%}
+                <span class="badge badge-pill badge-warning notification">{{ma_ap_all}}</span>
+              {% endif %}
+            </b>
+          </div>
+        </div>
+      </a>
+    </div>
+    {%endif%}
+  </div>
+  {% if not isMobileMenu %}
+  <div class="text-center my-3">
+    <a href="{% url 'home' %}" class="btn btn-secondary floating-btn">
+      <i class="fas fa-arrow-left"></i> กลับไป
+    </a>
+  </div>
+  {%endif%}
+</div>
+{% endblock%}

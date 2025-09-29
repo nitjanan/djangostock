@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance, CarLogbook
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -654,4 +654,184 @@ class MaintenanceAddressCompanyForm(forms.ModelForm):
        fields = ('address_company',)
        labels = {
             'address_company': _('ที่อยู่ตามจดทะเบียน'),
+        }
+
+class CarLogbookForm(forms.ModelForm):
+    def __init__(self,request,*args,**kwargs):
+        super (CarLogbookForm,self).__init__(*args,**kwargs)
+
+    name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ชื่อ',
+        required=True
+    )    
+
+    car = forms.ModelChoiceField(
+        queryset=BaseCar.objects.all(),
+        label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
+        widget=Select2Widget(),
+        required=True,
+    )   
+
+    class Meta:
+        model = CarLogbook
+        fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
+                    , 'job1', 'start_job1', 'end_job1'
+                    , 'job2', 'start_job2', 'end_job2'
+                    , 'job3', 'start_job3', 'end_job3'
+                    , 'job4', 'start_job4', 'end_job4'
+                    , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
+        widgets = {
+            'image_mile': forms.ClearableFileInput(
+                attrs={
+                    'accept': 'image/*',   # only images
+                    'capture': 'environment'  # open camera by default (on mobile)
+                }
+            ),
+            'branch_company' : forms.HiddenInput(),
+            'job1' : forms.HiddenInput(),
+            'job2' : forms.HiddenInput(),
+            'job3' : forms.HiddenInput(),
+            'job4' : forms.HiddenInput(),
+            'start_job1': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time','required': 'true'}),
+            'end_job1': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time','required': 'true'}),
+
+            'start_job2': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time',}),
+            'end_job2': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time',}),
+
+            'start_job3': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time',}),
+            'end_job3': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time',}),
+
+            'start_job4': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time',}),
+            'end_job4': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time',}),
+            'name': Select2Widget(attrs={
+                'class': 'form-control django-select2',  # Bootstrap + select2 class
+                'style': 'width: 100%;',  # ensures width fills container
+            }),
+            'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
+            'note': forms.Textarea(attrs={'rows': 3,}),
+        }
+        labels = {
+            'name': _('ชื่อ'),
+        }
+
+class RoiCarLogbookForm(forms.ModelForm):
+    def __init__(self,request,*args,**kwargs):
+        super (RoiCarLogbookForm,self).__init__(*args,**kwargs)
+
+    name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ชื่อ',
+        required=True
+    )    
+
+    car = forms.ModelChoiceField(
+        queryset=BaseCar.objects.all(),
+        label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
+        widget=Select2Widget(),
+        required=True,
+    )   
+
+    class Meta:
+        model = CarLogbook
+        fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
+                  , 'mile_start_job1', 'mile_end_job1', 'job1'
+                  , 'mile_start_job2', 'mile_end_job2', 'job2'
+                  , 'mile_start_job3', 'mile_end_job3', 'job3'
+                  , 'mile_start_job4', 'mile_end_job4', 'job4'
+                  , 'mile_start_job5', 'mile_end_job5', 'job5'
+                  , 'mile_start_job6', 'mile_end_job6', 'job6'
+                  , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
+        widgets = {
+            'image_mile': forms.ClearableFileInput(
+                attrs={
+                    'accept': 'image/*',   # only images
+                    'capture': 'environment'  # open camera by default (on mobile)
+                }
+            ),
+            'branch_company' : forms.HiddenInput(),
+            'job1' : forms.HiddenInput(),
+            'job2' : forms.HiddenInput(),
+            'job3' : forms.HiddenInput(),
+            'job4' : forms.HiddenInput(),
+            'job5' : forms.HiddenInput(),
+            'job6' : forms.HiddenInput(),
+            'name': Select2Widget(attrs={
+                'class': 'form-control django-select2',  # Bootstrap + select2 class
+                'style': 'width: 100%;',  # ensures width fills container
+            }),
+            'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
+            'note': forms.Textarea(attrs={'rows': 3,}),
+        }
+        labels = {
+            'name': _('ชื่อ'),
+        }
+
+
+CAR_STATE_CHOICES = (
+    ('', '----------'),
+    ('สามารถทำการเคลื่อนย้ายได้', 'สามารถทำการเคลื่อนย้ายได้'),
+    ('ไม่สามารถทำการเคลื่อนย้ายได้', 'ไม่สามารถทำการเคลื่อนย้ายได้'),
+)
+
+# create form Maintenance
+class CrMaintenanceForm(forms.ModelForm):
+    def __init__(self,request,*args,**kwargs):
+        super (CrMaintenanceForm,self).__init__(*args,**kwargs)
+
+    name = forms.ModelChoiceField(
+        queryset = User.objects.all(),
+        label='ชื่อ',
+        required=True
+    )    
+
+    car = forms.ModelChoiceField(
+        queryset=BaseCar.objects.all(),
+        label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
+        widget=Select2Widget(),
+        required=True,
+    )
+
+    car_state = forms.ChoiceField(choices = CAR_STATE_CHOICES, label='สภาพรถ')
+
+    class Meta:
+        model = Maintenance
+        fields = ('created', 'name', 'branch_company', 'car', 'mile', 'broke_reason', 'car_state'
+                  , 'image1', 'image2', 'image3', 'image4', 'approve_status')
+        widgets = {
+            'image1': forms.ClearableFileInput(
+                attrs={
+                    'accept': 'image/*',   # only images
+                    'capture': 'environment'  # open camera by default (on mobile)
+                }
+            ),
+            'image2': forms.ClearableFileInput(
+                attrs={
+                    'accept': 'image/*',   # only images
+                    'capture': 'environment'  # open camera by default (on mobile)
+                }
+            ),
+            'image3': forms.ClearableFileInput(
+                attrs={
+                    'accept': 'image/*',   # only images
+                    'capture': 'environment'  # open camera by default (on mobile)
+                }
+            ),
+            'image4': forms.ClearableFileInput(
+                attrs={
+                    'accept': 'image/*',   # only images
+                    'capture': 'environment'  # open camera by default (on mobile)
+                }
+            ),            
+            'branch_company' : forms.HiddenInput(),
+            'approve_status' : forms.HiddenInput(),
+            'name': Select2Widget(attrs={
+                'class': 'form-control django-select2',  # Bootstrap + select2 class
+                'style': 'width: 100%;',  # ensures width fills container
+            }),
+            'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
+            'note': forms.Textarea(attrs={'rows': 3,}),
+        }
+        labels = {
+            'name': _('ชื่อ'),
         }

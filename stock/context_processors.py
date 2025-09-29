@@ -1,4 +1,4 @@
-from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document, Maintenance
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document, Maintenance, ApproveCarDepartment, UserCarDepartment
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch, Q
@@ -491,7 +491,7 @@ def MACounter(request):
     if(is_supplies(request.user)):
         try:
             ma_count = Maintenance.objects.filter(branch_company__code = active).count()
-        except ComparisonPrice.DoesNotExist:
+        except Maintenance.DoesNotExist:
             pass
     return ma_count
 
@@ -511,6 +511,36 @@ def MAAll(request):
         return {} #รีเทริ์นค่าเปล่า
 
     return dict(ma_all = ma_all)
+
+#นับใบแจ้งซ่อมที่ต้องอนุมัติของ  user คนนั้นๆ
+def MAAPAll(request):
+    ma_ap_all = MAAPCounter(request)
+
+    if 'admin' in request.path:
+        return {} #รีเทริ์นค่าเปล่า
+
+    return dict(ma_ap_all = ma_ap_all)
+
+#นับใบแจ้งซ่อมที่ต้องอนุมัติของ  user คนนั้นๆ
+def MAAPCounter(request):
+    ma_count = 0
+
+    acdr = ApproveCarDepartment.objects.filter(user=request.user.id).values_list('car_dep', 'branch_company')
+    car_deps = [row[0] for row in acdr]
+
+    branch_companies = [row[1] for row in acdr]
+
+    ucd = UserCarDepartment.objects.filter(car_dep__in=car_deps).values_list('user', flat=True)
+
+    try:
+        ma_count = Maintenance.objects.filter(
+            approve_status='ขออนุมัติซ่อมบำรุง',
+            branch_company__in=branch_companies,
+            name__in=ucd
+        ).count()
+    except Maintenance.DoesNotExist:
+        pass
+    return ma_count
 
 def purchasingAllConter(request):
     add_po = addPOCounter(request)

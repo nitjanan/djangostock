@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -346,6 +346,32 @@ class MaintenanceAdmin(ImportExportModelAdmin):
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     search_fields = ('ref_no', 'name__first_name', 'car__name', 'car__code')
 
+class BaseCarDepartmentAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name',]
+
+class BaseJobCarDepAdmin(ImportExportModelAdmin):
+    list_display = ['id','name', 'car_dep'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name', 'car_dep']
+
+class UserCarDepartmentAdmin(ImportExportModelAdmin):
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
+    autocomplete_fields = ['user', 'car']
+
+    list_display = ['user', 'car', 'car_dep', 'in_comp'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['user__first_name', 'car', 'car_dep', 'in_comp']
+
+class ApproveCarDepartmentAdmin(ImportExportModelAdmin):
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
+    autocomplete_fields = ['user',]
+    list_display = ['id', 'user',]
+    search_fields = ['id', 'car_dep__name', 'branch_company__name']
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
 #admin.site.register(CartItem)
@@ -400,3 +426,7 @@ admin.site.register(RateDistributor, RateDistributorAdmin)
 admin.site.register(BaseMAType, BaseMATypeAdmin)
 admin.site.register(CarLogbook, CarLogbookAdmin)
 admin.site.register(Maintenance, MaintenanceAdmin)
+admin.site.register(BaseCarDepartment, BaseCarDepartmentAdmin)
+admin.site.register(BaseJobCarDep, BaseJobCarDepAdmin)
+admin.site.register(UserCarDepartment, UserCarDepartmentAdmin)
+admin.site.register(ApproveCarDepartment, ApproveCarDepartmentAdmin)

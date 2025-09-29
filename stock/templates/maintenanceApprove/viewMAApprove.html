@@ -1,0 +1,90 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+
+{% block css %}
+<style>
+.ma{
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 2px;
+  width: 60px;
+}
+
+.ma:hover {
+  box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+}
+
+.container {
+  position: relative;
+  min-height: 80vh;  /* ให้ container สูงเท่ากับความสูงหน้าจอ */
+}
+
+.floating-btn {
+  position: absolute;
+  bottom: 5px;   /* อยู่ก้น container + เว้น 20px */
+  left: 20px;
+  z-index: 1000;
+  border-radius: 50px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="container my-3">
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
+          <i class="fas fa-check-circle"></i>
+          {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+<h3 align="center">อนุมัติใบแจ้งซ่อม 
+  {% if ma_ap_all > 0%}
+    <span class="badge badge-pill badge-warning notification">{{ma_ap_all}}</span>
+  {% endif %}
+</h3>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered" style="margin-bottom: 0">
+        <thead>
+          <tr>
+            <th scope="col">รหัส/ วันที่</th>
+            <th scope="col" style="width: 100px;">ทำรายการ</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for ma in mas %}
+          <tr>
+            <th scope="row"><a href="{%url 'showMA' ma.id 1 %}">{{ma.created |date:"d/m/Y" }}<br>{{ma.ref_no}}</a></th>
+            <td>
+                <a style="width: 100px;" href="{%url 'editMAApprove' ma.id 1 %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
+            </td>
+          </tr>
+
+          {% empty %}
+            <tr>
+                <th scope="row" colspan="2" class="text-center">
+                    <div class="alert alert-warning" role="alert">
+                    ไม่มีรายการที่ต้องอนุมัติ
+                    </div>
+                </th>
+            </tr>
+           {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="text-center my-3">
+  <a href="{% url 'mobileMenu' %}" class="btn btn-secondary floating-btn">
+    <i class="fas fa-arrow-left"></i> กลับไป
+  </a>
+</div>
+</div>
+{% endblock%}

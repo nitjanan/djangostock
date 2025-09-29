@@ -27,14 +27,23 @@ thead, tbody tr {
 #orders-pending{
 	background-color: #7CD1C0;
 }
+
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
+  {% if isMobile %}
+    <div class="text-right my-3">
+      <h4>
+        <a class="badge badge-pill badge-danger notification mr-2" href="{% url 'mobileMenu' %}" style="background-color: #FF7518 ;color:white;">
+          <i class="fas fa-tools"></i> แจ้งซ่อม
+        </a>
+      </h4>
+    </div>
+  {%endif%}
     <div class="row">
-        <div class="col">
-            <div class="col-md">
+        <div class="col-md-4 col">
                 <div class="card text-center text-white mb-3" id="total-orders">
                       <div class="card-header">
                           <h5 class="card-title">ใบขอซื้อที่ต้องอนุมัติ</h5><br>
@@ -43,11 +52,9 @@ thead, tbody tr {
                         <h3 class="card-title">{{all_pr_ap}}</h3>
                       </div>
                 </div>
-            </div>
         </div>
 
-        <div class="col">
-            <div class="col-md">
+        <div class="col-md-4 col">
                 <div class="card text-center text-white mb-3" id="orders-delivered">
                       <div class="card-header">
                           <h5 class="card-title">ใบสั่งซื้อที่ต้องอนุมัติ</h5><br>
@@ -56,11 +63,9 @@ thead, tbody tr {
                         <h3 class="card-title">{{all_po_ap}}</h3>
                       </div>
                 </div>
-            </div>
         </div>
     
-        <div class="col">
-            <div class="col-md">
+        <div class="col-md-4 col">
                 <div class="card text-center text-white mb-3" id="orders-pending">
                       <div class="card-header">
                           <h5 class="card-title">ใบเปรียบเทียบที่ต้องตรวจสอบหรืออนุมัติ</h5>
@@ -69,7 +74,6 @@ thead, tbody tr {
                         <h3 class="card-title">{{all_cp_ap}}</h3>
                       </div>
                 </div>
-            </div>
         </div>
     </div>
       <hr>

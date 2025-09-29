@@ -439,6 +439,31 @@ class BaseDepartment(models.Model):
     def __str__(self):
         return self.name
     
+class BaseCarDepartment(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+
+    class Meta:
+        db_table = 'BaseCarDepartment'
+        ordering=('id',)
+        verbose_name = 'แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลแผนกแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+
+    def __str__(self):
+        return self.name
+    
+class BaseJobCarDep(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="รายละเอียดงาน")
+    car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+
+    class Meta:
+        db_table = 'BaseJobCarDep'
+        ordering=('id',)
+        verbose_name = 'รายละเอียดงานและแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลรายละเอียดงานและแผนกแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+
+    def __str__(self):
+        return self.name
+    
 class BaseGrade(models.Model):
     name = models.CharField(max_length=255, blank=True, verbose_name="ชื่อเกรด")
 
@@ -1630,7 +1655,7 @@ class ExOEINVH(models.Model):
         return f"{self.docnum} - {self.cuscod}"
 
 class Maintenance(models.Model):
-    id = models.IntegerField(primary_key=True, unique=True , verbose_name="รหัสการซ่อม")#เก็บไอดีรหัสการซ่อม#เก็บไอดีรหัสการซ่อม
+    id = models.AutoField(primary_key=True, verbose_name="รหัสการซ่อม")#เก็บไอดีรหัสการซ่อม
     uniq_code = models.CharField(max_length=10, blank = True, null = True)#UNIQUEID() ใน appsheet
     created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
     update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
@@ -1689,7 +1714,7 @@ class Maintenance(models.Model):
         related_name='ma_og_name',
         verbose_name="พัสดุซ่อมบำรุง (ผู้จัดทำ)"
     )
-    mile = models.IntegerField(null=True, blank = True, verbose_name="เลขตอนแจ้งซ่อม")
+    mile = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์ตอนแจ้งซ่อม")
     detail = models.TextField(blank=True, null = True, verbose_name="อธิบายงาน/รายละเอียด")
     repair_note = models.TextField(blank=True, null = True, verbose_name="ช่างผู้ดำเนินการ")
     work_hour = models.IntegerField(null=True, blank = True, verbose_name="ชม.ทำงาน (ชม.)")
@@ -1804,7 +1829,7 @@ class CarLogbook(models.Model):
         if self.ref_no is None:
             self.ref_no = carLogbook_ref_number(self.branch_company)
         if self.mile_start is None: #ROI คำนวนเลขไมล์เริ่ม auto
-           self.mile_start = self.mile_end_job1
+           self.mile_start = self.mile_start_job1
         if self.mile_end is None: #ROI คำนวนเลขไมล์จบ auto
             values = [
                 self.mile_end_job1,
@@ -1826,3 +1851,30 @@ class CarLogbook(models.Model):
         ordering=('-id',)
         verbose_name = 'ใบบันทึกการใช้งานรถ'
         verbose_name_plural = 'ข้อมูลใบบันทึกการใช้งานรถ'
+
+#USER + CarDepartment
+class UserCarDepartment(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE,null=True, blank=True, verbose_name="ผู้ใช้")
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='ucd_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หัว)
+    car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+    in_comp = models.ForeignKey(BaseBranchCompany,on_delete=models.CASCADE,null=True, blank=True,verbose_name="สังกัดบริษัทที่อยู่")
+
+    class Meta:
+        verbose_name = 'ผู้ใช้และแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลผู้ใช้และแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+
+    def __str__(self):
+        return self.user.username
+    
+class ApproveCarDepartment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="ผู้อนุมติ")
+    car_dep = models.ManyToManyField(BaseCarDepartment, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+    branch_company = models.ManyToManyField(BaseBranchCompany,verbose_name="สิทธิการอนุมัติตามบริษัท")
+    class Meta:
+        db_table = 'ApproveCarDepartment'
+        ordering=('id',)
+        verbose_name = 'ผู้อนุม้ติและสิทธิการอนุมัติแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลผู้อนุม้ติและสิทธิการอนุมัติแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+
+    def __str__(self):
+        return str(self.user.username)

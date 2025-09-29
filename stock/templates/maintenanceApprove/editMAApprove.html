@@ -1,0 +1,70 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block css %}
+<style>
+    .ma{
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    padding: 2px;
+    width: 60px;
+    }
+
+    .ma:hover {
+    box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="row">
+        <div class="col">
+            <h5 class="card-title text-primary">เลขที่ {{ma.ref_no}}</h5>
+            <h6 class="card-subtitle mb-2 text-muted">วันที่ {{ma.created |date:"d/m/Y" }}</h6>
+            <p class="card-text text-info">ทะเบียนรถ {{ma.car}}</p>
+            <hr>
+            <b class="card-text {% if ma.car_state == 'สามารถทำการเคลื่อนย้ายได้' %}text-success{%else%}text-danger{%endif%}">{{ma.car_state}}</b>
+        </div>
+    </div>
+    <div class="row my-1">
+        <div class="col">
+             <p class="card-text">ผู้แจ้งซ่อม {{ma.name}}</p>
+        </div>
+    </div>
+    <div class="row my-2">
+        <div class="col">
+            <h6 class="card-subtitle mb-2 text-muted">อาการเสีย {{ma.broke_reason}}</h6>
+        </div>
+    </div>
+    <div class="row my-3">
+        <div class="col">
+            {% if ma.image1 %}
+                <img class="ma" src="{{ ma.image1.url }}" style="width:90px;height: 90px;">
+            {% endif %}
+            {% if ma.image2 %}
+                <img class="ma" src="{{ ma.image2.url }}" style="width:90px;height: 90px;">
+            {% endif %}
+            {% if ma.image3 %}
+                <img class="ma" src="{{ ma.image3.url }}" style="width:90px;height: 90px;">
+            {% endif %}
+            {% if ma.image4 %}
+                <img class="ma" src="{{ ma.image4.url }}" style="width:90px;height: 90px;">
+            {% endif %}
+        </div>
+    </div>
+    <div>
+        <form action="{% url 'editMAApprove' ma.id 1 %}" method="post">
+            {% csrf_token %}
+            <button id='submit' type='submit' name = 'status' value = 'อนุมัติ' type="submit" class="btn btn-lg btn-block btn-success hidden-print float-right">
+                <i class="fas fa-check-circle"></i>
+                    อนุมัติรายการ
+            </button>
+
+            <!-- input id='submit' type='submit' name = 'status' value = 'อนุมัติรายการ' class="btn btn-lg btn-block btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');"-->
+
+        </form>
+    </div>
+  </div>
+</div>
+{% endblock%}

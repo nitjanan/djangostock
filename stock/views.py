@@ -16,8 +16,8 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -731,23 +731,57 @@ def index(request, category_slug = None):
         pass
     
     '''
-
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
         visible_tab = BaseVisible.objects.filter(userprofile = user_profile)
     except:
         visible_tab = None
     
-    isHaveTab = False
+    isStaff = False
+    isMobile = False
+    isPermission = False
+
+    ###################### Mobile Menu ##################
+    #มีสิทธิอนุมัติ pr, cp หรือ po
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        isPermission = PositionBasePermission.objects.filter(position_id = user_profile.position_id).exists()
+    except UserProfile.DoesNotExist or PositionBasePermission.DoesNotExist:
+        pass
+
     for tab in visible_tab:
         if 'Category' in tab.name:
-            isHaveTab = True
+            isStaff = True
+            break
+        if 'Mobile' in tab.name:
+            isMobile = True
             break
 
-    if isHaveTab:
+    #สังกัดบริษัทของคนนั้นๆ
+    user_in_comp = None
+    try:
+        ucd = UserCarDepartment.objects.get(user = request.user.id)
+        company = BaseBranchCompany.objects.get(code = ucd.in_comp.code)
+        user_in_comp = company.code
+    except:
+        pass
+
+    isApproveMA = False
+    try:
+        isApproveMA = ApproveCarDepartment.objects.filter(user = request.user.id).exists()
+    except ApproveCarDepartment.DoesNotExist:
+        pass
+
+    isMobileMenu = False
+    if isMobile and not isPermission and not isStaff:
+        isMobileMenu = True
+
+    if isStaff:
         return render(request,'index.html', {'products':productperPage , 'category':categories_page, 'baseProduct':baseProduct, 'isEditNewOld': isEditNewOld, 'isEditChangeExist': isEditChangeExist,'isEditNewOldDistributor': isEditNewOldDistributor, active :"active show", 'baseDistributor': baseDistributor, "colorNav":"enableNav"})
-    else:
-        return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav"})
+    elif isPermission:
+        return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav", "isMobile": isMobile})
+    elif isMobileMenu:
+        return render(request, "mobileApp/menu.html", {"disableTab":"disableTab","colorNav":"disableNav", "user_in_comp": user_in_comp, "isApproveMA": isApproveMA, "isMobileMenu": isMobileMenu})
 
 
 def productPage(request, category_slug, product_slug):
@@ -8656,3 +8690,234 @@ def excelDailyCL(request):
     response["Content-Disposition"] = f'attachment; filename="carlog_daily({active}).xlsx"'
     response["Content-Length"] = str(size)
     return response
+
+@login_required(login_url='signIn')
+def mobileMenu(request):
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        visible_tab = BaseVisible.objects.filter(userprofile = user_profile)
+    except:
+        visible_tab = None
+    
+    isStaff = False
+    isMobile = False
+    isPermission = False
+
+    ###################### Mobile Menu ##################
+    #มีสิทธิอนุมัติ pr, cp หรือ po
+    try:
+        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        isPermission = PositionBasePermission.objects.filter(position_id = user_profile.position_id).exists()
+    except UserProfile.DoesNotExist or PositionBasePermission.DoesNotExist:
+        pass
+
+    for tab in visible_tab:
+        if 'Category' in tab.name:
+            isStaff = True
+            break
+        if 'Mobile' in tab.name:
+            isMobile = True
+            break
+
+    #สังกัดบริษัทของคนนั้นๆ
+    user_in_comp = None
+    try:
+        ucd = UserCarDepartment.objects.get(user = request.user.id)
+        company = BaseBranchCompany.objects.get(code = ucd.in_comp.code)
+        user_in_comp = company.code
+    except:
+        pass
+
+    isApproveMA = False
+    try:
+        isApproveMA = ApproveCarDepartment.objects.filter(user = request.user.id).exists()
+    except ApproveCarDepartment.DoesNotExist:
+        pass
+
+    isMobileMenu = False
+    if isMobile and not isPermission and not isStaff:
+        isMobileMenu = True
+
+    context = {
+        "disableTab":"disableTab",
+        "colorNav":"disableNav",
+        "user_in_comp": user_in_comp,
+        "isApproveMA": isApproveMA,
+        "isMobileMenu": isMobileMenu,
+    }
+    return render(request, "mobileApp/menu.html", context)
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def createCL(request):
+    ucd = UserCarDepartment.objects.get(user = request.user.id)
+    company = BaseBranchCompany.objects.get(code = ucd.in_comp.code)
+    active = company.code
+    
+    try:
+        form = CarLogbookForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user,})
+        if form.is_valid():
+            form = CarLogbookForm(request, request.POST or None, request.FILES)
+            new_contact = form.save(commit=False)
+            new_contact.save()
+
+            messages.success(request, "เพิ่มบันทึกการใช้รถ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
+            return redirect('mobileMenu')
+    except ValueError:
+        pass
+
+    context = {
+        'form':form,
+        'cl_page': "tab-active",
+        'cl_show': "show",
+        active :"active show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
+    }
+    return render(request, "carLogbook/createCL.html", context)
+
+def job_car_dep_autocomplete(request):
+    term = request.GET.get("term")
+    ucd = UserCarDepartment.objects.get(user = request.user.id)
+    
+    jobs = BaseJobCarDep.objects.filter(name__icontains=term , car_dep = ucd.car_dep)[:20]
+    results =   [
+        {"label": p.name, "value": p.name} for p in jobs
+    ]
+    return JsonResponse(results, safe=False)
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def createCLRoi(request):
+    ucd = UserCarDepartment.objects.get(user = request.user.id)
+    company = BaseBranchCompany.objects.get(code = ucd.in_comp.code)
+    active = company.code
+    
+    try:
+        form = RoiCarLogbookForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user, 'car': ucd.car})
+        if form.is_valid():
+            form = RoiCarLogbookForm(request, request.POST or None, request.FILES)
+            new_contact = form.save(commit=False)
+            new_contact.save()
+
+            messages.success(request, "เพิ่มบันทึกการใช้รถ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
+            return redirect('mobileMenu')
+    except ValueError:
+        pass
+
+    context = {
+        'form':form,
+        'cl_page': "tab-active",
+        'cl_show': "show",
+        active :"active show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
+    }
+    return render(request, "carLogbook/createCLRoi.html", context)
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def createMA(request):
+    ucd = UserCarDepartment.objects.get(user = request.user.id)
+    company = BaseBranchCompany.objects.get(code = ucd.in_comp.code)
+    active = company.code
+    
+    try:
+        form = CrMaintenanceForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user, 'approve_status': 'ขออนุมัติซ่อมบำรุง'})
+        if form.is_valid():
+            form = CrMaintenanceForm(request, request.POST or None, request.FILES)
+            new_contact = form.save(commit=False)
+            new_contact.save()
+
+            messages.success(request, "เพิ่มบันทึกการแจ้งซ่อม " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
+            return redirect('mobileMenu')
+    except ValueError:
+        pass
+
+    context = {
+        'form':form,
+        'ma_page': "tab-active",
+        'ma_show': "show",
+        active :"active show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
+    }
+    return render(request, "maintenance/createMA.html", context)
+
+@login_required(login_url='signIn')
+def viewMAApprove(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    # ได้รายการ car_dep และ branch_company ของ user นี้
+    acdr = ApproveCarDepartment.objects.filter(user=request.user.id).values_list('car_dep', 'branch_company')
+
+    # ดึงเฉพาะ car_dep ทั้งหมดเป็น list
+    car_deps = [row[0] for row in acdr]
+
+    # ดึงเฉพาะ branch_company ทั้งหมดเป็น list
+    branch_companies = [row[1] for row in acdr]
+
+    # ดึง user ที่อยู่ใน car_dep เหล่านั้น
+    ucd = UserCarDepartment.objects.filter(car_dep__in=car_deps).values_list('user', flat=True)
+
+    # filter Maintenance ตามเงื่อนไข
+    data = Maintenance.objects.filter(
+        approve_status='ขออนุมัติซ่อมบำรุง',
+        branch_company__in=branch_companies,
+        name__in=ucd
+    )
+
+    #กรองข้อมูล
+    myFilter = MaintenanceFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'mas':dataPage,
+        'filter':myFilter,
+        'ma_page': "tab-active",
+        'ma_show': "show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
+    }
+    return render(request, "maintenanceApprove/viewMAApprove.html", context)
+
+@login_required(login_url='signIn')
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def editMAApprove(request, ma_id, mode):
+    active = request.session['company_code']
+    base_ma_type = BaseMAType.objects.all()
+
+    ma = Maintenance.objects.get(id = ma_id)
+    if ma.car:
+        base_rp_type = BaseRepairType.objects.filter(Q(rq_type = ma.car.rq_type)| Q(rq_type = 4))
+    else:
+        base_rp_type = BaseRepairType.objects.filter(Q(rq_type = 2)| Q(rq_type = 4))
+
+    page = MAPageMode(mode)
+    show = MAShowMode(mode)
+
+    if request.method == 'POST':
+        post_status = request.POST['status'] or None
+
+        if post_status == 'อนุมัติ':
+            obj = Maintenance.objects.get(id = ma_id)
+            obj.approve_status = 'อนุมัติซ่อมบำรุง'
+            obj.approve_name_id = request.user.id
+            obj.approve_update = datetime.datetime.now()
+            obj.save()
+            messages.success(request, "อนุมัติแจ้งซ่อม " + str(obj.ref_no) + " เรียบร้อยแล้ว")
+        return redirect('viewMAApprove')
+
+    context = {
+        'ma':ma,
+        'base_ma_type': base_ma_type,
+        'base_rp_type': base_rp_type,
+        'ma_page': "tab-active",
+        'ma_show': "show",
+        "disableTab":"disableTab",
+        "colorNav":"disableNav"
+    }
+    return render(request, 'maintenanceApprove/editMAApprove.html',context)
