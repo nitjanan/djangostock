@@ -675,7 +675,7 @@ class CarLogbookForm(forms.ModelForm):
 
     class Meta:
         model = CarLogbook
-        fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
+        fields = ('name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
                     , 'job1', 'start_job1', 'end_job1'
                     , 'job2', 'start_job2', 'end_job2'
                     , 'job3', 'start_job3', 'end_job3'
@@ -734,7 +734,7 @@ class RoiCarLogbookForm(forms.ModelForm):
 
     class Meta:
         model = CarLogbook
-        fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
+        fields = ('name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
                   , 'mile_start_job1', 'mile_end_job1', 'job1'
                   , 'mile_start_job2', 'mile_end_job2', 'job2'
                   , 'mile_start_job3', 'mile_end_job3', 'job3'
@@ -796,7 +796,7 @@ class CrMaintenanceForm(forms.ModelForm):
 
     class Meta:
         model = Maintenance
-        fields = ('created', 'name', 'branch_company', 'car', 'mile', 'broke_reason', 'car_state'
+        fields = ('name', 'branch_company', 'car', 'mile', 'broke_reason', 'car_state'
                   , 'image1', 'image2', 'image3', 'image4', 'approve_status')
         widgets = {
             'image1': forms.ClearableFileInput(

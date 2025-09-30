@@ -11,6 +11,8 @@
 <!-- Optional: Select2 Bootstrap4 theme -->
 <link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet" />
 
+<!-- Boostrap 4 icon -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 <style>
     @media (min-width: 360px) { /* Styles for screens 768px and wider */
         .select2-container .select2-selection {
@@ -118,10 +120,6 @@
             <form method="post" enctype="multipart/form-data">
                 <!--p>{{ form | crispy}}</!--p-->
                 <p>
-                    {{ form.created.label_tag }}
-                    {{ form.created|attr:"readonly:true" }}
-                </p>
-                <p>
                     {{ form.name.label_tag }}
                     {{ form.name | add_class:"select2bs4"|attr:"style:width:100%;"}}
                 </p>
@@ -135,7 +133,12 @@
                 <hr class="border border-success">
                 <p>
                     {{ form.mile.label_tag }}*
-                    {{ form.mile |attr:"required:true"}}
+                    <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
+                    </div>
+                        {{ form.mile |attr:"required:true"}}
+                    </div>
                 </p>
                 <p>
                     {{ form.broke_reason.label_tag }}*
@@ -150,8 +153,7 @@
                     {{ form.image1.label_tag}}*
                     <input type="file" 
                         name="image1" 
-                        accept="image/*" 
-                        capture="camera" 
+                        accept="image/*"
                         id="id_image1" 
                         style="display: none;" 
                         oninvalid="this.setCustomValidity('กรุณาถ่ายรูปโลโก้')"
@@ -172,8 +174,7 @@
                     {{ form.image2.label_tag}}*
                     <input type="file" 
                         name="image2" 
-                        accept="image/*" 
-                        capture="camera" 
+                        accept="image/*"
                         id="id_image2" 
                         style="display: none;" 
                         oninvalid="this.setCustomValidity('กรุณาถ่ายรูปภาพ 2')"
@@ -192,8 +193,7 @@
                     {{ form.image3.label_tag}}
                     <input type="file" 
                         name="image3" 
-                        accept="image/*" 
-                        capture="camera" 
+                        accept="image/*"
                         id="id_image3" 
                         style="display: none;" 
                         oninvalid="this.setCustomValidity('กรุณาถ่ายรูปภาพ 3')"
@@ -211,8 +211,7 @@
                     {{ form.image4.label_tag}}
                     <input type="file" 
                         name="image4" 
-                        accept="image/*" 
-                        capture="camera" 
+                        accept="image/*"
                         id="id_image4" 
                         style="display: none;" 
                         oninvalid="this.setCustomValidity('กรุณาถ่ายรูปภาพ 4')"
@@ -232,7 +231,7 @@
                 {% csrf_token %}
                 <div class="row">
                     <div class="col-6">
-                        <a href="{% url 'home' %}" class="btn btn-lg btn-block btn-secondary" onclick="return confirm('คุณต้องการ Cancel หรือไม่ ?\n *** หาก Cancel ข้อมูลจะไม่ถูกบันทึก')">
+                        <a href="{% url 'mobileMenu' %}" class="btn btn-lg btn-block btn-secondary" onclick="return confirm('คุณต้องการ Cancel หรือไม่ ?\n *** หาก Cancel ข้อมูลจะไม่ถูกบันทึก')">
                             Cancel
                         </a>
                     </div>
@@ -333,7 +332,6 @@
             width: '100%'   // <=== สำคัญ
         });
         */
-
     });
 
     // ฟังก์ชัน preview
@@ -369,9 +367,15 @@
     $('form').submit(function () {
         const inputFile1 = document.getElementById('id_image1');
         const inputFile2 = document.getElementById('id_image2');
-        if (inputFile1.files.length < 1 || inputFile2.files.length < 1) {
+        if (inputFile1.files.length < 1) {
             $("#id_mile_start").focus();
-            alert('กรุณาถ่ายรูปภาพ');
+            alert('กรุณาถ่ายรูปภาพที่ 1');
+            return false;
+        }
+
+        if (inputFile2.files.length < 1) {
+            $("#id_mile_start").focus();
+            alert('กรุณาถ่ายรูปภาพที่ 2');
             return false;
         }
     });
