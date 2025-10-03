@@ -1,4 +1,4 @@
-from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document, Maintenance, ApproveCarDepartment, UserCarDepartment
+from stock.models import BasePermission, BaseVisible, Category, Cart, CartItem, ComparisonPrice, PurchaseOrder, PurchaseRequisition, UserProfile, PositionBasePermission, ComparisonPriceDistributor, RequisitionItem, BaseBranchCompany, Document, Maintenance, ApproveCarDepartment, BaseCar
 from stock.views import _cart_id, is_purchasing
 from django.contrib.auth.models import User
 from django.db.models import Prefetch, Q
@@ -530,13 +530,13 @@ def MAAPCounter(request):
 
     branch_companies = [row[1] for row in acdr]
 
-    ucd = UserCarDepartment.objects.filter(car_dep__in=car_deps).values_list('user', flat=True)
+    ucd = BaseCar.objects.filter(car_dep__in=car_deps).values_list('id', flat=True)
 
     try:
         ma_count = Maintenance.objects.filter(
             approve_status='ขออนุมัติซ่อมบำรุง',
             branch_company__in=branch_companies,
-            name__in=ucd
+            car__in=ucd
         ).count()
     except Maintenance.DoesNotExist:
         pass

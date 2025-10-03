@@ -150,13 +150,12 @@
                 <hr class="border border-primary">
                 <p>
                     สถานที่จัดส่งที่ 1*
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <!-- Input -->
                         <input id="job1_autocomplete" 
                             type="text" 
                             class="form-control" 
                             placeholder="ค้นหาสถานที่จัดส่งที่ 1 ..."
-                            required
                             >
 
                         <!-- Dropdown Button -->
@@ -168,7 +167,7 @@
                             </button>
                         </div>
                     </div>
-                    {{ form.job1 |attr:"required:true"}}
+                    {{ form.job1 }}
                 </p>
                 <p>
                     {{ form.image_mile.label_tag}}*
@@ -214,7 +213,7 @@
                 <hr class="border border-primary">
                 <p>
                     สถานที่จัดส่งที่ 2
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job2_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 2 ...">
                         <div class="input-group-append">
                             <button type="button" id="job2-show-all" class="btn btn-outline-secondary">▼</button>
@@ -246,7 +245,7 @@
                 <hr class="border border-primary">
                 <p>
                     สถานที่จัดส่งที่ 3
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job3_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 3 ...">
                         <div class="input-group-append">
                             <button type="button" id="job3-show-all" class="btn btn-outline-secondary">▼</button>
@@ -276,7 +275,7 @@
                 <hr class="border border-primary">
                 <p>
                     สถานที่จัดส่งที่ 4
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job4_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 4 ...">
                         <div class="input-group-append">
                             <button type="button" id="job4-show-all" class="btn btn-outline-secondary">▼</button>
@@ -308,7 +307,7 @@
                 <hr class="border border-primary">
                 <p>
                     สถานที่จัดส่งที่ 5
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job5_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 5 ...">
                         <div class="input-group-append">
                             <button type="button" id="job5-show-all" class="btn btn-outline-secondary">▼</button>
@@ -338,7 +337,7 @@
                 <hr class="border border-primary">
                 <p>
                     สถานที่จัดส่งที่ 6
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job6_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 6 ...">
                         <div class="input-group-append">
                             <button type="button" id="job6-show-all" class="btn btn-outline-secondary">▼</button>
@@ -402,13 +401,18 @@
 
 <script>
     $(function() {
-        setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job3_autocomplete", "#id_job3", "#job3-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job4_autocomplete", "#id_job4", "#job4-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        $('#id_job1').select2();
+        $('#id_job2').select2();
+        $('#id_job3').select2();
+        $('#id_job4').select2();
 
-        setupAutocomplete("#job5_autocomplete", "#id_job5", "#job5-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job6_autocomplete", "#id_job6", "#job6-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job3_autocomplete", "#id_job3", "#job3-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job4_autocomplete", "#id_job4", "#job4-show-all", "{% url 'job_car_dep_autocomplete' %}");
+
+        //setupAutocomplete("#job5_autocomplete", "#id_job5", "#job5-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job6_autocomplete", "#id_job6", "#job6-show-all", "{% url 'job_car_dep_autocomplete' %}");
         // add more as needed...
     });
 
@@ -421,7 +425,7 @@
                 $.ajax({
                     url: url,
                     dataType: "json",
-                    data: { term: request.term },
+                    data: { term: request.term , car : $("#id_car").val()},
                     success: function(data) {
                         response(data);
                     }
@@ -505,7 +509,29 @@
             alert('กรุณาถ่ายรูปเลขไมล์ก่อนส่งข้อมูล');
             return false;
         }
+
+        if (!check_start_and_end_mile('id_mile_start_job1', 'id_mile_end_job1')) return false;
+        if (!check_start_and_end_mile('id_mile_start_job2', 'id_mile_end_job2')) return false;
+        if (!check_start_and_end_mile('id_mile_start_job3', 'id_mile_end_job3')) return false;
+        if (!check_start_and_end_mile('id_mile_start_job4', 'id_mile_end_job4')) return false;
+        if (!check_start_and_end_mile('id_mile_start_job5', 'id_mile_end_job5')) return false;
+        if (!check_start_and_end_mile('id_mile_start_job6', 'id_mile_end_job6')) return false;
+
+        return true;
     });
+
+ 	function check_start_and_end_mile(id_start_mile, id_end_mile){
+        let startVal = $('#' + id_start_mile).val();
+        let endVal = $('#' + id_end_mile).val();
+        if (startVal && endVal) {
+            if (startVal > endVal) {
+                $('#' + id_end_mile).focus();
+                alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
+                return false;
+            }
+        }
+        return true; // ✅ ผ่านการตรวจสอบ
+    }   
 
 </script>
 {% endblock%}

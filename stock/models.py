@@ -339,10 +339,23 @@ class BaseBrokeType(models.Model):
     def __str__(self):
         return str(self.name)
     
+class BaseCarDepartment(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+
+    class Meta:
+        db_table = 'BaseCarDepartment'
+        ordering=('id',)
+        verbose_name = 'แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลแผนกแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+
+    def __str__(self):
+        return self.name
+    
 class BaseCar(models.Model):
     code = models.CharField(unique=True, max_length=255, blank=False, null=True, verbose_name="code")
     name = models.CharField(max_length=255, blank=False, null=True, verbose_name="ชื่อทะเบียนรถ/เครื่องจักร/หน่วยงาน")
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
+    car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
 
     class Meta:
         db_table = 'BaseCar'
@@ -438,22 +451,17 @@ class BaseDepartment(models.Model):
 
     def __str__(self):
         return self.name
-    
-class BaseCarDepartment(models.Model):
-    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
 
-    class Meta:
-        db_table = 'BaseCarDepartment'
-        ordering=('id',)
-        verbose_name = 'แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
-        verbose_name_plural = 'ข้อมูลแผนกแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
-
-    def __str__(self):
-        return self.name
     
 class BaseJobCarDep(models.Model):
     name = models.CharField(max_length=255,unique=True, verbose_name="รายละเอียดงาน")
     car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+    expense_dept = models.ManyToManyField(
+        BaseExpenseDepartment,
+        blank=True,
+        verbose_name="แผนกค่าใช้จ่าย",
+        limit_choices_to={'agency__id': 1}  # ✅ only allow agency.id = 1
+    )#แผนกค่าใช้จ่ายมีมากกว่า 1
 
     class Meta:
         db_table = 'BaseJobCarDep'
@@ -1791,24 +1799,44 @@ class CarLogbook(models.Model):
     end_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 1")
     mile_start_job1 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 1")
     mile_end_job1 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 1")
+    exd_job1 = models.ForeignKey(BaseExpenseDepartment,
+                on_delete=models.CASCADE,
+                blank=True, null=True,
+                related_name='exd_j1',
+                verbose_name="แผนกค่าใช้จ่ายงานที่ 1") #แผนกค่าใช้จ่าย
 
     job2 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 2")
     start_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 2")
     end_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 2")
     mile_start_job2 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 2")
     mile_end_job2 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 2")
+    exd_job2 = models.ForeignKey(BaseExpenseDepartment,
+                on_delete=models.CASCADE,
+                blank=True, null=True,
+                related_name='exd_j2',
+                verbose_name="แผนกค่าใช้จ่ายงานที่ 2") #แผนกค่าใช้จ่าย
 
     job3 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 3")
     start_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 3")
     end_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 3")
     mile_start_job3 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 3")
     mile_end_job3 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 3")
+    exd_job3 = models.ForeignKey(BaseExpenseDepartment,
+                on_delete=models.CASCADE,
+                blank=True, null=True,
+                related_name='exd_j3',
+                verbose_name="แผนกค่าใช้จ่ายงานที่ 3") #แผนกค่าใช้จ่าย
 
     job4 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 4")
     start_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 4")
     end_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 4")
     mile_start_job4 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 4")
     mile_end_job4 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 4")
+    exd_job4 = models.ForeignKey(BaseExpenseDepartment,
+                on_delete=models.CASCADE,
+                blank=True, null=True,
+                related_name='exd_j4',
+                verbose_name="แผนกค่าใช้จ่ายงานที่ 4") #แผนกค่าใช้จ่าย
 
     job5 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 5")
     mile_start_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 5")
@@ -1856,12 +1884,11 @@ class CarLogbook(models.Model):
 class UserCarDepartment(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE,null=True, blank=True, verbose_name="ผู้ใช้")
     car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='ucd_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หัว)
-    car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
     in_comp = models.ForeignKey(BaseBranchCompany,on_delete=models.CASCADE,null=True, blank=True,verbose_name="สังกัดบริษัทที่อยู่")
 
     class Meta:
-        verbose_name = 'ผู้ใช้และแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
-        verbose_name_plural = 'ข้อมูลผู้ใช้และแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name = 'ผู้ใช้และทะเบียนรถและสังกัด'
+        verbose_name_plural = 'ข้อมูลผู้ใช้และทะเบียนรถและสังกัด'
 
     def __str__(self):
         return self.user.username

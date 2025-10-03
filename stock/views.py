@@ -8777,9 +8777,11 @@ def createCL(request):
 
 def job_car_dep_autocomplete(request):
     term = request.GET.get("term")
-    ucd = UserCarDepartment.objects.get(user = request.user.id)
+    car_id = request.GET.get("car")
+    #ucd = UserCarDepartment.objects.get(user = request.user.id)
+    car = BaseCar.objects.get(id = car_id)
     
-    jobs = BaseJobCarDep.objects.filter(name__icontains=term , car_dep = ucd.car_dep)[:20]
+    jobs = BaseJobCarDep.objects.filter(name__icontains=term , car_dep = car.car_dep)[:20]
     results =   [
         {"label": p.name, "value": p.name} for p in jobs
     ]
@@ -8856,13 +8858,13 @@ def viewMAApprove(request):
     branch_companies = [row[1] for row in acdr]
 
     # ดึง user ที่อยู่ใน car_dep เหล่านั้น
-    ucd = UserCarDepartment.objects.filter(car_dep__in=car_deps).values_list('user', flat=True)
+    ucd = BaseCar.objects.filter(car_dep__in=car_deps).values_list('id', flat=True)
 
     # filter Maintenance ตามเงื่อนไข
     data = Maintenance.objects.filter(
         approve_status='ขออนุมัติซ่อมบำรุง',
         branch_company__in=branch_companies,
-        name__in=ucd
+        car__in=ucd
     )
 
     #กรองข้อมูล
@@ -8921,3 +8923,25 @@ def editMAApprove(request, ma_id, mode):
         "colorNav":"disableNav"
     }
     return render(request, 'maintenanceApprove/editMAApprove.html',context)
+
+def searchExpenseDeptByJob(request):
+    if 'job_id' in request.GET:
+        job_id = request.GET.get('job_id')
+
+        exd_job = BaseJobCarDep.objects.filter(id = job_id).values('expense_dept__id', 'expense_dept__name')
+    data = {
+        'exd_job_list': list(exd_job),
+    }
+    return JsonResponse(data)
+
+def searchJobByCarDep(request):
+    if 'car' in request.GET:
+        car = request.GET.get('car')
+
+        bc_dep = BaseCar.objects.get(id = car)
+        job = BaseJobCarDep.objects.filter(car_dep = bc_dep.car_dep).values('id', 'name')
+        
+    data = {
+        'job_list': list(job),
+    }
+    return JsonResponse(data)

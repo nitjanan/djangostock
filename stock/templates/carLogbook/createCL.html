@@ -6,10 +6,7 @@
 {% load templatehelpers %}
 {% block css %}
 <!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-<!-- Optional: Select2 Bootstrap4 theme -->
-<link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 
 <!-- Boostrap 4 icon -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
@@ -121,14 +118,14 @@
                 <!--p>{{ form | crispy}}</!--p-->
                 <p>
                     {{ form.name.label_tag }}
-                    {{ form.name | add_class:"select2bs4"|attr:"style:width:100%;"}}
+                    {{ form.name }}
                 </p>
                 <p>
                     {{ form.branch_company }}
                 </p>
                 <p>
                     {{ form.car.label_tag }}
-                    {{ form.car }}
+                    {{ form.car}}
                 </p>
                 <hr class="border border-success">
                 <p>
@@ -175,24 +172,16 @@
                 <hr class="border border-primary">
                 <p>
                     {{ form.job1.label_tag }}
-                    <div class="input-group">
-                        <!-- Input -->
-                        <input id="job1_autocomplete" 
-                            type="text" 
-                            class="form-control" 
-                            placeholder="ค้นหารายละเอียดงาน 1 ..."
-                            required>
+                    {{ form.job1 }}
 
-                        <!-- Dropdown Button -->
-                        <div class="input-group-append">
-                            <button type="button" 
-                                    id="job1-show-all" 
-                                    class="btn btn-outline-secondary">
-                                ▼
-                            </button>
-                        </div>
-                    </div>
-                    {{ form.job1 |attr:"required:true"}}
+                </p>
+
+                <div id="expense_dept_radios1">
+                    <!-- Radios will be inserted here -->
+                </div>
+
+                <p>
+                    {{ form.exd_job1 }}
                 </p>
 
                 <p>
@@ -217,7 +206,7 @@
                 <hr class="border border-primary">
                 <p>
                     {{ form.job2.label_tag }}
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job2_autocomplete" type="text" class="form-control" placeholder="ค้นหารายละเอียดงาน 2 ...">
                         <div class="input-group-append">
                             <button type="button" id="job2-show-all" class="btn btn-outline-secondary">▼</button>
@@ -225,6 +214,14 @@
                     </div>
                     {{ form.job2 }}
                 </p>
+
+                <div id="expense_dept_radios2">
+                    <!-- Radios will be inserted here -->
+                </div>
+                <p>
+                    {{ form.exd_job2 }}
+                </p>
+
                 <p>
                     {{ form.start_job2.label_tag }}
                     <div class="input-group mb-3">
@@ -246,13 +243,19 @@
                 <hr class="border border-primary">
                 <p>
                     {{ form.job3.label_tag }}
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job3_autocomplete" type="text" class="form-control" placeholder="ค้นหารายละเอียดงาน 3 ...">
                         <div class="input-group-append">
                             <button type="button" id="job3-show-all" class="btn btn-outline-secondary">▼</button>
                         </div>
                     </div>
                     {{ form.job3 }}
+                </p>
+                <div id="expense_dept_radios3">
+                    <!-- Radios will be inserted here -->
+                </div>
+                <p>
+                    {{ form.exd_job3 }}
                 </p>
                 <p>
                     {{ form.start_job3.label_tag }}
@@ -275,13 +278,19 @@
                 <hr class="border border-primary">
                 <p>
                     {{ form.job4.label_tag }}
-                    <div class="input-group">
+                    <div class="input-group d-none">
                         <input id="job4_autocomplete" type="text" class="form-control" placeholder="ค้นหารายละเอียดงาน 4 ...">
                         <div class="input-group-append">
                             <button type="button" id="job4-show-all" class="btn btn-outline-secondary">▼</button>
                         </div>
                     </div>
                     {{ form.job4 }}
+                </p>
+                <div id="expense_dept_radios4">
+                    <!-- Radios will be inserted here -->
+                </div>
+                <p>
+                    {{ form.exd_job4 }}
                 </p>
                 <p>
                     {{ form.start_job4.label_tag }}
@@ -352,23 +361,96 @@
 <link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
 <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+<!-- Select2 CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
 <!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 <script>
+    $('#id_car').select2({
+        ajax: {
+            url: "{% url 'car_search' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term, // search term
+                    'rq_type': 2,
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        placeholder: 'ค้นหาด้วย code หรือ ชื่อ',
+        minimumInputLength: 2,
+        allowClear: true,
+    });
+
+
+
     $('#id_name').css('pointer-events','none');
-
-
     
     $(function() {
-        setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job3_autocomplete", "#id_job3", "#job3-show-all", "{% url 'job_car_dep_autocomplete' %}");
-        setupAutocomplete("#job4_autocomplete", "#id_job4", "#job4-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        $('#id_job1').select2();
+        $('#id_job2').select2();
+        $('#id_job3').select2();
+        $('#id_job4').select2();
+        //setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job3_autocomplete", "#id_job3", "#job3-show-all", "{% url 'job_car_dep_autocomplete' %}");
+        //setupAutocomplete("#job4_autocomplete", "#id_job4", "#job4-show-all", "{% url 'job_car_dep_autocomplete' %}");
         // add more as needed...
     });
 
+    $('#id_car').on('change', function() {
+        searchJobByCarDep("id_job1", 'expense_dept_radios1', 'id_exd_job1');
+        searchJobByCarDep("id_job2", 'expense_dept_radios2', 'id_exd_job2');
+        searchJobByCarDep("id_job3", 'expense_dept_radios3', 'id_exd_job3');
+        searchJobByCarDep("id_job4", 'expense_dept_radios4', 'id_exd_job4');
+    });
+
+    function searchJobByCarDep(idJob, containerId, exdId){
+        var tmpJob = $("#"+ idJob).val();
+        var car = $("#id_car").val();
+
+        let $container = $("#" + containerId);
+        $container.empty();
+
+        $("#" + exdId).val('');
+
+        if(car != ""){
+            // Create Ajax Call
+            if(car){
+                //set id_rq_type
+                $.ajax({
+                    url: '{% url "searchJobByCarDep" %}',
+                    data:{
+                            'car': car,
+                        },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.job_list) {
+                            $("#"+ idJob).find('option').not(':first').remove();
+                            //set option 
+                            for(var i = 0; i < data.job_list.length; i++){
+                                $("#"+ idJob).append(new Option(data.job_list[i].name, data.job_list[i].id));
+                            }
+                        }
+                        $('#'+ idJob +' option[value="'+tmpJob +'"]').attr('selected','selected');
+                    }
+                });
+            }
+            return false;
+        }else{
+           $("#"+ idJob).find('option').not(':first').remove();
+        }
+    }
+
+    /*
     function setupAutocomplete(inputSelector, hiddenSelector, buttonSelector, url) {
         var $input = $(inputSelector);
         var $hidden = $(hiddenSelector);
@@ -378,7 +460,7 @@
                 $.ajax({
                     url: url,
                     dataType: "json",
-                    data: { term: request.term },
+                    data: { term: request.term , car : $("#id_car").val()},
                     success: function(data) {
                         response(data);
                     }
@@ -399,42 +481,115 @@
             $input.focus();
         });
     }
+    */
 
-    $('#id_car').select2({
-        ajax: {
-            url: "{% url 'car_search' %}",
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return {
-                    q: params.term, // search term
-                    'rq_type': 2,
-                };
-            },
-            processResults: function (data) {
-                return {
-                    results: data.results
-                };
-            },
-            cache: true
-        },
-        placeholder: 'ค้นหาด้วย code หรือ ทะเบียนรถ ...',
-        minimumInputLength: 2,
-        allowClear: true
+
+    /*
+    $('#job1_autocomplete').blur(function() {
+        searchExpenseDeptByJob($('#id_job1').val(), 'expense_dept_radios1', 'id_exd_job1');
     });
 
-    //after load
-    $(document).ready(function() {
-        /*
-        $('#id_name').select2({
-            theme: 'bootstrap4',
-            placeholder: "ค้นหาชื่อ",
-            allowClear: true,
-            width: '100%'   // <=== สำคัญ
-        });
-        */
-
+    $('#job2_autocomplete').blur(function() {
+        searchExpenseDeptByJob($('#id_job2').val(), 'expense_dept_radios2', 'id_exd_job2');
     });
+
+    $('#job3_autocomplete').blur(function() {
+        searchExpenseDeptByJob($('#id_job3').val(), 'expense_dept_radios3', 'id_exd_job3');
+    });
+
+    $('#job4_autocomplete').blur(function() {
+        searchExpenseDeptByJob($('#id_job4').val(), 'expense_dept_radios4', 'id_exd_job4');
+    });
+    */
+
+
+
+    $('#id_job1').on('change', function() {
+        let job = $("#id_job1 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios1', 'id_exd_job1');
+    });
+
+    $('#id_job2').on('change', function() {
+        let job = $("#id_job2 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios2', 'id_exd_job2');
+    });
+
+    $('#id_job3').on('change', function() {
+        let job = $("#id_job3 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios2', 'id_exd_job3');
+    });
+
+    $('#id_job4').on('change', function() {
+        let job = $("#id_job4 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios2', 'id_exd_job4');
+    });
+
+    $('#expense_dept_radios1').on('change', 'input[name="expense_dept_radios1"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job1').val(selectedValue);
+    });
+
+    $('#expense_dept_radios2').on('change', 'input[name="expense_dept_radios2"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job2').val(selectedValue);
+    });
+
+    $('#expense_dept_radios3').on('change', 'input[name="expense_dept_radios3"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job3').val(selectedValue);
+    });
+
+    $('#expense_dept_radios4').on('change', 'input[name="expense_dept_radios4"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job4').val(selectedValue);
+    });
+  
+    function searchExpenseDeptByJob(job, containerId, exdId) {
+        if (job !== "") {
+            $.ajax({
+                url: '{% url "searchExpenseDeptByJob" %}',
+                data: {
+                    'job_id': job,
+                },
+                dataType: 'json',
+                success: function (data) {
+                    let $container = $("#" + containerId);
+                    $container.empty();
+
+                    if (data.exd_job_list) {
+                        if (data.exd_job_list.length === 1) {
+                            // hide container
+                            $container.hide();
+
+                            // hidden + required + checked
+                            let item = data.exd_job_list[0];
+                            let $hiddenInput = $(`<input type="radio" name="${containerId}" value="${item.expense_dept__id}" checked required hidden>`);
+                            // append to container
+                            $("#" + containerId).append($hiddenInput);
+                            // set another input's value
+                            $("#" + exdId).val($hiddenInput.val());
+                        } else {
+                            // show container
+                            $container.show();
+
+                            data.exd_job_list.forEach(function(item, index) {
+                                let required = index === 0 ? "required" : "";
+                                let radioHtml = `
+                                    <label>
+                                        <input type="radio" name="${containerId}" value="${item.expense_dept__id}" ${required}>
+                                        ${item.expense_dept__name}
+                                    </label><br>
+                                `;
+                                $container.append(radioHtml);
+                            });
+                        }
+                    }
+                }
+            });
+        }else{
+            $container.append(``);
+        }
+    }
 
     const inputFile = document.getElementById('id_image_mile');
     const previewImage = document.getElementById('preview-image_mile');
@@ -461,7 +616,36 @@
             alert('กรุณาถ่ายรูปเลขไมล์ก่อนส่งข้อมูล');
             return false;
         }
+        if( $('#id_mile_end').val() < $('#id_mile_start').val()) {
+            $("#id_mile_end").focus();
+            alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
+            return false;
+        }
+
+        if (!check_start_and_end_time('id_start_job1', 'id_end_job1')) return false;
+        if (!check_start_and_end_time('id_start_job2', 'id_end_job2')) return false;
+        if (!check_start_and_end_time('id_start_job3', 'id_end_job3')) return false;
+        if (!check_start_and_end_time('id_start_job4', 'id_end_job4')) return false;
+
+        return true; // ✅ ผ่านการตรวจสอบ
     });
+
+    function check_start_and_end_time(id_start_time, id_end_time){
+        let startVal = $('#' + id_start_time).val();
+        let endVal = $('#' + id_end_time).val();
+        if (startVal && endVal) {
+            // แปลง string "HH:MM" เป็น Date object
+            let startTime = new Date("1970-01-01T" + startVal + ":00");
+            let endTime = new Date("1970-01-01T" + endVal + ":00");
+
+            if (startTime > endTime) {
+                $('#' + id_end_time).focus();
+                alert('เวลาสิ้นสุดน้อยกว่าเวลาเริ่มต้น กรุณาคีย์ข้อมูลใหม่');
+                return false;
+            }
+        }
+        return true; // ✅ ผ่านการตรวจสอบ
+    }
 
 </script>
 {% endblock%}

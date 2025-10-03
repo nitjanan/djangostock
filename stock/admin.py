@@ -293,8 +293,8 @@ class BaseRepairTypeAdmin(ImportExportModelAdmin):
     search_fields = ['name','rq_type__name']
 
 class BaseCarAdmin(ImportExportModelAdmin):
-    list_display = ['id','code','name','rq_type']#แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['code', 'name','rq_type__name']
+    list_display = ['id','code','name','rq_type', 'car_dep']#แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['code', 'name','rq_type__name', 'car_dep__name']
     form = BaseCarAdminForm
 
 class BaseBrokeTypeAdmin(ImportExportModelAdmin):
@@ -351,8 +351,15 @@ class BaseCarDepartmentAdmin(ImportExportModelAdmin):
     search_fields = ['name',]
 
 class BaseJobCarDepAdmin(ImportExportModelAdmin):
-    list_display = ['id','name', 'car_dep'] #แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['name', 'car_dep']
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
+    list_display = ['id','name', 'car_dep' , 'get_expense_dept'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['id', 'name', 'car_dep__name']
+
+    def get_expense_dept(self, obj):
+        return ", ".join([str(e) for e in obj.expense_dept.all()])
+    get_expense_dept.short_description = "แผนกค่าใช้จ่าย"  # column name in admin
 
 class UserCarDepartmentAdmin(ImportExportModelAdmin):
     formfield_overrides = {
@@ -360,17 +367,25 @@ class UserCarDepartmentAdmin(ImportExportModelAdmin):
     }
     autocomplete_fields = ['user', 'car']
 
-    list_display = ['user', 'car', 'car_dep', 'in_comp'] #แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['user__first_name', 'car', 'car_dep', 'in_comp']
+    list_display = ['user', 'car', 'in_comp'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['user__first_name', 'car', 'in_comp']
 
 class ApproveCarDepartmentAdmin(ImportExportModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
     autocomplete_fields = ['user',]
-    list_display = ['id', 'user',]
+    list_display = ['id', 'user', 'get_car_dep', 'get_comp']
     search_fields = ['id', 'car_dep__name', 'branch_company__name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+    def get_car_dep(self, obj):
+        return ", ".join([str(e) for e in obj.car_dep.all()])
+    get_car_dep.short_description = "แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน"  # column name in admin
+
+    def get_comp(self, obj):
+        return ", ".join([str(e) for e in obj.branch_company.all()])
+    get_comp.short_description = "สิทธิการอนุมัติตามบริษัท"  # column name in admin
 
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)

@@ -238,6 +238,8 @@ urlpatterns = [
     path('carLogBook/create/',views.createCL,name="createCL"),
     path('carLogBook/roi/create/',views.createCLRoi,name="createCLRoi"),
     path('job_car_dep_autocomplete/',views.job_car_dep_autocomplete,name="job_car_dep_autocomplete"),
+    path('searchExpenseDeptByJob/',views.searchExpenseDeptByJob,name="searchExpenseDeptByJob"),
+    path('searchJobByCarDep/',views.searchJobByCarDep,name="searchJobByCarDep"),
 
     path("mobileMenu/", views.mobileMenu, name="mobileMenu"),
 ]

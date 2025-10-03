@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance, CarLogbook
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance, CarLogbook, BaseJobCarDep
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -659,6 +659,7 @@ class MaintenanceAddressCompanyForm(forms.ModelForm):
 class CarLogbookForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (CarLogbookForm,self).__init__(*args,**kwargs)
+        self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 
     name = forms.ModelChoiceField(
         queryset = User.objects.all(),
@@ -671,15 +672,21 @@ class CarLogbookForm(forms.ModelForm):
         label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
         widget=Select2Widget(),
         required=True,
-    )   
+        to_field_name='id'
+    )
+
+    job1 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.all(), label='รายละเอียดงานที่ 1', required=True)
+    job2 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.all(), label='รายละเอียดงานที่ 2', required=False)
+    job3 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.all(), label='รายละเอียดงานที่ 3', required=False)
+    job4 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.all(), label='รายละเอียดงานที่ 4', required=False)
 
     class Meta:
         model = CarLogbook
         fields = ('name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
-                    , 'job1', 'start_job1', 'end_job1'
-                    , 'job2', 'start_job2', 'end_job2'
-                    , 'job3', 'start_job3', 'end_job3'
-                    , 'job4', 'start_job4', 'end_job4'
+                    , 'job1', 'start_job1', 'end_job1', 'exd_job1'
+                    , 'job2', 'start_job2', 'end_job2', 'exd_job2'
+                    , 'job3', 'start_job3', 'end_job3', 'exd_job3'
+                    , 'job4', 'start_job4', 'end_job4', 'exd_job4'
                     , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
             'image_mile': forms.ClearableFileInput(
@@ -689,10 +696,6 @@ class CarLogbookForm(forms.ModelForm):
                 }
             ),
             'branch_company' : forms.HiddenInput(),
-            'job1' : forms.HiddenInput(),
-            'job2' : forms.HiddenInput(),
-            'job3' : forms.HiddenInput(),
-            'job4' : forms.HiddenInput(),
             'start_job1': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time','required': 'true'}),
             'end_job1': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time','required': 'true'}),
 
@@ -710,9 +713,14 @@ class CarLogbookForm(forms.ModelForm):
             }),
             'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
             'note': forms.Textarea(attrs={'rows': 3,}),
+            'exd_job1' : forms.HiddenInput(),
+            'exd_job2' : forms.HiddenInput(),
+            'exd_job3' : forms.HiddenInput(),
+            'exd_job4' : forms.HiddenInput(),
         }
         labels = {
             'name': _('ชื่อ'),
+            'car': _('เครื่องจักร/ทะเบียนรถ'),
         }
 
 class RoiCarLogbookForm(forms.ModelForm):
@@ -730,7 +738,14 @@ class RoiCarLogbookForm(forms.ModelForm):
         label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
         widget=Select2Widget(),
         required=True,
-    )   
+    )
+
+    job1 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 1', required=True)
+    job2 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 2', required=False)
+    job3 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 3', required=False)
+    job4 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 4', required=False)
+    job5 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 5', required=False)
+    job6 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 6', required=False)
 
     class Meta:
         model = CarLogbook
@@ -750,12 +765,6 @@ class RoiCarLogbookForm(forms.ModelForm):
                 }
             ),
             'branch_company' : forms.HiddenInput(),
-            'job1' : forms.HiddenInput(),
-            'job2' : forms.HiddenInput(),
-            'job3' : forms.HiddenInput(),
-            'job4' : forms.HiddenInput(),
-            'job5' : forms.HiddenInput(),
-            'job6' : forms.HiddenInput(),
             'name': Select2Widget(attrs={
                 'class': 'form-control django-select2',  # Bootstrap + select2 class
                 'style': 'width: 100%;',  # ensures width fills container
@@ -765,6 +774,7 @@ class RoiCarLogbookForm(forms.ModelForm):
         }
         labels = {
             'name': _('ชื่อ'),
+            'car': _('เครื่องจักร/ทะเบียนรถ'),
         }
 
 
@@ -778,6 +788,7 @@ CAR_STATE_CHOICES = (
 class CrMaintenanceForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (CrMaintenanceForm,self).__init__(*args,**kwargs)
+        self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 
     name = forms.ModelChoiceField(
         queryset = User.objects.all(),
@@ -790,6 +801,7 @@ class CrMaintenanceForm(forms.ModelForm):
         label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
         widget=Select2Widget(),
         required=True,
+        to_field_name='id'
     )
 
     car_state = forms.ChoiceField(choices = CAR_STATE_CHOICES, label='สภาพรถ')
