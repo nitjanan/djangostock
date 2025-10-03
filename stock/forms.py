@@ -713,10 +713,6 @@ class CarLogbookForm(forms.ModelForm):
             }),
             'car': Select2Widget(attrs={'data-placeholder': 'Search by name or code'}),
             'note': forms.Textarea(attrs={'rows': 3,}),
-            'exd_job1' : forms.HiddenInput(),
-            'exd_job2' : forms.HiddenInput(),
-            'exd_job3' : forms.HiddenInput(),
-            'exd_job4' : forms.HiddenInput(),
         }
         labels = {
             'name': _('ชื่อ'),
