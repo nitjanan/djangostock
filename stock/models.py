@@ -346,7 +346,7 @@ class BaseCarDepartment(models.Model):
         db_table = 'BaseCarDepartment'
         ordering=('id',)
         verbose_name = 'แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
-        verbose_name_plural = 'ข้อมูลแผนกแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
 
     def __str__(self):
         return self.name
@@ -467,7 +467,7 @@ class BaseJobCarDep(models.Model):
         db_table = 'BaseJobCarDep'
         ordering=('id',)
         verbose_name = 'รายละเอียดงานและแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
-        verbose_name_plural = 'ข้อมูลรายละเอียดงานและแผนกแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
+        verbose_name_plural = 'ข้อมูลรายละเอียดงานและแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน'
 
     def __str__(self):
         return self.name
@@ -1722,7 +1722,7 @@ class Maintenance(models.Model):
         related_name='ma_og_name',
         verbose_name="พัสดุซ่อมบำรุง (ผู้จัดทำ)"
     )
-    mile = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์ตอนแจ้งซ่อม")
+    mile = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์/เลขชั่วโมง ตอนแจ้งซ่อม")
     detail = models.TextField(blank=True, null = True, verbose_name="อธิบายงาน/รายละเอียด")
     repair_note = models.TextField(blank=True, null = True, verbose_name="ช่างผู้ดำเนินการ")
     work_hour = models.IntegerField(null=True, blank = True, verbose_name="ชม.ทำงาน (ชม.)")

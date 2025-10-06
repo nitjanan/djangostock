@@ -1221,6 +1221,10 @@ $("#rName").change(function() {
         }else{
             $("#id_ma_id").val('');
             $("#id_ma_ref_no").val('');
+
+            $('#id_rq_type').css('pointer-events','auto');
+            $('#id_car').next('.select2-container').css('pointer-events', 'auto');
+            $('#id_mile').prop('readonly', false);
         }
     }
 

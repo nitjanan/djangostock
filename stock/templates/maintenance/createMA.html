@@ -307,7 +307,7 @@
             data: function (params) {
                 return {
                     q: params.term, // search term
-                    'rq_type': 2,
+                    'rq_type': [1,2],
                 };
             },
             processResults: function (data) {

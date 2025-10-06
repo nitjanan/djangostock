@@ -97,9 +97,10 @@ from django.core.exceptions import ObjectDoesNotExist
 def car_search(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         search_term = request.GET.get('q', '')
-        rq_type = request.GET.get('rq_type')
+        rq_type = request.GET.getlist('rq_type[]') or request.GET.getlist('rq_type')
 
-        cars = BaseCar.objects.filter(Q(name__icontains=search_term) | Q(code__icontains=search_term), (Q(rq_type = rq_type)| Q(rq_type = 4))).values('id', 'name', 'code')
+
+        cars = BaseCar.objects.filter(Q(name__icontains=search_term) | Q(code__icontains=search_term), (Q(rq_type__in = rq_type)| Q(rq_type = 4))).values('id', 'name', 'code')
         results = []
         for car in cars:
             results.append({
