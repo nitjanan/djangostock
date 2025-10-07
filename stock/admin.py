@@ -368,7 +368,7 @@ class UserCarDepartmentAdmin(ImportExportModelAdmin):
     autocomplete_fields = ['user', 'car']
 
     list_display = ['user', 'car', 'in_comp'] #แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['user__first_name', 'car', 'in_comp']
+    search_fields = ['user__first_name', 'car__name', 'in_comp__code']
 
 class ApproveCarDepartmentAdmin(ImportExportModelAdmin):
     formfield_overrides = {
