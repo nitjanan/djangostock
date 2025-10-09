@@ -242,6 +242,9 @@ urlpatterns = [
     path('searchJobByCarDep/',views.searchJobByCarDep,name="searchJobByCarDep"),
 
     path("mobileMenu/", views.mobileMenu, name="mobileMenu"),
+
+    path('car/api/',views.apiOverviewCar,name="apiOverviewCar"),
+    path('car/api/all/',views.allCar,name="allCar"),
 ]
 
 if settings.DEBUG :

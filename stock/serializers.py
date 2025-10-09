@@ -1,4 +1,4 @@
-from stock.models import PurchaseOrder, PurchaseOrderItem
+from stock.models import PurchaseOrder, PurchaseOrderItem, BaseCar
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -95,3 +95,8 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         except AttributeError:
             return None
         return None
+    
+class BaseCarSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BaseCar
+        fields = ('id', 'code', 'name',)

@@ -68,7 +68,7 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
 
 from .tokens import create_jwt_pair_for_user
-from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer
+from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer, BaseCarSerializer
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 from django.db.models import OuterRef, Subquery
@@ -746,7 +746,7 @@ def index(request, category_slug = None):
     #มีสิทธิอนุมัติ pr, cp หรือ po
     try:
         user_profile = UserProfile.objects.get(user_id = request.user.id)
-        isPermission = PositionBasePermission.objects.filter(position_id = user_profile.position_id).exists()
+        isPermission = PositionBasePermission.objects.filter(position_id = user_profile.position_id, branch_company__code__in = company_in).exists()
     except UserProfile.DoesNotExist or PositionBasePermission.DoesNotExist:
         pass
 
@@ -6387,6 +6387,26 @@ def allPOItems(request, start_date, end_date):
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
     serializer = PurchaseOrderItemSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiOverviewCar(request):
+    api_urls = {
+        'Api Overview Car':'/car/api/',
+        'All Car View':'/car/api/all/',
+    }
+    return Response(api_urls)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def allCar(request):
+    queryset = BaseCar.objects.filter(
+       rq_type = 2
+    )
+    paginator = SmallResultsSetPagination()
+    result_page = paginator.paginate_queryset(queryset, request)
+    serializer = BaseCarSerializer(result_page, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 def exportExcelByExpense(request):
