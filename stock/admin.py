@@ -335,7 +335,7 @@ class BaseMATypeAdmin(ImportExportModelAdmin):
 class CarLogbookAdmin(ImportExportModelAdmin):
     autocomplete_fields = ['car','car_tail', 'name']
 
-    list_display = ['ref_no', 'car', 'name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    list_display = ['ref_no', 'created', 'car', 'name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     search_fields = ('ref_no', 'name__first_name', 'car__name', 'car__code')
 

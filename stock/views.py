@@ -8497,12 +8497,15 @@ def excelDailyCL(request):
         bottom=Side(style='thin')
     )
 
+    startDate_dt = make_aware(datetime.datetime.combine(startDate, datetime.time.min))
+    endDate_dt   = make_aware(datetime.datetime.combine(endDate, datetime.time.max))
+
     if cars:
         for car in cars:
             driver = (
                 CarLogbook.objects.filter(
                     car=car,
-                    created__range=(startDate, endDate),
+                    created__range=(startDate_dt, endDate_dt),
                     branch_company__code__in=company_in
                 )
                 .annotate(
@@ -8520,17 +8523,26 @@ def excelDailyCL(request):
             )
             driver_name = driver['full_name'] if driver else ''
             
-            data_sum = CarLogbook.objects.filter(
+            qs = CarLogbook.objects.filter(
                 car=car, 
-                created__range=(startDate, endDate), 
+                created__range=(startDate_dt, endDate_dt), 
                 branch_company__code__in=company_in
-            ).aggregate(
+            )
+            data_sum = qs.aggregate(
                 sum_oil=Sum('oil'),
                 sum_gas=Sum('gas'),
                 sum_engine=Sum('engine'),
                 sum_hydraulic=Sum('hydraulic'),
                 sum_grease=Sum('grease')
             )
+
+            first_row = qs.order_by('created').first()
+            last_row = qs.order_by('-created').first()
+
+            if first_row and last_row:
+                total_mile = last_row.mile_end - first_row.mile_start
+            else:
+                total_mile = 0
                             
             sheet = workbook.create_sheet(title=f"{car.code} {car.name}")
             sheet.cell(row=1, column=1, value='รายงานการใช้รถ').font = Font(bold=True)
@@ -8665,7 +8677,8 @@ def excelDailyCL(request):
             sheet.cell(row=row_index, column=4, value=data_sum['sum_engine'] or '')
             sheet.cell(row=row_index, column=5, value=data_sum['sum_hydraulic'] or '')
             sheet.cell(row=row_index, column=6, value=data_sum['sum_grease'] or '')
-            sheet.cell(row=row_index, column=9, value=total_distance)
+            sheet.cell(row=row_index, column=8, value=f'เลขไมล์เริ่ม - เลขไมล์สิ้นสุด ({total_mile})')
+            sheet.cell(row=row_index, column=9, value=f'รวมกม. ({total_distance})')
 
             for col in range(1, 13):  # columns 1 to 11 (A to K)
                 col_letter = get_column_letter(col)
@@ -8681,7 +8694,7 @@ def excelDailyCL(request):
                     cell.border = thin_border
 
             # 3. Apply red font to the total row
-            for col in [1,2,3,4,5,6,9]:  # only columns with totals
+            for col in [1,2,3,4,5,6,8,9]:  # only columns with totals
                 sheet.cell(row=row_index, column=col).font = red_font
 
         workbook.remove(workbook['Sheet'])
