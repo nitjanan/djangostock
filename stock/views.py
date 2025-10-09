@@ -8843,7 +8843,7 @@ def createMA(request):
     active = company.code
     
     try:
-        form = CrMaintenanceForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user, 'approve_status': 'ขออนุมัติซ่อมบำรุง'})
+        form = CrMaintenanceForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user, 'approve_status': 'ขออนุมัติซ่อมบำรุง', 'car': ucd.car})
         if form.is_valid():
             form = CrMaintenanceForm(request, request.POST or None, request.FILES)
             new_contact = form.save(commit=False)

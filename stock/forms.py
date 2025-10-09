@@ -722,6 +722,7 @@ class CarLogbookForm(forms.ModelForm):
 class RoiCarLogbookForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (RoiCarLogbookForm,self).__init__(*args,**kwargs)
+        self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 
     name = forms.ModelChoiceField(
         queryset = User.objects.all(),
@@ -734,6 +735,7 @@ class RoiCarLogbookForm(forms.ModelForm):
         label='ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน',
         widget=Select2Widget(),
         required=True,
+        to_field_name='id'
     )
 
     job1 = forms.ModelChoiceField(queryset = BaseJobCarDep.objects.filter(car_dep = 4), label='สถานที่จัดส่งที่ 1', required=True)
