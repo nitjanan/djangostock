@@ -68,7 +68,7 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
 
 from .tokens import create_jwt_pair_for_user
-from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer, BaseCarSerializer
+from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer, BaseCarSerializer, UserCarDepartmentSerializer
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 from django.db.models import OuterRef, Subquery
@@ -6407,6 +6407,26 @@ def allCar(request):
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
     serializer = BaseCarSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiOverviewDriverAndCar(request):
+    api_urls = {
+        'Api Overview Driver and Car':'/driver/car/api/',
+        'All Car View':'/driver/car/api/all/',
+    }
+    return Response(api_urls)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def allDriverAndCar(request):
+    queryset = UserCarDepartment.objects.filter(
+       car__isnull = False
+    )
+    paginator = SmallResultsSetPagination()
+    result_page = paginator.paginate_queryset(queryset, request)
+    serializer = UserCarDepartmentSerializer(result_page, many=True)
     return paginator.get_paginated_response(serializer.data)
 
 def exportExcelByExpense(request):

@@ -245,6 +245,9 @@ urlpatterns = [
 
     path('car/api/',views.apiOverviewCar,name="apiOverviewCar"),
     path('car/api/all/',views.allCar,name="allCar"),
+
+    path('driver/car/api/',views.apiOverviewDriverAndCar,name="apiOverviewDriverAndCar"),
+    path('driver/car/api/all/',views.allDriverAndCar,name="allDriverAndCar"),
 ]
 
 if settings.DEBUG :
