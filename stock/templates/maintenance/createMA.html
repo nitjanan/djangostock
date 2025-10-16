@@ -367,17 +367,26 @@
 
     //before submit
     $('form').submit(function () {
+        const submitButton = $(this).find("[type='submit']");
+        submitButton.prop("disabled", true); //ปิดปุ่ม submit หากมีการกดซ้ำ
+
         const inputFile1 = document.getElementById('id_image1');
         const inputFile2 = document.getElementById('id_image2');
         if (inputFile1.files.length < 1) {
             $("#id_mile_start").focus();
             alert('กรุณาถ่ายรูปภาพที่ 1');
+
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
             return false;
         }
 
         if (inputFile2.files.length < 1) {
             $("#id_mile_start").focus();
             alert('กรุณาถ่ายรูปภาพที่ 2');
+
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
             return false;
         }
     });

@@ -504,18 +504,48 @@
 
     //before submit
     $('form').submit(function () {
+        const submitButton = $(this).find("[type='submit']");
+        submitButton.prop("disabled", true); //ปิดปุ่ม submit หากมีการกดซ้ำ
+
         if (inputFile.files.length < 1) {
             $("#id_mile_start_job1").focus();
             alert('กรุณาถ่ายรูปเลขไมล์ก่อนส่งข้อมูล');
+
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
             return false;
         }
 
-        if (!check_start_and_end_mile('id_mile_start_job1', 'id_mile_end_job1')) return false;
-        if (!check_start_and_end_mile('id_mile_start_job2', 'id_mile_end_job2')) return false;
-        if (!check_start_and_end_mile('id_mile_start_job3', 'id_mile_end_job3')) return false;
-        if (!check_start_and_end_mile('id_mile_start_job4', 'id_mile_end_job4')) return false;
-        if (!check_start_and_end_mile('id_mile_start_job5', 'id_mile_end_job5')) return false;
-        if (!check_start_and_end_mile('id_mile_start_job6', 'id_mile_end_job6')) return false;
+        if (!check_start_and_end_mile('id_mile_start_job1', 'id_mile_end_job1')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_mile('id_mile_start_job2', 'id_mile_end_job2')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_mile('id_mile_start_job3', 'id_mile_end_job3')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_mile('id_mile_start_job4', 'id_mile_end_job4')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_mile('id_mile_start_job5', 'id_mile_end_job5')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_mile('id_mile_start_job6', 'id_mile_end_job6')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
 
         return true;
     });

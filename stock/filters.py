@@ -329,7 +329,7 @@ class CarLogbookFilter(django_filters.FilterSet):
         widget=DateInput(attrs={'type': 'date'})
     )
     car = django_filters.CharFilter(method='filter_car')
-    name = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
+    name = django_filters.CharFilter(field_name="name__first_name", lookup_expr='icontains')
  
     class Meta:
         model = CarLogbook
