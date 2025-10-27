@@ -54,11 +54,12 @@
           <tr>
             <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">รหัสใบขอเบิก</th>
+            <th scope="col">รหัสใบแจ้งซ่อม</th>
             <th scope="col">ชื่อผู้ตั้งเบิก</th>
             <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">สินค้า</th>
             <th scope="col">ใบขอซื้อ</th>
-            <th scope="col">ใบจ่ายสินค้าภายใน</th>
+            <!--th scope="col">ใบจ่ายสินค้าภายใน</th-->
             <th scope="col">บันทึก</th>
           </tr>
         </thead>
@@ -67,6 +68,7 @@
           <tr>
             <td>{{requisition.created |date:"d/m/Y" }}</td>
             <th scope="row"><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></th>
+            <td>{% if requisition.ma_ref_no%}<a href="{%url 'showMA' requisition.ma_id 1 %}">{{requisition.ma_ref_no}}</a>{%endif%}</td>
             <td>{{requisition.name}}</td>
             <td>
               <ul>
@@ -81,11 +83,11 @@
                 <a href="{% url 'showPR' requisition.purchase_requisition_id 4 %}"><button type="button" class="btn btn-outline-info btn-block btn-sm">{{requisition.pr_ref_no}}</button></a>
               {%endif %}
             </td>
-            <td>
+            <!--td>
               {% if requisition.invoice_id %}
                 <a href="{% url 'showInvoice' requisition.invoice_id 1 %}"><button type="button" class="btn btn-outline-warning btn-block btn-sm">{{requisition.iv_ref_no}}</button></a>
               {%endif %}
-            </td>
+            </td-->
             <td>
               {% if requisition.memorandum_pdf %}
               <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
