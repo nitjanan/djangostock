@@ -228,7 +228,7 @@
     const py_url = "{% url 'excelDailyCL' %}" + (queryString ? "?" + queryString : "");
     const file_name = "carlog_daily("+'{{ request.session.company_code }}'+").xlsx";
 
-	  const delay_time = 50;
+	  const delay_time = 100;
     progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
   });
 

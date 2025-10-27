@@ -614,7 +614,7 @@ class MaintenanceForm(forms.ModelForm):
     location = forms.ChoiceField(choices = LC_CHOICES, label='สถานที่ซ่อม')
     is_complete = forms.TypedChoiceField(
                    coerce=lambda x: x == 'True',
-                   choices=((True, 'ปิดสรุปได้ กลับมาใช้งานได้ปกติ'), (False, 'ปิดสรุปไม่ได้ เหตุผล')),
+                   choices=((True, 'ปิดสรุปได้ กลับมาใช้งานได้ปกติ ในระยะเวลา 7 วัน'),), #choices=((True, 'ปิดสรุปได้ กลับมาใช้งานได้ปกติ'), (False, 'ปิดสรุปไม่ได้ เหตุผล')),
                    widget=forms.RadioSelect
                 )
 
@@ -630,7 +630,7 @@ class MaintenanceForm(forms.ModelForm):
          'start_rp': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
          'end_rp': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
          'ma_type': forms.RadioSelect(attrs={'class': 'radio-inline list-unstyled'}),
-         'fail_reason': forms.Textarea(attrs={'rows': 3, 'style': 'height: 70px;'}),
+         'fail_reason': forms.Textarea(attrs={'rows': 4, 'style': 'height: 100px;'}),
          'ma_pdf': MyClearableFileInput,
         }
        labels = {

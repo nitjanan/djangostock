@@ -375,8 +375,8 @@
                     </div>
                     <div class="col-6">
                         <h5 class="mb-2" style="font-size:18px">ความเห็นผู้ใช้งานหลังตรวจรับงาน</h5>
-                        <h5 class="mb-2" style="font-size:18px">{% if ma.is_complete == 1 %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ปิดสรุปได้ กลับมาใช้งานได้ปกติ</h5>
-                        <h5 class="mb-2" style="font-size:18px">{% if ma.is_complete == 0 %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ปิดสรุปไม่ได้ เพราะ</h5>
+                        <h5 class="mb-2" style="font-size:18px">{% if ma.is_complete == 1 %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ปิดสรุปได้ กลับมาใช้งานได้ปกติ ในระยะเวลา 7 วัน</h5>
+                        <!--h5 class="mb-2" style="font-size:18px">{% if ma.is_complete == 0 %}<i class="fas fa-square"></i>{% else %}<i class="far fa-square"></i>{%endif%} ปิดสรุปไม่ได้ เพราะ</h5-->
                         {% if ma.fail_reason %}
                           <u class="dotted" style="font-size:15px">{{ma.fail_reason |truncatechars:220}}</u>
                         {% endif %}

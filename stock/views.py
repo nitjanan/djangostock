@@ -8697,8 +8697,24 @@ def excelDailyCL(request):
             sheet.cell(row=row_index, column=4, value=data_sum['sum_engine'] or '')
             sheet.cell(row=row_index, column=5, value=data_sum['sum_hydraulic'] or '')
             sheet.cell(row=row_index, column=6, value=data_sum['sum_grease'] or '')
-            sheet.cell(row=row_index, column=8, value=f'เลขไมล์เริ่ม - เลขไมล์สิ้นสุด ({total_mile})')
-            sheet.cell(row=row_index, column=9, value=f'รวมกม. ({total_distance})')
+            sheet.cell(row=row_index, column=8, value=total_mile)
+            sheet.cell(row=row_index, column=9, value=total_distance)
+
+            sheet.cell(row=2, column=4, value='รวมกม.')
+            sheet.cell(row=3, column=4, value='เลขไมล์เริ่ม - เลขไมล์สิ้นสุด')
+            sheet.cell(row=4, column=4, value='อัตราการสิ้นเปลืองน้ำมันจริง')
+
+            sheet.cell(row=2, column=6, value=f'{total_mile}')
+            sheet.cell(row=3, column=6, value=f'{total_distance}')
+
+            if data_sum['sum_oil'] and  total_distance:
+                num = data_sum['sum_oil'] / total_distance
+                rate = round(num, 2)
+                sheet.cell(row=4, column=6, value=f'{rate}')
+
+            sheet.cell(row=2, column=7, value='กม.')
+            sheet.cell(row=3, column=7, value='กม.')
+            sheet.cell(row=4, column=7, value='ลิตร/กม.')
 
             for col in range(1, 13):  # columns 1 to 11 (A to K)
                 col_letter = get_column_letter(col)
