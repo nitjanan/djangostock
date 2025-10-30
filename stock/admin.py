@@ -325,8 +325,11 @@ class InvoiceItemAdmin(RelatedFieldAdmin):
     search_fields = ('iv__ref_no','created' ,'quantity','unit','unit_price','price')
 
 class RateDistributorAdmin(RelatedFieldAdmin):
+    autocomplete_fields = ['distributor','organizer_user', 'po']
+
     list_display = ('id', 'po__ref_no', 'distributor', 'organizer_user')
     search_fields = ('id', 'po__ref_no', 'distributor__name', 'organizer_user__first_name')
+    list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
 class BaseMATypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
