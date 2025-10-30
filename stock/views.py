@@ -47,7 +47,7 @@ from django.views.decorators.cache import cache_control
 from decimal import Decimal
 import pandas as pd
 from django_pandas.io import read_frame
-from django.db.models.functions import Round, Concat
+from django.db.models.functions import Round, Concat, Coalesce
 from django.contrib import messages
 import string
 from openpyxl import Workbook
@@ -9015,3 +9015,215 @@ def searchJobByCarDep(request):
         'job_list': list(job),
     }
     return JsonResponse(data)
+
+def formatHourMinute(time):
+    result = None
+    if time:
+       result = f'{time}'[:-3]
+    return result
+
+def excelExpensesByCarLog(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    comp = BaseBranchCompany.objects.get(code = active)
+    
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+
+
+    current_date_time = datetime.datetime.today()
+
+    startDate = datetime.datetime.strptime(start_created or startDateInMonth(current_date_time.strftime('%Y-%m-%d')), "%Y-%m-%d").date()
+    endDate = datetime.datetime.strptime(end_created or current_date_time.strftime('%Y-%m-%d'), "%Y-%m-%d").date()
+
+    startDate_dt = make_aware(datetime.datetime.combine(startDate, datetime.time.min))
+    endDate_dt = make_aware(datetime.datetime.combine(endDate, datetime.time.max))
+
+    my_q = Q()
+    if start_created is not None:
+        my_q &= Q(created__gte = startDate_dt)
+    if end_created is not None:
+        my_q &=Q(created__lte = endDate_dt)
+    my_q &=Q(branch_company__code__in = company_in)
+
+
+    #data = CarLogbook.objects.filter(my_q)
+    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'))
+
+    qs = CarLogbook.objects.filter(
+        my_q,
+        Q(exd_job1__isnull=False) |
+        Q(exd_job2__isnull=False) |
+        Q(exd_job3__isnull=False) |
+        Q(exd_job4__isnull=False)
+    ).values_list('exd_job1', 'exd_job2', 'exd_job3', 'exd_job4')
+
+    # Flatten and remove None
+    exd_ids = {exd for row in qs for exd in row if exd}
+
+    exd_all = BaseExpenseDepartment.objects.filter(id__in=exd_ids).values('id', 'name')
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+
+    # Define custom date style only once
+    if "custom_datetime" not in workbook.named_styles:
+        date_style = NamedStyle(name='custom_datetime', number_format='DD/MM/YYYY')
+        workbook.add_named_style(date_style)
+
+    # Define a thin border style
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    if data:
+        sheet.cell(row=1, column=1, value=f'สรุปค่าใช้จ่ายแต่ละหน่วยงาน ตามทะเบียนรถ {comp.affiliated.name_th}').font = Font(bold=True)
+        sheet.cell(row=2, column=1, value='วันที่ ' + str(startDate.strftime('%d/%m/%Y')) + " ถึง " + str(endDate.strftime('%d/%m/%Y')))
+        sheet.cell(row=3, column=1, value='')
+
+        row = []
+        row.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
+        row.extend(['จำนวนชั่วโมงทำงาน' for dept in exd_all])
+        row.extend(['รวม'])
+        sheet.append(row)
+
+        row2 = []
+        row2.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'อะไหล่ + ค่าซ่อม'])
+        row2.extend([dept['name'] for dept in exd_all])
+        row2.extend(['รวม'])
+        sheet.append(row2)
+
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10 + len(exd_all))
+        sheet.cell(row=1, column=1).alignment = Alignment(horizontal='center')
+        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=10 + len(exd_all))
+        sheet.cell(row=2, column=1).alignment = Alignment(horizontal='center')
+        sheet.merge_cells(f'A4:A5')
+        sheet.merge_cells(f'B4:B5')
+        sheet.merge_cells(f'C4:C5')
+        sheet.merge_cells(f'D4:H4')
+        sheet.merge_cells(f'I4:I5')
+        sheet.merge_cells(start_row=4, start_column=10, end_row=4, end_column=10 + len(exd_all))
+
+        for idx, car in enumerate(data, start=1):
+            row3 = []
+            row3.extend([idx, car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease']])
+            
+            #ใบจ่ายสินค้าภายใน - จ่ายอะไหล่ 
+            l_iv = list(
+                ExOESTNH.objects.using('pg_db')
+                .filter(
+                    docnum__startswith=comp.invoice_code,
+                    comcod=comp.affiliated.name,
+                    docdat__range=(start_created, end_created),
+                    remark = f"{car['car__name']}:{car['car__code']}"
+                )
+                .values_list('docnum', flat=True)
+            )
+            sum_trnval = ExOESTND.objects.using('pg_db').filter(
+                comcod=comp.affiliated.name,
+                docnum__in=l_iv
+            ).aggregate(
+                sum_other=Sum(Case(
+                    When(stktyp ='อะไหล่', then='trnval'),
+                    output_field=models.DecimalField()
+                ))
+            )['sum_other'] or Decimal(0) 
+            row3.extend([sum_trnval])
+
+            for dept in exd_all:
+                total = (
+                    CarLogbook.objects.filter(
+                        my_q,
+                        Q(exd_job1=dept['id']) | Q(exd_job2=dept['id']) | Q(exd_job3=dept['id']) | Q(exd_job4=dept['id']),
+                        car=car['car__id'],
+                    )
+                    .aggregate(
+                        total_diff=Sum(
+                            Case(
+                                When(exd_job1=dept['id'], then=F('diff_time_job1')),
+                                When(exd_job2=dept['id'], then=F('diff_time_job2')),
+                                When(exd_job3=dept['id'], then=F('diff_time_job3')),
+                                When(exd_job4=dept['id'], then=F('diff_time_job4')),
+                                output_field=models.DurationField(),
+                            )
+                        )
+                    )['total_diff'] or None
+                )
+
+                row3.append(formatHourMinute(total))
+            
+
+            total_diff = (
+                CarLogbook.objects
+                .filter(my_q, car=car['car__id'])
+                .aggregate(
+                    total=(
+                        Sum(
+                            Case(
+                                When(exd_job1__isnull=False, then=Coalesce(F('diff_time_job1'), Value(0))),
+                                default=Value(0),
+                                output_field=models.DurationField(),
+                            )
+                        )
+                        + Sum(
+                            Case(
+                                When(exd_job2__isnull=False, then=Coalesce(F('diff_time_job2'), Value(0))),
+                                default=Value(0),
+                                output_field=models.DurationField(),
+                            )
+                        )
+                        + Sum(
+                            Case(
+                                When(exd_job3__isnull=False, then=Coalesce(F('diff_time_job3'), Value(0))),
+                                default=Value(0),
+                                output_field=models.DurationField(),
+                            )
+                        )
+                        + Sum(
+                            Case(
+                                When(exd_job4__isnull=False, then=Coalesce(F('diff_time_job4'), Value(0))),
+                                default=Value(0),
+                                output_field=models.DurationField(),
+                            )
+                        )
+                    )
+                )['total'] or None 
+            )
+            row3.append(formatHourMinute(total_diff))    
+            sheet.append(row3)
+
+        col_index = 11 + len(exd_all)
+        row_index = 4 + len(data)
+        for col in range(1, col_index):  # columns 1 to 11 (A to K)
+            col_letter = get_column_letter(col)
+            if col > 8:
+                sheet.column_dimensions[col_letter].width = 20
+            else:
+                sheet.column_dimensions[col_letter].width = 15
+            
+        # 2. Apply border to all cells from row 7 to last row (row_index)
+        for row in range(4, row_index + 2):
+            for col in range(1, col_index):
+                cell = sheet.cell(row=row, column=col)
+                cell.border = thin_border
+                if row == 4 or row == 5:
+                    cell.alignment = Alignment(horizontal='center')
+    else:
+        sheet.cell(row = 1, column = 1, value = f'ไม่มีข้อมูลรายงานสรุปค่าใช่จ่ายแต่ละหน่วยงาน ตามทะเบียนรถ')
+
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(), 
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=expenses_by_carlog({active}).xlsx'
+
+    workbook.save(response)
+    return response
+

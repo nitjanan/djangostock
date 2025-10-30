@@ -240,6 +240,7 @@ urlpatterns = [
     path('job_car_dep_autocomplete/',views.job_car_dep_autocomplete,name="job_car_dep_autocomplete"),
     path('searchExpenseDeptByJob/',views.searchExpenseDeptByJob,name="searchExpenseDeptByJob"),
     path('searchJobByCarDep/',views.searchJobByCarDep,name="searchJobByCarDep"),
+    path('excelExpensesByCarLog/',views.excelExpensesByCarLog,name="excelExpensesByCarLog"),
 
     path("mobileMenu/", views.mobileMenu, name="mobileMenu"),
 
