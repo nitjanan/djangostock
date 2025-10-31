@@ -254,8 +254,8 @@ class PurchaseRequisitionAdmin(RelatedFieldAdmin):
 class ComparisonPriceAdmin(RelatedFieldAdmin):
     autocomplete_fields = ['select_bidder', 'organizer', 'examiner_user', 'approver_user', 'special_approver_user']
 
-    list_display = ('ref_no','po_ref_no','select_bidder','organizer')
-    search_fields = ('ref_no','po_ref_no','select_bidder__name','organizer__first_name')
+    list_display = ('ref_no', 'created', 'po_ref_no','select_bidder','organizer')
+    search_fields = ('ref_no', 'created', 'po_ref_no','select_bidder__name','organizer__first_name')
 
 class ComparisonPriceDistributorAdmin(ImportExportModelAdmin):
     list_display = ['cp','distributor']
