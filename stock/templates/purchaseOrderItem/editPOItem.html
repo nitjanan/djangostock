@@ -28,7 +28,7 @@
     padding: 5px 12px;
     border-radius: 4px;
     border: 1px solid #ced4da;
-    width: 55.5vw !important;
+    width: 35.7vw !important;
   }
 
   /* Adjust the dropdown arrow height and alignment */
@@ -42,7 +42,7 @@
   .select2-container .select2-dropdown {
     border-radius: 4px;
     border: 1px solid #ced4da;
-    width: 55.5vw !important;
+    width: 35.7vw !important;
   }
 
   /* Align the clear button */
@@ -53,6 +53,7 @@
 </style>
 {% endblock %}
 {% block content %}
+<link rel="stylesheet" type='text/css' href="{% static '/css/rate.css' %}">
 <div class="container">
     <div class="row my-2">
         <div class="col-md-12">
@@ -245,25 +246,108 @@
                 {{price_form.amount | add_class:"text-right" }}
               </div>
             </div>
-            <div class="card bg-light hidden-print my-3 {%if isFromPR == 'True'%}d-none{%endif%}">
-              <div class="card-body">
-                {% if form.quotation_pdf.errors %}
-                <div class="alert alert-warning" role="alert">
-                    {{ form.quotation_pdf.errors }}
+            <hr class="ln {%if isFromPR == 'True'%}d-none{%endif%} d-print-none">
+            <div class="row">
+              <div class="col-8 card div-shadow hidden-print my-2 {%if isFromPR == 'True'%}d-none{%endif%}">
+                <div class="card-body">
+                  {% if form.quotation_pdf.errors %}
+                  <div class="alert alert-warning" role="alert">
+                      {{ form.quotation_pdf.errors }}
+                  </div>
+                  {% endif %}
+                  <label>{{ form.distributor.label }}</label>
+                  <div>
+                      <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor();getRateDistributor();">
+                      <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                      <datalist-- id="idDistributorList">
+                      {% for results in distributorList %}
+                          <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
+                      {% endfor %}
+                      </datalist-->
+                  </div>
+                  <p>{{ form | crispy}}</p>
+                  {% csrf_token %}
                 </div>
-                {% endif %}
-                <label>{{ form.distributor.label }}</label>
-                <div>
-                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">
-                    <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
-                    <datalist-- id="idDistributorList">
-                    {% for results in distributorList %}
-                        <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
-                    {% endfor %}
-                    </datalist-->
-                </div>
-                <p>{{ form | crispy}}</p>
-                {% csrf_token %}
+              </div>
+              <div class="col-4 card bg-light border-warning my-2 {%if isFromPR == 'True'%}d-none{%endif%} d-print-none">
+                <div class="card-body">
+                    <h3 id="name_distributor">{{cp.select_bidder}}</h3>
+                        <div class="row">
+                          <div class="col"><span class="avg">0.0</span> OUT OF 100 
+                            <!-- Button trigger modal help -->
+                            <a data-toggle="modal" style="cursor: pointer;" data-target="#helpModalCenter">
+                              <i class="fas fa-question-circle text-danger"></i>
+                            </a>
+                          </div>               
+                        </div>
+                        <div class="row">
+                          <div class="col">
+                            <p id="num_ratings">{{num_grade_all}} ratings</p>
+                          </div>
+                        </div>
+                        <div class="row">
+                            <div class="con">
+                                <h5>ราคา</h5>
+                                <div class="star-widget">
+                                    <input type="radio" name="rate-price" id="rate-price-4" value="4">
+                                    <label for="rate-price-4" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-price" id="rate-price-3" value="3">
+                                    <label for="rate-price-3" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-price" id="rate-price-2" value="2">
+                                    <label for="rate-price-2" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-price" id="rate-price-1" value="1">
+                                    <label for="rate-price-1" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-price" id="rate-price-0" value="0">
+                                    <span class="text-rate-price"></span>
+                                </div>
+                                <br><br>
+                                <h5>คุณภาพงาน</h5>
+                                <div class="star-widget">
+                                    <input type="radio" name="rate-quantity" id="rate-quantity-4" value="4">
+                                    <label for="rate-quantity-4" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-quantity" id="rate-quantity-3" value="3">
+                                    <label for="rate-quantity-3" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-quantity" id="rate-quantity-2" value="2">
+                                    <label for="rate-quantity-2" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-quantity" id="rate-quantity-1" value="1">
+                                    <label for="rate-quantity-1" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-quantity" id="rate-quantity-0" value="0">
+                                    <span class="text-rate-quantity"></span>
+                                </div>
+                                <br><br>
+                                <h5>การบริการ</h5>
+                                <div class="star-widget">
+                                    <input type="radio" name="rate-service" id="rate-service-4" value="4">
+                                    <label for="rate-service-4" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-service" id="rate-service-3" value="3">
+                                    <label for="rate-service-3" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-service" id="rate-service-2" value="2">
+                                    <label for="rate-service-2" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-service" id="rate-service-1" value="1">
+                                    <label for="rate-service-1" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-service" id="rate-service-0" value="0">
+                                    <span class="text-rate-service"></span>
+                                </div>
+                                <br><br>
+                                <h5>การจัดการสิ่งแวดล้อม/ความปลอดภัย</h5>
+                                <div class="star-widget">
+                                    <input type="radio" name="rate-safety" id="rate-safety-4" value="4">
+                                    <label for="rate-safety-4" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-safety" id="rate-safety-3" value="3">
+                                    <label for="rate-safety-3" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-safety" id="rate-safety-2" value="2">
+                                    <label for="rate-safety-2" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-safety" id="rate-safety-1" value="1">
+                                    <label for="rate-safety-1" class="fas fa-star"></label>
+                                    <input type="radio" name="rate-safety" id="rate-safety-0" value="0">
+                                    <span class="text-rate-safety"></span>
+                                </div>
+                            </div>
+                    </div>
+                    <div id="f-rate">
+                      <h6 class="text-primary">{{ form_rate | crispy}}</h6>
+                    </div>
+                  </div>
               </div>
             </div>
             <hr>
@@ -309,6 +393,67 @@
           </div>
       </div>
     </div>
+    <!-- Modal -->
+    <div class="modal fade" id="helpModalCenter" tabindex="-1" role="dialog" aria-labelledby="helpModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="helpModalLongTitle"><i class="fas fa-question-circle text-danger"></i> ข้อเสนอแนะ</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        <th scope="col">คะแนนรวม</th>
+                        <th scope="col">เกรด</th>
+                        <th scope="col">ระดับ</th>
+                        <th scope="col">รายละเอียด</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row">90-100</th>
+                        <td>เกรด A</td>
+                        <td>ผ่านระดับดีมาก</td>
+                        <td>มีชื่ออยู่ในทะเบียนรายชื่อผู้ขาย</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">80-89</th>
+                        <td>เกรด B</td>
+                        <td>ผ่านระดับดี</td>
+                        <td>มีชื่ออยู่ในทะเบียนรายชื่อผู้ขาย</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">70-79</th>
+                        <td>เกรด C</td>
+                        <td>ผ่านระดับพอใช้</td>
+                        <td>แจ้งผลเพื่อปรับปรุง</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">60-69</th>
+                        <td>เกรด D</td>
+                        <td>ควรปรับปรุง</td>
+                        <td>ออก CAR ให้ดำเนินการแก้ไข</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">น้อยกว่า 60</th>
+                        <td>เกรด F</td>
+                        <td>ยกเลิกซื้อ</td>
+                        <td>คัดซื้อออกจาก APL หรือพิจารณาโดยผู้บริหาร</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <h6 class="text-danger">*ระยะเวลา จะคำนวนจากวันที่กำหนดรับของเทียบกับวันที่รับของจริง ซึ่งจะนำข้อมูลมาจากระบบ express</h6>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+            </div>
+          </div>
+        </div>
+      </div>
 </div>
 {% endblock%}
 {% block javascript %}
@@ -325,6 +470,24 @@
 
 $('div#div_id_quotation_pdf a').addClass('btn btn-outline-success btn-sm');
 $('div#div_id_quotation_pdf a').text('Download');
+
+$('#div_id_counsel').addClass('d-none');
+
+  // Initial Ratings
+  const ratings = {
+    avg_price_rate: 0,
+    avg_quantity_rate: 0,
+    avg_duration_rate: 0,
+    avg_service_rate: 0,
+    avg_safety_rate: 0
+  }
+
+  // Total Stars
+  const starsTotal = 4;
+
+  // Run getRatings when DOM loads
+  document.addEventListener('DOMContentLoaded', getRatings);
+
 //แสดงครั้งแรกเมื่อเปิด page
 $(function() {
     //search cradit 06-01-2024
@@ -372,15 +535,16 @@ $(function() {
 
     //ปิดไม่ให้แก้รหัสใบสั่งซื้อหากไม่มีสิทธิ
     "{% if not isEditPO %}"
-            $('#div_id_ref_no').hide();
-            $('#div_id_created').hide();
-     "{% endif %}"
+      $('#div_id_ref_no').hide();
+      $('#div_id_created').hide();
+    "{% endif %}"
 
-      //ปิดไม่ให้แก้ผู้อนุมัติใบสั่งซื้อหากไม่มีสิทธิ
-      "{% if not isEditApproverUserPO %}"
-            $('#div_id_approver_user').hide();
-      "{% endif %}"
+    //ปิดไม่ให้แก้ผู้อนุมัติใบสั่งซื้อหากไม่มีสิทธิ
+    "{% if not isEditApproverUserPO %}"
+      $('#div_id_approver_user').hide();
+    "{% endif %}"
 
+    setDataRate();//set ข้อมูลประเมินร้านค้า
 });
 
 $('form').submit(function() {
@@ -393,6 +557,20 @@ $('form').submit(function() {
       $("#id_purchaseorderitem_set-"+i+"-quantity").focus();
       return false;
     }
+  }
+
+  //เช็คว่าได้ประเมินร้านค้าหรือยัง ถ้าไม่ได้ประเมินจะไม่ให้ save
+  if (
+    parseInt($('input[name=rate-price]:checked').val() || 0) > 0 &&
+    parseInt($('input[name=rate-quantity]:checked').val() || 0) > 0 &&
+    parseInt($('input[name=rate-service]:checked').val() || 0) > 0 &&
+    parseInt($('input[name=rate-safety]:checked').val() || 0) > 0
+  ) 
+  {
+    // everything's fine...
+  } else {
+    alert('กรุณาประเมินร้านค้า');
+    return false;
   }
   
   var inputId = $("#div-None div.col div.input-group input").attr("id").match(/\d+/);
@@ -730,6 +908,8 @@ $(function () {
 });
 
 function searchDataDistributor(){
+    tmp_dist = '{{rate_dist.distributor.id}}'; //ลูกค้าเก่าที่ประเมิน
+
     if($('#id-form-distributor').val() != ""){
         var str = $('#id-form-distributor').val();
         var items = str.split( "-" );
@@ -738,6 +918,8 @@ function searchDataDistributor(){
         if(idInput){
             //set id_distributor
             $("#id_distributor").val(idInput);
+            $("#f-rate #id_distributor").val(idInput);
+            $('#name_distributor').text(items[1]);
             $.ajax({
             url: '{% url "searchDataDistributor" %}',
             data: {
@@ -749,6 +931,12 @@ function searchDataDistributor(){
                     //set id_credit , id_vat_type
                     $('#id_credit').val(data.credit).trigger('change');
                     $("#id_vat_type").val(data.vat_type);
+                }
+                //ถ้าเป็นการเปลี่ยนแปลงร้านค้า ให้ประเมินใหม่
+                if(tmp_dist != idInput){
+                  resetRate();
+                }else{
+                  setDataRate();
                 }
             }
             });
@@ -773,6 +961,10 @@ function setDataDistributor(){
                     if (data.val) {
                         //set id_credit , id_vat_type
                         $('#id-form-distributor').val(data.val);
+                        //set rate
+                        $("#f-rate #id_distributor").val('{{po.distributor.id}}');
+                        $('#name_distributor').text('{{po.distributor.name}}');
+                        getRateDistributor();
                     }
                 }
             });
@@ -838,5 +1030,121 @@ function setDateTimePrint(){
 	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
 	$("#dt_print").text(datetime);
 }
+  //หารายละเอียดการประเมินร้านค้าของร้านนั้นๆ
+  function getRateDistributor() {
+        if ($('#id-form-distributor').val() != "") {
+            var str = $('#id-form-distributor').val();
+            var items = str.split("-");
+            var idInput = items[0];
+            
+            // Create Ajax Call
+            if (idInput) {
+                $.ajax({
+                    url: '{% url "getRateDistributor" %}',
+                    data: {
+                        'id_distributor': idInput,
+                        'company_code':'{{request.session.company_code}}',
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data) {
+                            setDataFromRateDistributor(data);
+                        }
+                    }
+                });
+            }
+            return false;
+        }
+
+    }
+
+    function getSetDataRatings(getValue){
+        value = 0;
+        if(getValue) 
+            value = getValue.toFixed(1);
+
+        return value;
+    }
+
+    function setDataFromRateDistributor(data) {
+
+      $('#num_ratings').text(data.num_grade_all + " ratings");
+
+      $('#num_percent_a').text(data.percent_a + "%");
+      $('#num_percent_b').text(data.percent_b + "%");
+      $('#num_percent_c').text(data.percent_c + "%");
+      $('#num_percent_d').text(data.percent_d + "%");
+      $('#num_percent_f').text(data.percent_f + "%");
+
+      /* start set rating star*/
+      ratings.avg_price_rate = getSetDataRatings(data.ratings.avg_price_rate);
+      ratings.avg_quantity_rate = getSetDataRatings(data.ratings.avg_quantity_rate);
+      ratings.avg_duration_rate = getSetDataRatings(data.ratings.avg_duration_rate);
+      ratings.avg_service_rate = getSetDataRatings(data.ratings.avg_service_rate);
+      ratings.avg_safety_rate = getSetDataRatings(data.ratings.avg_safety_rate);
+
+      avg = getSetDataRatings(data.ratings.avg_total_rate);
+      $('.avg').html(avg);
+    }
+
+        // Get ratings
+    function getRatings() {
+      for (let rating in ratings) {
+        // Get percentage
+        const starPercentage = (ratings[rating] / starsTotal) * 100;
+
+        console.log("starPercentage = "+ starPercentage);
+        // Round to nearest 10
+        //const starPercentageRounded = `${Math.round(starPercentage / 10) * 10}%`;
+        const starPercentageRounded = `${starPercentage}%`;
+        console.log("starPercentageRounded = "+ starPercentageRounded);
+
+        // Set width of stars-inner to percentage
+        document.querySelector(`.${rating} .stars-inner`).style.width = starPercentageRounded;
+
+        // Add number rating
+        document.querySelector(`.${rating} .number-rating`).innerHTML = ratings[rating];
+      }
+    }
+
+    //ประเมินร้านค้า
+    $('input[type=radio][name=rate-price]').on('change', function () {
+        $("#id_price_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    $('input[type=radio][name=rate-quantity]').on('change', function () {
+        $("#id_quantity_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    $('input[type=radio][name=rate-service]').on('change', function () {
+        $("#id_service_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    $('input[type=radio][name=rate-safety]').on('change', function () {
+        $("#id_safety_rate").val($(this).val());
+        //calculateTotalRateAndGrade();
+    });
+
+    //set ประเมินร้านค้าเก่า
+    function setDataRate(){
+      //set rate
+      $('input[name="rate-price"][value='+"{{rate_dist.price_rate}}"+']').prop('checked', true).trigger('change');
+      $('input[name="rate-quantity"][value='+"{{rate_dist.quantity_rate}}"+']').prop('checked', true).trigger('change');
+      $('input[name="rate-service"][value='+"{{rate_dist.service_rate}}"+']').prop('checked', true).trigger('change');
+      $('input[name="rate-safety"][value='+"{{rate_dist.safety_rate}}"+']').prop('checked', true).trigger('change');
+      $('#id_counsel').val('{{rate_dist.counsel}}');
+    }
+
+    //reset ประเมินร้าน เป็น 0
+    function resetRate(){
+      $('input[name="rate-price"][value="0"]').prop('checked', true).trigger('change');
+      $('input[name="rate-quantity"][value="0"]').prop('checked', true).trigger('change');
+      $('input[name="rate-service"][value="0"]').prop('checked', true).trigger('change');
+      $('input[name="rate-safety"][value="0"]').prop('checked', true).trigger('change');
+      $('#id_counsel').val('{{rate_dist.counsel}}');
+    }
 </script>
 {% endblock%}

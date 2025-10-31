@@ -3072,12 +3072,15 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
+    rate_dist = RateDistributor.objects.get(po = po_id)
+    
     form = PurchaseOrderForm(instance=po_data)
     if request.method == "POST":
         formset = PurchaseOrderItemInlineFormset(request.POST, request.FILES, instance=po_data)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         form = PurchaseOrderForm(request.POST, request.FILES, instance=po_data)
-        if formset.is_valid() and price_form.is_valid() and form.is_valid():
+        form_rate = RateDistributorForm(request.POST, request.FILES, instance=rate_dist)
+        if formset.is_valid() and price_form.is_valid() and form.is_valid() and form_rate.is_valid():
             # save ราคาใบ po
             price = price_form.save(commit=False)
             if not price.discount:
@@ -3086,7 +3089,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 price.freight = 0.00
 
             're approve po'
-            price.is_re_approve = get_bool(isReApprove)
+            if price.is_re_approve == False:
+                price.is_re_approve = get_bool(isReApprove)
             if get_bool(isReApprove) == True:
                 #เปิดให้ผู้อนุมัติ อนุมัติรายการใหม่
                 price.approver_status_id = 1
@@ -3156,11 +3160,13 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                     pass
                 obj.delete()
             formset.save_m2m()
+            form_rate.save()
             return redirect('viewPO')
     else:
         formset = PurchaseOrderItemInlineFormset(instance=po_data)
         price_form = PurchaseOrderPriceForm(instance=po_data)
         form = PurchaseOrderForm(instance=po_data)
+        form_rate = RateDistributorForm(instance=rate_dist)
 
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po_id)
@@ -3188,6 +3194,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'formset': formset,
         'price_form':price_form,
         'form': form,
+        'form_rate': form_rate,
         'isFromPR':isFromPR,
         'itemList':itemList,
         'new_pr':new_pr,
@@ -3195,6 +3202,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'isEditApproverUserPO':isEditApproverUserPO,
         'bc':bc,
         'base_po_type':base_po_type,
+        'rate_dist': rate_dist,
         'heading': heading_message,
         active :"active show",
 		"disableTab":"disableTab",
@@ -5052,7 +5060,7 @@ def viewRateDistributorReport(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
     #data = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False)
-    rd = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False).values('distributor__id')
+    rd = RateDistributor.objects.filter(po__branch_company__code__in = company_in).values('distributor__id')
     data = Distributor.objects.filter(id__in = rd).values('id', 'name', 'address')
 
     #กรองข้อมูล

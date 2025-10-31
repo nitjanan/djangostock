@@ -86,7 +86,9 @@
                     {% if po.approver_status_id == 1 and request.user == po.stockman_user %}
                       <div style="display: flex;">
                         <a href="{%url 'editPOItem' po.id False False %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
-                        <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>                    
+                        {% if not po.is_re_approve %}
+                          <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>                    
+                        {% endif %}
                       </div>
                     {% elif request.user.is_superuser %}
                       <div style="display: flex;">

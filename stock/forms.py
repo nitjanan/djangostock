@@ -521,7 +521,7 @@ ReceiveItemInlineFormset = inlineformset_factory(
 )
 
 class RateDistributorForm(forms.ModelForm):
-    counsel = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows":"5"}), label='ข้อเสนอแนะ')
+    counsel = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows":"3"}), label='ข้อเสนอแนะ')
     class Meta:
         model = RateDistributor
         fields = ('distributor', 'price_rate','quantity_rate','service_rate','safety_rate','counsel')
