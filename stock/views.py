@@ -3885,7 +3885,8 @@ def printComparePricePO(request, cp_id):
             #save
             select_bidder.save()
 
-            if f_cp.select_bidder:
+            #เก็บวันที่เลือกร้านครั้งแรก
+            if f_cp.select_bidder and f_cp.select_bidder_update is None:
                 f_cp.select_bidder_update = datetime.datetime.now()
 
             #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 2 คนหรือไม่ ถ้าเป็นให้ set special_approver_status เป็นรอดำเนินการ
