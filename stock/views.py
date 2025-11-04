@@ -9031,6 +9031,16 @@ def formatHourMinute(time):
        result = f'{time}'[:-3]
     return result
 
+def format_duration(duration):
+    result = None
+    if duration:
+        hours = duration // timedelta(hours=1)
+        minutes = (duration % timedelta(hours=1)) // timedelta(minutes=1)
+        result = f"{hours:02d}:{minutes:02d}"
+    else:
+        result = f"{0}:{0:02d}"
+    return result
+
 def excelExpensesByCarLog(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
@@ -9163,7 +9173,7 @@ def excelExpensesByCarLog(request):
                     )['total_diff'] or None
                 )
 
-                row3.append(formatHourMinute(total))
+                row3.append(format_duration(total))
             
 
             total_diff = (
@@ -9202,7 +9212,7 @@ def excelExpensesByCarLog(request):
                     )
                 )['total'] or None 
             )
-            row3.append(formatHourMinute(total_diff))    
+            row3.append(format_duration(total_diff))    
             sheet.append(row3)
 
         col_index = 11 + len(exd_all)
