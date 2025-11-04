@@ -120,6 +120,10 @@
             <form method="post" enctype="multipart/form-data">
                 <!--p>{{ form | crispy}}</!--p-->
                 <p>
+                    <label for="id_created">วันที่บันทึกการใช้รถ:</label>
+                    {{ form.created }}
+                </p>
+                <p>
                     {{ form.name.label_tag }}
                     {{ form.name | add_class:"select2bs4"|attr:"style:width:100%;"}}
                 </p>
@@ -397,9 +401,10 @@
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-
 <script>
+    let today = new Date().toISOString().split('T')[0];
+    $('#id_created').val(today);
+
     $(function() {
         $('#id_job1').select2();
         $('#id_job2').select2();

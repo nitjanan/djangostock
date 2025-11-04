@@ -117,6 +117,10 @@
             <form method="post" enctype="multipart/form-data">
                 <!--p>{{ form | crispy}}</!--p-->
                 <p>
+                    <label for="id_created">วันที่บันทึกการใช้รถ:</label>
+                    {{ form.created }}
+                </p>
+                <p>
                     {{ form.name.label_tag }}
                     {{ form.name }}
                 </p>
@@ -367,6 +371,9 @@
 <!-- Select2 JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 <script>
+    let today = new Date().toISOString().split('T')[0];
+    $('#id_created').val(today);
+
     $('#id_car').select2({
         ajax: {
             url: "{% url 'car_search' %}",

@@ -682,13 +682,14 @@ class CarLogbookForm(forms.ModelForm):
 
     class Meta:
         model = CarLogbook
-        fields = ('name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
+        fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
                     , 'job1', 'start_job1', 'end_job1', 'exd_job1'
                     , 'job2', 'start_job2', 'end_job2', 'exd_job2'
                     , 'job3', 'start_job3', 'end_job3', 'exd_job3'
                     , 'job4', 'start_job4', 'end_job4', 'exd_job4'
                     , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
+            'created' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
             'image_mile': forms.ClearableFileInput(
                 attrs={
                     'accept': 'image/*',   # only images
@@ -747,7 +748,7 @@ class RoiCarLogbookForm(forms.ModelForm):
 
     class Meta:
         model = CarLogbook
-        fields = ('name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
+        fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
                   , 'mile_start_job1', 'mile_end_job1', 'job1'
                   , 'mile_start_job2', 'mile_end_job2', 'job2'
                   , 'mile_start_job3', 'mile_end_job3', 'job3'
@@ -756,6 +757,7 @@ class RoiCarLogbookForm(forms.ModelForm):
                   , 'mile_start_job6', 'mile_end_job6', 'job6'
                   , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
+            'created' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
             'image_mile': forms.ClearableFileInput(
                 attrs={
                     'accept': 'image/*',   # only images
