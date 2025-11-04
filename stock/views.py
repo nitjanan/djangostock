@@ -9038,7 +9038,7 @@ def format_duration(duration):
         minutes = (duration % timedelta(hours=1)) // timedelta(minutes=1)
         result = f"{hours:02d}:{minutes:02d}"
     else:
-        result = f"{0}:{0:02d}"
+        result = f"-"
     return result
 
 def excelExpensesByCarLog(request):
