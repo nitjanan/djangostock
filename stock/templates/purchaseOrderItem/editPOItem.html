@@ -257,7 +257,7 @@
                   {% endif %}
                   <label>{{ form.distributor.label }}</label>
                   <div>
-                      <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor();getRateDistributor();">
+                      <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor();getRateDistributor();" required>
                       <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
                       <datalist-- id="idDistributorList">
                       {% for results in distributorList %}

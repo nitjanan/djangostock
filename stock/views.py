@@ -3072,7 +3072,10 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
-    rate_dist = RateDistributor.objects.get(po = po_id)
+    try:
+        rate_dist = RateDistributor.objects.get(po = po_id)
+    except RateDistributor.DoesNotExist:
+        rate_dist = None
     
     form = PurchaseOrderForm(instance=po_data)
     if request.method == "POST":
@@ -3100,6 +3103,13 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 price.cancel_reason = None
             price.save()
 
+            #ประเมินร้านค้า
+            rate_contact = form_rate.save(commit=False)
+            rate_contact.po = po_data
+            rate_contact.organizer_user = po_data.stockman_user
+            if rate_contact.price_rate and rate_contact.quantity_rate and rate_contact.service_rate and rate_contact.safety_rate:
+                rate_contact.save()
+
             po_form = form.save()
             #แก้เลขที่ผูก cp po_ref_no
             try:
@@ -3107,7 +3117,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 cp.po_ref_no = po_form.ref_no
                 cp.save()
             except ComparisonPrice.DoesNotExist:
-                pass    
+                pass
 
             # save po item
             instances = formset.save(commit=False)
@@ -3160,7 +3170,6 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                     pass
                 obj.delete()
             formset.save_m2m()
-            form_rate.save()
             return redirect('viewPO')
     else:
         formset = PurchaseOrderItemInlineFormset(instance=po_data)
