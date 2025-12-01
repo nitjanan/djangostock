@@ -12,17 +12,20 @@
           <form method="get">
             {% csrf_token %}
             <div class="form-row">
-              <div class="form-group col-md-1 mb-0">
+              <div class="form-group col-md-2 mb-0">
                 {{ filter.form.ref_no|as_crispy_field }}
               </div>
-              <div class="form-group col-md-2 mb-0">
+              <div class="form-group col-md-3 mb-0">
                 {{filter.form.organizer|as_crispy_field}}
               </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.approver_status|as_crispy_field}}
+              <div class="form-group col-md-3 mb-0">
+                {{filter.form.select_bidder|as_crispy_field}}
               </div>
               <div class="form-group col-md-2 mb-0">
-                {{filter.form.examiner_status|as_crispy_field}}
+                {{filter.form.unit_price_min|as_crispy_field}}
+              </div>
+              <div class="form-group col-md-2 mb-0">
+                {{filter.form.unit_price_max|as_crispy_field}}
               </div>
               <div class="form-group col-md-2 mb-0">
                 {{filter.form.start_created|as_crispy_field}}

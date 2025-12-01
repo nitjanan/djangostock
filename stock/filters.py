@@ -1,4 +1,4 @@
-from django.db.models import fields, Q
+from django.db.models import fields, Q, Min, Max
 from django.db.models.fields import DateField
 from django.forms.widgets import DateInput, TextInput
 import django_filters
@@ -125,6 +125,8 @@ class ComparisonPriceFilter(django_filters.FilterSet):
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     select_bidder  = django_filters.CharFilter(field_name="select_bidder__name", lookup_expr='icontains')
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    unit_price_min = django_filters.NumberFilter(method='filter_price_min')
+    unit_price_max = django_filters.NumberFilter(method='filter_price_max')
 
     class Meta:
         model = ComparisonPrice
@@ -137,6 +139,15 @@ class ComparisonPriceFilter(django_filters.FilterSet):
                         },
                     },
                 }
+    def filter_price_min(self, queryset, name, value):
+        return queryset.annotate(
+            amount_min=Min('comparisonpricedistributor__amount')
+        ).filter(amount_min__gte=value)
+
+    def filter_price_max(self, queryset, name, value):
+        return queryset.annotate(
+            amount_max=Max('comparisonpricedistributor__amount')
+        ).filter(amount_max__lte=value)
 
 ComparisonPriceFilter.base_filters['id'].label = 'รหัส'
 ComparisonPriceFilter.base_filters['ref_no'].label = 'รหัส'
@@ -146,6 +157,8 @@ ComparisonPriceFilter.base_filters['end_created'].label = 'ถึง'
 ComparisonPriceFilter.base_filters['approver_status'].label = 'ผู้อนุมัติ'
 ComparisonPriceFilter.base_filters['examiner_status'].label = 'ผู้ตรวจสอบ'
 ComparisonPriceFilter.base_filters['select_bidder'].label = 'ร้านที่เลือก'
+ComparisonPriceFilter.base_filters['unit_price_min'].label = 'ราคาจาก'
+ComparisonPriceFilter.base_filters['unit_price_max'].label = 'ถึงราคา'
 
 class ReceiveFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
