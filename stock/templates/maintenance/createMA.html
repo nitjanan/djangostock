@@ -326,6 +326,9 @@
     $(document).ready(function() {
         if($('#id_car').val() != "")
             $('#id_car').next('.select2-container').css('pointer-events', 'none');
+        if('{{isChangeCarMa}}' == 'True')//ถ้ามีสิทธิเปลี่ยนทะเบียนรถในแจ้งซ่อม
+            $('#id_car').next('.select2-container').css('pointer-events', 'auto');
+        
         /*
         $('#id_name').select2({
             theme: 'bootstrap4',

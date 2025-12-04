@@ -1969,6 +1969,9 @@ def is_del_iv(user):
 def is_edit_pr(user):
     return user.groups.filter(name='EditPR').exists()
 
+def is_change_car_ma(user):
+    return user.groups.filter(name='ChangeCarMA').exists()
+
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
     return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
@@ -8922,10 +8925,14 @@ def createMA(request):
     except ValueError:
         pass
 
+    #ถ้า user มีสิทธิ edit pr
+    isChangeCarMa = is_change_car_ma(request.user)
+
     context = {
         'form':form,
         'ma_page': "tab-active",
         'ma_show': "show",
+        'isChangeCarMa': isChangeCarMa,
         active :"active show",
         "disableTab":"disableTab",
         "colorNav":"disableNav"
