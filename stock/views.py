@@ -1972,6 +1972,9 @@ def is_edit_pr(user):
 def is_change_car_ma(user):
     return user.groups.filter(name='ChangeCarMA').exists()
 
+def is_re_pr(user):
+    return user.groups.filter(name='rePR').exists()
+
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
     return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
@@ -2501,9 +2504,13 @@ def showPR(request, pr_id, mode):
         isReApprove = True
 
     # re pr นำรายการใบขอซื้อกลับมาทำใหม่ โดยไม่จำเป็นต้องทำการอนุมัติใหม่
+    '''
     isRePr = False
     if (mode == 4 or mode == 5) and isPurchasing and pr.organizer.id == request.user.id and pr.approver_status.id == 2:
-        isRePr = True
+        isRePr = True    
+    '''
+
+    isRePr = is_re_pr(request.user)
 
     #ที่อยู่และหัวบริษัท
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
