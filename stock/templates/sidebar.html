@@ -127,10 +127,10 @@
                 </a>
                 <ul class="collapse list-unstyled {{h_requisitions_show}} {{h_ma_show}} {{h_pr_show}} {{h_po_show}} {{h_cp_show}}" id="historySubmenu">
                     <li>
-                        <a class="{{h_requisitions_page}}" href="{% url 'viewRequisitionHistory' %}">ใบขอเบิก</a>
+                        <a class="{{h_ma_page}}" href="{% url 'viewMAHistory' %}">ใบแจ้งซ่อม</a>
                     </li>
                     <li>
-                        <a class="{{h_ma_page}}" href="{% url 'viewMAHistory' %}">ใบแจ้งซ่อม</a>
+                        <a class="{{h_requisitions_page}}" href="{% url 'viewRequisitionHistory' %}">ใบขอเบิก</a>
                     </li> 
                     <li>
                         <a class="{{h_pr_page}}" href="{% url 'viewPRHistory' %}">ใบขอซื้อ</a>

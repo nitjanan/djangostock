@@ -258,6 +258,8 @@ class MaintenanceFilter(django_filters.FilterSet):
     car_state = django_filters.ChoiceFilter(choices=CAR_STATE_CHOICES)
     repair_type = django_filters.CharFilter(field_name="repair_type", lookup_expr='icontains')
     location = django_filters.ChoiceFilter(choices=LC_CHOICES)
+    ma_type = django_filters.ModelChoiceFilter(field_name="ma_type", queryset= BaseMAType.objects.filter().all())
+    repair_type = django_filters.ModelChoiceFilter(field_name="repair_type", queryset= BaseRepairType.objects.filter().all())
  
     class Meta:
         model = Maintenance
@@ -288,6 +290,8 @@ MaintenanceFilter.base_filters['broke_type'].label = 'อาการเสี�
 MaintenanceFilter.base_filters['car_state'].label = 'สภาพรถ'
 MaintenanceFilter.base_filters['repair_type'].label = 'ประเภทการซ่อม'
 MaintenanceFilter.base_filters['location'].label = 'สถานที่ซ่อม'
+MaintenanceFilter.base_filters['ma_type'].label = 'ประเภทใบแจ้งซ่อม'
+MaintenanceFilter.base_filters['repair_type'].label = 'ประเภทการซ่อม'
 
 class ExOESTNHFilter(django_filters.FilterSet):
     docnum  = django_filters.CharFilter(field_name="docnum", lookup_expr='icontains')

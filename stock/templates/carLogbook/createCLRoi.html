@@ -568,5 +568,45 @@
         return true; // ✅ ผ่านการตรวจสอบ
     }   
 
+    $('#id_car').on('change', function() {
+        searchPmRound();
+    });
+
+    $("#id_mile_end_job1").blur(function() {
+        searchPmRound();
+    });
+
+    function searchPmRound(){
+        if($('#id_car').val() != "" && $('#id_mile_end_job1').val() != ""){
+            var id_car = $('#id_car').val();
+            var mile_end = $('#id_mile_end_job1').val();
+            // Create Ajax Call
+            if(id_car && mile_end){
+                $.ajax({
+                    url: '{% url "searchPmRound" %}',
+                    data: {
+                        'id_car': id_car,
+                        'mile_end': mile_end,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.alert_pm == true) {
+                            alert('แจ้งเตือน PM ถึงกำหนดทำ PM ที่ : ' + ReplaceNumberWithCommas(data.next_pm) + " (กม.หรือชม.)");
+                        }
+                    }
+                });
+            }
+            return false;
+        }
+    }
+
+    function ReplaceNumberWithCommas(num) {
+        const options = { 
+            maximumFractionDigits: 2 
+        };
+        const formatted = Number(num).toLocaleString('en', options);
+        return formatted;
+    }
+
 </script>
 {% endblock%}

@@ -356,6 +356,7 @@ class BaseCar(models.Model):
     name = models.CharField(max_length=255, blank=False, null=True, verbose_name="ชื่อทะเบียนรถ/เครื่องจักร/หน่วยงาน")
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
     car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+    pm_round = models.IntegerField(blank=True, null=True, verbose_name="รอบทำ PM ทุก ๆ (กิโลเมตร หรือ ชั่วโมง)")
 
     class Meta:
         db_table = 'BaseCar'
@@ -1962,3 +1963,18 @@ class ApproveCarDepartment(models.Model):
 
     def __str__(self):
         return str(self.user.username)
+    
+#เก็บข้อมูลการทำ PM ล่าสุด
+class PmRoundItem(models.Model):
+    car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ทะเบียนรถ/ เครื่องจักร") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน
+    created = models.DateTimeField(default=timezone.now, verbose_name="วันที่ทำ PM")
+    update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
+    num_pm = models.IntegerField(blank=True, null=True, verbose_name="เลขที่ทำ PM ล่าสุด")
+    ma_id = models.IntegerField(blank=True, null=True , verbose_name="อ้างอิง id Maintenance")#อ้างอิง id Maintenance
+    ma_ref_no = models.CharField(max_length=255, null = True, blank = True, verbose_name="อ้างอิง ref_no Maintenance") #อ้างอิง ref_no Maintenance
+
+    class Meta:
+        db_table = 'PmRoundItem'
+        ordering=('id',)
+        verbose_name = 'การทำ PM ล่าสุด'
+        verbose_name_plural = 'ข้อมูลการทำ PM ล่าสุด'

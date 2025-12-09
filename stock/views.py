@@ -16,7 +16,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -8095,6 +8095,7 @@ def editMA(request, ma_id):
             if ma.organizer is None:
                 ma.organizer = request.user
                 ma.save()
+            CDPmRoundItem(ma.id)
             return redirect('viewMA')
     else:
         form = MaintenanceForm(instance=ma)
@@ -8922,10 +8923,19 @@ def createMA(request):
     
     try:
         form = CrMaintenanceForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user, 'approve_status': 'ขออนุมัติซ่อมบำรุง', 'car': ucd.car})
-        if form.is_valid():
-            form = CrMaintenanceForm(request, request.POST or None, request.FILES)
-            new_contact = form.save(commit=False)
-            new_contact.save()
+        if request.method == 'POST':
+            if form.is_valid():
+                name_pm = request.POST['name_pm'] or None
+                
+                form = CrMaintenanceForm(request, request.POST or None, request.FILES)
+                new_contact = form.save(commit=False)
+                new_contact.save()
+
+                if name_pm == '1':
+                    ma_type = BaseMAType.objects.get(id = '04')
+                    new_contact.ma_type = ma_type
+                    new_contact.save()
+                    createPmRoundItem(new_contact.id)
 
             messages.success(request, "เพิ่มบันทึกการแจ้งซ่อม " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
             return redirect('mobileMenu')
@@ -8945,6 +8955,37 @@ def createMA(request):
         "colorNav":"disableNav"
     }
     return render(request, "maintenance/createMA.html", context)
+
+
+def CDPmRoundItem(ma_id):
+    have_pm = False
+    try:
+        have_pm = PmRoundItem.objects.filter(ma_id = ma_id).exists()
+    except PmRoundItem.DoesNotExist:
+        pass
+
+    ma = Maintenance.objects.get(id = ma_id)
+    if ma.ma_type.id == '04':
+        if not have_pm:
+            createPmRoundItem(ma_id)
+    else:
+        try:
+            pm = PmRoundItem.objects.filter(ma_id = ma_id)
+            pm.delete()
+        except PmRoundItem.DoesNotExist:
+            pass
+
+def createPmRoundItem(ma_id):
+    ma = Maintenance.objects.get(id = ma_id)
+    obj = PmRoundItem.objects.create(
+        car = ma.car,
+        created = ma.created,
+        update = datetime.datetime.now(),
+        num_pm = ma.mile,
+        ma_id = ma.id,
+        ma_ref_no = ma.ref_no,
+    )
+    obj.save()
 
 @login_required(login_url='signIn')
 def viewMAApprove(request):
@@ -9270,3 +9311,25 @@ def excelExpensesByCarLog(request):
     workbook.save(response)
     return response
 
+def searchPmRound(request):
+    alert_pm = False
+    if 'id_car' in request.GET and 'mile_end' in request.GET:
+        id_car = request.GET.get('id_car')
+        mile_end = request.GET.get('mile_end')
+
+        try:
+            car = BaseCar.objects.get(id = id_car)
+            pm_item = PmRoundItem.objects.filter(car = id_car).order_by('-created').first()
+
+            if car and pm_item:
+                next_pm = car.pm_round + pm_item.num_pm
+                if parse_int(mile_end) >= next_pm:
+                    alert_pm = True
+        except BaseCar.DoesNotExist or PmRoundItem.DoesNotExist:
+            pass
+             
+    data = {
+        'alert_pm': alert_pm,
+        'next_pm': next_pm,
+    }
+    return JsonResponse(data)

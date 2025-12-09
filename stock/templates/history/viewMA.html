@@ -41,10 +41,13 @@
           {{ filter.form.car_state|as_crispy_field }}
         </div>
         <div class="form-group col-md-2 mb-0">
-          {{ filter.form.repair_type|as_crispy_field }}
+          {{ filter.form.location|as_crispy_field }}
         </div>
         <div class="form-group col-md-2 mb-0">
-          {{ filter.form.location|as_crispy_field }}
+          {{ filter.form.ma_type|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-3 mb-0">
+          {{ filter.form.repair_type|as_crispy_field }}
         </div>
         <div class="form-group col-md-2 mb-0">
           {{ filter.form.start_created|as_crispy_field }}
@@ -75,10 +78,10 @@
             <th scope="col">ชื่อผู้แจ้งซ่อม</th>
             <th scope="col">ทะเบียนรถ</th>
             <th scope="col">อาการเสีย</th>
-            <th scope="col">สภาพรถ</th>
+            <th scope="col">ประเภทใบแจ้ง</th>
+            <th scope="col">ประเภทการซ่อม</th>
             <th scope="col">ไฟล์แนบ</th>
             <th scope="col" style="width: 15px;">รูปภาพ</th>
-            <th scope="col" style="width: 100px;">สถานะ</th>
           </tr>
         </thead>
         <tbody>
@@ -89,7 +92,8 @@
             <td>{{ma.name}}</td>
             <td>{{ma.car}}</td>
             <td>{{ma.broke_reason}}</td>
-            <td>{{ma.car_state}}</td>
+            <td>{{ma.ma_type}}</td>
+            <td>{{ma.repair_type}}</td>
             <td style="width: 15px;">
               {% if ma.ma_pdf %}
                 <a href="/media/{{ma.ma_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
@@ -115,26 +119,6 @@
                     <img class="ma" src="{{ ma.image4.url }}" style="width:60px;height: 60px;">
                 </a>
                 {% endif %}
-            </td>
-            <td>
-              {% if ma.is_cancel == 1 %}
-                <button style="width: 100px;" type="button"
-                  class="btn btn-sm btn-block btn-outline-danger"
-                >รายการยกเลิก
-                </button>
-              {%else%}
-                {% if ma.is_complete == 1%}
-                    <button style="width: 100px;" type="button"
-                    class="btn btn-sm btn-block btn-outline-success"
-                    >ปิดสรุปได้
-                    </button>
-                {% elif ma.is_complete == 0%}
-                    <button style="width: 100px;" type="button"
-                    class="btn btn-sm btn-block btn-outline-warning"
-                    >ปิดสรุปไม่ได้
-                    </button>
-                {%endif%}
-              {%endif%}
             </td>
           </tr>
         {% endfor %}
