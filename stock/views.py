@@ -6430,9 +6430,7 @@ def apiOverviewCar(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def allCar(request):
-    queryset = BaseCar.objects.filter(
-       rq_type = 2
-    )
+    queryset = BaseCar.objects.all()
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
     serializer = BaseCarSerializer(result_page, many=True)
