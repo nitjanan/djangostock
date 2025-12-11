@@ -168,6 +168,7 @@ urlpatterns = [
     path('report/purchaseOrder/export/excel', views.exportExcelPO, name='exportExcelPO'),
     path('report/purchaseOrder/item',views.viewPOItemReport,name="viewPOItemReport"),
     path('report/RateDistributor/',views.viewRateDistributorReport,name="viewRateDistributorReport"),
+    path('report/carLogBook/',views.viewCLReport,name="viewCLReport"),
 
     path('report/purchaseOrderToExpress/export/excel', views.exportExcelPOToExpress, name='exportExcelPOToExpress'),
     path('report/invoiceToExpress/export/excel', views.exportExcelIVToExpress, name='exportExcelIVToExpress'),

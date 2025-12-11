@@ -1,0 +1,262 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+
+{% block css %}
+<style>
+.cl{
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 2px;
+  width: 60px;
+}
+
+.cl:hover {
+  box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container my-3">
+<h3 align="center">รายงานบันทึกการใช้รถ</h3>
+<div class="card my-3 bg-light div-shadow">
+  <div class="card-body">
+    <form method="get">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.ref_no|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.car|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.name|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.start_created|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+          {{ filter.form.end_created|as_crispy_field }}
+        </div>
+        <div class="form-group col-md-1 mb-0">
+          <div>
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+    <div class="row">
+        <div class="col-3">
+          <button id="cla_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#24493d;color:white;">
+            <span id="cla_btn-text">รายงานบันทึกการใช้รถประจำวัน <i class="far fa-file-excel"></i></span>
+              <div id="cla_btn-progress" 
+                style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
+                background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
+              <span id="cla_btn-percent" style="position: absolute; left: 50%; top: 50%; 
+                transform: translate(-50%, -50%); font-weight: bold; display: none;">
+                0%
+              </span>
+          </button>
+        </div>
+        <div class="col-2">
+          <button id="epc_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#376e5b;color:white;">
+            <span id="epc_btn-text">สรุปค่าใช้จ่ายแต่ละหน่วยงาน <i class="far fa-file-excel"></i></span>
+              <div id="epc_btn-progress" 
+                style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
+                background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
+              <span id="epc_btn-percent" style="position: absolute; left: 50%; top: 50%; 
+                transform: translate(-50%, -50%); font-weight: bold; display: none;">
+                0%
+              </span>
+          </button>
+        </div>
+    </div>
+  </div>
+</div>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped my-3">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">รหัสใบใช้รถ</th>
+            <th scope="col">วันที่</th>
+            <th scope="col">ชื่อผู้ใช้</th>
+            <th scope="col">ทะเบียนรถ</th>
+            <th scope="col" style="width: 60px;">รูปภาพ</th>
+            <th scope="col">ไมล์เริ่ม</th>
+            <th scope="col">ไมล์สิ้นสุด</th>
+            <th scope="col">รายละเอียดงานที่1</th>
+            <th scope="col">เวลาเริ่มงานที่ 1 / เลขไมล์เริ่มงานที่ 1</th>
+            <th scope="col">เวลาสิ้นสุดงานที่ 1 / เลขไมล์สิ้นสุดงานที่ 1</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for cl in cls %}
+          <tr>
+            <th scope="row"><a href="">{{cl.ref_no}}</a></th>
+            <td>{{cl.created |date:"d/m/Y" }}</td>
+            <td>{{cl.name}}</td>
+            <td>{{cl.car}}</td>
+            <td style="width: 60px;">{% if cl.image_mile %}
+                <a target="_blank" href="{{ cl.image_mile.url }}">
+                    <img class="cl" src="{{ cl.image_mile.url }}" style="width:60px;height:60px;">
+                </a>
+                {% endif %}
+            </td>
+            <td>{{cl.mile_start}}</td>
+            <td>{{cl.mile_end}}</td>
+            <td>{{cl.job1}}</td>
+            <td>
+              {% if cl.start_job1 %}{{cl.start_job1}}{%endif%}
+              {% if cl.mile_start_job1 %}{{cl.mile_start_job1}}{%endif%}
+            </td>
+            <td>
+              {% if cl.end_job1 %}{{cl.end_job1}}{%endif%}
+              {% if cl.mile_end_job1 %}{{cl.mile_end_job1}}{%endif%}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+      <br/>
+      <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if cls.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="{% my_url cls.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if cls.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="{% my_url cls.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in cls.paginator.page_range %}
+            {% if cls.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > cls.number|add:'-5' and i < cls.number|add:'5' %}
+                 <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if cls.paginator.num_pages > cls.number|add:'4' %}
+           <li class="page-item"><a class="page-link" href="{% my_url cls.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% if cls.has_next %}
+            <li class="page-item">
+            <a class="page-link"  href="{% my_url cls.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}
+{% block javascript %}
+<script>
+  function progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time){
+    btn.disabled = true;
+    btnText.style.visibility = "hidden";
+    btnPercent.style.display = "block";
+    btnProgress.style.width = "0%";
+    btnPercent.innerText = "0%";
+
+    let fakeProgress = 0;
+    let timer = setInterval(() => {
+        if (fakeProgress < 95) {
+            fakeProgress++;
+            btnProgress.style.width = fakeProgress + "%";
+            btnPercent.innerText = fakeProgress + "%";
+        }
+    }, delay_time);
+
+    fetch(py_url)
+        .then(response => {
+            if (!response.ok) throw new Error("Server error");
+            return response.blob();
+        })
+        .then(blob => {
+            clearInterval(timer);
+            btnProgress.style.width = "100%";
+            btnPercent.innerText = "100%";
+
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = file_name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btnText.style.visibility = "visible";
+                btnPercent.style.display = "none";
+                btnProgress.style.width = "0%";
+            }, 1000);
+        })
+        .catch(err => {
+            clearInterval(timer);
+            console.error(err);
+            alert("ไม่มีข้อมูลจากวันที่เลือก กรุณาเลือกวันที่ กดกรอง และดาว์นโหลดไฟล์อีกครั้ง");
+            btn.disabled = false;
+            btnText.style.visibility = "visible";
+            btnPercent.style.display = "none";
+            btnProgress.style.width = "0%";
+        });
+  }
+
+  document.getElementById('cla_download-btn').addEventListener('click', () => {
+    const btn = document.getElementById('cla_download-btn');
+    const btnText = document.getElementById('cla_btn-text');
+    const btnProgress = document.getElementById('cla_btn-progress');
+    const btnPercent = document.getElementById('cla_btn-percent');
+
+    const queryString = "{{ request.GET.urlencode|escapejs }}";
+    const py_url = "{% url 'excelDailyCL' %}" + (queryString ? "?" + queryString : "");
+    const file_name = "carlog_daily("+'{{ request.session.company_code }}'+").xlsx";
+
+	  const delay_time = 100;
+    progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
+  });
+
+  document.getElementById('epc_download-btn').addEventListener('click', () => {
+    const btn = document.getElementById('epc_download-btn');
+    const btnText = document.getElementById('epc_btn-text');
+    const btnProgress = document.getElementById('epc_btn-progress');
+    const btnPercent = document.getElementById('epc_btn-percent');
+
+    const queryString = "{{ request.GET.urlencode|escapejs }}";
+    const py_url = "{% url 'excelExpensesByCarLog' %}" + (queryString ? "?" + queryString : "");
+    const file_name = "expenses_by_carlog("+'{{ request.session.company_code }}'+").xlsx";
+
+	  const delay_time = 100;
+    progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
+  });
+
+</script>
+{% endblock%}

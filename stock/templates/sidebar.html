@@ -198,10 +198,10 @@
             {% endif %}
             {% if 'Report' in tab.name %}
             <li class="">
-                <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page%}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-file-pdf"></i> Report
                 </a>
-                <ul class="collapse list-unstyled {{rp_po_show}} {{rp_poi_show}} {{rp_rd_show}}" id="reportSubmenu">
+                <ul class="collapse list-unstyled {{rp_po_show}} {{rp_poi_show}} {{rp_rd_show}} {{rp_cl_show}}" id="reportSubmenu">
                     <li>
                         <a class="{{rp_po_page}}" href="{% url 'viewPOReport' %}">สรุปใบสั่งซื้อที่อนุมัติ</a>
                     </li>                
@@ -210,6 +210,9 @@
                     </li>
                     <li>
                         <a class="{{rp_rd_page}}" href="{% url 'viewRateDistributorReport' %}">รายงานการประเมินร้านค้า</a>
+                    </li>
+                    <li>
+                        <a class="{{rp_cl_page}}" href="{% url 'viewCLReport' %}">รายงานบันทึกการใช้รถ</a>
                     </li>
                 </ul>
             </li>

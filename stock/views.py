@@ -9331,3 +9331,27 @@ def searchPmRound(request):
         'next_pm': next_pm,
     }
     return JsonResponse(data)
+
+@login_required(login_url='signIn')
+def viewCLReport(request):
+    active = request.session['company_code']
+    data = CarLogbook.objects.filter(branch_company__code = active)
+
+    #กรองข้อมูล
+    myFilter = CarLogbookFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'cls':dataPage,
+        'filter':myFilter,
+        'rp_cl_page': "tab-active",
+        'rp_cl_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "report/viewCL.html", context)
