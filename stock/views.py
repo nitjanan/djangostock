@@ -7491,7 +7491,7 @@ def exportToExcelAllExpensesRegistration(request):
 
     # Generate dynamic headers
     headers1 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + [
-        f"{thai_months[str(m)]} {y}" for m, y in month_year_range for _ in range(3)
+        f"{thai_months[str(m)]} {y}" for m, y in month_year_range for _ in range(5)
     ]
     sheet.append(headers1)
 

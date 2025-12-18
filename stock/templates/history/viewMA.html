@@ -92,8 +92,17 @@
             <td>{{ma.name}}</td>
             <td>{{ma.car}}</td>
             <td>{{ma.broke_reason}}</td>
-            <td>{{ma.ma_type}}</td>
-            <td>{{ma.repair_type}}</td>
+            {% if ma.is_cancel == 1 %}
+              <td colspan="2">
+                <button  type="button"
+                    class="btn btn-sm btn-block btn-outline-danger"
+                  >รายการยกเลิก
+                </button>
+              </td>
+            {% else %}
+              <td>{{ma.ma_type}}</td>
+              <td>{{ma.repair_type}}</td>
+            {% endif %}
             <td style="width: 15px;">
               {% if ma.ma_pdf %}
                 <a href="/media/{{ma.ma_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
