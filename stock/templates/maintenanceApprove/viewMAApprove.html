@@ -5,6 +5,19 @@
 
 {% block css %}
 <style>
+body {
+  --table-width: 100%; /* Or any value, this will change dinamically */
+}
+tbody {
+  display:block;
+  max-height:500px;
+  overflow-y:auto;
+}
+thead, tbody tr {
+  display:table;
+  width: var(--table-width);
+  table-layout:fixed;
+}
 .ma{
   border: 1px solid #ddd;
   border-radius: 2px;
@@ -55,15 +68,15 @@
         <thead>
           <tr>
             <th scope="col">รหัส/ วันที่</th>
-            <th scope="col" style="width: 100px;">ทำรายการ</th>
+            <th scope="col" style="width: 40%;">ทำรายการ</th>
           </tr>
         </thead>
         <tbody>
         {% for ma in mas %}
           <tr>
             <th scope="row"><a href="{%url 'showMA' ma.id 1 %}">{{ma.created |date:"d/m/Y" }}<br>{{ma.ref_no}}</a></th>
-            <td>
-                <a style="width: 100px;" href="{%url 'editMAApprove' ma.id 1 %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
+            <td style="width: 40%;">
+                <a href="{%url 'editMAApprove' ma.id 1 %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
             </td>
           </tr>
 

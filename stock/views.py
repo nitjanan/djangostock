@@ -8077,6 +8077,20 @@ def editMA(request, ma_id):
     active = request.session['company_code']
 
     ma = Maintenance.objects.get(id=ma_id)
+
+    #ดึงร้านค้าและราคาใบสั่งซื้อ
+    po_dist = None
+    po_amount = None
+    try:
+        rq_id = Requisition.objects.filter(ma_id = ma_id)[:1].values('id')
+        po_id = PurchaseOrderItem.objects.filter(item__requisition_id = rq_id)[:1].values('po__id')
+        po = PurchaseOrder.objects.filter(id = po_id).first()
+        if po:
+            po_dist = po.distributor
+            po_amount = po.amount
+    except Requisition.DoesNotExist or PurchaseOrder.DoesNotExist:
+        pass
+
     if request.method == 'POST':
         form = MaintenanceForm(request.POST, request.FILES, instance=ma)
         if form.is_valid():
@@ -8096,7 +8110,7 @@ def editMA(request, ma_id):
             CDPmRoundItem(ma.id)
             return redirect('viewMA')
     else:
-        form = MaintenanceForm(instance=ma)
+        form = MaintenanceForm(instance=ma, initial={'distributor': po_dist, 'amount': po_amount})
 
     context = {
         'ma':ma,
@@ -9009,6 +9023,7 @@ def viewMAApprove(request):
         car__in=ucd
     )
 
+    '''
     #กรองข้อมูล
     myFilter = MaintenanceFilter(request.GET, queryset = data)
     data = myFilter.qs
@@ -9016,11 +9031,11 @@ def viewMAApprove(request):
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
-    dataPage = p.get_page(page)
+    dataPage = p.get_page(page)    
+    '''
 
     context = {
-        'mas':dataPage,
-        'filter':myFilter,
+        'mas':data,
         'ma_page': "tab-active",
         'ma_show': "show",
         "disableTab":"disableTab",
