@@ -4514,6 +4514,7 @@ def reBuyPR(request, pr_id):
             item.save()
 
         pr.is_complete = False
+        pr.note = pr.note[2:]
         pr.save()
 
         return HttpResponseRedirect(reverse('createCMorPO', args=(pr_id,)))
