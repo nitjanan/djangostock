@@ -66,6 +66,14 @@ class PurchaseOrderFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='startswith')
+    item_machine = django_filters.CharFilter(
+        field_name="purchaseorderitem__item__machine",
+        lookup_expr='icontains'
+    )
+    item_rq_note = django_filters.CharFilter(
+        field_name="purchaseorderitem__item__requisit__note",
+        lookup_expr='icontains'
+    )
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     amount_min  = django_filters.CharFilter(field_name="amount", lookup_expr='gte')
@@ -78,6 +86,8 @@ class PurchaseOrderFilter(django_filters.FilterSet):
 PurchaseOrderFilter.base_filters['id'].label = 'รหัส'
 PurchaseOrderFilter.base_filters['ref_no'].label = 'รหัส'
 PurchaseOrderFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
+PurchaseOrderFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน(ใบเบิก)'
+PurchaseOrderFilter.base_filters['item_rq_note'].label = 'หมายเหตุ/เหตุผล(ใบเบิก)'
 PurchaseOrderFilter.base_filters['credit'].label = 'เครดิต'
 PurchaseOrderFilter.base_filters['shipping'].label = 'ขนส่งโดย'
 PurchaseOrderFilter.base_filters['start_created'].label = 'วันที่สั่งซื้อ'
@@ -92,8 +102,10 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
     item_product_id_to  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='lte')
     item_product_name = django_filters.CharFilter(field_name="item__product_name", lookup_expr='icontains')
     item_machine = django_filters.CharFilter(field_name="item__machine", lookup_expr='icontains')
+    item_rq_note = django_filters.CharFilter(field_name="item__requisit__note", lookup_expr='icontains')
     start_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
+    distri_id  = django_filters.CharFilter(field_name="po__distributor__id", lookup_expr='startswith')
     distributor  = django_filters.CharFilter(field_name="po__distributor__name", lookup_expr='startswith')
     stockman_user = django_filters.ModelChoiceFilter(field_name="po__stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     unit_price_min  = django_filters.CharFilter(field_name="unit_price", lookup_expr='gte')
@@ -108,9 +120,11 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
 PurchaseOrderItemFilter.base_filters['item_product_id_from'].label = 'รหัสสินค้าจาก'
 PurchaseOrderItemFilter.base_filters['item_product_id_to'].label = 'ถึง'
 PurchaseOrderItemFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
-PurchaseOrderItemFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน'
+PurchaseOrderItemFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน(ใบเบิก)'
+PurchaseOrderItemFilter.base_filters['item_rq_note'].label = 'หมายเหตุ(ใบเบิก)'
 PurchaseOrderItemFilter.base_filters['start_created'].label = 'วันที่สั่งซื้อ'
 PurchaseOrderItemFilter.base_filters['end_created'].label = 'ถึง'
+PurchaseOrderItemFilter.base_filters['distri_id'].label = 'รหัสผู้จำหน่าย'
 PurchaseOrderItemFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
 PurchaseOrderItemFilter.base_filters['stockman_user'].label = 'ผู้สั่งสินค้า'
 PurchaseOrderItemFilter.base_filters['unit_price_min'].label = 'ราคาต่อหน่วยจาก'

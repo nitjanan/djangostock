@@ -5029,7 +5029,7 @@ def viewComparePricePOHistoryIncomplete(request):
 def viewPOReport(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    data = PurchaseOrder.objects.filter(approver_status = 2, branch_company__code__in = company_in)
+    data = PurchaseOrder.objects.filter(approver_status = 2, branch_company__code__in = company_in, is_cancel = False)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -5056,7 +5056,7 @@ def viewPOReport(request):
 def viewPOItemReport(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    data = PurchaseOrderItem.objects.filter(po__approver_status = 2, po__branch_company__code__in = company_in).order_by('-po__created')
+    data = PurchaseOrderItem.objects.filter(po__approver_status = 2, po__branch_company__code__in = company_in, po__is_cancel = False).order_by('-po__created')
 
     #กรองข้อมูล
     myFilter = PurchaseOrderItemFilter(request.GET, queryset = data)
@@ -5356,6 +5356,8 @@ def exportExcelPOToExpress(request):
     amount_max = request.GET.get('amount_max') or None
     start_created = request.GET.get('start_created') or None
     end_created = request.GET.get('end_created') or None
+    item_machine = request.GET.get('item_machine') or None
+    item_rq_note = request.GET.get('item_rq_note') or None
 
     my_q = Q()
     if stockman_user is not None:
@@ -5372,6 +5374,10 @@ def exportExcelPOToExpress(request):
         my_q &= Q(po__amount__gte = amount_min)
     if amount_max is not None :
         my_q &=Q(po__amount__lte = amount_max)
+    if item_machine is not None:
+        my_q &= Q(item__machine__icontains=item_machine)
+    if item_rq_note is not None:
+        my_q &= Q(item__requisit__note__icontains=item_rq_note)
 
     my_q &=Q(po__approver_status = 2, po__is_cancel = False)
 
@@ -5490,6 +5496,8 @@ def exportExcelPO(request):
     amount_max = request.GET.get('amount_max') or None
     start_created = request.GET.get('start_created') or None
     end_created = request.GET.get('end_created') or None
+    item_machine = request.GET.get('item_machine') or None
+    item_rq_note = request.GET.get('item_rq_note') or None
 
     my_q = Q()
     if stockman_user is not None:
@@ -5506,7 +5514,11 @@ def exportExcelPO(request):
         my_q &= Q(amount__gte = amount_min)
     if amount_max is not None :
         my_q &=Q(amount__lte = amount_max)
-
+    if item_machine is not None:
+        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
+    if item_rq_note is not None:
+        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
+    
     my_q &=Q(approver_status = 2, is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
@@ -5644,6 +5656,8 @@ def exportExcelSummaryByProductValue(request):
     item_product_id_to = request.GET.get('item_product_id_to') or None
     item_product_name = request.GET.get('item_product_name') or None
     item_machine = request.GET.get('item_machine') or None
+    item_rq_note = request.GET.get('item_rq_note') or None
+    distri_id = request.GET.get('distri_id') or None
     distributor = request.GET.get('distributor') or None
     stockman_user = request.GET.get('stockman_user') or None
     start_created = request.GET.get('start_created') or None
@@ -5663,6 +5677,8 @@ def exportExcelSummaryByProductValue(request):
         my_q &= Q(po__stockman_user = stockman_user)
     if category is not None:
         my_q &= Q(item__product__category = category)
+    if distri_id is not None:
+        my_q &= Q(po__distributor__id__startswith = distri_id)
     if distributor is not None:
         my_q &= Q(po__distributor__name__startswith = distributor)
     if start_created is not None:
@@ -5675,6 +5691,8 @@ def exportExcelSummaryByProductValue(request):
         my_q &=Q(unit_price__lte = unit_price_max)
     if item_machine is not None :
         my_q &=Q(item__machine__icontains = item_machine)
+    if item_rq_note is not None :
+        my_q &=Q(item__requisit__note__icontains = item_rq_note)
 
     my_q &=Q(po__approver_status = 2, po__is_cancel = False)
 
@@ -5776,6 +5794,8 @@ def exportExcelSummaryByProductFrequently(request):
     item_product_id_to = request.GET.get('item_product_id_to') or None
     item_product_name = request.GET.get('item_product_name') or None
     item_machine = request.GET.get('item_machine') or None
+    item_rq_note = request.GET.get('item_rq_note') or None
+    distri_id = request.GET.get('distri_id') or None
     distributor = request.GET.get('distributor') or None
     stockman_user = request.GET.get('stockman_user') or None
     start_created = request.GET.get('start_created') or None
@@ -5795,6 +5815,8 @@ def exportExcelSummaryByProductFrequently(request):
         my_q &= Q(po__stockman_user = stockman_user)
     if category is not None:
         my_q &= Q(item__product__category = category)
+    if distri_id is not None:
+        my_q &= Q(po__distributor__id__startswith = distri_id)
     if distributor is not None:
         my_q &= Q(po__distributor__name__startswith = distributor)
     if start_created is not None:
@@ -5807,6 +5829,8 @@ def exportExcelSummaryByProductFrequently(request):
         my_q &=Q(unit_price__lte = unit_price_max)
     if item_machine is not None :
         my_q &=Q(item__machine__icontains = item_machine)
+    if item_rq_note is not None:
+        my_q &= Q(item__requisit__note__icontains=item_rq_note)
 
     my_q &=Q(po__approver_status = 2, po__is_cancel = False)
 

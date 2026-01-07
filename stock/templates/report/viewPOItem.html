@@ -31,9 +31,12 @@
             {{filter.form.unit_price_max|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
+            {{filter.form.distri_id|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
             {{filter.form.distributor|as_crispy_field}}
         </div>
-        <div class="form-group col-md-1 mb-0">
+        <div class="form-group col-md-2 mb-0">
             {{filter.form.stockman_user|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
@@ -41,6 +44,9 @@
         </div>
         <div class="form-group col-md-2 mb-0">
             {{filter.form.item_machine|as_crispy_field}}
+        </div>
+        <div class="form-group col-md-2 mb-0">
+            {{filter.form.item_rq_note|as_crispy_field}}
         </div>
         <div class="form-group col-md-2 mb-0">
             {{filter.form.start_created|as_crispy_field}}
@@ -91,26 +97,36 @@
         <thead class="table-active">
             <tr>
                 <th scope="col">วันที่สั่งซื้อ</th>
-                <th scope="col">รหัสสินค้า</th>
+                <th scope="col"  style="width: 12%;">รหัสสินค้า</th>
                 <th scope="col">ชื่อสินค้า</th>
-                <th scope="col" class="text-center">ราคาต่อหน่วย</th>
-                <th scope="col" class="text-center">ใบขอเบิก</th>
-                <th scope="col" class="text-center">ใบขอซื้อ</th>
-                <th scope="col" class="text-center">ใบเปรียบเทียบ</th>
-                <th scope="col" class="text-center">ใบสั่งซื้อ</th>
+                <th scope="col">ใช้ในระบบงาน</th>
+                <th scope="col">หมายเหตุ</th>
+                <th scope="col">ราคาต่อหน่วย</th>
+                <th scope="col">
+                  ใบขอเบิก<br>
+                  ใบขอซื้อ<br>
+                  ใบเปรียบเทียบ<br>
+                  ใบสั่งซื้อ<br>
+                </th>
             </tr>
         </thead>
         <tbody>
         {% for item in po_item %}
           <tr>
             <td>{{item.po.created |date:"d/m/Y"}}</td>
-            <td>{{item.item.product.id}}</td>
+            <td  style="width: 12%;">{{item.item.product.id}}</td>
             <td>{{item.item.product_name}}</td>
+            <td>{{item.item.machine}}</td>
+            <td>{% if item.item.requisit.note %}{{item.item.requisit.note}}{% endif %}</td>
             <td class="text-right">{{item.unit_price | intcomma}}</td>
-            <th scope="row"><a href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></th>
-            <th scope="row"><a href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></th>
-            <th scope="row">{% if item.po.cp.ref_no %}<a class="{% if item.po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' item.po.cp.id 4 %}">{{item.po.cp.ref_no}}</a>{%endif%}</th>
-            <th scope="row"><a class="{% if item.po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' item.po.id 4 %}">{{item.po.ref_no}}</a></th>
+            <th scope="row">
+              <ul>
+                <li><a href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></li>
+                <li><a href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></li>
+                {% if item.po.cp.ref_no %}<li><a class="{% if item.po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' item.po.cp.id 4 %}">{{item.po.cp.ref_no}}</a></li>{%endif%}
+                <li><a class="{% if item.po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' item.po.id 4 %}">{{item.po.ref_no}}</a></li>
+              </ul>
+            </th>
           </tr>
         {% endfor %}
         </tbody>
