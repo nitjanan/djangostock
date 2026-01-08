@@ -5029,7 +5029,7 @@ def viewComparePricePOHistoryIncomplete(request):
 def viewPOReport(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    data = PurchaseOrder.objects.filter(approver_status = 2, branch_company__code__in = company_in, is_cancel = False)
+    data = PurchaseOrder.objects.filter(approver_status = 2, branch_company__code__in = company_in, is_cancel = False).distinct() #ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -5527,7 +5527,7 @@ def exportExcelPO(request):
     else:
         my_q &=Q(branch_company__code__in = company_in)
 
-    queryset = PurchaseOrder.objects.filter(my_q).order_by('amount', 'id')
+    queryset = PurchaseOrder.objects.filter(my_q).distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
     if not queryset.exists():
         return HttpResponse("No data to export.")
 
