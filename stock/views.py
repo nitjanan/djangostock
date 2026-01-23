@@ -2789,6 +2789,9 @@ def editPOFromPR(request, po_id):
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
+    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
+    isEditApproverUserPO = is_edit_approver_user_po(request.user)
+
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
     form_rate = RateDistributorForm()
@@ -2809,6 +2812,7 @@ def editPOFromPR(request, po_id):
     context = {
         'form':form,
         'form_rate':form_rate,
+        'isEditApproverUserPO': isEditApproverUserPO,
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",
