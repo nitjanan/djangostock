@@ -314,12 +314,20 @@ class ExOESTNHFilter(django_filters.FilterSet):
     end_created = django_filters.DateFilter(field_name = "docdat", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     depcod =  django_filters.CharFilter(field_name="depcod", label='exp รหัสแผนกคชจ.')
     depname = django_filters.CharFilter(method='filter_by_depname', label='แผนกคชจ.')
+    note2 = django_filters.CharFilter(method='filter_by_repair', label='ประเภทการซ่อม')
+    note3 = django_filters.CharFilter(field_name="note3", label='เลขที่ใบแจ้งซ่อม')
 
     def filter_by_depname(self, queryset, name, value):
         matching_depcodes = list(
             BaseExpenseDepartment.objects.filter(name__icontains=value).values_list('id', flat=True)
         )
         return queryset.filter(depcod__in=matching_depcodes)
+    
+    def filter_by_repair(self, queryset, name, value): 
+        matching_note2 = list(
+            BaseRepairType.objects.filter(name__icontains=value).values_list('id', flat=True)
+        )
+        return queryset.filter(note2__in=matching_note2)
 
     class Meta:
         model = ExOESTNH
@@ -329,6 +337,7 @@ ExOESTNHFilter.base_filters['docnum'].label = 'รหัส'
 ExOESTNHFilter.base_filters['remark'].label = 'หมายเหตุ'
 ExOESTNHFilter.base_filters['start_created'].label = 'วันที่จ่าย'
 ExOESTNHFilter.base_filters['end_created'].label = 'ถึง'
+ExOESTNHFilter.base_filters['note3'].label = 'เลขที่ใบแจ้งซ่อม'
 
 class ExOEINVHFilter(django_filters.FilterSet):
     docnum  = django_filters.CharFilter(field_name="docnum", lookup_expr='icontains')
