@@ -7636,6 +7636,32 @@ def exportToExcelAllExpensesRegistration(request):
             sheet.cell(row=row_index, column=col, value=sum_by_col).number_format = '#,##0.00'
             sheet.cell(row=row_index, column=col).font = Font(bold=True)
             sum_by_col = Decimal('0.00')
+        
+        # ===== Sum by row (เฉพาะเงิน → คอลัมน์เดียว) =====
+        start_row = 4
+        end_row = sheet.max_row
+        start_col = 4
+        cols_per_month = 5
+        month_count = len(month_year_range)
+
+        total_col = sheet.max_column + 1
+
+        sheet.cell(row=1, column=total_col, value='รวมเงิน')
+        sheet.cell(row=2, column=total_col, value='รวมเงิน')
+        sheet.cell(row=3, column=total_col, value='บาท')
+        sheet.merge_cells(start_row=1, start_column=total_col, end_row=2, end_column=total_col)
+
+        for r in range(start_row, end_row + 1):
+            total_money = Decimal('0')
+            for i in range(month_count):
+                base = start_col + (i * cols_per_month)
+                total_money += Decimal(sheet.cell(r, base + 1).value or 0)
+                total_money += Decimal(sheet.cell(r, base + 3).value or 0)
+                total_money += Decimal(sheet.cell(r, base + 4).value or 0)
+
+            cell = sheet.cell(row=r, column=total_col, value=total_money)
+            cell.number_format = '#,##0.00'
+            cell.font = Font(bold=True)
 
         # Set column widths , number format and กรอบ
         for column_cells in sheet.columns:
@@ -7658,6 +7684,8 @@ def exportToExcelAllExpensesRegistration(request):
             else:
                 sheet.column_dimensions[column].width = adjusted_width
             sheet.column_dimensions[column].height = 20
+
+        sheet.freeze_panes = "D4"
     else:
         sheet.cell(row = 1, column = 1, value = f'ไม่มีข้อมูลรายงานสรุปค่าใช่จ่ายทะเบียนรถทั้งหมด')
 

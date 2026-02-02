@@ -133,7 +133,7 @@ DATABASES = {
         'USER': 'silachai', #'silachai'
         'PASSWORD': 'Suratthani89/*' ,#'Suratthani89/*'
         'HOST': '27.254.142.147',  #'27.254.142.147'
-        'PORT': '',
+        'PORT': '5432',
     }
 }
 
@@ -225,5 +225,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'southerngroup.stock@gmail.com'
-#EMAIL_HOST_PASSWORD = 'silachaisurat2020'
+#EMAIL_HOST_PASSWORD = '@silachaisurat2020'
 EMAIL_HOST_PASSWORD = 'vsrw uumm lqcj znwe'
