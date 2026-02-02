@@ -247,7 +247,7 @@
 
     const queryString = "{{ request.GET.urlencode|escapejs }}";
     const py_url = "{% url 'exportExcelByIVExpense' %}" + (queryString ? "?" + queryString : "");
-    const file_name = "agency_expense_report_("+'{{ request.session.company_code }}'+").xlsx";
+    const file_name = "Expense by Department("+'{{ request.session.company_code }}'+").xlsx";
 
 	  const delay_time = 50;
     progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
@@ -261,7 +261,7 @@
 
     const queryString = "{{ request.GET.urlencode|escapejs }}";
     const py_url = "{% url 'exportToExcelAllExpensesRegistration' %}" + (queryString ? "?" + queryString : "");
-    const file_name = "expenses_registration_("+'{{ request.session.company_code }}'+").xlsx";
+    const file_name = "Expense all car and machine("+'{{ request.session.company_code }}'+").xlsx";
 
 	  const delay_time = 100;
     progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
@@ -275,7 +275,7 @@
 
     const queryString = "{{ request.GET.urlencode|escapejs }}";
     const py_url = "{% url 'exportToExcelRegistrationAndRepair' %}" + (queryString ? "?" + queryString : "");
-    const file_name = "registration_repair_("+'{{ request.session.company_code }}'+").xlsx";
+    const file_name = "Type of Repair("+'{{ request.session.company_code }}'+").xlsx";
 
 	  const delay_time = 100;
     progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)

@@ -6724,7 +6724,7 @@ def exportExcelByExpense(request):
 
     # สร้าง HttpResponse
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=agency_expense_report_({active}).xlsx'
+    response['Content-Disposition'] = f'attachment; filename=Expense by Department({active}).xlsx'
     
     wb.save(response)
     return response
@@ -7244,7 +7244,7 @@ def exportExcelByIVExpense(request):
         output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=agency_expense_report_({active}).xlsx'
+    response['Content-Disposition'] = f'attachment; filename=Expense by Department({active}).xlsx'
     
     wb.save(response)
     return response
@@ -7447,7 +7447,7 @@ def exportToExcelRegistrationAndRepair(request):
         output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=registration_repair_({active}).xlsx'
+    response['Content-Disposition'] = f'attachment; filename=Type of Repair({active}).xlsx'
 
     workbook.save(response)
     return response
@@ -8856,7 +8856,7 @@ def excelDailyCL(request):
         file_iterator(output),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    response["Content-Disposition"] = f'attachment; filename="carlog_daily({active}).xlsx"'
+    response["Content-Disposition"] = f'attachment; filename="Driver is report({active}).xlsx"'
     response["Content-Length"] = str(size)
     return response
 
@@ -9376,7 +9376,7 @@ def excelExpensesByCarLog(request):
         output.getvalue(), 
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=expenses_by_carlog({active}).xlsx'
+    response['Content-Disposition'] = f'attachment; filename=Driver is report summary({active}).xlsx'
 
     workbook.save(response)
     return response
