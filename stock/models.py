@@ -1796,6 +1796,7 @@ class CarLogbook(models.Model):
     mile_end = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุด")
     diff_mile = models.IntegerField(null=True, blank = True, verbose_name="diff mile")
     
+    job1_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 1")
     job1 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 1")
     start_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 1")
     end_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 1")
@@ -1810,6 +1811,7 @@ class CarLogbook(models.Model):
                 related_name='exd_j1',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 1") #แผนกค่าใช้จ่าย
 
+    job2_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 2")
     job2 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 2")
     start_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 2")
     end_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 2")
@@ -1824,6 +1826,7 @@ class CarLogbook(models.Model):
                 related_name='exd_j2',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 2") #แผนกค่าใช้จ่าย
 
+    job3_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 3")
     job3 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 3")
     start_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 3")
     end_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 3")
@@ -1838,6 +1841,7 @@ class CarLogbook(models.Model):
                 related_name='exd_j3',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 3") #แผนกค่าใช้จ่าย
 
+    job4_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 4")
     job4 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 4")
     start_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 4")
     end_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 4")
@@ -1852,11 +1856,13 @@ class CarLogbook(models.Model):
                 related_name='exd_j4',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 4") #แผนกค่าใช้จ่าย
 
+    job5_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 5")
     job5 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 5")
     mile_start_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 5")
     mile_end_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 5")
     diff_mile_job5 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 5")
 
+    job6_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 6")
     job6 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 6")
     mile_start_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 6")
     mile_end_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 6")
@@ -1865,6 +1871,8 @@ class CarLogbook(models.Model):
     note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ")#หมายเหตุ
     err_log = models.TextField(blank=True, null = True, verbose_name="error log")
     image_mile = models.ImageField(null=True, blank=True, upload_to = "car_log_book/%Y/%m/%d",verbose_name="รูปภาพเลขไมล์เริ่มต้น")
+
+    is_cancel = models.BooleanField(default=False)
     
     def save(self, *args, **kwargs):
         if self.address_company is None:

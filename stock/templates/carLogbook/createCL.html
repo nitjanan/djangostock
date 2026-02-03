@@ -177,6 +177,7 @@
                 <p>
                     {{ form.job1.label_tag }}
                     {{ form.job1 }}
+                    {{ form.job1_id }}
 
                 </p>
 
@@ -217,6 +218,7 @@
                         </div>
                     </div>
                     {{ form.job2 }}
+                    {{ form.job2_id }}
                 </p>
 
                 <div id="expense_dept_radios2">
@@ -254,6 +256,7 @@
                         </div>
                     </div>
                     {{ form.job3 }}
+                    {{ form.job3_id }}
                 </p>
                 <div id="expense_dept_radios3">
                     <!-- Radios will be inserted here -->
@@ -289,6 +292,7 @@
                         </div>
                     </div>
                     {{ form.job4 }}
+                    {{ form.job4_id }}
                 </p>
                 <div id="expense_dept_radios4">
                     <!-- Radios will be inserted here -->
@@ -659,8 +663,20 @@
             return false;
         }
 
+	    setDataEmptyId("#id_job1", "#id_job1_id");
+        setDataEmptyId("#id_job2", "#id_job2_id");
+        setDataEmptyId("#id_job3", "#id_job3_id");
+        setDataEmptyId("#id_job4", "#id_job4_id");
         return true; // ✅ ผ่านการตรวจสอบ
     });
+
+    function setDataEmptyId(fk, id){
+		if($(fk+" option:selected").index() > 0) {
+		  $(id).val($(fk).find(":selected").val());
+		}else{
+		  $(id).val(null);
+		}
+	}
 
     function check_start_and_end_time(id_start_time, id_end_time){
         let startVal = $('#' + id_start_time).val();

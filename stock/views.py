@@ -8923,9 +8923,9 @@ def createCL(request):
     active = company.code
     
     try:
-        form = CarLogbookForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user,})
+        form = CarLogbookForm(request.POST or None, initial={'branch_company': company, 'name': request.user,})
         if form.is_valid():
-            form = CarLogbookForm(request, request.POST or None, request.FILES)
+            form = CarLogbookForm(request.POST or None, request.FILES)
             new_contact = form.save(commit=False)
             new_contact.save()
 
@@ -8943,6 +8943,43 @@ def createCL(request):
         "colorNav":"disableNav"
     }
     return render(request, "carLogbook/createCL.html", context)
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def editCL(request, cl_id):
+    active = request.session['company_code']
+    cl = CarLogbook.objects.get(id=cl_id)
+
+    if request.method == 'POST':
+        form = CarLogbookForm(
+            request.POST,
+            request.FILES,
+            instance=cl
+        )
+        if form.is_valid():
+            new_contact = form.save()
+            return redirect('viewCL')
+    else:
+        # ✅ ต้องส่ง request ด้วย
+        form = CarLogbookForm(instance=cl)
+
+    context = {
+        'form': form,
+        'cl_page': "tab-active",
+        'cl_show': "show",
+        'cl_data': cl,
+        active: "active show",
+        "disableTab": "disableTab",
+        "colorNav": "disableNav"
+    }
+    return render(request, "carLogbook/editCL.html", context)
+
+def cancelCL(request, cl_id):
+    cl = CarLogbook.objects.get(id = cl_id)
+    #set ma ยกเลิกรายการจะไปอยู่ในประวัติ
+    cl.is_cancel = True
+    cl.save()
+    return redirect('viewCL')
+
 
 def job_car_dep_autocomplete(request):
     term = request.GET.get("term")

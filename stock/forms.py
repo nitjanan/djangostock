@@ -657,7 +657,7 @@ class MaintenanceAddressCompanyForm(forms.ModelForm):
         }
 
 class CarLogbookForm(forms.ModelForm):
-    def __init__(self,request,*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         super (CarLogbookForm,self).__init__(*args,**kwargs)
         self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 
@@ -683,10 +683,10 @@ class CarLogbookForm(forms.ModelForm):
     class Meta:
         model = CarLogbook
         fields = ('created', 'name', 'branch_company', 'car', 'image_mile', 'mile_start', 'mile_end'
-                    , 'job1', 'start_job1', 'end_job1', 'exd_job1'
-                    , 'job2', 'start_job2', 'end_job2', 'exd_job2'
-                    , 'job3', 'start_job3', 'end_job3', 'exd_job3'
-                    , 'job4', 'start_job4', 'end_job4', 'exd_job4'
+                    , 'job1_id', 'job1', 'start_job1', 'end_job1', 'exd_job1'
+                    , 'job2_id', 'job2', 'start_job2', 'end_job2', 'exd_job2'
+                    , 'job3_id', 'job3', 'start_job3', 'end_job3', 'exd_job3'
+                    , 'job4_id', 'job4', 'start_job4', 'end_job4', 'exd_job4'
                     , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
             'created' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
@@ -696,6 +696,10 @@ class CarLogbookForm(forms.ModelForm):
                     'capture': 'environment'  # open camera by default (on mobile)
                 }
             ),
+            'job1_id' : forms.HiddenInput(),
+            'job2_id' : forms.HiddenInput(),
+            'job3_id' : forms.HiddenInput(),
+            'job4_id' : forms.HiddenInput(),
             'branch_company' : forms.HiddenInput(),
             'start_job1': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time','required': 'true'}),
             'end_job1': forms.TimeInput(format='%H:%M', attrs={'class':'form-control', 'type': 'time','required': 'true'}),

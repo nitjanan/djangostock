@@ -1,0 +1,706 @@
+{% extends 'layouts.html' %}
+{% load crispy_forms_tags %}
+{% load humanize %}
+{% load static %}
+{% load widget_tweaks %}
+{% load templatehelpers %}
+{% block css %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+
+<!-- Boostrap 4 icon -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+<style>
+    /* When inside col-12 */
+    .form-group .select2-container .select2-selection--single {
+    width: 55.5vw !important;
+    }
+
+    /* When inside col-6 */
+    .col-md-6 .select2-container .select2-selection--single {
+    width: 27.4vw !important;
+    }
+
+    /* Adjust the Select2 container */
+    .select2-container .select2-selection--single {
+    height: 37px !important;
+    line-height: 50px !important;
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    }
+
+    /* Adjust the dropdown arrow height and alignment */
+    .select2-container .select2-selection--single .select2-selection__arrow {
+    height: 37px !important;
+    top: 0;
+    right: 6px;
+    }
+
+    /* Ensure dropdown menu adapts properly */
+    .select2-container .select2-dropdown {
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    }
+
+    /* Align the clear button */
+    .select2-container .select2-selection__clear {
+    line-height: 37px !important;
+    }
+        
+    .big-checkbox{
+        width: 16px; /* Adjust the width as needed */
+        height: 16px; /* Adjust the height as needed */
+        transform: scale(1.15); /* Adjust the scale as needed */
+        -webkit-transform: scale(1.15); /* For Safari and Chrome */
+        -moz-transform: scale(1.15); /* For Firefox */
+        -ms-transform: scale(1.15); /* For Internet Explorer */
+        -o-transform: scale(1.15); /* For Opera */
+    }
+
+    .inline-checkboxes{
+        display: inline-block;
+        margin-right: 15px; /* Adjust spacing as needed */
+    }
+
+    #preview-image_mile {
+            max-width: 200px; 
+            display: none; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            padding: 5px;
+    }
+
+    .upload-label {
+            background-color: white; 
+            padding: 6px 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            width: 100%; 
+            height: 40px; 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+    }
+
+    .custom-combobox {
+        position: relative;
+        display: inline-block;
+    }
+    .custom-combobox-toggle {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        margin-left: -1px;
+        padding: 0;
+    }
+    .custom-combobox-input {
+        margin: 0;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container my-3">
+    <h2 align="center">แก้ไขบันทึกการใช้รถ</h2>
+            <form method="POST" enctype="multipart/form-data">
+                {{form.id}}
+                {{ form.branch_company }}
+                <h6 class="text-right">รายละเอียดใบบันทึกการใช้รถ</h6>
+                <div class="card div-shadow my-2">
+                    <div class="card-body">
+                            <div class="form-row">
+                                {{ form.created | add_class:"form-control d-none" }}
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.name.label }}</label> 
+                                    {{ form.name  | add_class:"form-control"}}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.car.label }}</label> 
+                                    {{ form.car  | add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.mile_start.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
+                                    </div>
+                                        {{ form.mile_start |add_class:"form-control" | attr:"required:true"}}
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.mile_end.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
+                                    </div>
+                                        {{ form.mile_end |add_class:"form-control" | attr:"required:true"}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col">
+                                    {{ form.image_mile.label_tag}}
+                                    <input type="file" 
+                                        name="image_mile" 
+                                        accept="image/*" 
+                                        id="id_image_mile" 
+                                        style="display: none;" 
+                                        oninvalid="this.setCustomValidity('กรุณาถ่ายรูปโลโก้')"
+                                        oninput="this.setCustomValidity('')">
+
+                                    <!-- Label as button -->
+                                    <label for="id_image_mile" class="upload-label" id="label_image_mile">
+                                        <i class="fas fa-camera"></i>&nbsp;ถ่ายรูปเลขไมล์เริ่มต้น
+                                    </label>
+
+                                    <!-- Preview container -->
+                                    <div id="preview-container" style="margin-top: 10px;">
+                                        <img id="preview-image_mile" src="" alt="Preview โลโก้">
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                </div>
+
+                <h6 class="text-right">รายละเอียดงาน</h6>
+                <div class="card div-shadow my-2">
+                    <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.job1.label }}</label> 
+                                    {{ form.job1  | add_class:"form-control"}}
+                                    {{ form.job1_id }}
+                                    {{ form.exd_job1 | add_class:"d-none"}}
+                                    <div id="expense_dept_radios1">
+                                        <!-- Radios will be inserted here -->
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.start_job1.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.start_job1 }}
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.end_job1.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.end_job1 }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.job2.label }}</label>
+                                    {{ form.job2_id }}
+                                    {{ form.job2  | add_class:"form-control"}}
+                                    {{ form.exd_job2 | add_class:"d-none"}}
+                                    <div id="expense_dept_radios2">
+                                        <!-- Radios will be inserted here -->
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.start_job2.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.start_job2 }}
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.end_job2.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.end_job2 }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.job3.label }}</label>
+                                    {{ form.job3_id }}
+                                    {{ form.job3  | add_class:"form-control"}}
+                                    {{ form.exd_job3 | add_class:"d-none"}}
+                                    <div id="expense_dept_radios3">
+                                        <!-- Radios will be inserted here -->
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.start_job3.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.start_job3 }}
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.end_job3.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.end_job3 }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.job4.label }}</label> 
+                                    {{ form.job4  | add_class:"form-control"}}
+                                    {{ form.job4_id }}
+                                    {{ form.exd_job4 | add_class:"d-none"}}
+                                    <div id="expense_dept_radios4">
+                                        <!-- Radios will be inserted here -->
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.start_job4.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.start_job4 }}
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-3">
+                                    <label>{{ form.end_job4.label }}</label>
+                                    <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-alarm"></i></span>
+                                    </div>
+                                        {{ form.end_job4 }}
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                </div>
+                <h6 class="text-right">ปริมาณที่ใช้</h6>
+                <div class="card div-shadow my-2">
+                    <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.oil.label }}</label> 
+                                    {{ form.oil | add_class:"form-control" }}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.gas.label }}</label> 
+                                    {{ form.gas  | add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.engine.label }}</label> 
+                                    {{ form.engine | add_class:"form-control" }}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.hydraulic.label }}</label> 
+                                    {{ form.hydraulic  | add_class:"form-control"}}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.grease.label }}</label> 
+                                    {{ form.grease | add_class:"form-control" }}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>{{ form.note.label }}</label> 
+                                    {{ form.note  | add_class:"form-control"}}
+                                </div>
+                            </div>
+                    </div>
+                    {% csrf_token %}
+                </div>
+                <div class="row my-3">
+                    <div class="col">
+                        <button type="submit" class="btn btn-lg  btn-warning float-right">
+                            <i class="fas fa-save"></i>
+                            บันทึกการแก้ไข
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+</div>
+
+{% endblock%}
+{% block javascript %}
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+<!-- Select2 CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+<!-- Select2 JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+<script>
+    $('#id_created').val('{{cl_data.created|date:"Y-m-d"}}');
+
+    $('#id_car').select2({
+        ajax: {
+            url: "{% url 'car_search' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return {
+                    q: params.term, // search term
+                    'rq_type': 2,
+                };
+            },
+            processResults: function (data) {
+                return {
+                    results: data.results
+                };
+            },
+            cache: true
+        },
+        placeholder: 'ค้นหาด้วย code หรือ ชื่อ',
+        minimumInputLength: 2,
+        allowClear: true,
+    });
+
+    //$('#id_name').css('pointer-events','none');
+
+    //after load
+    $(document).ready(function() {
+        $('#id_job1').select2();
+        $('#id_job2').select2();
+        $('#id_job3').select2();
+        $('#id_job4').select2();
+
+
+        setValeJob('#id_job1', '{{cl_data.job1_id}}', '{{cl_data.job1}}');
+        setValeJob('#id_job2', '{{cl_data.job2_id}}', '{{cl_data.job2}}');
+        setValeJob('#id_job3', '{{cl_data.job3_id}}', '{{cl_data.job3}}');
+        setValeJob('#id_job4', '{{cl_data.job4_id}}', '{{cl_data.job4}}');
+
+        $('#id_job2 option:contains("{{cl_data.job2}}")').prop('selected', true);
+        $('#id_job3 option:contains("{{cl_data.job3}}")').prop('selected', true);
+        $('#id_job4 option:contains("{{cl_data.job4}}")').prop('selected', true);
+
+        searchJobByCarDepAll();
+   
+        searchExpenseDeptByJob($('#id_job1').val(),'expense_dept_radios1','id_exd_job1','expense_dept_radios1','{{ cl_data.exd_job1.id|default:"" }}');
+        searchExpenseDeptByJob($('#id_job2').val(),'expense_dept_radios2','id_exd_job2','expense_dept_radios2','{{ cl_data.exd_job2.id|default:"" }}');
+        searchExpenseDeptByJob($('#id_job3').val(),'expense_dept_radios3','id_exd_job3','expense_dept_radios3','{{ cl_data.exd_job3.id|default:"" }}');
+        searchExpenseDeptByJob($('#id_job4').val(),'expense_dept_radios4','id_exd_job4','expense_dept_radios4','{{ cl_data.exd_job4.id|default:"" }}');
+        
+        setPreviewImage();
+    });
+
+    function setValeJob(element, id, name){
+        if (id)
+            $(element + ' option[value="'+ id +'"]').prop('selected', true);
+        else
+            $(element + ' option:contains("'+ name +'")').prop('selected', true);
+    }
+
+
+    $('#id_car').on('change', function() {
+        searchJobByCarDepAll();
+    });
+
+    function searchJobByCarDepAll(){
+        searchJobByCarDep("id_job1", 'expense_dept_radios1', 'id_exd_job1');
+        searchJobByCarDep("id_job2", 'expense_dept_radios2', 'id_exd_job2');
+        searchJobByCarDep("id_job3", 'expense_dept_radios3', 'id_exd_job3');
+        searchJobByCarDep("id_job4", 'expense_dept_radios4', 'id_exd_job4');
+    }
+
+    function searchJobByCarDep(idJob, containerId, exdId){
+        var tmpJob = $("#"+ idJob).val();
+        var car = $("#id_car").val();
+
+        let $container = $("#" + containerId);
+        $container.empty();
+
+        $("#" + exdId).val('');
+
+        if(car != ""){
+            // Create Ajax Call
+            if(car){
+                //set id_rq_type
+                $.ajax({
+                    url: '{% url "searchJobByCarDep" %}',
+                    data:{
+                            'car': car,
+                        },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.job_list) {
+                            $("#"+ idJob).find('option').not(':first').remove();
+                            //set option 
+                            for(var i = 0; i < data.job_list.length; i++){
+                                $("#"+ idJob).append(new Option(data.job_list[i].name, data.job_list[i].id));
+                            }
+                        }
+                        $('#'+ idJob +' option[value="'+tmpJob +'"]').attr('selected','selected');
+                    }
+                });
+            }
+            return false;
+        }else{
+           $("#"+ idJob).find('option').not(':first').remove();
+        }
+    }
+
+
+    $('#id_job1').on('change', function() {
+        let job = $("#id_job1 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios1', 'id_exd_job1', '');
+    });
+
+    $('#id_job2').on('change', function() {
+        let job = $("#id_job2 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios2', 'id_exd_job2', '');
+    });
+
+    $('#id_job3').on('change', function() {
+        let job = $("#id_job3 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios2', 'id_exd_job3', '');
+    });
+
+    $('#id_job4').on('change', function() {
+        let job = $("#id_job4 option:selected").val();
+        searchExpenseDeptByJob(job, 'expense_dept_radios2', 'id_exd_job4', '');
+    });
+
+    $('#expense_dept_radios1').on('change', 'input[name="expense_dept_radios1"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job1').val(selectedValue);
+    });
+
+    $('#expense_dept_radios2').on('change', 'input[name="expense_dept_radios2"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job2').val(selectedValue);
+    });
+
+    $('#expense_dept_radios3').on('change', 'input[name="expense_dept_radios3"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job3').val(selectedValue);
+    });
+
+    $('#expense_dept_radios4').on('change', 'input[name="expense_dept_radios4"]', function() {
+        var selectedValue = $(this).val();
+        $('#id_exd_job4').val(selectedValue);
+    });
+  
+    function searchExpenseDeptByJob(job, containerId, exdId, radioName, selectedValue) {
+        if (job !== "") {
+            $.ajax({
+                url: '{% url "searchExpenseDeptByJob" %}',
+                data: { job_id: job },
+                dataType: 'json',
+                success: function (data) {
+                    let $container = $("#" + containerId);
+                    $container.empty();
+
+                    if (!data.exd_job_list || data.exd_job_list.length === 0) return;
+
+                    // 👉 case มีตัวเดียว
+                    if (data.exd_job_list.length === 1) {
+                        let item = data.exd_job_list[0];
+                        let $radio = $(`
+                            <input type="radio"
+                                name="${radioName}"
+                                value="${item.expense_dept__id}"
+                                checked
+                                hidden>
+                        `);
+
+                        $container.append($radio);
+                        $("#" + exdId).val(item.expense_dept__id);
+                        $container.hide();
+                    }
+                    // 👉 case หลายตัว
+                    else {
+                        $container.show();
+
+                        data.exd_job_list.forEach(function(item) {
+                            let checked = (String(item.expense_dept__id) === String(selectedValue))
+                                ? 'checked'
+                                : '';
+
+                            let radioHtml = `
+                                <label>
+                                    <input type="radio"
+                                        name="${radioName}"
+                                        value="${item.expense_dept__id}"
+                                        ${checked}>
+                                    ${item.expense_dept__name}
+                                </label><br>
+                            `;
+                            $container.append(radioHtml);
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    const inputFile = document.getElementById('id_image_mile');
+    const previewImage = document.getElementById('preview-image_mile');
+
+    //get old pic
+    let hasOldImage = false;
+    function setPreviewImage(){
+        '{% if cl_data.image_mile %}'
+            previewImage.src = '{{ cl_data.image_mile.url }}';
+            previewImage.style.display = 'block';
+            hasOldImage = true; // ✅ มีรูปเก่า
+        '{% endif %}'
+    }
+
+    //uplode pic
+    inputFile.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewImage.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            previewImage.src = '';
+            previewImage.style.display = 'none';
+        }
+    });
+
+    //before submit
+    $('form').submit(function () {
+        const submitButton = $(this).find("[type='submit']");
+        submitButton.prop("disabled", true); //ปิดปุ่ม submit หากมีการกดซ้ำ
+
+        //ไม่มีไฟล์ใหม่ และ ไม่มีไฟล์เก่า
+        if (inputFile.files.length < 1 && !hasOldImage) {
+            $("#id_mile_start").focus();
+            alert('กรุณาถ่ายรูปเลขไมล์ก่อนส่งข้อมูล');
+
+            submitButton.prop("disabled", false);
+            event.preventDefault();
+            return false;
+        }
+        if( $('#id_mile_end').val() < $('#id_mile_start').val()) {
+            $("#id_mile_end").focus();
+            alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
+
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+
+        if (!check_start_and_end_time('id_start_job1', 'id_end_job1')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_time('id_start_job2', 'id_end_job2')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_time('id_start_job3', 'id_end_job3')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+        if (!check_start_and_end_time('id_start_job4', 'id_end_job4')){
+            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
+            event.preventDefault(); // Prevent form submission
+            return false;
+        }
+
+        setDataEmptyId("#id_job1", "#id_job1_id");
+        setDataEmptyId("#id_job2", "#id_job2_id");
+        setDataEmptyId("#id_job3", "#id_job3_id");
+        setDataEmptyId("#id_job4", "#id_job4_id");
+
+        return true; // ✅ ผ่านการตรวจสอบ
+    });
+
+    function setDataEmptyId(fk, id){
+		if($(fk+" option:selected").index() > 0) {
+		  $(id).val($(fk).find(":selected").val());
+		}else{
+		  $(id).val(null);
+		}
+	}
+
+    function check_start_and_end_time(id_start_time, id_end_time){
+        let startVal = $('#' + id_start_time).val();
+        let endVal = $('#' + id_end_time).val();
+        if (startVal && endVal) {
+            // แปลง string "HH:MM" เป็น Date object
+            let startTime = new Date("1970-01-01T" + startVal + ":00");
+            let endTime = new Date("1970-01-01T" + endVal + ":00");
+
+            if (startTime > endTime) {
+                $('#' + id_end_time).focus();
+                alert('เวลาสิ้นสุดน้อยกว่าเวลาเริ่มต้น กรุณาคีย์ข้อมูลใหม่');
+                return false;
+            }
+        }
+        return true; // ✅ ผ่านการตรวจสอบ
+    }
+
+    $('#id_car').on('change', function() {
+        searchPmRound();
+    });
+
+    $("#id_mile_end").blur(function() {
+        searchPmRound();
+    });
+
+    function searchPmRound(){
+        if($('#id_car').val() != "" && $('#id_mile_end').val() != ""){
+            var id_car = $('#id_car').val();
+            var mile_end = $('#id_mile_end').val();
+            // Create Ajax Call
+            if(id_car && mile_end){
+                $.ajax({
+                    url: '{% url "searchPmRound" %}',
+                    data: {
+                        'id_car': id_car,
+                        'mile_end': mile_end,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.alert_pm == true) {
+                            alert('แจ้งเตือน PM ถึงกำหนดทำ PM ที่ : ' + ReplaceNumberWithCommas(data.next_pm) + " (กม.หรือชม.)");
+                        }
+                    }
+                });
+            }
+            return false;
+        }
+    }
+
+    function ReplaceNumberWithCommas(num) {
+        const options = { 
+            maximumFractionDigits: 2 
+        };
+        const formatted = Number(num).toLocaleString('en', options);
+        return formatted;
+    }
+
+</script>
+{% endblock%}

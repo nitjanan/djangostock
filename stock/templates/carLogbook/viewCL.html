@@ -94,6 +94,7 @@
             <th scope="col">รายละเอียดงานที่1</th>
             <th scope="col">เวลาเริ่มงานที่ 1 / เลขไมล์เริ่มงานที่ 1</th>
             <th scope="col">เวลาสิ้นสุดงานที่ 1 / เลขไมล์สิ้นสุดงานที่ 1</th>
+            <th scope="col">รายการ</th>
           </tr>
         </thead>
         <tbody>
@@ -119,6 +120,10 @@
             <td>
               {% if cl.end_job1 %}{{cl.end_job1}}{%endif%}
               {% if cl.mile_end_job1 %}{{cl.mile_end_job1}}{%endif%}
+            </td>
+            <td>
+              <a style="width: 100px;" href="{%url 'editCL' cl.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+              <!-- a style="width: 100px;" onclick="return confirm('คุณต้องการยกเลิกใบบันทึกใช้รถนี้หรือไม่ ?\n ใบแจ้งซ่อมจะไปอยู่ในแท็ป History')" href="{% url 'cancelCL' cl.id %}" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</!-->
             </td>
           </tr>
         {% endfor %}
