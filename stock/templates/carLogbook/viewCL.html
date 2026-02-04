@@ -122,7 +122,9 @@
               {% if cl.mile_end_job1 %}{{cl.mile_end_job1}}{%endif%}
             </td>
             <td>
-              <a style="width: 100px;" href="{%url 'editCL' cl.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+              {% if request.session.company_code != 'L1' %}
+                <a style="width: 100px;" href="{%url 'editCL' cl.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+              {%endif%}
               <!-- a style="width: 100px;" onclick="return confirm('คุณต้องการยกเลิกใบบันทึกใช้รถนี้หรือไม่ ?\n ใบแจ้งซ่อมจะไปอยู่ในแท็ป History')" href="{% url 'cancelCL' cl.id %}" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</!-->
             </td>
           </tr>

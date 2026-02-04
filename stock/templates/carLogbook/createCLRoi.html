@@ -153,7 +153,11 @@
                 </p>
                 <hr class="border border-primary">
                 <p>
-                    สถานที่จัดส่งที่ 1*
+                    {{ form.orig1.label_tag }}
+                    {{ form.orig1 }}
+                </p>
+                <p>
+                    สถานที่จัดส่งที่ 1:*
                     <div class="input-group d-none">
                         <!-- Input -->
                         <input id="job1_autocomplete" 
@@ -172,6 +176,7 @@
                         </div>
                     </div>
                     {{ form.job1 }}
+                    {{ form.job1_id }}
                 </p>
                 <p>
                     {{ form.image_mile.label_tag}}*
@@ -216,7 +221,11 @@
 
                 <hr class="border border-primary">
                 <p>
-                    สถานที่จัดส่งที่ 2
+                    {{ form.orig2.label_tag }}
+                    {{ form.orig2 }}
+                </p>
+                <p>
+                    สถานที่จัดส่งที่ 2:
                     <div class="input-group d-none">
                         <input id="job2_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 2 ...">
                         <div class="input-group-append">
@@ -224,6 +233,7 @@
                         </div>
                     </div>
                     {{ form.job2 }}
+                    {{ form.job2_id }}
                 </p>
 
                 <p>
@@ -248,7 +258,11 @@
 
                 <hr class="border border-primary">
                 <p>
-                    สถานที่จัดส่งที่ 3
+                    {{ form.orig3.label_tag }}
+                    {{ form.orig3 }}
+                </p>
+                <p>
+                    สถานที่จัดส่งที่ 3:
                     <div class="input-group d-none">
                         <input id="job3_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 3 ...">
                         <div class="input-group-append">
@@ -256,6 +270,7 @@
                         </div>
                     </div>
                     {{ form.job3 }}
+                    {{ form.job3_id }}
                 </p>
                 <p>
                     {{ form.mile_start_job3.label_tag }}
@@ -278,7 +293,11 @@
                 </p>
                 <hr class="border border-primary">
                 <p>
-                    สถานที่จัดส่งที่ 4
+                    {{ form.orig4.label_tag }}
+                    {{ form.orig4 }}
+                </p>
+                <p>
+                    สถานที่จัดส่งที่ 4:
                     <div class="input-group d-none">
                         <input id="job4_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 4 ...">
                         <div class="input-group-append">
@@ -286,6 +305,7 @@
                         </div>
                     </div>
                     {{ form.job4 }}
+                    {{ form.job4_id }}
                 </p>
 
                 <p>
@@ -310,7 +330,11 @@
 
                 <hr class="border border-primary">
                 <p>
-                    สถานที่จัดส่งที่ 5
+                    {{ form.orig5.label_tag }}
+                    {{ form.orig5 }}
+                </p>
+                <p>
+                    สถานที่จัดส่งที่ 5:
                     <div class="input-group d-none">
                         <input id="job5_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 5 ...">
                         <div class="input-group-append">
@@ -318,6 +342,7 @@
                         </div>
                     </div>
                     {{ form.job5 }}
+                    {{ form.job5_id }}
                 </p>
                 <p>
                     {{ form.mile_start_job5.label_tag }}
@@ -340,7 +365,11 @@
                 </p>
                 <hr class="border border-primary">
                 <p>
-                    สถานที่จัดส่งที่ 6
+                    {{ form.orig6.label_tag }}
+                    {{ form.orig6 }}
+                </p>
+                <p>
+                    สถานที่จัดส่งที่ 6:
                     <div class="input-group d-none">
                         <input id="job6_autocomplete" type="text" class="form-control" placeholder="ค้นหาสถานที่จัดส่งที่ 6 ...">
                         <div class="input-group-append">
@@ -348,6 +377,7 @@
                         </div>
                     </div>
                     {{ form.job6 }}
+                    {{ form.job6_id }}
                 </p>
                 <p>
                     {{ form.mile_start_job6.label_tag }}
@@ -406,10 +436,19 @@
     $('#id_created').val(today);
 
     $(function() {
+        $('#id_orig1').select2();
+        $('#id_orig2').select2();
+        $('#id_orig3').select2();
+        $('#id_orig4').select2();
+        $('#id_orig5').select2();
+        $('#id_orig6').select2();
+
         $('#id_job1').select2();
         $('#id_job2').select2();
         $('#id_job3').select2();
         $('#id_job4').select2();
+        $('#id_job5').select2();
+        $('#id_job6').select2();
 
         //setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
         //setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");
@@ -552,8 +591,23 @@
             return false;
         }
 
+	    setDataEmptyId("#id_job1", "#id_job1_id");
+        setDataEmptyId("#id_job2", "#id_job2_id");
+        setDataEmptyId("#id_job3", "#id_job3_id");
+        setDataEmptyId("#id_job4", "#id_job4_id");
+        setDataEmptyId("#id_job5", "#id_job5_id");
+        setDataEmptyId("#id_job6", "#id_job6_id");
+
         return true;
     });
+
+    function setDataEmptyId(fk, id){
+		if($(fk+" option:selected").index() > 0) {
+			$(id).val($(fk).find(":selected").val());
+		}else{
+			$(id).val(null);
+		}
+	}
 
  	function check_start_and_end_mile(id_start_mile, id_end_mile){
         let startVal = $('#' + id_start_mile).val();

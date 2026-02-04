@@ -453,6 +453,17 @@ class BaseDepartment(models.Model):
     def __str__(self):
         return self.name
 
+class BaseOrigSta(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อต้นทาง")
+
+    class Meta:
+        db_table = 'BaseOrigSta'
+        ordering=('id',)
+        verbose_name = 'รายละเอียดต้นทางรถขนส่งร้อยเกาะ'
+        verbose_name_plural = 'ข้อมูลรายละเอียดต้นทางรถขนส่งร้อยเกาะ'
+
+    def __str__(self):
+        return self.name
     
 class BaseJobCarDep(models.Model):
     name = models.CharField(max_length=255,unique=True, verbose_name="รายละเอียดงาน")
@@ -1796,6 +1807,7 @@ class CarLogbook(models.Model):
     mile_end = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุด")
     diff_mile = models.IntegerField(null=True, blank = True, verbose_name="diff mile")
     
+    orig1 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig1', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 1")
     job1_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 1")
     job1 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 1")
     start_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 1")
@@ -1811,6 +1823,7 @@ class CarLogbook(models.Model):
                 related_name='exd_j1',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 1") #แผนกค่าใช้จ่าย
 
+    orig2 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig2', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 2")
     job2_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 2")
     job2 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 2")
     start_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 2")
@@ -1826,6 +1839,7 @@ class CarLogbook(models.Model):
                 related_name='exd_j2',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 2") #แผนกค่าใช้จ่าย
 
+    orig3 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig3', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 3")
     job3_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 3")
     job3 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 3")
     start_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 3")
@@ -1841,6 +1855,7 @@ class CarLogbook(models.Model):
                 related_name='exd_j3',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 3") #แผนกค่าใช้จ่าย
 
+    orig4 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig4', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 4")
     job4_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 4")
     job4 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 4")
     start_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาเริ่มงานที่ 4")
@@ -1856,12 +1871,14 @@ class CarLogbook(models.Model):
                 related_name='exd_j4',
                 verbose_name="แผนกค่าใช้จ่ายงานที่ 4") #แผนกค่าใช้จ่าย
 
+    orig5 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig5', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 5")
     job5_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 5")
     job5 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 5")
     mile_start_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 5")
     mile_end_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 5")
     diff_mile_job5 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 5")
 
+    orig6 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig6', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 6")
     job6_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 6")
     job6 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 6")
     mile_start_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 6")

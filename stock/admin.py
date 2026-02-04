@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -364,6 +364,10 @@ class BaseJobCarDepAdmin(ImportExportModelAdmin):
         return ", ".join([str(e) for e in obj.expense_dept.all()])
     get_expense_dept.short_description = "แผนกค่าใช้จ่าย"  # column name in admin
 
+class BaseOrigStaAdmin(ImportExportModelAdmin):
+    list_display = ['id','name',] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['id', 'name',]
+
 class UserCarDepartmentAdmin(ImportExportModelAdmin):
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
@@ -452,6 +456,7 @@ admin.site.register(CarLogbook, CarLogbookAdmin)
 admin.site.register(Maintenance, MaintenanceAdmin)
 admin.site.register(BaseCarDepartment, BaseCarDepartmentAdmin)
 admin.site.register(BaseJobCarDep, BaseJobCarDepAdmin)
+admin.site.register(BaseOrigSta, BaseOrigStaAdmin)
 admin.site.register(UserCarDepartment, UserCarDepartmentAdmin)
 admin.site.register(ApproveCarDepartment, ApproveCarDepartmentAdmin)
 admin.site.register(PmRoundItem, PmRoundItemAdmin)
