@@ -2033,7 +2033,8 @@ def setDataProductExpress(request):
             have_product =  Product.objects.filter(id = id_product).exists()
             exp_product =  Product.objects.get(id = id_product)
             exp_name = exp_product.name
-            exp_unit = exp_product.unit.id
+            if exp_product.unit:
+                exp_unit = exp_product.unit.id
         except Product.DoesNotExist:
             exp_alert = "ไม่มีรหัสสินค้า '"+ str(id_product) +"' ในระบบ"
 

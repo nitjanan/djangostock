@@ -545,10 +545,17 @@ class ProductAdminForm(forms.ModelForm):
         model = Product
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['unit'].required = True   # ⭐ บังคับกรอกเฉพาะ admin
+        self.fields['unit'].label = 'หน่วยสินค้า'
+
     def clean(self):
         cleaned_data = self.cleaned_data
         id = cleaned_data.get('id')
         hoen = has_only_en(id)
+
+        unit = self.cleaned_data.get('unit')
 
         if not hoen: #เช็คตัวอักษรภาษาไทยในรหัส
             raise forms.ValidationError(u"รหัสสินค้าผิด ("+ str(id) +") มีตัวอักษรภาษาไทย ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
@@ -556,6 +563,9 @@ class ProductAdminForm(forms.ModelForm):
             raise forms.ValidationError(u"รหัสสินค้าผิด ("+ str(id) +") ต้องเป็นตัวพิมพ์ใหญ่เท่านั้น ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
         if id.find('O-') != -1 : #เช็ค O- ในรหัส
             raise forms.ValidationError(u"รหัสสินค้าผิด XX-XO-001 ต้องเป็น XX-X0-001 (ขีดเอ็กซ์โอ ต้องเป็น ขีดเอ็กซ์ศูนย์) ไม่สามารถบันทึกได้ กรุณาใส่รหัสสินค้าใหม่")
+        if not unit:
+            raise forms.ValidationError('กรุณาเลือกหน่วยสินค้า')
+
         return cleaned_data
     
 class BaseCarAdminForm(forms.ModelForm):
