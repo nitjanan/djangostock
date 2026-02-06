@@ -1219,6 +1219,9 @@ class ComparisonPrice(models.Model):
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     amount_diff = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#ราคาที่เทียบกันระหว่างร้านที่ 1 และ 2
 
+    cancel_reason = models.CharField(max_length=255, blank = True, null = True)
+    is_cancel = models.BooleanField(default=False)
+
     def save(self, *args, **kwargs):
         if self.address_company is None:
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()

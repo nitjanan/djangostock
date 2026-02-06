@@ -46,7 +46,15 @@
 
 {% block content %}
 <div class="container">
-    <h3 align="center">ใบเปรียบเทียบราคา</h3>   
+    <h3 align="center">ใบเปรียบเทียบราคา</h3>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
+            <i class="fas fa-times-circle"></i>
+            {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
     {% for d in cpd%}
     <ul class="list-group list-group-horizontal-sm my-2">
         <li class="list-group-item">

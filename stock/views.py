@@ -17,7 +17,7 @@ from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem
-from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm
+from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login, authenticate, logout
@@ -3363,7 +3363,7 @@ def viewComparePricePO(request):
     active = request.session['company_code']
 
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
-    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) & ~Q(special_approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), branch_company__code = active)
+    data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) & ~Q(special_approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), is_cancel = False, branch_company__code = active)
 
     prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
 
@@ -3832,36 +3832,48 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
     cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
     #ลบ item ใน PurchaseOrder ด้วย
     items = ComparisonPriceItem.objects.filter(bidder = cpd)
+
+    cp = ComparisonPrice.objects.get(id  = cpd.cp.id)
     if numDistributor == 1:
-        for obj in items:
-            try:
-                d_item = RequisitionItem.objects.get(id = obj.item.id)
-                #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
-                cp_sum_quantity = calculateSumQuantityCPItem(obj.item, cp_id)
-                sum_po_cp = calculateSumQuantityCPAndPOItem(obj.item)
-                remain = d_item.quantity_pr - (sum_po_cp - cp_sum_quantity)
+        if cp.is_re_approve:
+            messages.warning(request, "ไม่สามารถลบรายการได้ เนื่องจากเป็นใบเปรียบเทียบราคาฉบับแก้ไข\nกรุณายกเลิกรายการพร้อมใส่เหตุผลการยกเลิก")
+            redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
+        else:
+            for obj in items:
+                try:
+                    d_item = RequisitionItem.objects.get(id = obj.item.id)
+                    #คำนวนหาจำนวนสินค้าในใบเปรียบเทียบและใบสั่งซื้อที่ทำไปแล้ว 24-09-2022
+                    cp_sum_quantity = calculateSumQuantityCPItem(obj.item, cp_id)
+                    sum_po_cp = calculateSumQuantityCPAndPOItem(obj.item)
+                    remain = d_item.quantity_pr - (sum_po_cp - cp_sum_quantity)
 
-                if remain <= 0:
-                    d_item.is_used = True
-                    d_item.save()
-                else:
-                    d_item.is_used = False
-                    d_item.save()
+                    if remain <= 0:
+                        d_item.is_used = True
+                        d_item.save()
+                    else:
+                        d_item.is_used = False
+                        d_item.save()
 
-                #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
-                check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
-                if check_item:
-                    try:
-                        pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
-                        pr.is_complete = False
-                        pr.save()
-                    except:
-                        pass
-            except RequisitionItem.DoesNotExist:
-                pass  
-    items.delete()
-    #ลบ PurchaseOrder ทีหลัง
-    cpd.delete()
+                    #เช็คว่าดึงรายการในใบขอเบิกไปใช้หมดหรือยัง
+                    check_item = RequisitionItem.objects.filter(requisit = d_item.requisit, is_used = False).distinct()
+                    if check_item:
+                        try:
+                            pr = PurchaseRequisition.objects.get(requisition = d_item.requisit)
+                            pr.is_complete = False
+                            pr.save()
+                        except:
+                            pass
+                except RequisitionItem.DoesNotExist:
+                    pass
+
+            items.delete()
+            #ลบ PurchaseOrder ทีหลัง
+            cpd.delete()
+    else:
+        items.delete()
+        #ลบ PurchaseOrder ทีหลัง
+        cpd.delete()
+
     return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
 def printComparePricePO(request, cp_id):
@@ -3986,10 +3998,21 @@ def showComparePricePO(request, cp_id, mode):
     isPurchasing = is_purchasing(request.user)
 
     form = ComparisonPriceAddressCompanyForm(instance=cp)
-    if request.method == 'POST':
+    if request.method == 'POST' and 'btnformCPa' in request.POST:
         form = ComparisonPriceAddressCompanyForm(request.POST, request.FILES, instance=cp)
         if form.is_valid():
             form.save()
+            return redirect('showComparePricePO', cp_id = cp_id , mode = mode)
+        
+    cancel_form = CPCancelForm(instance=cp)
+    if request.method == 'POST' and 'btnformCancelCP' in request.POST:
+        cancel_form = CPCancelForm(request.POST, instance=cp)
+        if cancel_form.is_valid():
+            cc = cancel_form.save(commit=False)
+            if cc.cancel_reason is not None:
+                cc.is_cancel = True
+                cc.save()
+                #rePOItemIsUse(po_id)#หากยกเลิกรายการ เช็ค item และนำใบขอซื้อกลับมาทำใหม่
             return redirect('showComparePricePO', cp_id = cp_id , mode = mode)
 
     page = CPPageMode(mode)
@@ -4005,6 +4028,7 @@ def showComparePricePO(request, cp_id, mode):
             'isPurchasing':isPurchasing,
             'isSpecialCP':isSpecialCP,
             'form':form,
+            'cancel_form':cancel_form,
             'bc':bc,
             page: "tab-active",
             show: "show",
@@ -4897,7 +4921,7 @@ def viewComparePricePOHistory(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) & ~Q(special_approver_status_id = 3) & ~Q(special_approver_status_id = 1) , branch_company__code__in = company_in)
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) & ~Q(special_approver_status_id = 3) & ~Q(special_approver_status_id = 1), is_cancel = False, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
@@ -5008,7 +5032,7 @@ def viewComparePricePOHistoryIncomplete(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3), branch_company__code__in = company_in)
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3) | Q(is_cancel = True), branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)

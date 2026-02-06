@@ -52,7 +52,7 @@
           <div class="col">
             <description>
               {% if po.is_cancel %}
-                <h3 class="text-danger">ยกเลิก</h3>
+                <h3 class="text-danger">*ยกเลิก</h3>
                 <h4 class="text-danger">({{po.cancel_reason}})</h4>
               {%endif%}
               <h4>{{po.address_company.name_th}}{% if isUploadeReceipt %}   <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h4>
@@ -360,14 +360,20 @@
                 </div>
               </div>
               <div class="row my-3 d-print-none">
-                {% if po.approver_status_id != 1 and isPurchasing%}
                 <div class="col">
-                  <!-- ขอเปลี่ยนแปลงรายละเอียกรายการ -->
-                  <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
-                  <!-- ขอยกเลิกรายการ -->
-                  <button type="button" class="btn btn-danger d-print-none" data-toggle="modal" data-target="#cancelPO"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+                  {% if po.approver_status_id != 1 and isPurchasing and not po.is_cancel %}
+                    <!-- ขอเปลี่ยนแปลงรายละเอียกรายการ -->
+                    <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+                    <!-- ขอยกเลิกรายการ -->
+                    <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelPO"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+                  {% endif %}
+                  {% if po.is_re_approve and isPurchasing and not po.is_cancel %}
+                    <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+                  {% endif %}
+                  {% if po.is_cancel and isPurchasing %}
+                    <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+                  {% endif %}
                 </div>
-                {% endif %}
                 <div class="col text-right">
                   <button type="button" class="btn btn-secondary pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
                     <i class="fas fa-print"></i>

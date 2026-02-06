@@ -55,6 +55,7 @@
                   <th scope="col">วันที่สร้าง</th>
                   <th scope="col">ผู้ตรวจสอบ</th>
                   <th scope="col">ผู้อนุมัติ</th>
+                  <th scope="col">รายการยกเลิก</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,6 +111,11 @@
                         btn-outline-danger
                       {% endif %}"
                     >{{cp.special_approver_status}}</button>
+                    {%endif%}
+                  </td>
+                  <td>
+                    {% if cp.is_cancel == True %}
+                    <button type="button" class="btn btn-sm btn-block btn-danger">ยกเลิก</button>
                     {%endif%}
                   </td>
                 </tr>

@@ -371,6 +371,11 @@ class CPDForm(forms.Form):
             'cp': forms.HiddenInput()
         }   
        
+class CPCancelForm(forms.ModelForm):
+    cancel_reason = forms.CharField(max_length=100, required=True, label='เหตุผลการยกเลิกรายการ')
+    class Meta:
+       model = ComparisonPrice
+       fields = ('cancel_reason',)
 
 #แม่
 class CPDModelForm(forms.ModelForm):

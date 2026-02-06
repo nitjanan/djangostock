@@ -77,7 +77,13 @@
 {% block content %}
 <div class="container">
     <div class="row">
-        <div class="col-2 offset-1">
+        <div class="col-1">
+            {% if cp.is_cancel %}
+                <h6 class="text-danger">*ยกเลิก</h6>
+                <h5 class="text-danger">({{cp.cancel_reason}})</h5>
+            {%endif%}
+        </div>
+        <div class="col-1 offset-1">
             <img src="/media/company/STG_logo.png" class="rounded float-right" width="90" height="60"/>
         </div>
         <div class="col-4 text-center">
@@ -326,11 +332,18 @@
           </button>
         </div>
       </div>
-      {% if cp.examiner_status_id != 1 and isPurchasing %}
-      <div class="row my-3 d-print-none">
+    <div class="row my-3 d-print-none">
+     {% if cp.examiner_status_id != 1 and isPurchasing and not cp.is_cancel%}
         <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
-      </div>
-    {% endif %}
+        <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+     {% endif %}
+     {% if cp.is_re_approve and isPurchasing and not cp.is_cancel%}
+        <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+     {% endif %}
+     {% if cp.is_cancel and isPurchasing %}
+        <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+     {% endif %}
+    </div>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="modal fade" id="addressCompany" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
@@ -347,12 +360,36 @@
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
-                  <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+                  <button type="submit" name="btnformCPa" class="btn btn-primary">บันทึกการแก้ไข</button>
                 </div>
               </div>
             </div>
           </div>
     </form>
+    <form  method="POST">
+      {% csrf_token %}
+        <!-- เหตุผลยกเลิกรายการ cp -->
+        <div class="modal fade" id="cancelCP" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header alert alert-danger">
+                    <h5 class="modal-title" id="exampleModalLongTitle">เหตุผลที่ยกเลิกรายการ</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    {{cancel_form.cancel_reason | add_class:"form-control is-invalid"}}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                    <button type="submit"  name="btnformCancelCP" class="btn btn-primary">บันทึกการยกเลิก</button>
+                </div>
+            </div>
+            </div>
+        </div>
+    </form>
+
 </div>
 <!-- Modal Search-->
 <div class="modal fade" id="myEdit" role="dialog">
