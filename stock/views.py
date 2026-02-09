@@ -8590,6 +8590,35 @@ def viewCL(request):
     }
     return render(request, "carLogbook/viewCL.html", context)
 
+@login_required(login_url='signIn')
+def viewCLMB(request):
+    ucd = UserCarDepartment.objects.get(user = request.user.id)
+    company = BaseBranchCompany.objects.get(code = ucd.in_comp.code)
+    active = company.code
+    user_in_comp = company.code
+
+    data = CarLogbook.objects.filter(branch_company__code = active)
+
+    #กรองข้อมูล
+    myFilter = CarLogbookFilter(request.GET, queryset = data)
+    data = myFilter.qs
+
+    #สร้าง page
+    p = Paginator(data, 10)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+
+    context = {
+        'cls':dataPage,
+        'user_in_comp':user_in_comp,
+        'filter':myFilter,
+        'cl_page': "tab-active",
+        'cl_show': "show",
+        active :"active show",
+        "colorNav":"enableNav"
+    }
+    return render(request, "carLogbook/viewCLMB.html", context)
+
 #หาวันแรกของเดือนนี้
 def startDateInMonth(day):
     dt = datetime.datetime.strptime(f"{day}", '%Y-%m-%d')

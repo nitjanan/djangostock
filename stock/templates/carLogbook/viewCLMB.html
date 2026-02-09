@@ -1,0 +1,266 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+
+{% block css %}
+<style>
+.cl{
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 2px;
+  width: 60px;
+}
+
+.cl:hover {
+  box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+}
+
+.container {
+  position: relative;
+  min-height: 80vh;  /* ให้ container สูงเท่ากับความสูงหน้าจอ */
+}
+
+
+.table-wrapper {
+  position: relative;
+}
+
+.floating-btn {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 12px); /* รองรับ iPhone */
+  left: 25%;
+  bottom: 2%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  border-radius: 50px;
+  padding: 12px 24px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="container my-3">
+<h3 align="center">รายการบันทึกการใช้รถ</h3>
+<div class="card div-shadow">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped my-3">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">รหัสใบใช้รถ</th>
+            <th scope="col">รายละเอียดงาน</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for cl in cls %}
+          <tr>
+            <th scope="row">{{cl.ref_no}}<br>
+                {{cl.created |date:"d/m/Y"}}<br>
+                {{cl.name.first_name}}<br>
+                {{cl.car.name}}
+            </th>
+            {% if user_in_comp == "L1" or user_in_comp == "I1" %}
+            <td>
+                <ul>
+                    <li>
+                        <b>{{cl.orig1}}</b> ไป <b>{{cl.job1}}</b> {{cl.mile_start_job1}}-{{cl.mile_end_job1}}
+                    </li>
+                    {% if cl.job2 %}
+                        <li>
+                            <b>{{cl.orig2}}</b> ไป <b>{{cl.job2}}</b> {{cl.mile_start_job2}}-{{cl.mile_end_job2}}
+                        </li>
+                    {% endif %}
+                    {% if cl.job3 %}
+                        <li>
+                            <b>{{cl.orig3}}</b> ไป <b>{{cl.job3}}</b> {{cl.mile_start_job3}}-{{cl.mile_end_job3}}
+                        </li>
+                    {% endif %}
+                    {% if cl.job4 %}
+                        <li>
+                            <b>{{cl.orig4}}</b> ไป <b>{{cl.job4}}</b> {{cl.mile_start_job4}}-{{cl.mile_end_job4}}
+                        </li>
+                    {% endif %}
+                    {% if cl.job5 %}
+                        <li>
+                            <b>{{cl.orig5}}</b> ไป <b>{{cl.job5}}</b> {{cl.mile_start_job5}}-{{cl.mile_end_job5}}
+                        </li>
+                    {% endif %}
+                    {% if cl.job6 %}
+                        <li>
+                            <b>{{cl.orig6}}</b> ไป <b>{{cl.job6}}</b> {{cl.mile_start_job6}}-{{cl.mile_end_job6}}
+                        </li>
+                    {% endif %}
+                </ul>
+            </td>
+            {%else%}
+            <td>
+                <ul>
+                    <li>
+                        <b>{{cl.job1}}</b> {{cl.start_job1}}-{{cl.end_job1}}
+                    </li>
+                    {% if cl.job2 %}
+                        <li>
+                            <b>{{cl.job2}}</b> {{cl.start_job2}}-{{cl.end_job2}}
+                        </li>
+                    {% endif %}
+                    {% if cl.job3 %}
+                        <li>
+                            <b>{{cl.job3}}</b> {{cl.start_job3}}-{{cl.end_job3}}
+                        </li>
+                    {% endif %}
+                    {% if cl.job4 %}
+                        <li>
+                            <b>{{cl.job4}}</b> {{cl.start_job4}}-{{cl.end_job4}}
+                        </li>
+                    {% endif %}
+                </ul>
+            </td>
+            {%endif%}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+    <div class="text-center my-3">
+        <a href="{% url 'mobileMenu' %}" class="btn btn-secondary floating-btn">
+            <i class="fas fa-arrow-left"></i> กลับไป
+        </a>
+    </div>
+</div>
+      <br/>
+      <!--Pagination-->
+      <nav aria-label="Page navigation example">
+        <ul class="pagination justify-content-center">
+        {% if cls.has_previous %}
+            <li class="page-item">
+            <a class="page-link" href="{% my_url cls.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+          </li>
+        {% endif %}
+
+        {% if cls.number|add:'-4' > 1 %}
+            <li class="page-item"><a class="page-link" href="{% my_url cls.number|add:'-5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% for i in cls.paginator.page_range %}
+            {% if cls.number == i %}
+                <li class="page-item active" aria-current="page">
+              <span class="page-link">
+                {{ i }}
+                <span class="sr-only">(current)</span>
+              </span>
+            </li>
+            {% elif i > cls.number|add:'-5' and i < cls.number|add:'5' %}
+                 <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if cls.paginator.num_pages > cls.number|add:'4' %}
+           <li class="page-item"><a class="page-link" href="{% my_url cls.number|add:'5' 'page' request.GET.urlencode %}">&hellip;</a></li>
+        {% endif %}
+
+        {% if cls.has_next %}
+            <li class="page-item">
+            <a class="page-link"  href="{% my_url cls.next_page_number 'page' request.GET.urlencode %}">Next</a>
+          </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+    <!--end of Pagination-->
+</div>
+{% endblock%}
+{% block javascript %}
+<script>
+  function progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time){
+    btn.disabled = true;
+    btnText.style.visibility = "hidden";
+    btnPercent.style.display = "block";
+    btnProgress.style.width = "0%";
+    btnPercent.innerText = "0%";
+
+    let fakeProgress = 0;
+    let timer = setInterval(() => {
+        if (fakeProgress < 95) {
+            fakeProgress++;
+            btnProgress.style.width = fakeProgress + "%";
+            btnPercent.innerText = fakeProgress + "%";
+        }
+    }, delay_time);
+
+    fetch(py_url)
+        .then(response => {
+            if (!response.ok) throw new Error("Server error");
+            return response.blob();
+        })
+        .then(blob => {
+            clearInterval(timer);
+            btnProgress.style.width = "100%";
+            btnPercent.innerText = "100%";
+
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = file_name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btnText.style.visibility = "visible";
+                btnPercent.style.display = "none";
+                btnProgress.style.width = "0%";
+            }, 1000);
+        })
+        .catch(err => {
+            clearInterval(timer);
+            console.error(err);
+            alert("ไม่มีข้อมูลจากวันที่เลือก กรุณาเลือกวันที่ กดกรอง และดาว์นโหลดไฟล์อีกครั้ง");
+            btn.disabled = false;
+            btnText.style.visibility = "visible";
+            btnPercent.style.display = "none";
+            btnProgress.style.width = "0%";
+        });
+  }
+
+  document.getElementById('cla_download-btn').addEventListener('click', () => {
+    const btn = document.getElementById('cla_download-btn');
+    const btnText = document.getElementById('cla_btn-text');
+    const btnProgress = document.getElementById('cla_btn-progress');
+    const btnPercent = document.getElementById('cla_btn-percent');
+
+    const queryString = "{{ request.GET.urlencode|escapejs }}";
+    const py_url = "{% url 'excelDailyCL' %}" + (queryString ? "?" + queryString : "");
+    const file_name = "Driver's report("+'{{ request.session.company_code }}'+").xlsx";
+
+	  const delay_time = 100;
+    progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
+  });
+
+  document.getElementById('epc_download-btn').addEventListener('click', () => {
+    const btn = document.getElementById('epc_download-btn');
+    const btnText = document.getElementById('epc_btn-text');
+    const btnProgress = document.getElementById('epc_btn-progress');
+    const btnPercent = document.getElementById('epc_btn-percent');
+
+    const queryString = "{{ request.GET.urlencode|escapejs }}";
+    const py_url = "{% url 'excelExpensesByCarLog' %}" + (queryString ? "?" + queryString : "");
+    const file_name = "Driver's report summary("+'{{ request.session.company_code }}'+").xlsx";
+
+	  const delay_time = 100;
+    progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
+  });
+
+</script>
+{% endblock%}
