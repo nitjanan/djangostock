@@ -1806,6 +1806,9 @@ class CarLogbook(models.Model):
     engine = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันเครื่อง ( ลิตร )")
     hydraulic = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำมันไฮโดรลิค ( ลิตร )")
     grease = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="จารบี ( ลิตร )")
+    coolant = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำยาหม้อน้ำ ( ขวด )")
+    DW_water = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำกลั่น ( ขวด )")
+
     mile_start = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่ม")
     mile_end = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุด")
     diff_mile = models.IntegerField(null=True, blank = True, verbose_name="diff mile")

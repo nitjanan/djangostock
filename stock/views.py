@@ -8706,7 +8706,9 @@ def excelDailyCL(request):
                 sum_gas=Sum('gas'),
                 sum_engine=Sum('engine'),
                 sum_hydraulic=Sum('hydraulic'),
-                sum_grease=Sum('grease')
+                sum_grease=Sum('grease'),
+                sum_coolant=Sum('coolant'),
+                sum_DW_water=Sum('DW_water'),
             )
 
             first_row = qs.order_by('created').first()
@@ -8735,15 +8737,20 @@ def excelDailyCL(request):
             sheet.cell(row=7, column=4, value='น้ำมันเครื่อง')
             sheet.cell(row=7, column=5, value='น้ำมันไฮโดรลิค')
             sheet.cell(row=7, column=6, value='จารบี')
-            sheet.cell(row=7, column=7, value='ระยะทาง (เลขไมล์)')
-            sheet.cell(row=7, column=9, value='รวม กม.')
-            sheet.cell(row=7, column=10, value='รายละเอียดงาน')
-            sheet.cell(row=7, column=11, value='หมายเหตุ')
-            sheet.cell(row=7, column=12, value='ชื่อผู้ขับ')
+            sheet.cell(row=7, column=5, value='น้ำมันไฮโดรลิค')
+            sheet.cell(row=7, column=6, value='จารบี')
+            sheet.cell(row=7, column=7, value='น้ำยาหม้อน้ำ')
+            sheet.cell(row=7, column=8, value='น้ำกลั่น')
+
+            sheet.cell(row=7, column=9, value='ระยะทาง (เลขไมล์)')
+            sheet.cell(row=7, column=11, value='รวม กม.')
+            sheet.cell(row=7, column=12, value='รายละเอียดงาน')
+            sheet.cell(row=7, column=13, value='หมายเหตุ')
+            sheet.cell(row=7, column=14, value='ชื่อผู้ขับ')
 
 
-            sheet.cell(row=8, column=7, value='เริ่มต้น')
-            sheet.cell(row=8, column=8, value='สิ้นสุด')
+            sheet.cell(row=8, column=9, value='เริ่มต้น')
+            sheet.cell(row=8, column=10, value='สิ้นสุด')
 
             sheet.merge_cells(f'A1:L1')
             sheet.cell(row=1, column=1).alignment = Alignment(horizontal='center', vertical='center')
@@ -8755,11 +8762,14 @@ def excelDailyCL(request):
             sheet.merge_cells(f'D7:D8')
             sheet.merge_cells(f'E7:E8')
             sheet.merge_cells(f'F7:F8')
-            sheet.merge_cells(f'G7:H7')
-            sheet.merge_cells(f'I7:I8')
-            sheet.merge_cells(f'J7:J8')
+            sheet.merge_cells(f'G7:G8')
+            sheet.merge_cells(f'H7:H8')
+
+            sheet.merge_cells(f'I7:J7')
             sheet.merge_cells(f'K7:K8')
             sheet.merge_cells(f'L7:L8')
+            sheet.merge_cells(f'M7:M8')
+            sheet.merge_cells(f'N7:N8')
 
             total_distance = 0
             row_index = 9
@@ -8778,7 +8788,9 @@ def excelDailyCL(request):
                     sum_gas=Sum('gas'),
                     sum_engine=Sum('engine'),
                     sum_hydraulic=Sum('hydraulic'),
-                    sum_grease=Sum('grease')
+                    sum_grease=Sum('grease'),
+                    sum_coolant=Sum('coolant'),
+                    sum_DW_water=Sum('DW_water'),
                 )
 
                 # first and last records
@@ -8828,21 +8840,24 @@ def excelDailyCL(request):
                     sheet.cell(row=idl+9, column=4, value=data['sum_engine'] or '')
                     sheet.cell(row=idl+9, column=5, value=data['sum_hydraulic'] or '')
                     sheet.cell(row=idl+9, column=6, value=data['sum_grease'] or '')
-                    sheet.cell(row=idl+9, column=10, value=job_text)
-                    sheet.cell(row=idl+9, column=11, value=notes_text)
-                    sheet.cell(row=idl+9, column=12, value=notes_name_text)
+                    sheet.cell(row=idl+9, column=7, value=data['sum_coolant'] or '')
+                    sheet.cell(row=idl+9, column=8, value=data['sum_DW_water'] or '')
+
+                    sheet.cell(row=idl+9, column=12, value=job_text)
+                    sheet.cell(row=idl+9, column=13, value=notes_text)
+                    sheet.cell(row=idl+9, column=14, value=notes_name_text)
 
                 # write mile_start and mile_end
                 if data_first:
-                    sheet.cell(row=idl+9, column=7, value=data_first.mile_start)
+                    sheet.cell(row=idl+9, column=9, value=data_first.mile_start)
                 if data_last:
-                    sheet.cell(row=idl+9, column=8, value=data_last.mile_end)
+                    sheet.cell(row=idl+9, column=10, value=data_last.mile_end)
 
                 # write distance
                 if data_first and data_last:
                     distance = data_last.mile_end - data_first.mile_start
                     total_distance += distance
-                    sheet.cell(row=idl+9, column=9, value=distance)
+                    sheet.cell(row=idl+9, column=11, value=distance)
             
             sheet.cell(row=row_index, column=1, value='รวม')
             sheet.cell(row=row_index, column=2, value=data_sum['sum_oil'] or '')
@@ -8850,8 +8865,11 @@ def excelDailyCL(request):
             sheet.cell(row=row_index, column=4, value=data_sum['sum_engine'] or '')
             sheet.cell(row=row_index, column=5, value=data_sum['sum_hydraulic'] or '')
             sheet.cell(row=row_index, column=6, value=data_sum['sum_grease'] or '')
-            sheet.cell(row=row_index, column=8, value=total_mile)
-            sheet.cell(row=row_index, column=9, value=total_distance)
+            sheet.cell(row=row_index, column=7, value=data_sum['sum_coolant'] or '')
+            sheet.cell(row=row_index, column=8, value=data_sum['sum_DW_water'] or '')
+
+            sheet.cell(row=row_index, column=10, value=total_mile)
+            sheet.cell(row=row_index, column=11, value=total_distance)
 
             sheet.cell(row=2, column=4, value='รวมกม.')
             sheet.cell(row=3, column=4, value='เลขไมล์เริ่ม - เลขไมล์สิ้นสุด')
@@ -8865,25 +8883,25 @@ def excelDailyCL(request):
                 rate = round(num, 2)
                 sheet.cell(row=4, column=6, value=f'{rate}')
 
-            sheet.cell(row=2, column=7, value='กม.')
-            sheet.cell(row=3, column=7, value='กม.')
-            sheet.cell(row=4, column=7, value='ลิตร/กม.')
+            sheet.cell(row=2, column=9, value='กม.')
+            sheet.cell(row=3, column=9, value='กม.')
+            sheet.cell(row=4, column=9, value='ลิตร/กม.')
 
-            for col in range(1, 13):  # columns 1 to 11 (A to K)
+            for col in range(1, 15):  # columns 1 to 11 (A to K)
                 col_letter = get_column_letter(col)
-                if col > 9:
+                if col > 11:
                     sheet.column_dimensions[col_letter].width = 40
                 else:
-                    sheet.column_dimensions[col_letter].width = 15
+                    sheet.column_dimensions[col_letter].width = 10
             
             # 2. Apply border to all cells from row 7 to last row (row_index)
             for row in range(7, row_index + 1):
-                for col in range(1, 13):
+                for col in range(1, 15):
                     cell = sheet.cell(row=row, column=col)
                     cell.border = thin_border
 
             # 3. Apply red font to the total row
-            for col in [1,2,3,4,5,6,8,9]:  # only columns with totals
+            for col in [1,2,3,4,5,6,7,8,10,11]:  # only columns with totals
                 sheet.cell(row=row_index, column=col).font = red_font
 
         workbook.remove(workbook['Sheet'])
@@ -9294,7 +9312,7 @@ def excelExpensesByCarLog(request):
 
 
     #data = CarLogbook.objects.filter(my_q)
-    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'))
+    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'), s_coolant = Sum('coolant'), s_DW_water = Sum('DW_water'))
 
     qs = CarLogbook.objects.filter(
         my_q,
@@ -9331,31 +9349,32 @@ def excelExpensesByCarLog(request):
         sheet.cell(row=3, column=1, value='')
 
         row = []
-        row.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
+        row.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
         row.extend(['จำนวนชั่วโมงทำงาน' for dept in exd_all])
         row.extend(['รวม'])
         sheet.append(row)
 
         row2 = []
-        row2.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'อะไหล่ + ค่าซ่อม'])
+        row2.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'น้ำยาหม้อน้ำ', 'น้ำกลั่น', 'อะไหล่ + ค่าซ่อม'])
         row2.extend([dept['name'] for dept in exd_all])
         row2.extend(['รวม'])
         sheet.append(row2)
 
-        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10 + len(exd_all))
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=14 + len(exd_all))
         sheet.cell(row=1, column=1).alignment = Alignment(horizontal='center')
-        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=10 + len(exd_all))
+        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=14 + len(exd_all))
         sheet.cell(row=2, column=1).alignment = Alignment(horizontal='center')
         sheet.merge_cells(f'A4:A5')
         sheet.merge_cells(f'B4:B5')
         sheet.merge_cells(f'C4:C5')
-        sheet.merge_cells(f'D4:H4')
-        sheet.merge_cells(f'I4:I5')
-        sheet.merge_cells(start_row=4, start_column=10, end_row=4, end_column=10 + len(exd_all))
+        sheet.merge_cells(f'D4:J4')
+        sheet.merge_cells(f'K4:K5')
+
+        sheet.merge_cells(start_row=4, start_column=12, end_row=4, end_column=12 + len(exd_all))
 
         for idx, car in enumerate(data, start=1):
             row3 = []
-            row3.extend([idx, car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease']])
+            row3.extend([idx, car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease'], car['s_coolant'], car['s_DW_water']])
             
             #ใบจ่ายสินค้าภายใน - จ่ายอะไหล่ 
             l_iv = list(
@@ -9441,14 +9460,14 @@ def excelExpensesByCarLog(request):
             row3.append(format_duration(total_diff))    
             sheet.append(row3)
 
-        col_index = 11 + len(exd_all)
+        col_index = 13 + len(exd_all)
         row_index = 4 + len(data)
         for col in range(1, col_index):  # columns 1 to 11 (A to K)
             col_letter = get_column_letter(col)
-            if col > 8:
+            if col > 10:
                 sheet.column_dimensions[col_letter].width = 20
             else:
-                sheet.column_dimensions[col_letter].width = 15
+                sheet.column_dimensions[col_letter].width = 10
             
         # 2. Apply border to all cells from row 7 to last row (row_index)
         for row in range(4, row_index + 2):
