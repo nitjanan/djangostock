@@ -740,7 +740,7 @@ class CarLogbookForm(forms.ModelForm):
         }
 
 class RoiCarLogbookForm(forms.ModelForm):
-    def __init__(self,request,*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         super (RoiCarLogbookForm,self).__init__(*args,**kwargs)
         self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 

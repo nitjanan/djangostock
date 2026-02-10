@@ -9017,6 +9017,35 @@ def createCL(request):
     return render(request, "carLogbook/createCL.html", context)
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def editCLRoi(request, cl_id):
+    active = request.session['company_code']
+    cl = CarLogbook.objects.get(id=cl_id)
+
+    if request.method == 'POST':
+        form = RoiCarLogbookForm(
+            request.POST,
+            request.FILES,
+            instance=cl
+        )
+        if form.is_valid():
+            new_contact = form.save()
+            return redirect('viewCL')
+    else:
+        # ✅ ต้องส่ง request ด้วย
+        form = RoiCarLogbookForm(instance=cl)
+
+    context = {
+        'form': form,
+        'cl_page': "tab-active",
+        'cl_show': "show",
+        'cl_data': cl,
+        active: "active show",
+        "disableTab": "disableTab",
+        "colorNav": "disableNav"
+    }
+    return render(request, "carLogbook/editCLRoi.html", context)
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def editCL(request, cl_id):
     active = request.session['company_code']
     cl = CarLogbook.objects.get(id=cl_id)
@@ -9072,9 +9101,9 @@ def createCLRoi(request):
     active = company.code
     
     try:
-        form = RoiCarLogbookForm(request, request.POST or None, initial={'branch_company': company, 'name': request.user, 'car': ucd.car})
+        form = RoiCarLogbookForm(request.POST or None, initial={'branch_company': company, 'name': request.user, 'car': ucd.car})
         if form.is_valid():
-            form = RoiCarLogbookForm(request, request.POST or None, request.FILES)
+            form = RoiCarLogbookForm(request.POST or None, request.FILES)
             new_contact = form.save(commit=False)
             new_contact.save()
 
