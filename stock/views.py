@@ -9426,7 +9426,7 @@ def excelExpensesByCarLog(request):
                 docnum__in=l_iv
             ).aggregate(
                 sum_other=Sum(Case(
-                    When(stktyp ='อะไหล่', then='trnval'),
+                    When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
                     output_field=models.DecimalField()
                 ))
             )['sum_other'] or Decimal(0) 
@@ -9508,6 +9508,8 @@ def excelExpensesByCarLog(request):
             for col in range(1, col_index):
                 cell = sheet.cell(row=row, column=col)
                 cell.border = thin_border
+                if isinstance(cell.value, (int, float, Decimal)) and col != 1:
+                    cell.number_format = '#,##0.00'
                 if row == 4 or row == 5:
                     cell.alignment = Alignment(horizontal='center')
     else:
