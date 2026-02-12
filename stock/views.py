@@ -71,7 +71,7 @@ from .tokens import create_jwt_pair_for_user
 from stock.serializers import SignUpSerializer, PurchaseOrderSerializer, PurchaseOrderItemSerializer, BaseCarSerializer, UserCarDepartmentSerializer
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, Exists
 from django.utils import timezone
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -92,6 +92,7 @@ from django.core.files import File
 from PIL import Image, ImageDraw, ImageOps
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
+from dateutil.rrule import rrule, MONTHLY
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
@@ -6983,7 +6984,7 @@ def exportExcelByIVExpense(request):
             output_field=models.DecimalField()
         )),
         sum_other=Sum(Case(
-            When(stktyp ='อะไหล่', then='trnval'),
+            When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
             output_field=models.DecimalField()
         ))
     ).order_by('depcod')
@@ -7033,7 +7034,7 @@ def exportExcelByIVExpense(request):
             output_field=models.DecimalField()
         )),
         sum_other=Sum(Case(
-            When(stktyp ='อะไหล่', then='trnval'),
+            When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
             output_field=models.DecimalField()
         ))
     ).order_by('cusnam')
@@ -7502,16 +7503,193 @@ def exportToExcelAllExpensesRegistration(request):
     my_q &=Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code)
 
     if isinstance(start_created, str):
-        date_start = datetime.datetime.strptime(start_created, '%Y-%m-%d').date()
+        start_created = datetime.datetime.strptime(start_created, '%Y-%m-%d').date()
 
     if isinstance(end_created, str):
-        date_end = datetime.datetime.strptime(end_created, '%Y-%m-%d').date()
+        end_created = datetime.datetime.strptime(end_created, '%Y-%m-%d').date()
 
-    # Generate (month, year) pairs within the selected range
+    # Get valid docnum from NH by date range
+    valid_docs = ExOESTNH.objects.using('pg_db').filter(
+        comcod=b_com.affiliated.name,
+        docdat__range=(start_created, end_created)
+    ).filter(
+        Q(docnum__startswith=b_com.invoice_code) |
+        Q(docnum__startswith=b_com.oi_invoice_code)
+    ).values_list('docnum', flat=True)
+
+    if not valid_docs.exists():
+        return HttpResponse("No data to export.")
+
+    # Query ND only once
+    docdat_subquery = ExOESTNH.objects.using('pg_db').filter(
+        docnum=OuterRef('docnum'),
+        comcod=OuterRef('comcod')
+    ).values('docdat')[:1]
+
+    iv = ExOESTND.objects.using('pg_db').filter(
+        docnum__in=valid_docs,
+        comcod=b_com.affiliated.name
+    ).annotate(
+        docdat=Subquery(docdat_subquery)
+    ).annotate(
+        year=ExtractYear('docdat'),
+        month=ExtractMonth('docdat')
+    ).annotate(
+        month_year=Concat(
+            Cast('month', models.CharField()),
+            Value('-'),
+            Cast('year', models.CharField()),
+            output_field=models.CharField()
+        )
+    ).values(
+        'stkdes',
+        'month_year',
+        'year',
+        'month'
+    ).annotate(
+        oil_lir=Sum(Case(
+            When(stktyp='น้ำมันดีเซล', then='ordqty'),
+            output_field=models.DecimalField()
+        )),
+        oil_amount=Sum(Case(
+            When(stktyp='น้ำมันดีเซล', then='trnval'),
+            output_field=models.DecimalField()
+        )),
+        eg_o_oil_lir=Sum(Case(
+            When(stktyp='น้ำมันหล่อลื่น', then='ordqty'),
+            output_field=models.DecimalField()
+        )),
+        eg_o_amount=Sum(Case(
+            When(stktyp='น้ำมันหล่อลื่น', then='trnval'),
+            output_field=models.DecimalField()
+        )),
+        sum_other=Sum(Case(
+            When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
+            output_field=models.DecimalField()
+        ))
+    ).order_by('stkdes', 'year', 'month')
+
+    # Prepare month range
     month_year_range = [
-        (dt.month, dt.year) for dt in rrule(MONTHLY, dtstart=date_start, until=date_end)
+        (dt.month, dt.year)
+        for dt in rrule(MONTHLY, dtstart=start_created, until=end_created)
     ]
 
+    thai_months = {
+        1: "ม.ค.", 2: "ก.พ.", 3: "มี.ค.", 4: "เม.ย.",
+        5: "พ.ค.", 6: "มิ.ย.", 7: "ก.ค.", 8: "ส.ค.",
+        9: "ก.ย.", 10: "ต.ค.", 11: "พ.ย.", 12: "ธ.ค."
+    }
+
+    # Create Excel
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+
+    headers1 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + [
+        f"{thai_months[m]} {y}"
+        for m, y in month_year_range
+        for _ in range(5)
+    ]
+    sheet.append(headers1)
+
+    headers2 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + \
+            ['น้ำมันดีเซล', 'น้ำมันดีเซล',
+                'น้ำมันหล่อลื่น', 'น้ำมันหล่อลื่น',
+                'ค่าอะไหล่+'] * len(month_year_range)
+    sheet.append(headers2)
+
+    headers3 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + \
+            ['ลิตร', 'บาท', 'ลิตร', 'บาท', 'บาท'] * len(month_year_range)
+    sheet.append(headers3)
+
+    # Merge Header (ทำครั้งเดียว)
+    count = 3
+    for i in range(len(month_year_range)):
+        sheet.merge_cells(start_row=1, start_column=1+count, end_row=1, end_column=5+count)
+        sheet.merge_cells(start_row=2, start_column=1+count, end_row=2, end_column=2+count)
+        sheet.merge_cells(start_row=2, start_column=3+count, end_row=2, end_column=4+count)
+        count += 5
+
+    sheet.merge_cells('A1:A3')
+    sheet.merge_cells('B1:B3')
+    sheet.merge_cells('C1:C3')
+
+    # Map data
+    data_map = {}
+    for row in iv:
+        key = row['stkdes']
+        month_key = (row['month'], row['year'])
+
+        if key not in data_map:
+            data_map[key] = {}
+
+        data_map[key][month_key] = row
+
+    # Write data rows
+    for index, (car, months) in enumerate(data_map.items(), start=1):
+
+        try:
+            car_name, car_code = car.split(":")
+        except:
+            car_code = ''
+            car_name = car
+    
+        row_data = [index, car_code, car_name]
+
+        for m, y in month_year_range:
+            r = months.get((m, y), {})
+
+            row_data.extend([
+                r.get('oil_lir', 0),
+                r.get('oil_amount', 0),
+                r.get('eg_o_oil_lir', 0),
+                r.get('eg_o_amount', 0),
+                r.get('sum_other', 0),
+            ])
+
+        sheet.append(row_data)
+
+    #คำนวนรวมทั้งสิ้น
+    column_index = sheet.max_column + 1
+    row_index = sheet.max_row + 1
+
+    sheet.cell(row=row_index, column=1, value='รวมทั้งสิ้น')
+    sum_by_col = Decimal('0.00')
+
+    for col in range(4, column_index):
+        for row in range(4, row_index):
+            sum_by_col = sum_by_col + Decimal( sheet.cell(row=row, column=col).value or '0.00' )
+        sheet.cell(row=row_index, column=col, value=sum_by_col).number_format = '#,##0.00'
+        sheet.cell(row=row_index, column=col).font = Font(bold=True)
+        sum_by_col = Decimal('0.00')
+
+    # ===== Sum by row (เฉพาะเงิน → คอลัมน์เดียว) =====
+    start_row = 4
+    end_row = sheet.max_row
+    start_col = 4
+    cols_per_month = 5
+    month_count = len(month_year_range)
+
+    total_col = sheet.max_column + 1
+
+    sheet.cell(row=1, column=total_col, value='รวมเงิน')
+    sheet.cell(row=2, column=total_col, value='รวมเงิน')
+    sheet.cell(row=3, column=total_col, value='บาท')
+    sheet.merge_cells(start_row=1, start_column=total_col, end_row=2, end_column=total_col)
+
+    for r in range(start_row, end_row + 1):
+        total_money = Decimal('0')
+        for i in range(month_count):
+            base = start_col + (i * cols_per_month)
+            total_money += Decimal(sheet.cell(r, base + 1).value or 0)
+            total_money += Decimal(sheet.cell(r, base + 3).value or 0)
+            total_money += Decimal(sheet.cell(r, base + 4).value or 0)
+
+        cell = sheet.cell(row=r, column=total_col, value=total_money)
+        cell.number_format = '#,##0.00'
+        cell.font = Font(bold=True)
+
+    # Format (border + number format)
     thin_border = Border(
         left=Side(style='thin'),
         right=Side(style='thin'),
@@ -7519,200 +7697,27 @@ def exportToExcelAllExpensesRegistration(request):
         bottom=Side(style='thin')
     )
 
-    thai_months = {
-        "1": "ม.ค.", "2": "ก.พ.", "3": "มี.ค.", "4": "เม.ย.",
-        "5": "พ.ค.", "6": "มิ.ย.", "7": "ก.ค.", "8": "ส.ค.",
-        "9": "ก.ย.", "10": "ต.ค.", "11": "พ.ย.", "12": "ธ.ค."
-    }
+    for col_idx in range(1, sheet.max_column + 1):
 
-    all_car = ExOESTNH.objects.using('pg_db').filter(
-       my_q
-    ).values('remark').distinct().order_by('remark')
+        column_letter = get_column_letter(col_idx)
 
-    docdat_subquery = ExOESTNH.objects.using('pg_db').filter(
-        my_q
-    ).filter(
-        docnum=OuterRef('docnum'),
-        comcod=OuterRef('comcod'),
-    ).values('docdat')[:1]
+        for row in range(1, sheet.max_row + 1):
+            cell = sheet.cell(row=row, column=col_idx)
 
-    if not all_car.exists():
-        return HttpResponse("No data to export.")
+            cell.border = thin_border
 
-    # Create Excel workbook
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
+            if cell.value == 0:
+                cell.value = None
+            elif isinstance(cell.value, (int, float, Decimal)) and col_idx != 1:
+                cell.number_format = '#,##0.00'
 
-    # Generate dynamic headers
-    headers1 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + [
-        f"{thai_months[str(m)]} {y}" for m, y in month_year_range for _ in range(5)
-    ]
-    sheet.append(headers1)
+        if column_letter == 'C':
+            sheet.column_dimensions[column_letter].width = 25
+        else:
+            sheet.column_dimensions[column_letter].width = 14
 
-    headers2 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['น้ำมันดีเซล', 'น้ำมันดีเซล', 'น้ำมันหล่อลื่น', 'น้ำมันหล่อลื่น', 'ค่าอะไหล่+'] * len(month_year_range)
-    sheet.append(headers2)
-
-    headers3 = ['ลำดับ', 'รหัส', 'ทะเบียนรถ/เครื่องจักร'] + ['ลิตร', 'บาท', 'ลิตร.', 'บาท.', 'ค่าแรง'] * len(month_year_range)
-    sheet.append(headers3)
-
-    sheet.merge_cells('A1:A3')
-    sheet.merge_cells('B1:B3')
-    sheet.merge_cells('C1:C3')
-
-    if all_car:
-        for index, car in enumerate(all_car, start=1):
-            iv = ExOESTND.objects.using('pg_db').filter(
-                Q(docnum__startswith=b_com.invoice_code) | Q(docnum__startswith=b_com.oi_invoice_code),
-                comcod=b_com.affiliated.name,
-                stkdes=car['remark']
-            ).annotate(
-                docdat=Subquery(docdat_subquery)
-            ).values('docdat').annotate(
-                year=ExtractYear('docdat'),
-                month=ExtractMonth('docdat'),
-            ).annotate(
-                month_year=Concat(
-                    Cast('month', models.CharField()),
-                    Value('-'),
-                    Cast('year', models.CharField()),
-                    output_field=models.CharField()
-                )
-            ).values('month_year', 'year', 'month').annotate(
-                sum_amount=Sum('trnval'),
-                oil_lir=Sum(Case(
-                    When(stktyp ='น้ำมันดีเซล', then='ordqty'),
-                    output_field=models.DecimalField()
-                )),
-                eg_o_amount=Sum(Case(
-                    When(stktyp ='น้ำมันหล่อลื่น', then='trnval'),
-                    output_field=models.DecimalField()
-                )),
-                eg_o_oil_lir=Sum(Case(
-                    When(stktyp ='น้ำมันหล่อลื่น', then='ordqty'),
-                    output_field=models.DecimalField()
-                )),
-                oil_amount=Sum(Case(
-                    When(stktyp ='น้ำมันดีเซล', then='trnval'),
-                    output_field=models.DecimalField()
-                )),
-                sum_other=Sum(Case(
-                    When(stktyp ='อะไหล่', then='trnval'),
-                    output_field=models.DecimalField()
-                ))
-            ).order_by('year', 'month')
-
-            iv = [item for item in iv if item['month'] is not None and item['year'] is not None]
-            iv.sort(key=itemgetter('year', 'month'))
-
-            sum_dict = defaultdict(Decimal)
-            sum_oil_l_dict = defaultdict(Decimal)
-            sum_oil_a_dict = defaultdict(Decimal)
-            sum_eg_l_dict = defaultdict(Decimal)
-            sum_eg_a_dict = defaultdict(Decimal)
-            
-
-            for key, group in groupby(iv, key=itemgetter('month', 'year')):
-                for item in group:
-                    sum_dict[key] += item['sum_other'] or Decimal('0')
-                    sum_oil_l_dict[key] += item['oil_lir'] or Decimal('0')
-                    sum_oil_a_dict[key] += item['oil_amount'] or Decimal('0')
-                    sum_eg_l_dict[key] += item['eg_o_oil_lir'] or Decimal('0')
-                    sum_eg_a_dict[key] += item['eg_o_amount'] or Decimal('0')
-
-            try:
-                car_name, car_code = car['remark'].split(":")
-            except:
-                car_code = ''
-                car_name = car['remark']
-
-            row1 = [index, car_code, car_name] + [
-                val for m, y in month_year_range for val in (
-                    sum_oil_l_dict.get((m, y), ''),
-                    sum_oil_a_dict.get((m, y), ''),
-                    sum_eg_l_dict.get((m, y), ''),
-                    sum_eg_a_dict.get((m, y), ''),
-                    sum_dict.get((m, y), ''),
-                )
-            ]
-            sheet.append(row1)
-
-        #merge_cells เดือนเดียวกัน
-        count = 3
-        for i in range(len(month_year_range)):
-            #merge_cells เดือนเดียวกัน
-            sheet.merge_cells(start_row = 1, start_column = 1 + count, end_row = 1, end_column = 5 + count)
-            #merge_cells น้ำมันดีเซล
-            sheet.merge_cells(start_row = 2, start_column = 1 + count, end_row = 2, end_column = 2 + count)
-            #merge_cells น้ำมันหล่อลื่น
-            sheet.merge_cells(start_row = 2, start_column = 3 + count, end_row = 2, end_column = 4 + count)
-            count = count + 5
-
-
-        #คำนวนรวมทั้งสิ้น
-        column_index = sheet.max_column + 1
-        row_index = sheet.max_row + 1
-
-        sheet.cell(row=row_index, column=1, value='รวมทั้งสิ้น')
-        sum_by_col = Decimal('0.00')
-
-        for col in range(4, column_index):
-            for row in range(4, row_index):
-                sum_by_col = sum_by_col + Decimal( sheet.cell(row=row, column=col).value or '0.00' )
-            sheet.cell(row=row_index, column=col, value=sum_by_col).number_format = '#,##0.00'
-            sheet.cell(row=row_index, column=col).font = Font(bold=True)
-            sum_by_col = Decimal('0.00')
-        
-        # ===== Sum by row (เฉพาะเงิน → คอลัมน์เดียว) =====
-        start_row = 4
-        end_row = sheet.max_row
-        start_col = 4
-        cols_per_month = 5
-        month_count = len(month_year_range)
-
-        total_col = sheet.max_column + 1
-
-        sheet.cell(row=1, column=total_col, value='รวมเงิน')
-        sheet.cell(row=2, column=total_col, value='รวมเงิน')
-        sheet.cell(row=3, column=total_col, value='บาท')
-        sheet.merge_cells(start_row=1, start_column=total_col, end_row=2, end_column=total_col)
-
-        for r in range(start_row, end_row + 1):
-            total_money = Decimal('0')
-            for i in range(month_count):
-                base = start_col + (i * cols_per_month)
-                total_money += Decimal(sheet.cell(r, base + 1).value or 0)
-                total_money += Decimal(sheet.cell(r, base + 3).value or 0)
-                total_money += Decimal(sheet.cell(r, base + 4).value or 0)
-
-            cell = sheet.cell(row=r, column=total_col, value=total_money)
-            cell.number_format = '#,##0.00'
-            cell.font = Font(bold=True)
-
-        # Set column widths , number format and กรอบ
-        for column_cells in sheet.columns:
-            max_length = 0
-            column = column_cells[3].column_letter
-            for cell in column_cells:
-                cell.border = thin_border
-                try:
-                    if cell.value == Decimal('0') :
-                        cell.value = ''
-                    if isinstance(cell.value, Decimal):
-                        cell.number_format = '#,##0.00'
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
-            adjusted_width = 14
-            if column == 'C':
-                sheet.column_dimensions[column].width = 25
-            else:
-                sheet.column_dimensions[column].width = adjusted_width
-            sheet.column_dimensions[column].height = 20
-
+        # Freeze header
         sheet.freeze_panes = "D4"
-    else:
-        sheet.cell(row = 1, column = 1, value = f'ไม่มีข้อมูลรายงานสรุปค่าใช่จ่ายทะเบียนรถทั้งหมด')
 
     output = BytesIO()
     output.seek(0)
