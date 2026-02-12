@@ -1,4 +1,4 @@
-from django.db.models import fields, Q, Min, Max
+from django.db.models import fields, Q, Min, Max, Exists, OuterRef
 from django.db.models.fields import DateField
 from django.forms.widgets import DateInput, TextInput
 import django_filters
@@ -42,13 +42,29 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     requisition__name = django_filters.CharFilter(field_name="requisition__name__first_name", lookup_expr='icontains')
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    item_product_name = django_filters.CharFilter(
+        field_name="requisition__requisitionitem__product_name",
+        lookup_expr='icontains'
+    )
+    item_product_id = django_filters.CharFilter(
+        field_name="requisition__requisitionitem__product__id",
+        lookup_expr='icontains'
+    )
+    item_machine = django_filters.CharFilter(
+        field_name="requisition__machine",
+        lookup_expr='icontains'
+    )
+    item_rq_note = django_filters.CharFilter(
+        field_name="requisition__note",
+        lookup_expr='icontains'
+    )
 
     class Meta:
         model = PurchaseRequisition
         fields = ('id','requisition', 'requisition__name','requisition__section','requisition__urgency','created','purchase_user','purchase_status','approver_status', 'organizer')
 
-PurchaseRequisitionFilter.base_filters['id'].label = 'รหัส'
-PurchaseRequisitionFilter.base_filters['ref_no'].label = 'รหัส'
+PurchaseRequisitionFilter.base_filters['id'].label = 'รหัสใบขอซื้อ'
+PurchaseRequisitionFilter.base_filters['ref_no'].label = 'รหัสใบขอซื้อ'
 PurchaseRequisitionFilter.base_filters['purchase_user'].label = 'ชื่อผู้ขอซื้อ'
 PurchaseRequisitionFilter.base_filters['requisition'].label = 'รหัสใบขอเบิก'
 PurchaseRequisitionFilter.base_filters['requisition__name'].label = 'ชื่อผู้ขอเบิก'
@@ -59,6 +75,10 @@ PurchaseRequisitionFilter.base_filters['approver_status'].label = 'ผู้อ�
 PurchaseRequisitionFilter.base_filters['start_created'].label = 'วันที่ขอซื้อ'
 PurchaseRequisitionFilter.base_filters['end_created'].label = 'ถึง'
 PurchaseRequisitionFilter.base_filters['organizer'].label = 'เจ้าหน้าที่จัดซื้อ'
+PurchaseRequisitionFilter.base_filters['item_product_id'].label = 'รหัสสินค้า'
+PurchaseRequisitionFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
+PurchaseRequisitionFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน(ใบเบิก)'
+PurchaseRequisitionFilter.base_filters['item_rq_note'].label = 'หมายเหตุ/เหตุผล(ใบเบิก)'
 
 
 class PurchaseOrderFilter(django_filters.FilterSet):
@@ -66,6 +86,8 @@ class PurchaseOrderFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='startswith')
+    cp_ref_no = django_filters.CharFilter(field_name="cp__ref_no", lookup_expr='icontains')
+    pr_ref_no = django_filters.CharFilter(field_name="pr__ref_no", lookup_expr='icontains')
     item_machine = django_filters.CharFilter(
         field_name="purchaseorderitem__item__machine",
         lookup_expr='icontains'
@@ -74,6 +96,16 @@ class PurchaseOrderFilter(django_filters.FilterSet):
         field_name="purchaseorderitem__item__requisit__note",
         lookup_expr='icontains'
     )
+
+    item_product_name = django_filters.CharFilter(
+        field_name="purchaseorderitem__item__product_name",
+        lookup_expr='icontains'
+    )
+    item_product_id = django_filters.CharFilter(
+        field_name="purchaseorderitem__item__product__id",
+        lookup_expr='icontains'
+    )
+
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     amount_min  = django_filters.CharFilter(field_name="amount", lookup_expr='gte')
@@ -87,7 +119,7 @@ PurchaseOrderFilter.base_filters['id'].label = 'รหัส'
 PurchaseOrderFilter.base_filters['ref_no'].label = 'รหัส'
 PurchaseOrderFilter.base_filters['distributor'].label = 'ชื่อผู้จำหน่าย'
 PurchaseOrderFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน(ใบเบิก)'
-PurchaseOrderFilter.base_filters['item_rq_note'].label = 'หมายเหตุ/เหตุผล(ใบเบิก)'
+PurchaseOrderFilter.base_filters['item_rq_note'].label = 'หมายเหตุ(ใบเบิก)'
 PurchaseOrderFilter.base_filters['credit'].label = 'เครดิต'
 PurchaseOrderFilter.base_filters['shipping'].label = 'ขนส่งโดย'
 PurchaseOrderFilter.base_filters['start_created'].label = 'วันที่สั่งซื้อ'
@@ -96,6 +128,10 @@ PurchaseOrderFilter.base_filters['approver_status'].label = 'ผู้อนุ�
 PurchaseOrderFilter.base_filters['stockman_user'].label = 'ผู้สั่งสินค้า'
 PurchaseOrderFilter.base_filters['amount_min'].label = 'ราคา'
 PurchaseOrderFilter.base_filters['amount_max'].label = 'ถึง'
+PurchaseOrderFilter.base_filters['item_product_id'].label = 'รหัสสินค้า'
+PurchaseOrderFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
+PurchaseOrderFilter.base_filters['cp_ref_no'].label = 'รหัสใบเปรียบ'
+PurchaseOrderFilter.base_filters['pr_ref_no'].label = 'รหัสใบขอซื้อ'
 
 class PurchaseOrderItemFilter(django_filters.FilterSet):
     item_product_id_from  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='gte')
@@ -112,6 +148,8 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
     unit_price_max  = django_filters.CharFilter(field_name="unit_price", lookup_expr='lte')
     category = django_filters.ModelChoiceFilter(field_name="item__product__category__name", queryset= Category.objects.all())
     po_ref_no = django_filters.CharFilter(field_name="po__ref_no", lookup_expr='icontains')
+    cp_ref_no = django_filters.CharFilter(field_name="po__cp__ref_no", lookup_expr='icontains')
+    pr_ref_no = django_filters.CharFilter(field_name="po__pr__ref_no", lookup_expr='icontains')
 
     class Meta:
         model = PurchaseOrderItem
@@ -131,6 +169,8 @@ PurchaseOrderItemFilter.base_filters['unit_price_min'].label = 'ราคาต�
 PurchaseOrderItemFilter.base_filters['unit_price_max'].label = 'ถึง'
 PurchaseOrderItemFilter.base_filters['category'].label = 'หมวดหมู่สินค้า'
 PurchaseOrderItemFilter.base_filters['po_ref_no'].label = 'เลขที่ใบสั่ง'
+PurchaseOrderItemFilter.base_filters['cp_ref_no'].label = 'รหัสใบเปรียบ'
+PurchaseOrderItemFilter.base_filters['pr_ref_no'].label = 'รหัสใบขอซื้อ'
 
 class ComparisonPriceFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
@@ -141,6 +181,19 @@ class ComparisonPriceFilter(django_filters.FilterSet):
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     unit_price_min = django_filters.NumberFilter(method='filter_price_min')
     unit_price_max = django_filters.NumberFilter(method='filter_price_max')
+    # Filter จาก Product.name
+    item_product_name = django_filters.CharFilter(
+        method='filter_item_product_name'
+    )
+
+    # ถ้าจะ filter จาก Product.id
+    item_product_id = django_filters.CharFilter(
+        method='filter_item_product_id'
+    )
+
+    pr_ref_no = django_filters.CharFilter(
+        method='filter_pr_ref_no'
+    )
 
     class Meta:
         model = ComparisonPrice
@@ -162,6 +215,47 @@ class ComparisonPriceFilter(django_filters.FilterSet):
         return queryset.annotate(
             amount_max=Max('comparisonpricedistributor__amount')
         ).filter(amount_max__lte=value)
+    
+    def filter_item_product_name(self, queryset, name, value):
+
+        subquery = ComparisonPriceItem.objects.filter(
+            cp=OuterRef('id'),
+            item__product__name__icontains=value
+        )
+
+        return queryset.annotate(
+            has_product=Exists(subquery)
+        ).filter(has_product=True)
+
+    def filter_item_product_id(self, queryset, name, value):
+
+        subquery = ComparisonPriceItem.objects.filter(
+            cp=OuterRef('id'),
+            item__product__id__icontains=value
+        )
+
+        return queryset.annotate(
+            has_product_id=Exists(subquery)
+        ).filter(has_product_id=True)
+    
+    def filter_pr_ref_no(self, queryset, name, value):
+
+        subquery = ComparisonPriceItem.objects.filter(
+            cp=OuterRef('id'),
+            item__requisit__pr_ref_no__icontains=value
+        )
+
+        return queryset.annotate(
+            has_pr=Exists(subquery)
+        ).filter(has_pr=True)
+
+
+    # -------------------------------------------------
+    # ป้องกันข้อมูลซ้ำ
+    # -------------------------------------------------
+    @property
+    def qs(self):
+        return super().qs.distinct()
 
 ComparisonPriceFilter.base_filters['id'].label = 'รหัส'
 ComparisonPriceFilter.base_filters['ref_no'].label = 'รหัส'
@@ -173,6 +267,9 @@ ComparisonPriceFilter.base_filters['examiner_status'].label = 'ผู้ตร�
 ComparisonPriceFilter.base_filters['select_bidder'].label = 'ร้านที่เลือก'
 ComparisonPriceFilter.base_filters['unit_price_min'].label = 'ราคาจาก'
 ComparisonPriceFilter.base_filters['unit_price_max'].label = 'ถึงราคา'
+ComparisonPriceFilter.base_filters['item_product_id'].label = 'รหัสสินค้า'
+ComparisonPriceFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
+ComparisonPriceFilter.base_filters['pr_ref_no'].label = 'รหัสใบขอซื้อ'
 
 class ReceiveFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
