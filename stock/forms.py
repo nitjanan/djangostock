@@ -550,10 +550,14 @@ class ProductAdminForm(forms.ModelForm):
         model = Product
         fields = '__all__'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['unit'].required = True   # ⭐ บังคับกรอกเฉพาะ admin
-        self.fields['unit'].label = 'หน่วยสินค้า'
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+
+        # ถ้าไม่มีสิทธิ์แก้ไขไม่ต้อง required
+        if not self.has_change_permission(request, obj):
+            form.base_fields['unit'].required = False
+        else:
+            form.base_fields['unit'].required = True
 
     def clean(self):
         cleaned_data = self.cleaned_data
