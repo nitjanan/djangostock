@@ -7396,7 +7396,7 @@ def exportToExcelRegistrationAndRepair(request):
             headers1 = [ car_name + " " + car_code ] + [f"{thai_months[str(m)]} {y}" for m, y in month_year_range]
             sheet.append(headers1)
 
-            headers2 = [''] + ['ค่าอะไหล่ + ค่าแรง'] * len(month_year_range)
+            headers2 = [''] + ['ค่าอะไหล่ + ค่าแรง + น้ำมันหล่อลื่น'] * len(month_year_range)
             sheet.append(headers2)
 
             sheet.merge_cells(f'A1:A2')
