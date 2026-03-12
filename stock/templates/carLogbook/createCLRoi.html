@@ -621,7 +621,7 @@
         let startVal = $('#' + id_start_mile).val();
         let endVal = $('#' + id_end_mile).val();
         if (startVal && endVal) {
-            if (startVal > endVal) {
+            if ( parseFloat(startVal) > parseFloat(endVal)) {
                 $('#' + id_end_mile).focus();
                 alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
                 return false;

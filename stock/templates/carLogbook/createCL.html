@@ -641,7 +641,7 @@
             event.preventDefault(); // Prevent form submission
             return false;
         }
-        if( $('#id_mile_end').val() < $('#id_mile_start').val()) {
+        if(parseFloat($('#id_mile_end').val()) < parseFloat($('#id_mile_start').val())) {
             $("#id_mile_end").focus();
             alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
 
