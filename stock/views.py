@@ -5571,6 +5571,7 @@ def exportExcelPO(request):
             'รับของวันที่': queryset.values_list('receive_update', flat=True),
             'เครดิต': queryset.values_list('credit__name', flat=True),
             'V': queryset.values_list('vat_type__id', flat=True),
+            'รวมส่วนลดสินค้า' : [PurchaseOrderItem.objects.filter(po=id).aggregate(s_d = Sum('discount'))['s_d'] for id in queryset.values_list('id', flat=True)],
             'ส่วนลดท้ายบิล': queryset.values_list('discount', flat=True),
             'มูลค่าสินค้า': queryset.values_list('total_after_discount', flat=True),
             'VAT.': queryset.values_list('vat', flat=True),
