@@ -178,6 +178,8 @@ urlpatterns = [
 
     path('report/purchaseOrderItem/export/excel/by/value', views.exportExcelSummaryByProductValue, name='exportExcelSummaryByProductValue'),
     path('report/purchaseOrderItem/export/excel/by/frequently', views.exportExcelSummaryByProductFrequently, name='exportExcelSummaryByProductFrequently'),
+    path('report/purchaseOrderItem/export/excel/by/distributor/frequently', views.exportExcelSummaryByDistributorFrequently, name='exportExcelSummaryByDistributorFrequently'),
+
     path('report/purchaseOrderItem/export/excel/by/expense', views.exportExcelByExpense, name='exportExcelByExpense'),
 
     path('invoice/',views.viewInvoice,name="viewInvoice"),

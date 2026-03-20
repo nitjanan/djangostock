@@ -72,7 +72,7 @@
     </form>
     <div class="row">
         <div class="col">
-          <button id="sp_download-btn" class="btn btn-success" style="position: relative; overflow: hidden;">
+          <button id="sp_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#32714B;color:white;">
             <span id="sp_btn-text">รายงานสรุปตามมูลค่าสินค้า <i class="fas fa-file-excel"></i></span>
               <div id="sp_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -82,12 +82,22 @@
                 0%
               </span>
           </button>
-          <button id="sf_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#5CB881;color:white;">
+          <button id="sf_download-btn" class="btn btn-success">
             <span id="sf_btn-text">รายงานสรุปตามจำนวนครั้งที่สั่งซื้อ <i class="fas fa-file-excel"></i>
               <div id="sf_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
                 background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
               <span id="sf_btn-percent" style="position: absolute; left: 50%; top: 50%; 
+                transform: translate(-50%, -50%); font-weight: bold; display: none;">
+                0%
+              </span>
+          </button>
+          <button id="df_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#5CB881;color:white;">
+            <span id="df_btn-text">รายงานสรุปตามร้านค้าที่ซื้อบ่อย <i class="fas fa-file-excel"></i>
+              <div id="df_btn-progress" 
+                style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
+                background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
+              <span id="df_btn-percent" style="position: absolute; left: 50%; top: 50%; 
                 transform: translate(-50%, -50%); font-weight: bold; display: none;">
                 0%
               </span>
@@ -266,6 +276,20 @@
     const queryString = "{{ request.GET.urlencode|escapejs }}";
     const py_url = "{% url 'exportExcelSummaryByProductFrequently' %}" + (queryString ? "?" + queryString : "");
     const file_name = "Report_Product_By_Frequently("+'{{ request.session.company_code }}'+").xls";
+
+	  const delay_time = 50;
+    progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
+  });
+
+  document.getElementById('df_download-btn').addEventListener('click', () => {
+    const btn = document.getElementById('df_download-btn');
+    const btnText = document.getElementById('df_btn-text');
+    const btnProgress = document.getElementById('df_btn-progress');
+    const btnPercent = document.getElementById('df_btn-percent');
+
+    const queryString = "{{ request.GET.urlencode|escapejs }}";
+    const py_url = "{% url 'exportExcelSummaryByDistributorFrequently' %}" + (queryString ? "?" + queryString : "");
+    const file_name = "Report_Distributor_By_Frequently("+'{{ request.session.company_code }}'+").xls";
 
 	  const delay_time = 50;
     progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)

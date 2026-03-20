@@ -9574,3 +9574,177 @@ def viewCLReport(request):
         "colorNav":"enableNav"
     }
     return render(request, "report/viewCL.html", context)
+
+
+def exportExcelSummaryByDistributorFrequently(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    output = BytesIO()
+
+    response = HttpResponse(
+        content_type='application/ms-excel'
+    )
+    response['Content-Disposition'] = f'attachment; filename=Report_Distributor_By_Frequently({active}).xls'
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('รายงานสรุปตามร้านค้าที่ซื้อบ่อย', cell_overwrite_ok=True)
+
+    # Header
+    row_num = 0
+    font_bold = xlwt.XFStyle()
+    font_bold.font.bold = True
+
+    columns = [
+        'รหัสร้านค้า',
+        'ชื่อร้านค้า',
+        'รวมส่วนลดสินค้า',
+        'รวมเป็นเงิน',
+        'ส่วนลดท้ายบิล',
+        'จำนวนเงินหลังหักส่วนลด',
+        'ค่าขนส่ง',
+        'ภาษีมูลค่าเพิ่ม 7%',
+        'รวมเป็นเงินทั้งสิ้น',
+        'จำนวนครั่งที่สั่งซื้อ'
+    ]
+
+    for col_num, col_name in enumerate(columns):
+        ws.write(row_num, col_num, col_name, font_bold)
+        ws.col(col_num).width = 256 *17
+
+    # Style
+    font_normal = xlwt.XFStyle()
+    decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
+    decimal_bold_style = xlwt.easyxf(
+        'font: bold on',
+        num_format_str='#,##0.00'
+    )
+
+    # ---------------- FILTER ----------------
+    item_product_id_from = request.GET.get('item_product_id_from') or None
+    item_product_id_to = request.GET.get('item_product_id_to') or None
+    item_product_name = request.GET.get('item_product_name') or None
+    item_machine = request.GET.get('item_machine') or None
+    item_rq_note = request.GET.get('item_rq_note') or None
+    distri_id = request.GET.get('distri_id') or None
+    distributor = request.GET.get('distributor') or None
+    stockman_user = request.GET.get('stockman_user') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+    unit_price_min = request.GET.get('unit_price_min') or None
+    unit_price_max = request.GET.get('unit_price_max') or None
+    category = request.GET.get('category') or None
+
+    my_q = Q()
+
+    # ใช้ purchaseorderitem__ (เพราะไม่มี related_name)
+    if item_product_id_from:
+        my_q &= Q(purchaseorderitem__item__product_id__gte=item_product_id_from)
+
+    if item_product_id_to:
+        my_q &= Q(purchaseorderitem__item__product_id__lte=item_product_id_to)
+
+    if item_product_name:
+        my_q &= Q(purchaseorderitem__item__product_name__icontains=item_product_name)
+
+    if stockman_user:
+        my_q &= Q(stockman_user=stockman_user)
+
+    if category:
+        my_q &= Q(purchaseorderitem__item__product__category=category)
+
+    if distri_id:
+        my_q &= Q(distributor__id__startswith=distri_id)
+
+    if distributor:
+        my_q &= Q(distributor__name__startswith=distributor)
+
+    if start_created:
+        my_q &= Q(created__gte=start_created)
+
+    if end_created:
+        my_q &= Q(created__lte=end_created)
+
+    if unit_price_min:
+        my_q &= Q(purchaseorderitem__unit_price__gte=unit_price_min)
+
+    if unit_price_max:
+        my_q &= Q(purchaseorderitem__unit_price__lte=unit_price_max)
+
+    if item_machine:
+        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
+
+    if item_rq_note:
+        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
+
+    # status
+    my_q &= Q(approver_status=2, is_cancel=False)
+
+    # permission
+    if not (is_view_report_all(request.user) and active == 'ALL'):
+        my_q &= Q(branch_company__code__in=company_in)
+
+    # ---------------- QUERY ----------------
+    qs = PurchaseOrder.objects.filter(my_q).distinct()  # 🔥 สำคัญ
+
+    rows = qs.values(
+        'distributor__id',
+        'distributor__name',
+    ).annotate(
+        s__product_discount=Sum('purchaseorderitem__discount'),
+        s_total_price=Sum('total_price'),
+        s_discount=Sum('discount'),
+        s_total_after_discount=Sum('total_after_discount'),
+        s_freight=Sum('freight'),
+        s_vat=Sum('vat'),
+        s_amount=Sum('amount'),
+        count=Count('id', distinct=True)
+    ).order_by('-count')
+
+    # total summary
+    total_data = qs.aggregate(
+        sum_product_discount = Sum('purchaseorderitem__discount'),
+        sum_total_price=Sum('total_price'),
+        sum_discount=Sum('discount'),
+        sum_total_after_discount=Sum('total_after_discount'),
+        sum_freight=Sum('freight'),
+        sum_vat=Sum('vat'),
+        sum_amount=Sum('amount')
+        )
+
+    sum_product_discount = total_data['sum_product_discount'] or 0
+    sum_total_price = total_data['sum_total_price'] or 0
+    sum_discount = total_data['sum_discount'] or 0
+    sum_total_after_discount = total_data['sum_total_after_discount'] or 0
+    sum_freight = total_data['sum_freight'] or 0
+    sum_vat = total_data['sum_vat'] or 0
+    sum_amount = total_data['sum_amount'] or 0
+
+    # ---------------- WRITE DATA ----------------
+    for row in rows:
+        row_num += 1
+
+        ws.write(row_num, 0, row['distributor__id'] or '', font_normal)
+        ws.write(row_num, 1, row['distributor__name'] or '', font_normal)
+        ws.write(row_num, 2, row['s__product_discount'] or 0, decimal_style)
+        ws.write(row_num, 3, row['s_total_price'] or 0, decimal_style)
+        ws.write(row_num, 4, row['s_discount'] or 0, decimal_style)
+        ws.write(row_num, 5, row['s_total_after_discount'] or 0, decimal_style)
+        ws.write(row_num, 6, row['s_freight'] or 0, decimal_style)
+        ws.write(row_num, 7, row['s_vat'] or 0, decimal_style)
+        ws.write(row_num, 8, row['s_amount'] or 0, decimal_style)
+        ws.write(row_num, 9, row['count'] or 0, font_normal)
+
+    # ---------------- FOOTER ----------------
+    row_num += 1
+    ws.write(row_num, 0, "รวมทั้งสิ้น", font_bold)
+    ws.write(row_num, 2, sum_product_discount, decimal_bold_style)
+    ws.write(row_num, 3, sum_total_price, decimal_bold_style)
+    ws.write(row_num, 4, sum_discount, decimal_bold_style)
+    ws.write(row_num, 5, sum_total_after_discount, decimal_bold_style)
+    ws.write(row_num, 6, sum_freight, decimal_bold_style)
+    ws.write(row_num, 7, sum_vat, decimal_bold_style)
+    ws.write(row_num, 8, sum_amount, decimal_bold_style)
+         
+    wb.save(response)
+    return response
