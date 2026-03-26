@@ -1742,7 +1742,7 @@ class Maintenance(models.Model):
     repair_note = models.TextField(blank=True, null = True, verbose_name="ช่างผู้ดำเนินการ")
     work_hour = models.IntegerField(null=True, blank = True, verbose_name="ชม.ทำงาน (ชม.)")
     force_day = models.IntegerField(null=True, blank = True, verbose_name="ใช้แรง (วัน)")
-    force_hour = models.IntegerField(null=True, blank = True, verbose_name="ใช้แรง (ชม.)")
+    force_hour = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank = True, verbose_name="ใช้แรง (ชม.)")
     #ส่วนที่ 3
     distributor = models.ForeignKey(Distributor,on_delete=models.CASCADE,null = True,blank = True)
     amount = models.DecimalField(max_digits=12, decimal_places=2, blank = True, null = True)#จำนวนเงินทั้งสิ้น
