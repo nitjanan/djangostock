@@ -1677,6 +1677,31 @@ class ExOEINVH(models.Model):
     def __str__(self):
         return f"{self.docnum} - {self.cuscod}"
 
+class ExAPTRNH(models.Model):
+    recordid = models.AutoField(primary_key=True)
+
+    docnum = models.CharField(max_length=12, null=True, blank=True)
+    refnum = models.CharField(max_length=15, null=True, blank=True)
+    ponum = models.CharField(max_length=12, null=True, blank=True)
+
+    docdat = models.DateField(null=True, blank=True)
+    duedat = models.DateField(null=True, blank=True)
+
+    comcod = models.CharField(max_length=10, null=True, blank=True)
+    class Meta:
+        db_table = 'APTRNH'
+        managed = False
+        unique_together = ('comcod', 'docnum')
+        indexes = [
+            models.Index(fields=['docnum'], name='APTRNH-ID1'),
+            models.Index(fields=['docdat'], name='APTRNH-ID2'),
+        ]
+        verbose_name = "APTRNH"
+        verbose_name_plural = "APTRNHs"
+
+    def __str__(self):
+        return f"{self.docnum} - {self.supnam}"
+
 class Maintenance(models.Model):
     id = models.AutoField(primary_key=True, verbose_name="รหัสการซ่อม")#เก็บไอดีรหัสการซ่อม
     uniq_code = models.CharField(max_length=10, blank = True, null = True)#UNIQUEID() ใน appsheet

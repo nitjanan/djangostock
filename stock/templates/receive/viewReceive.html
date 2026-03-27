@@ -44,6 +44,9 @@
       </div>
     <div class="card div-shadow">
         <div class="card-body">
+          {% if request.user.is_superuser %}
+            <a class="btn btn-success btn-block" href="{%url 'autoUploadeRecive' %}" role="button"><i class="fas fa-upload"></i> รับสินค้า auto</a>
+          {% endif %}
           <a class="btn btn-primary btn-block" href="{%url 'uploadReceive' %}" role="button"><i class="fas fa-upload"></i> รับสินค้า</a>
           <div class="table-responsive">
             <table class="table table-striped my-3">

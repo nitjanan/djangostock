@@ -145,6 +145,9 @@ urlpatterns = [
     path('receive/upload', views.uploadReceive,name="uploadReceive"),
     path('receive/confirmUpload', views.confirmUpload,name="confirmUpload"),
 
+    path('receive/auto/upload', views.autoUploadeRecive,name="autoUploadeRecive"),
+    path('receive/uploade_receive_3am', views.uploade_receive_3am,name="uploade_receive_3am"),
+
     path('receiveItem/edit/<int:rc_id>',views.editReceiveItem,name="editReceiveItem"),
 
     path('export/', views.export ,name="export"),

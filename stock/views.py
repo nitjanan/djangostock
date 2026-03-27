@@ -16,7 +16,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -9748,3 +9748,180 @@ def exportExcelSummaryByDistributorFrequently(request):
          
     wb.save(response)
     return response
+
+#button click auto uploade recive
+def autoUploadeRecive(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    all_po = PurchaseOrder.objects.filter(
+        approver_status_id=2,
+        is_receive=False,
+        is_cancel=False,
+        receive_update__isnull = True,
+        branch_company__code=active
+    ).values_list('ref_no', flat=True)
+
+    for po_ref_no in all_po:
+        try:
+            rc = ExAPTRNH.objects.using('pg_db').filter(ponum = po_ref_no).order_by('docdat').first()
+
+            if rc:
+                po = PurchaseOrder.objects.get(ref_no = rc.ponum)
+                po.is_receive = True
+                po.receive_update = rc.docdat
+                po.save()
+
+                # -------- Rate Distributor --------
+                try:
+                    rd = RateDistributor.objects.filter(po=po).order_by('-id').first()
+
+                    if rd:
+                        if years_between(po.due_receive_update, rc.docdat) > 500:
+                            durationRate = calculateDurationRate(
+                                convertDateBEtoBC(str(rc.docdat)),
+                                po.due_receive_update
+                            )
+                        else:
+                            durationRate = calculateDurationRate(
+                                rc.docdat,
+                                po.due_receive_update
+                            )
+
+                        if all([
+                            rd.price_rate,
+                            rd.quantity_rate,
+                            durationRate,
+                            rd.service_rate,
+                            rd.safety_rate
+                        ]):
+                            totalRate = calculateTotalRate(
+                                rd.price_rate,
+                                rd.quantity_rate,
+                                durationRate,
+                                rd.service_rate,
+                                rd.safety_rate
+                            )
+
+                            grade_rate = calculateGradeRate(totalRate)
+
+                            rd.duration_rate = durationRate
+                            rd.total_rate = totalRate
+                            rd.grade_id = grade_rate
+                            rd.save()
+
+                except Exception:
+                    pass
+
+            # -------- PO ITEM --------
+            try:
+                po_items = PurchaseOrderItem.objects.filter(po__ref_no=rc.ponum)
+
+                for i in po_items:
+                    i.is_receive = True
+                    i.save()
+
+                    try:
+                        item = RequisitionItem.objects.get(id=i.item_id)
+                        item.is_receive = True
+                        item.save()
+                    except RequisitionItem.DoesNotExist:
+                        pass
+
+            except Exception:
+                pass
+
+        except ExAPTRNH.DoesNotExist:
+            pass
+        
+    return redirect('viewReceive')
+
+
+#old send_1pm_summary อันใหม่เปลี่ยนเป็น url
+def uploade_receive_3am(request):
+    comp_all  = BaseBranchCompany.objects.all()
+    three_months_ago = timezone.now() - timedelta(days=90)
+
+    for comp in comp_all:
+        all_po = PurchaseOrder.objects.filter(
+            approver_status_id=2,
+            is_receive=False,
+            is_cancel=False,
+            receive_update__isnull=True,
+            branch_company=comp,
+            created__gte=three_months_ago
+        ).values_list('ref_no', flat=True)
+
+        for po_ref_no in all_po:
+            try:
+                rc = ExAPTRNH.objects.using('pg_db').filter(ponum = po_ref_no).order_by('docdat').first()
+
+                if rc:
+                    po = PurchaseOrder.objects.get(ref_no = rc.ponum)
+                    po.is_receive = True
+                    po.receive_update = rc.docdat
+                    po.save()
+
+                    # -------- Rate Distributor --------
+                    try:
+                        rd = RateDistributor.objects.filter(po=po).order_by('-id').first()
+
+                        if rd:
+                            if years_between(po.due_receive_update, rc.docdat) > 500:
+                                durationRate = calculateDurationRate(
+                                    convertDateBEtoBC(str(rc.docdat)),
+                                    po.due_receive_update
+                                )
+                            else:
+                                durationRate = calculateDurationRate(
+                                    rc.docdat,
+                                    po.due_receive_update
+                                )
+
+                            if all([
+                                rd.price_rate,
+                                rd.quantity_rate,
+                                durationRate,
+                                rd.service_rate,
+                                rd.safety_rate
+                            ]):
+                                totalRate = calculateTotalRate(
+                                    rd.price_rate,
+                                    rd.quantity_rate,
+                                    durationRate,
+                                    rd.service_rate,
+                                    rd.safety_rate
+                                )
+
+                                grade_rate = calculateGradeRate(totalRate)
+
+                                rd.duration_rate = durationRate
+                                rd.total_rate = totalRate
+                                rd.grade_id = grade_rate
+                                rd.save()
+
+                    except Exception:
+                        pass
+
+                # -------- PO ITEM --------
+                try:
+                    po_items = PurchaseOrderItem.objects.filter(po__ref_no=rc.ponum)
+
+                    for i in po_items:
+                        i.is_receive = True
+                        i.save()
+
+                        try:
+                            item = RequisitionItem.objects.get(id=i.item_id)
+                            item.is_receive = True
+                            item.save()
+                        except RequisitionItem.DoesNotExist:
+                            pass
+
+                except Exception:
+                    pass
+
+            except ExAPTRNH.DoesNotExist:
+                pass
+
+    return HttpResponse("3AM sent upload receive (or skipped).")
