@@ -172,6 +172,7 @@ urlpatterns = [
     path('report/purchaseOrder/item',views.viewPOItemReport,name="viewPOItemReport"),
     path('report/RateDistributor/',views.viewRateDistributorReport,name="viewRateDistributorReport"),
     path('report/carLogBook/',views.viewCLReport,name="viewCLReport"),
+    path('report/purchaseOrder/approve/export/excel', views.exportExcelApprovePO, name='exportExcelApprovePO'),
 
     path('report/purchaseOrderToExpress/export/excel', views.exportExcelPOToExpress, name='exportExcelPOToExpress'),
     path('report/invoiceToExpress/export/excel', views.exportExcelIVToExpress, name='exportExcelIVToExpress'),

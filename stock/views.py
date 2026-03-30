@@ -1976,6 +1976,10 @@ def is_change_car_ma(user):
 def is_re_pr(user):
     return user.groups.filter(name='rePR').exists()
 
+#ถ้ามีสิทธิดูรายงาน po approve
+def is_po_approve_report(user):
+    return user.groups.filter(name='PoApprove').exists()
+
 def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
     return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
@@ -5075,6 +5079,7 @@ def viewPOReport(request):
     context = {
         'pos':dataPage,
         'filter':myFilter,
+        'is_po_approve_report': is_po_approve_report(request.user),
         'prs':prs,
         'rp_po_page': "tab-active",
         'rp_po_show': "show",
@@ -9925,3 +9930,238 @@ def uploade_receive_3am(request):
                 pass
 
     return HttpResponse("3AM sent upload receive (or skipped).")
+
+# return date or datetime
+def naive(value):
+    if value is None:
+        return None
+
+    # ถ้าเป็น datetime (มีเวลา)
+    if isinstance(value, datetime.datetime):
+        return timezone.make_naive(value)
+
+    # ถ้าเป็น date (ไม่มีเวลา) → ใช้ได้เลย
+    if isinstance(value, datetime.date):
+        return value
+
+    return value
+
+def exportExcelApprovePO(request):
+    active = request.session['company_code']
+    company_in = findCompanyIn(request)
+
+    stockman_user = request.GET.get('stockman_user') or None
+    ref_no = request.GET.get('ref_no') or None
+    distributor = request.GET.get('distributor') or None
+    amount_min = request.GET.get('amount_min') or None
+    amount_max = request.GET.get('amount_max') or None
+    start_created = request.GET.get('start_created') or None
+    end_created = request.GET.get('end_created') or None
+    item_machine = request.GET.get('item_machine') or None
+    item_rq_note = request.GET.get('item_rq_note') or None
+
+    my_q = Q()
+    if stockman_user is not None:
+        my_q = Q(stockman_user = stockman_user)
+    if ref_no is not None:
+        my_q &= Q(ref_no__icontains = ref_no)
+    if distributor is not None:
+        my_q &= Q(distributor__name__startswith = distributor)
+    if start_created is not None:
+        my_q &= Q(created__gte = start_created)
+    if end_created is not None:
+        my_q &=Q(created__lte = end_created)
+    if amount_min is not None:
+        my_q &= Q(amount__gte = amount_min)
+    if amount_max is not None :
+        my_q &=Q(amount__lte = amount_max)
+    if item_machine is not None:
+        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
+    if item_rq_note is not None:
+        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
+    
+    my_q &=Q(approver_status = 2, is_cancel = False)
+
+    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    if  is_view_report_all(request.user) and active == 'ALL':
+        pass
+    else:
+        my_q &=Q(branch_company__code__in = company_in)
+
+    queryset = PurchaseOrder.objects.filter(my_q).distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
+    if not queryset.exists():
+        return HttpResponse("No data to export.")
+
+
+    # ดึง PO หลัก
+    po_qs = queryset.annotate(
+        pc_fullname=Concat(
+            'stockman_user__first_name',
+            Value(' '),
+            'stockman_user__last_name'
+        ),
+        po_aprover=Concat(
+            'approver_user__first_name',
+            Value(' '),
+            'approver_user__last_name'
+        ),
+        cp_examiner=Concat(
+            'cp__examiner_user__first_name',
+            Value(' '),
+            'cp__examiner_user__last_name'
+        ),
+
+        cp_aprover=Concat(
+            'cp__approver_user__first_name',
+            Value(' '),
+            'cp__approver_user__last_name'
+        ),
+
+        cp_special=Concat(
+            'cp__special_approver_user__first_name',
+            Value(' '),
+            'cp__special_approver_user__last_name'
+        ),
+
+
+    ).values(
+        'id', 'ref_no', 'created', 'pc_fullname',
+        'branch_company__code', 'branch_company__name',
+        'distributor', 'distributor__name',
+        'due_receive_update', 'receive_update',
+        'po_aprover', 'approver_update',
+        'cp__created', 'cp__select_bidder_update',
+        'cp_examiner', 'cp__examiner_update',
+        'cp_aprover', 'cp__approver_update',
+        'cp_special', 'cp__special_approver_update'
+    )
+
+    po_ids = [x['id'] for x in po_qs]
+
+    # ดึง item ทั้งหมดทีเดียว (สำคัญมาก)
+    items = PurchaseOrderItem.objects.filter(po_id__in=po_ids).values(
+        'po_id',
+        'item__requisit__pr_ref_no',
+        'item__requisit',
+        'item__urgency',
+        'item__desired_date',
+        'item__requisit__created',
+    )
+
+    # map ข้อมูล
+    po_item_map = defaultdict(list)
+    requisit_ids = set()
+
+    for it in items:
+        po_item_map[it['po_id']].append(it)
+        if it['item__requisit']:
+            requisit_ids.add(it['item__requisit'])
+
+    # map pr 1
+    pr_map = {
+        pr['requisition']: pr
+        for pr in PurchaseRequisition.objects.filter(
+            requisition__in=requisit_ids
+        ).annotate(
+            pr_stockman=Concat(
+                'stockman_user__first_name',
+                Value(' '),
+                'stockman_user__last_name'
+            ), 
+            pr_approve=Concat(
+                'approver_user__first_name',
+                Value(' '),
+                'approver_user__last_name'
+            )
+        ).values(
+            'requisition',
+            'created',
+            'approver_update',
+            'pr_approve',
+            'pr_stockman'
+        )
+    }
+
+    # build data
+    data = []
+
+    for po in po_qs:
+        items = po_item_map.get(po['id'], [])
+
+        pr_ref = next((i['item__requisit__pr_ref_no'] for i in items if i['item__requisit__pr_ref_no']), None)
+
+        requisit_id = next((i['item__requisit'] for i in items if i['item__requisit']), None)
+
+        desired_date = next((i['item__desired_date'] for i in items if i['item__desired_date']), None)
+
+        rq_created = next((i['item__requisit__created'] for i in items if i['item__requisit__created']), None)
+        # map pr 2
+        pr_data = pr_map.get(requisit_id, {})
+
+        data.append({
+            'เลขที่': po['ref_no'],
+            'รหัสบริษัท': po['branch_company__code'],
+            'บริษัท': po['branch_company__name'],
+            'รหัสผู้จำหน่าย': po['distributor'],
+            'ผู้จำหน่าย': po['distributor__name'],
+
+            'วันที่ออกใบเบิก': rq_created,
+            'เจ้าหน้าที่พัสดุ': naive(pr_data.get('pr_stockman')),
+            'เลขที่ใบขอซื้อ': pr_ref,
+            'วันที่ออกใบขอซื้อ': naive(pr_data.get('created')),
+            'ผู้อนุมัติใบขอซื้อ': naive(pr_data.get('pr_approve')),
+            'วันที่อนุมัติใบขอซื้อ': naive(pr_data.get('approver_update')),
+            'เจ้าหน้าที่จัดซื้อ': po['pc_fullname'],
+
+            'วันที่สร้างใบเปรียบเทียบ': naive(po['cp__created']),
+            'วันที่เลือกร้านใบเปรียบเทียบ': naive(po['cp__select_bidder_update']),
+
+            'วันที่ตรวจสอบใบเปรีบเทียบ': naive(po['cp__examiner_update']),
+            'ผู้ตรวจสอบใบเปรีบเทียบ': naive(po['cp_examiner']),
+
+            'วันที่อนุมัติใบเปรีบเทียบ': naive(po['cp__approver_update']),
+            'ผู้อนุมัติใบเปรีบเทียบ': naive(po['cp_aprover']),
+
+            'วันที่อนุมัติใบเปรีบเทียบพิเศษ': naive(po['cp__special_approver_update']),
+            'ผู้อนุมัติใบเปรีบเทียบพิเศษ': naive(po['cp_special']),
+
+            'วันที่ออกใบสั่ง': naive(po['created']),
+            'วันที่อนุมัติใบสั่ง': naive(po['approver_update']),
+            'ผู้อนุมัติใบสั่ง': po['po_aprover'],
+            'วันที่กำหนดรับของ': naive(po['due_receive_update']),
+            'รับของวันที่': naive(po['receive_update']),
+
+            # คำนวณ
+            'ระยะเวลาในการซื้อ': cal_days_between_nagative(
+                po['receive_update'], desired_date
+            ) if po['receive_update'] and desired_date else None,
+
+            'ความล่าช้าในการรับของ': cal_days_between_nagative(
+                po['receive_update'], po['due_receive_update']
+            ) if po['receive_update'] and po['due_receive_update'] else None,
+        })
+ 
+    df1 = pd.DataFrame(data)
+
+    data4 = {"เลขที่": ['ระยะเวลาในการซื้อ คือ วันที่ต้องการเทียบกับรับของวันที่', '', ''], "ผู้จำหน่าย": ['น้อยกว่า 0', 'เท่ากับ 0', 'มากกว่า 0'], "บริษัท": ['รับของช้ากว่าวันที่ต้องการ', 'รับของตรงกับวันที่ต้องการ', 'รับของเร็วกว่าวันที่ต้องการ']}
+    df4 = pd.DataFrame(data4, index=[0, 1, 2])
+
+    data5 = {"เลขที่": ['ความล่าช้าในการรับของ คือ วันที่กำหนดรับของเทียบกับรับของวันที่', '', ''], "ผู้จำหน่าย": ['น้อยกว่า 0', 'เท่ากับ 0', 'มากกว่า 0'], "บริษัท": ['รับของช้ากว่าวันที่กำหนดรับของ', 'รับของตรงกับวันที่กำหนดรับของ', 'รับของเร็วกว่าวันที่ต้องการ']}
+    df5 = pd.DataFrame(data5, index=[0, 1, 2])
+
+    frames = [df1, df4, df5]
+    result = pd.concat(frames)
+
+    output = BytesIO()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=PO_Report_({active}).xlsx'
+
+    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+        result.to_excel(writer, index=False)
+
+    return response
