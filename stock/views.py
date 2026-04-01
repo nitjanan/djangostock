@@ -9689,41 +9689,52 @@ def exportExcelSummaryByDistributorFrequently(request):
     if not (is_view_report_all(request.user) and active == 'ALL'):
         my_q &= Q(branch_company__code__in=company_in)
 
-    # ---------------- QUERY ----------------
-    qs = PurchaseOrder.objects.filter(my_q).distinct()  # 🔥 สำคัญ
+    # ---------------- BASE QUERY ----------------
+    base_qs = PurchaseOrder.objects.filter(my_q)
 
-    rows = qs.values(
+    # ---------------- SUBQUERY (ITEM) ----------------
+    item_sub = PurchaseOrderItem.objects.filter(
+        po__distributor=OuterRef('distributor')
+    ).values(
+        'po__distributor'
+    ).annotate(
+        total_discount=Sum('discount')
+    ).values('total_discount')
+
+    # ---------------- MAIN QUERY ----------------
+    rows = base_qs.values(
         'distributor__id',
         'distributor__name',
     ).annotate(
-        s__product_discount=Sum('purchaseorderitem__discount'),
-        s_total_price=Sum('total_price'),
-        s_discount=Sum('discount'),
-        s_total_after_discount=Sum('total_after_discount'),
-        s_freight=Sum('freight'),
-        s_vat=Sum('vat'),
-        s_amount=Sum('amount'),
+        s_total_price=Coalesce(Sum('total_price'), Value(0), output_field=models.DecimalField()),
+        s_discount=Coalesce(Sum('discount'), Value(0), output_field=models.DecimalField()),
+        s_total_after_discount=Coalesce(Sum('total_after_discount'), Value(0), output_field=models.DecimalField()),
+        s_freight=Coalesce(Sum('freight'), Value(0), output_field=models.DecimalField()),
+        s_vat=Coalesce(Sum('vat'), Value(0), output_field=models.DecimalField()),
+        s_amount=Coalesce(Sum('amount'), Value(0), output_field=models.DecimalField()),
+
+        s__product_discount=Coalesce(
+            Subquery(item_sub[:1]),
+            Value(0),
+            output_field=models.DecimalField()
+        ),
         count=Count('id', distinct=True)
     ).order_by('-count')
 
-    # total summary
-    total_data = qs.aggregate(
-        sum_product_discount = Sum('purchaseorderitem__discount'),
+    # ---------------- TOTAL SUMMARY ----------------
+    total_data = base_qs.aggregate(
         sum_total_price=Sum('total_price'),
         sum_discount=Sum('discount'),
         sum_total_after_discount=Sum('total_after_discount'),
         sum_freight=Sum('freight'),
         sum_vat=Sum('vat'),
-        sum_amount=Sum('amount')
-        )
+        sum_amount=Sum('amount'),
+    )
 
-    sum_product_discount = total_data['sum_product_discount'] or 0
-    sum_total_price = total_data['sum_total_price'] or 0
-    sum_discount = total_data['sum_discount'] or 0
-    sum_total_after_discount = total_data['sum_total_after_discount'] or 0
-    sum_freight = total_data['sum_freight'] or 0
-    sum_vat = total_data['sum_vat'] or 0
-    sum_amount = total_data['sum_amount'] or 0
+    # item total (ไม่ให้ join พัง)
+    total_item_discount = PurchaseOrderItem.objects.filter(
+        po__in=base_qs
+    ).aggregate(sum_discount=Sum('discount'))['sum_discount'] or 0
 
     # ---------------- WRITE DATA ----------------
     for row in rows:
@@ -9731,26 +9742,26 @@ def exportExcelSummaryByDistributorFrequently(request):
 
         ws.write(row_num, 0, row['distributor__id'] or '', font_normal)
         ws.write(row_num, 1, row['distributor__name'] or '', font_normal)
-        ws.write(row_num, 2, row['s__product_discount'] or 0, decimal_style)
-        ws.write(row_num, 3, row['s_total_price'] or 0, decimal_style)
-        ws.write(row_num, 4, row['s_discount'] or 0, decimal_style)
-        ws.write(row_num, 5, row['s_total_after_discount'] or 0, decimal_style)
-        ws.write(row_num, 6, row['s_freight'] or 0, decimal_style)
-        ws.write(row_num, 7, row['s_vat'] or 0, decimal_style)
-        ws.write(row_num, 8, row['s_amount'] or 0, decimal_style)
-        ws.write(row_num, 9, row['count'] or 0, font_normal)
+        ws.write(row_num, 2, row['s__product_discount'], decimal_style)
+        ws.write(row_num, 3, row['s_total_price'], decimal_style)
+        ws.write(row_num, 4, row['s_discount'], decimal_style)
+        ws.write(row_num, 5, row['s_total_after_discount'], decimal_style)
+        ws.write(row_num, 6, row['s_freight'], decimal_style)
+        ws.write(row_num, 7, row['s_vat'], decimal_style)
+        ws.write(row_num, 8, row['s_amount'], decimal_style)
+        ws.write(row_num, 9, row['count'], font_normal)
 
     # ---------------- FOOTER ----------------
     row_num += 1
     ws.write(row_num, 0, "รวมทั้งสิ้น", font_bold)
-    ws.write(row_num, 2, sum_product_discount, decimal_bold_style)
-    ws.write(row_num, 3, sum_total_price, decimal_bold_style)
-    ws.write(row_num, 4, sum_discount, decimal_bold_style)
-    ws.write(row_num, 5, sum_total_after_discount, decimal_bold_style)
-    ws.write(row_num, 6, sum_freight, decimal_bold_style)
-    ws.write(row_num, 7, sum_vat, decimal_bold_style)
-    ws.write(row_num, 8, sum_amount, decimal_bold_style)
-         
+    ws.write(row_num, 2, total_item_discount, decimal_bold_style)
+    ws.write(row_num, 3, total_data['sum_total_price'] or 0, decimal_bold_style)
+    ws.write(row_num, 4, total_data['sum_discount'] or 0, decimal_bold_style)
+    ws.write(row_num, 5, total_data['sum_total_after_discount'] or 0, decimal_bold_style)
+    ws.write(row_num, 6, total_data['sum_freight'] or 0, decimal_bold_style)
+    ws.write(row_num, 7, total_data['sum_vat'] or 0, decimal_bold_style)
+    ws.write(row_num, 8, total_data['sum_amount'] or 0, decimal_bold_style)
+
     wb.save(response)
     return response
 
