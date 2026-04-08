@@ -232,3 +232,14 @@ EMAIL_USE_SSL = False
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+
+# จำ login 30 วัน
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+# ปิด browser แล้ว session ยังอยู่
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+# รีเฟรชอายุ session ทุก request (สำคัญ)
+SESSION_SAVE_EVERY_REQUEST = True
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False # เปิดเมื่อใช้ HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'
