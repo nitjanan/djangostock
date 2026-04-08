@@ -3942,8 +3942,8 @@ def printComparePricePO(request, cp_id):
             f_cp.save()
             return redirect('viewComparePricePO')
 
-    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount', 'total_after_discount', 'cp')
-    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'id')
+    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount', 'total_after_discount', 'cp__id')
+    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'cp')
 
     baseSparesType = BaseSparesType.objects.all()
     context = {
@@ -3977,8 +3977,8 @@ def showComparePricePO(request, cp_id, mode):
 
     baseSparesType = BaseSparesType.objects.all()
 
-    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount', 'total_after_discount', 'cp')
-    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'id')
+    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount', 'total_after_discount', 'cp__id')
+    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'cp')
 
     #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 2 คนหรือไม่
     isSpecialCP = is_special_approver_cp(cp_id)
@@ -4237,8 +4237,8 @@ def printCPApprove(request, cp_id, isFromHome):
 
     baseSparesType = BaseSparesType.objects.all()
 
-    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount', 'total_after_discount', 'cp')
-    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'id')
+    bidder = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('amount', 'total_after_discount', 'cp__id')
+    itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'cp')
 
     isApprover = False
     isExaminer = False
