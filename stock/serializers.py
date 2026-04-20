@@ -1,4 +1,4 @@
-from stock.models import PurchaseOrder, PurchaseOrderItem, BaseCar, UserCarDepartment
+from stock.models import PurchaseOrder, PurchaseOrderItem, BaseCar, UserCarDepartment, BaseCarDepartment
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
@@ -110,3 +110,9 @@ class UserCarDepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserCarDepartment
         fields = ('id', 'car_code', 'code_nam', 'driver_nam', 'comp_nam')
+
+class BaseCarDepartmentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BaseCarDepartment
+        fields = ('id', 'name')

@@ -339,6 +339,18 @@ class BaseBrokeType(models.Model):
     def __str__(self):
         return str(self.name)
     
+class BaseCarType(models.Model):
+    name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อชนิดรถ/เครื่องจักร")
+
+    class Meta:
+        db_table = 'BaseCarType'
+        ordering=('id',)
+        verbose_name = 'ชนิดรถ/เครื่องจักร'
+        verbose_name_plural = 'ข้อมูลชนิดรถ/เครื่องจักร'
+
+    def __str__(self):
+        return self.name
+    
 class BaseCarDepartment(models.Model):
     name = models.CharField(max_length=255,unique=True, verbose_name="ชื่อแผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
 
@@ -356,6 +368,7 @@ class BaseCar(models.Model):
     name = models.CharField(max_length=255, blank=False, null=True, verbose_name="ชื่อทะเบียนรถ/เครื่องจักร/หน่วยงาน")
     rq_type = models.ForeignKey(BaseRequisitionType, on_delete=models.CASCADE, blank=True, null=True, verbose_name="ประเภทใบขอเบิก") #ประเภทใบขอเบิก
     car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
+    car_type = models.ForeignKey(BaseCarType,on_delete=models.CASCADE,null=True, blank=True, verbose_name="ชนิดรถ/เครื่องจักร")
     pm_round = models.IntegerField(blank=True, null=True, verbose_name="รอบทำ PM ทุก ๆ (กิโลเมตร หรือ ชั่วโมง)")
 
     class Meta:

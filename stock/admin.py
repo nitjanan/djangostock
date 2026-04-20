@@ -6,7 +6,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
 from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
@@ -293,8 +293,10 @@ class BaseRepairTypeAdmin(ImportExportModelAdmin):
     search_fields = ['name','rq_type__name']
 
 class BaseCarAdmin(ImportExportModelAdmin):
-    list_display = ['id','code','name','rq_type', 'car_dep', 'pm_round']#แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['code', 'name','rq_type__name', 'car_dep__name']
+    autocomplete_fields = ['car_type',]
+
+    list_display = ['id','code','name','rq_type', 'car_dep', 'car_type', 'pm_round']#แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['code', 'name','rq_type__name', 'car_type__name', 'car_dep__name']
     form = BaseCarAdminForm
 
 class BaseBrokeTypeAdmin(ImportExportModelAdmin):
@@ -348,6 +350,10 @@ class MaintenanceAdmin(ImportExportModelAdmin):
     list_display = ['ref_no', 'car','name'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
     search_fields = ('ref_no', 'name__first_name', 'car__name', 'car__code')
+
+class BaseCarTypeAdmin(ImportExportModelAdmin):
+    list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
+    search_fields = ['name',]
 
 class BaseCarDepartmentAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -454,6 +460,7 @@ admin.site.register(RateDistributor, RateDistributorAdmin)
 admin.site.register(BaseMAType, BaseMATypeAdmin)
 admin.site.register(CarLogbook, CarLogbookAdmin)
 admin.site.register(Maintenance, MaintenanceAdmin)
+admin.site.register(BaseCarType, BaseCarTypeAdmin)
 admin.site.register(BaseCarDepartment, BaseCarDepartmentAdmin)
 admin.site.register(BaseJobCarDep, BaseJobCarDepAdmin)
 admin.site.register(BaseOrigSta, BaseOrigStaAdmin)

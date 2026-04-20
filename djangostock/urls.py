@@ -262,6 +262,8 @@ urlpatterns = [
     path('driver/car/api/',views.apiOverviewDriverAndCar,name="apiOverviewDriverAndCar"),
     path('driver/car/api/all/',views.allDriverAndCar,name="allDriverAndCar"),
 
+    path('baseCarDepartment/api/all/',views.allBaseCarDepartment,name="allBaseCarDepartment"),
+
     path('searchPmRound/',views.searchPmRound,name="searchPmRound"),
 ]
 
