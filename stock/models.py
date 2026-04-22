@@ -108,21 +108,22 @@ def comparisonPrice_ref_number(branch_company):
     new_no = format + str(formatted)
     return new_no
 
-def purchaseOrder_ref_number(branch_company):
-    today = datetime.datetime.now()
+def purchaseOrder_ref_number(branch_company, created):
+    #today = datetime.datetime.now()
+    today = created #ดึงวันที่ขอซื้อมาเป็นวันที่ออกใบสั่งสินค้า 22/04/2026
     year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
     format = str(branch_company) + YM
 
     try:
-        last_no = PurchaseOrder.objects.all().filter(ref_no__contains=format).order_by('id').last()
+        last_no = PurchaseOrder.objects.all().filter(ref_no__contains=format).order_by('ref_no').last()
     except:
         last_no = None
 
     if not last_no:
         return format + '001'
-
+ 
     ref_no = last_no.ref_no
     oldDate =  ref_no[2:-3]
     if YM == oldDate:
@@ -1235,6 +1236,8 @@ class ComparisonPrice(models.Model):
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
     is_cancel = models.BooleanField(default=False)
 
+    pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True, blank = True)#อ้างอิงใบ pr
+
     def save(self, *args, **kwargs):
         if self.address_company is None:
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
@@ -1283,7 +1286,8 @@ class PurchaseOrder(models.Model):
         null=True
     )
     approver_update = models.DateTimeField(blank=True, null=True)
-    created = models.DateField(default=timezone.now) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ
+    created = models.DateField(default=timezone.now) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ วันที่สร้างดึงมาจากใบขอซื้อ
+    real_created = models.DateField(default=timezone.now) #เก็บวันเวลาที่สร้างครั้งแรกอัตโนมัติ วันที่สร้างจริง
     update = models.DateField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     cp = models.ForeignKey(ComparisonPrice,on_delete=models.CASCADE,null = True, blank = True)
     pr = models.ForeignKey(PurchaseRequisition,on_delete=models.CASCADE,null = True, blank = True)
@@ -1307,7 +1311,7 @@ class PurchaseOrder(models.Model):
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
             self.address_company = company.address
         if self.ref_no is None:
-            self.ref_no = purchaseOrder_ref_number(self.branch_company)
+            self.ref_no = purchaseOrder_ref_number(self.branch_company, self.created)
 
         # QR Code 17-05-2024
         if not self.qr_code:

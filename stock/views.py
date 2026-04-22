@@ -2290,6 +2290,7 @@ def createCMorPO(request, pr_id):
             branch_company = pr.branch_company,
             address_company = pr.address_company,
             note = pr.note,
+            pr = pr, 
         )
         cp.save()
 
@@ -2335,6 +2336,7 @@ def createCMorPO(request, pr_id):
             pr = pr,
             branch_company = pr.branch_company,
             address_company = pr.address_company,
+            created = pr.created #ดึงวันที่ขอซื้อมาเป็นวันที่ออกใบสั่งสินค้า 22/04/2026
         )
         po.save()
 
@@ -4084,6 +4086,12 @@ def createPOFromComparisonPrice(request, cp_id):
             new_contact.approver_status_id = 1
             #new_contact.approver_user = cp.approver_user
             new_contact.branch_company = company
+
+            if bc.pr is not None:
+                new_contact.created = bc.pr.created #ดึงวันที่ขอซื้อมาเป็นวันที่ออกใบสั่งสินค้า 22/04/2026
+            else:
+                pr_id = ComparisonPriceItem.objects.filter(cp = cp_id).values_list('item__requisit__purchase_requisition_id', flat=True).first()
+                new_contact.created = PurchaseRequisition.objects.filter(id = pr_id).values_list('created', flat=True).first()
 
             rate_contact = form_rate.save(commit=False)
             rate_contact.organizer_user = cp.organizer
