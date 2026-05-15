@@ -42,12 +42,11 @@ from django.core.serializers import serialize
 from django.db.models import Count, Avg
 import xlwt
 from django.db.models import F, Func, Value, CharField,When, Q, Case, ExpressionWrapper
-from django.db.models import Sum, IntegerField, Max
 from django.views.decorators.cache import cache_control
 from decimal import Decimal
 import pandas as pd
 from django_pandas.io import read_frame
-from django.db.models.functions import Round, Concat, Coalesce
+from django.db.models.functions import Round, Concat, Coalesce, TruncMonth
 from django.contrib import messages
 import string
 from openpyxl import Workbook
@@ -55,7 +54,7 @@ from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
 from datetime import date, timedelta
 from django.utils.timezone import is_aware, make_naive, make_aware
-from django.db import models
+from django.db import models, connections
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.views import APIView
@@ -76,7 +75,7 @@ from django.utils import timezone
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from django.db.models.functions import ExtractMonth, ExtractYear, Concat, Cast
+from django.db.models.functions import ExtractMonth, ExtractYear, Concat, Cast, NullIf
 import openpyxl
 from openpyxl.styles import PatternFill, Alignment, Font, Color, NamedStyle, Side, Border
 from openpyxl.utils import get_column_letter
@@ -6521,9 +6520,1682 @@ def allDriverAndCar(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def allBaseCarDepartment(request):
-    queryset = BaseCarDepartment.objects.all()
+    queryset = BaseCarDepartment.objects.filter(~Q(id = 4)) #ปิดรถร้อยเกาะก่อน
     serializer = BaseCarDepartmentSerializer(queryset, many = True)
     return Response(serializer.data)
+
+def query_exp_car_all(start_date, end_date, b_com):
+
+    sql = """
+        SELECT DISTINCT UPPER(TRIM(nh.remark)) AS remark
+        FROM "OESTND" nd
+        JOIN "OESTNH" nh
+            ON nd.docnum = nh.docnum
+            AND nd.comcod = nh.comcod
+        WHERE 
+            nd.comcod = %s
+            AND (nd.docnum LIKE %s OR nd.docnum LIKE %s)
+            AND nh.docdat BETWEEN %s AND %s
+            AND nh.note2 IS NOT NULL
+            AND nh.remark IS NOT NULL
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.invoice_code}%",
+        f"{b_com.oi_invoice_code}%",
+        start_date,
+        end_date,
+    ]
+
+    with connections['pg_db'].cursor() as cursor:
+
+        cursor.execute(sql, params)
+        #print(cursor.mogrify(sql, params).decode())
+        return [row[0] for row in cursor.fetchall()]
+
+def parse_remarks(remarks):
+
+    values = set()
+
+    for txt in remarks:
+
+        if not txt:
+            continue
+
+        txt = txt.upper().strip()
+
+        # ✅ ถ้ามี :
+        # เอาเฉพาะด้านหลัง :
+        #
+        # ผข8465:TT1 => TT1
+        #
+        if ':' in txt:
+            txt = txt.split(':')[-1]
+
+        txt = normalize_text(txt)
+
+        if txt:
+            values.add(txt)
+
+    return values
+
+''' work สุด
+def normalize_text(txt):
+    if not txt:
+        return ''
+
+    txt = txt.upper().strip()
+
+    # ลบ -, space และอักขระพิเศษ
+    txt = re.sub(r'[^A-Z0-9ก-๙]', '', txt)
+
+    return txt
+'''
+
+# ตัวอักษรที่มักพิมพ์ผิด
+THAI_SIMILAR = {
+    'ฏ': 'ฎ',
+}
+
+def normalize_text(txt):
+
+    if not txt:
+        return ''
+
+    txt = str(txt).upper().strip()
+
+    # non-breaking space
+    txt = txt.replace('\xa0', ' ')
+
+    # แก้ typo ไทย
+    for old, new in THAI_SIMILAR.items():
+        txt = txt.replace(old, new)
+
+    # ลบทุกอย่างที่ไม่ใช่ ไทย อังกฤษ ตัวเลข
+    txt = re.sub(r'[^A-Z0-9ก-๙]', '', txt)
+
+    return txt
+
+def get_cars_fast(car_dep, values):
+
+    cars = BaseCar.objects.filter(
+        car_dep=car_dep
+    )
+
+    matched_ids = set()
+
+    for car in cars:
+
+        car_name = normalize_text(car.name)
+        car_code = normalize_text(car.code)
+
+        # ✅ remark = code
+        #
+        # TT1 == TT1
+        #
+        if car_code in values:
+            matched_ids.add(car.id)
+
+        # ✅ remark = name
+        #
+        # ผข8465 == ผข8465
+        #
+        elif car_name in values:
+            matched_ids.add(car.id)
+
+        # ✅ remark = name + code
+        #
+        # ผข8465TT1 == ผข8465TT1
+        #
+        elif (car_name + car_code) in values:
+            matched_ids.add(car.id)
+
+    return BaseCar.objects.filter(id__in=matched_ids)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiCarByDepartment(request, start_date, end_date, comp, car_dep):
+
+    b_com = BaseBranchCompany.objects.get(code=comp)
+
+    # STEP 1
+    remarks = query_exp_car_all(
+        start_date,
+        end_date,
+        b_com
+    )
+
+    # STEP 2
+    values = parse_remarks(remarks)
+
+    # STEP 3
+    queryset = get_cars_fast(
+        car_dep,
+        values
+    )
+
+    paginator = SmallResultsSetPagination()
+
+    result_page = paginator.paginate_queryset(
+        queryset,
+        request
+    )
+
+    serializer = BaseCarSerializer(
+        result_page,
+        many=True
+    )
+
+    result = []
+
+    for item in serializer.data:
+
+        result.append({
+            **item,
+            "branch_company": comp,
+            "car_dep": car_dep
+        })
+
+    return paginator.get_paginated_response(result)
+
+###############################################################################
+##################### ดึงทะเบียนรถตาม car_dep และ company ทั้งหมด ################
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiCarByDepartmentAll(request, start_date, end_date):
+
+    result = []
+
+    branch_companies = BaseBranchCompany.objects.filter(
+        ~Q(code='ALL')
+    )
+
+    car_departments = BaseCarDepartment.objects.all().values_list(
+        'id',
+        flat=True
+    )
+
+    for b_com in branch_companies:
+
+        remarks = query_exp_car_all(
+            start_date,
+            end_date,
+            b_com
+        )
+
+
+        values = parse_remarks(remarks)
+
+        for car_dep in car_departments:
+
+            queryset = get_cars_fast(
+                car_dep,
+                values
+            )
+
+            serializer = BaseCarSerializer(
+                queryset,
+                many=True
+            )
+
+            for item in serializer.data:
+
+                result.append({
+                    **item,
+                    "branch_company": b_com.id,
+                    "car_dep": car_dep
+                })
+
+    return Response(result)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiCarByDepartment(request, start_date, end_date, comp, car_dep):
+
+    b_com = BaseBranchCompany.objects.get(code=comp)
+
+    # ✅ STEP 1: ดึง remark
+    remarks = query_exp_car_all(start_date, end_date, b_com)
+
+    # ✅ STEP 2: parse
+    names, codes, pairs = parse_remarks(remarks)
+
+    # ✅ STEP 3: query รถ
+    queryset = get_cars_fast(car_dep, names, codes, pairs)
+
+    # ✅ pagination
+    paginator = SmallResultsSetPagination()
+    result_page = paginator.paginate_queryset(queryset, request)
+
+    serializer = BaseCarSerializer(result_page, many=True)
+    result = []
+    for item in serializer:
+        result.append({
+            item : 'item',
+            "branch_comp": comp,
+            "car_dep": car_dep
+        })
+
+    return paginator.get_paginated_response(serializer.data)
+
+def query_exp_repair(start_date, end_date, b_com, valid_set):
+
+    placeholders = ','.join(['%s'] * len(valid_set))
+
+    sql = f"""
+        SELECT 
+            TRIM(nh.note2) AS note2,
+            SUM(
+                CASE 
+                    WHEN nd.stkcod NOT LIKE 'OL%%' THEN nd.trnval 
+                    ELSE 0 
+                END
+            ) AS sum_amount
+        FROM "OESTND" nd
+        JOIN "OESTNH" nh
+            ON nd.docnum = nh.docnum
+            AND nd.comcod = nh.comcod
+        WHERE 
+            nd.comcod = %s
+            AND nd.docnum LIKE %s
+            AND nh.docdat BETWEEN %s AND %s
+            AND nh.note2 IS NOT NULL
+            AND nh.remark IN ({placeholders})
+        GROUP BY TRIM(nh.note2)
+        ORDER BY note2
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.invoice_code}%",
+        start_date,
+        end_date,
+    ] + list(valid_set)
+
+    with connections['pg_db'].cursor() as cursor:
+        cursor.execute(sql, params)
+        #print(cursor.mogrify(sql, params).decode())
+
+        columns = [col[0] for col in cursor.description]
+        return [
+            dict(zip(columns, row))
+            for row in cursor.fetchall()
+        ]
+
+#ตามประเภทการซ่อม
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiExpRepair(request, start_date, end_date, comp, car_dep):
+
+    b_com = BaseBranchCompany.objects.get(code=comp)
+
+    cars = BaseCar.objects.filter(car_dep = car_dep).annotate(
+        name_code=Concat(F('name'), Value(':'), F('code'))
+    )
+
+    valid_set = set(
+        list(cars.values_list('name', flat=True)) +
+        list(cars.values_list('code', flat=True)) +
+        list(cars.values_list('name_code', flat=True))
+    )
+
+    # 🚀 เรียก SQL เร็ว
+    data = query_exp_repair(start_date, end_date, b_com, valid_set)
+
+    # -------------------------
+    # map repair type
+    # -------------------------
+    note2_ids = [d['note2'] for d in data if d['note2']]
+
+    repair_map = {
+        str(rt.id): rt.name
+        for rt in BaseRepairType.objects.filter(id__in=note2_ids)
+    }
+
+    result = []
+    for item in data:
+        result.append({
+            "rt_name": repair_map.get(item['note2']),
+            "amount": float(item['sum_amount'] or 0)
+        })
+
+    # ✅ เรียงจากยอดมาก -> น้อย
+    result = sorted(result, key=lambda x: x['amount'], reverse=True)
+
+    return Response(result)
+
+THAI_MONTHS = {
+    '01': 'มกราคม',
+    '02': 'กุมภาพันธ์',
+    '03': 'มีนาคม',
+    '04': 'เมษายน',
+    '05': 'พฤษภาคม',
+    '06': 'มิถุนายน',
+    '07': 'กรกฎาคม',
+    '08': 'สิงหาคม',
+    '09': 'กันยายน',
+    '10': 'ตุลาคม',
+    '11': 'พฤศจิกายน',
+    '12': 'ธันวาคม',
+}
+
+# =========================================
+# query repair
+# =========================================
+def query_exp_repair_all(start_date, end_date, b_com):
+
+    sql = f"""
+            SELECT 
+                TO_CHAR(nh.docdat, 'YYYY') AS year,
+                TO_CHAR(nh.docdat, 'MM') AS month,
+
+                TRIM(nh.remark) AS car_code,
+
+                CASE
+                    WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
+                    THEN NULL
+                    ELSE TRIM(nh.note2)
+                END AS note2,
+
+                SUM(
+                    CASE 
+                        WHEN nd.stkcod NOT LIKE 'OL%%'
+                        THEN nd.trnval
+                        ELSE 0
+                    END
+                ) AS sum_amount
+
+            FROM "OESTND" nd
+
+            JOIN "OESTNH" nh
+                ON nd.docnum = nh.docnum
+                AND nd.comcod = nh.comcod
+
+            WHERE 
+                nd.comcod = %s
+                AND nd.docnum LIKE %s
+                AND nh.docdat BETWEEN %s AND %s
+
+            GROUP BY
+                TO_CHAR(nh.docdat, 'YYYY'),
+                TO_CHAR(nh.docdat, 'MM'),
+                TRIM(nh.remark),
+
+                CASE
+                    WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
+                    THEN NULL
+                    ELSE TRIM(nh.note2)
+                END
+
+            ORDER BY
+                year,
+                month
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.invoice_code}%",
+        start_date,
+        end_date,
+    ]
+
+    with connections['pg_db'].cursor() as cursor:
+
+        cursor.execute(sql, params)
+
+        #print(cursor.mogrify(sql, params).decode())
+
+        columns = [col[0] for col in cursor.description]
+
+        return [
+            dict(zip(columns, row))
+            for row in cursor.fetchall()
+        ]
+
+
+# =========================================
+# resolve car
+# =========================================
+def resolve_car_fast(
+    remark,
+    name_map,
+    code_map,
+    name_code_map
+):
+
+    raw = (remark or '').strip()
+
+    if not raw:
+        return None
+
+    # =====================================================
+    # CASE มี :
+    # ผข8465:TT1
+    # => ใช้ TT1 เทียบ code เท่านั้น
+    # =====================================================
+    if ':' in raw:
+
+        code = raw.split(':')[-1]
+
+        code = normalize_text(code)
+
+        return code_map.get(code)
+
+    # =====================================================
+    # normalize
+    # =====================================================
+    value = normalize_text(raw)
+
+    # =====================================================
+    # remark = code
+    # =====================================================
+    if value in code_map:
+        return code_map[value]
+
+    # =====================================================
+    # remark = name
+    # =====================================================
+    if value in name_map:
+        return name_map[value]
+
+    # =====================================================
+    # remark = name+code
+    # =====================================================
+    if value in name_code_map:
+        return name_code_map[value]
+
+    return None
+
+
+###############################################################################
+########## ดึงค่าใช้จ่ายและประเภทการซ่อม ตาม car_dep และ company ทั้งหมด ############
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiExpRepairAll(request, start_date, end_date):
+
+    result = []
+
+    # =========================================
+    # preload branch company
+    # =========================================
+    branch_companies = list(
+        BaseBranchCompany.objects.exclude(
+            code='ALL'
+        ).select_related('affiliated')
+    )
+
+    # =========================================
+    # preload repair type
+    # =========================================
+    repair_map = {
+        str(rt.id): rt.name
+        for rt in BaseRepairType.objects.all()
+    }
+
+    # =========================================
+    # preload all cars
+    # =========================================
+    all_cars = list(
+        BaseCar.objects.all().values(
+            'id',
+            'name',
+            'code',
+            'car_dep'
+        )
+    )
+
+    # =========================================
+    # fast lookup maps
+    # =========================================
+    name_map = {}
+    code_map = {}
+    name_code_map = {}
+
+
+    for c in all_cars:
+
+        car_data = {
+            "id": c['id'],
+            "code": (c['code'] or '').strip(),
+            "car_dep": c['car_dep'],
+        }
+
+        # -----------------------------
+        # map by name
+        # -----------------------------
+        if c['name']:
+
+            name_map[
+                c['name'].strip()
+            ] = car_data
+
+        # -----------------------------
+        # map by code
+        # -----------------------------
+        if c['code']:
+
+            code_map[
+                c['code'].strip()
+            ] = car_data
+
+    # =========================================
+    # query loop
+    # =========================================
+    for b_com in branch_companies:
+
+        data = query_exp_repair_all(
+            start_date,
+            end_date,
+            b_com
+        )
+
+        for item in data:
+
+            # =========================================
+            # resolve car
+            # =========================================
+            car_obj = resolve_car_fast(
+                item['car_code'],
+                name_map,
+                code_map,
+                name_code_map
+            )
+
+            if not car_obj:
+                continue
+
+            note2 = item.get('note2')
+
+            result.append({
+                "month": item['month'],
+
+                "month_th": THAI_MONTHS.get(
+                    item['month']
+                ),
+
+                "year": item['year'],
+
+                "car_id": car_obj['id'],
+
+                "car_code": car_obj['code'],
+
+                "note2": note2,
+
+                "rt_name": (
+                    repair_map.get(str(note2))
+                    if note2 else None
+                ),
+
+                "amount": float(
+                    item['sum_amount'] or 0
+                ),
+                "branch_company": b_com.id,
+                # =========================================
+                # ใช้ car_dep จริงจากรถ
+                # =========================================
+                "car_dep": car_obj['car_dep'],
+            })
+
+    return Response(result)
+	
+
+def query_exp_car_type(start_date, end_date, b_com):
+    sql = f"""
+        SELECT 
+            TRIM(nh.remark) AS remark,
+            SUM(
+                CASE 
+                    WHEN nd.stkcod NOT LIKE 'OL%%' THEN nd.trnval 
+                    ELSE 0 
+                END
+            ) AS sum_amount
+        FROM "OESTND" nd
+        JOIN "OESTNH" nh
+            ON nd.docnum = nh.docnum
+            AND nd.comcod = nh.comcod
+        WHERE 
+            nd.comcod = %s
+            AND nd.docnum LIKE %s
+            AND nh.docdat BETWEEN %s AND %s
+            AND nh.note2 IS NOT NULL
+        GROUP BY TRIM(nh.remark)
+        ORDER BY remark
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.invoice_code}%",
+        start_date,
+        end_date,
+    ]
+
+    with connections['pg_db'].cursor() as cursor:
+        cursor.execute(sql, params)
+        #print(cursor.mogrify(sql, params).decode())
+
+        columns = [col[0] for col in cursor.description]
+        return [
+            dict(zip(columns, row))
+            for row in cursor.fetchall()
+        ]
+
+#ตามชนิดรถ/เครื่องจักร
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiExpCarType(request, start_date, end_date, comp, car_dep):
+
+    b_com = BaseBranchCompany.objects.get(affiliated__name=comp)
+
+    # 🚀 เรียก SQL เร็ว
+    data = query_exp_car_type(start_date, end_date, b_com)
+
+    grouped = defaultdict(float)
+
+    for item in data:
+        txt = item['remark']
+
+        # หา car_type
+        if ':' in txt:
+            n, c = txt.split(':', 1)
+            q = Q(name=n, code=c)
+        else:
+            q = Q(name=txt) | Q(code=txt)
+
+        car_type = BaseCar.objects.filter(
+            q,
+            car_dep=car_dep
+        ).values_list('car_type__name', flat=True).first()
+
+        if car_type:
+            grouped[car_type] += float(item['sum_amount'] or 0)
+
+    result = [
+        {
+            "car_type": k,
+            "amount": v
+        }
+        for k, v in grouped.items()
+    ]
+
+    return Response(result)
+
+#ตามทะเบียนรถ/เครื่องจักร
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiExpByCar(request, start_date, end_date, comp, car_dep):
+
+    b_com = BaseBranchCompany.objects.get(affiliated__name=comp)
+
+    # 🚀 เรียก SQL เร็ว
+    data = query_exp_car_type(start_date, end_date, b_com)
+
+    grouped = defaultdict(float)
+
+    for item in data:
+        txt = item['remark']
+
+        # หา car_type
+        if ':' in txt:
+            n, c = txt.split(':', 1)
+            q = Q(name=n, code=c)
+        else:
+            q = Q(name=txt) | Q(code=txt)
+
+        code_name = BaseCar.objects.filter(
+            q,
+            car_dep=car_dep
+        ).annotate(
+            code_name = Concat(F('code') ,Value(' '), F('name'))
+        ).first()['code_name']
+
+
+        if code_name:
+            grouped[code_name] += float(item['sum_amount'] or 0)
+
+    result = [
+        {
+            "code_name": k,
+            "amount": v
+        }
+        for k, v in grouped.items()
+    ]
+
+    return Response(result)
+
+#ตามประเภทใบขอเบิก รถ/เครื่องจักรหนัก groub by mount
+def query_exp_by_month(start_date, end_date, b_com):
+    sql = """
+        SELECT 
+            TRIM(nh.remark) AS remark,
+            TO_CHAR(nh.docdat, 'YYYY-MM') AS month,
+            SUM(
+                CASE
+                    WHEN nd.stkcod NOT LIKE 'OL%%' THEN nd.trnval
+                    ELSE 0
+                END
+            ) AS sum_amount
+        FROM "OESTND" nd
+        JOIN "OESTNH" nh
+            ON nd.docnum = nh.docnum
+            AND nd.comcod = nh.comcod
+        WHERE 
+            nd.comcod = %s
+            AND nd.docnum LIKE %s
+            AND nh.docdat BETWEEN %s AND %s
+            AND nh.note2 IS NOT NULL
+        GROUP BY TO_CHAR(nh.docdat, 'YYYY-MM'), TRIM(nh.remark)
+        ORDER BY month
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.invoice_code}%",
+        start_date,
+        end_date,
+    ]
+
+    with connections['pg_db'].cursor() as cursor:
+        cursor.execute(sql, params)
+
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+#ตาม car_dep รถ/เครื่องจักรหนัก groub by mount (ค่าอะไหล่ + น้ำมันหล่อลื่น)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def apiExpByMonth(request, start_date, end_date, comp, car_dep):
+
+    b_com = BaseBranchCompany.objects.get(affiliated__name=comp)
+
+    data = query_exp_by_month(start_date, end_date, b_com)
+
+    grouped = defaultdict(float)
+
+    for item in data:
+        txt = item['remark']
+        month = item['month']   # มาจาก SQL TO_CHAR(nh.docdat,'YYYY-MM')
+
+        # หา car_type
+        if ':' in txt:
+            n, c = txt.split(':', 1)
+            q = Q(name=n, code=c)
+        else:
+            q = Q(name=txt) | Q(code=txt)
+
+        is_car = BaseCar.objects.filter(
+            q,
+            car_dep=car_dep,
+        ).first()
+
+        # ถ้าตรงเงื่อนไข ให้รวมตามเดือน
+        if is_car:
+            grouped[month] += float(item['sum_amount'] or 0)
+
+    result = [
+        {
+            "month": k,
+            "amount": round(v, 2)
+        }
+        for k, v in grouped.items()
+    ]
+
+    return Response(result)
+
+#น้ำมัน รถ/เครื่องจักรหนัก groub by mount
+def query_exp_oil_by_month(start_date, end_date, b_com, valid_set):
+    placeholders = ','.join(['%s'] * len(valid_set))
+
+    sql = f"""
+        SELECT 
+            TRIM(nh.remark) AS remark,
+            TO_CHAR(nh.docdat, 'YYYY-MM') AS month,
+            SUM(
+                CASE
+                    WHEN nd.stktyp = 'น้ำมันดีเซล' THEN nd.ordqty
+                    ELSE 0
+                END
+            ) AS sum_qty
+        FROM "OESTND" nd
+        JOIN "OESTNH" nh
+            ON nd.docnum = nh.docnum
+            AND nd.comcod = nh.comcod
+        WHERE 
+            nd.comcod = %s
+            AND nd.docnum LIKE %s
+            AND nh.docdat BETWEEN %s AND %s
+            AND nh.remark IN  ({placeholders})
+        GROUP BY TO_CHAR(nh.docdat, 'YYYY-MM'), TRIM(nh.remark)
+        ORDER BY remark, month
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.oi_invoice_code}%",
+        start_date,
+        end_date,
+    ] + list(valid_set)
+
+    with connections['pg_db'].cursor() as cursor:
+        cursor.execute(sql, params)
+
+        columns = [col[0] for col in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+    
+#ตามประเภทใบขอเบิก รถ/เครื่องจักรหนัก groub by mount
+# ---------------------------------------
+# API
+# ---------------------------------------
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def apiExpOilByMonth(request, start_date, end_date, comp, car_dep):
+    startDate = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+    endDate = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    b_com = BaseBranchCompany.objects.get(affiliated__name=comp)
+
+    # -------------------------
+    # รถทั้งหมด
+    # -------------------------
+    cars = BaseCar.objects.filter(car_dep=car_dep).only("name", "code")
+
+    car_names = set(cars.values_list("name", flat=True))
+    car_codes = set(cars.values_list("code", flat=True))
+    car_ids   = list(cars.values_list("id", flat=True))
+
+    valid_set = car_names | car_codes | {
+        f"{c.name}:{c.code}" for c in cars
+    }
+
+    # -------------------------
+    # ดึงน้ำมัน
+    # -------------------------
+    data = query_exp_oil_by_month(start_date, end_date, b_com, valid_set)
+
+    # -------------------------
+    # ดึง CarLogbook ทั้งหมดใน range เดียว — 1 query แทน N*2
+    # -------------------------
+    logbooks = (
+        CarLogbook.objects
+        .filter(
+            car_id__in=car_ids,
+            created__gte=startDate,   # ✅ use parsed date objects, not raw strings
+            created__lte=endDate,
+        )
+        .values("car_id", "created", "mile_start", "mile_end")
+        .order_by("created")
+    )
+
+    # Build lookup: (car_id, "YYYY-MM") -> [logbook, ...]
+    from collections import defaultdict
+    logbook_map = defaultdict(list)
+    for lb in logbooks:
+        key = (lb["car_id"], lb["created"].strftime("%Y-%m"))
+        logbook_map[key].append(lb)
+
+    # car lookup: name -> id, code -> id
+    car_lookup = {}
+    for c in cars:
+        car_lookup[c.name] = c.id
+        car_lookup[c.code] = c.id
+
+    # -------------------------
+    # Group qty + km
+    # -------------------------
+    grouped_qty = defaultdict(float)
+    grouped_km  = defaultdict(float)
+
+    for item in data:
+        txt   = item["remark"]
+        month = item["month"]
+
+        # Resolve car_id from remark
+        if ":" in txt:
+            n, c = txt.split(":", 1)
+            car_id = car_lookup.get(n) or car_lookup.get(c)
+        else:
+            car_id = car_lookup.get(txt)
+
+        if car_id:
+            entries = logbook_map.get((car_id, month), [])
+            if entries:
+                diff_km = entries[-1]["mile_end"] - entries[0]["mile_start"]
+                grouped_km[month] += diff_km
+
+        grouped_qty[month] += float(item["sum_qty"] or 0)
+
+    # -------------------------
+    # Result
+    # -------------------------
+    result = [
+        {
+            "month": month,
+            "sum_liter": round(grouped_qty[month], 2),
+            "sum_km":    round(grouped_km[month], 2),
+            "liter_per_km": round(grouped_qty[month] / grouped_km[month], 4)
+                            if grouped_km[month] else 0,
+        }
+        for month in sorted(grouped_qty.keys())
+    ]
+
+    return Response(result)
+
+
+def query_exp_oil_by_month_all(start_date, end_date, b_com):
+
+    sql = f"""
+        SELECT
+            TRIM(nh.remark) AS remark,
+            TO_CHAR(nh.docdat, 'YYYY') AS year,
+            TO_CHAR(nh.docdat, 'MM') AS month,
+            TO_CHAR(nh.docdat, 'YYYY-MM') AS year_month,
+
+            SUM(
+                CASE
+                    WHEN nd.stktyp = 'น้ำมันดีเซล'
+                    THEN nd.ordqty
+                    ELSE 0
+                END
+            ) AS sum_qty
+
+        FROM "OESTND" nd
+        JOIN "OESTNH" nh
+            ON nd.docnum = nh.docnum
+            AND nd.comcod = nh.comcod
+
+        WHERE
+            nd.comcod = %s
+            AND nd.docnum LIKE %s
+            AND nh.docdat BETWEEN %s AND %s
+
+        GROUP BY
+            TRIM(nh.remark),
+            TO_CHAR(nh.docdat, 'YYYY'),
+            TO_CHAR(nh.docdat, 'MM'),
+            TO_CHAR(nh.docdat, 'YYYY-MM')
+
+        ORDER BY year_month
+    """
+
+    params = [
+        b_com.affiliated.name,
+        f"{b_com.oi_invoice_code}%",
+        start_date,
+        end_date,
+    ]
+
+    with connections["pg_db"].cursor() as cursor:
+        cursor.execute(sql, params)
+
+        columns = [col[0] for col in cursor.description]
+
+        return [
+            dict(zip(columns, row))
+            for row in cursor.fetchall()
+        ]
+
+
+###############################################################################
+########## ดึงค่าใช้จ่ายน้ำมัน ตาม car_dep และ company ทั้งหมด ############
+##############################################################################
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getapiExpOilByMonthAll(request, start_date, end_date):
+
+    startDate = datetime.datetime.strptime(
+        start_date,
+        "%Y-%m-%d"
+    ).date()
+
+    endDate = datetime.datetime.strptime(
+        end_date,
+        "%Y-%m-%d"
+    ).date()
+
+    result = []
+
+    # =====================================================
+    # COMPANY
+    # =====================================================
+    branch_companies = (
+        BaseBranchCompany.objects
+        .exclude(code = "ALL")
+        .select_related("affiliated")
+    )
+
+    # =====================================================
+    # preload cars
+    # =====================================================
+    all_cars = list(
+        BaseCar.objects.all().values(
+            "id",
+            "name",
+            "code",
+            "car_dep_id",
+        )
+    )
+
+    # =====================================================
+    # lookup maps
+    # =====================================================
+    name_map = {}
+
+    code_map = {}
+
+    name_code_map = {}
+
+    for c in all_cars:
+
+        name = normalize_text(c["name"])
+
+        code = normalize_text(c["code"])
+
+        car_data = {
+            "id": c["id"],
+            "code": c["code"],
+            "car_dep_id": c["car_dep_id"],
+        }
+
+        # =============================================
+        # map name
+        # =============================================
+        if name:
+            name_map[name] = car_data
+
+        # =============================================
+        # map code
+        # =============================================
+        if code:
+            code_map[code] = car_data
+
+        # =============================================
+        # map name+code
+        # =============================================
+        if name and code:
+
+            name_code_map[
+                f"{name}{code}"
+            ] = car_data
+
+    # =====================================================
+    # LOOP COMPANY
+    # =====================================================
+    for b_com in branch_companies:
+
+        # =================================================
+        # QUERY SQL FIRST
+        # =================================================
+        oil_data = query_exp_oil_by_month_all(
+            start_date,
+            end_date,
+            b_com
+        )
+
+        if not oil_data:
+            continue
+
+        # =================================================
+        # resolve car ก่อน
+        # =================================================
+        oil_rows = []
+
+        used_car_ids = set()
+
+        for item in oil_data:
+
+            car_obj = resolve_car_fast(
+                item["remark"],
+                name_map,
+                code_map,
+                name_code_map
+            )
+
+            # =============================================
+            # ถ้าไม่เจอรถ
+            # =============================================
+            if not car_obj:
+                continue
+
+            # =============================================
+            # ถ้าไม่มี car_dep
+            # =============================================
+            if not car_obj.get("car_dep_id"):
+                continue
+
+            used_car_ids.add(
+                car_obj["id"]
+            )
+
+            oil_rows.append({
+                "item": item,
+                "car": car_obj,
+            })
+
+        if not used_car_ids:
+            continue
+
+        # =================================================
+        # LOAD LOGBOOK เฉพาะรถที่มีใน SQL
+        # =================================================
+        logbooks = (
+            CarLogbook.objects
+            .filter(
+                branch_company=b_com,
+                car_id__in=used_car_ids,
+                created__gte=startDate,
+                created__lte=endDate,
+            )
+            .values(
+                "car_id",
+                "created",
+                "mile_start",
+                "mile_end",
+            )
+            .order_by(
+                "car_id",
+                "created"
+            )
+        )
+
+        # =================================================
+        # LOGBOOK MAP
+        # =================================================
+        logbook_map = defaultdict(list)
+
+        for lb in logbooks:
+
+            ym = lb["created"].strftime(
+                "%Y-%m"
+            )
+
+            key = (
+                lb["car_id"],
+                ym
+            )
+
+            logbook_map[key].append(lb)
+
+        # =================================================
+        # GROUP RESULT
+        # =================================================
+        grouped_qty = defaultdict(float)
+
+        grouped_km = defaultdict(float)
+
+        meta_map = {}
+
+        for row in oil_rows:
+
+            item = row["item"]
+
+            car_obj = row["car"]
+
+            year = item["year"]
+
+            month = item["month"]
+
+            year_month = item["year_month"]
+
+            # =============================================
+            # GROUP KEY
+            # =============================================
+            key = (
+                year_month,
+                car_obj["id"],
+                b_com.code,
+                car_obj["car_dep_id"],
+            )
+
+            # =============================================
+            # SUM LITER
+            # =============================================
+            grouped_qty[key] += float(
+                item["sum_qty"] or 0
+            )
+
+            # =============================================
+            # KM
+            # =============================================
+            entries = logbook_map.get(
+                (
+                    car_obj["id"],
+                    year_month
+                ),
+                []
+            )
+
+            if entries:
+
+                start_mile = (
+                    entries[0]["mile_start"] or 0
+                )
+
+                end_mile = (
+                    entries[-1]["mile_end"] or 0
+                )
+
+                diff_km = end_mile - start_mile
+
+                if diff_km > 0:
+
+                    grouped_km[key] += diff_km
+
+            # =============================================
+            # META
+            # =============================================
+            meta_map[key] = {
+                "year": year,
+
+                "month": month,
+
+                "month_th": THAI_MONTHS.get(month),
+
+                "car_id": car_obj["id"],
+
+                "branch_company": b_com.id,
+
+                "car_dep": car_obj["car_dep_id"],
+            }
+
+        # =================================================
+        # BUILD RESULT
+        # =================================================
+        for key in grouped_qty.keys():
+
+            meta = meta_map[key]
+
+            # =============================================
+            # ถ้าไม่มี car_dep ข้าม
+            # =============================================
+            if not meta.get("car_dep"):
+                continue
+
+            qty = grouped_qty[key]
+
+            km = grouped_km[key]
+
+            result.append({
+                "year": meta["year"],
+
+                "month": meta["month"],
+
+                "month_th": meta["month_th"],
+
+                "sum_liter": round(qty, 2),
+
+                "sum_km": round(km, 2),
+
+                "liter_per_km": round(
+                    qty / km,
+                    4
+                ) if km else 0,
+
+                "car_id": meta["car_id"],
+
+                "branch_company": meta["branch_company"],
+
+                "car_dep": meta["car_dep"],
+            })
+
+    # =====================================================
+    # SORT
+    # =====================================================
+    result = sorted(
+        result,
+        key=lambda x: (
+            x["year"],
+            x["month"],
+            x["branch_company"],
+            x["car_dep"],
+            x["car_id"],
+        )
+    )
+
+    return Response(result)
+
+def calByCarDep(car_dep):
+    # 🔧 ปรับตามจริงของคุณ
+    if str(car_dep) == "2":   # รถบรรทุก/ยานพาหนะ
+        return 35
+    elif str(car_dep) == "3": # เครื่องจักรกลหนัก
+        return 10
+    return 8
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def apiExpWorkByMonth(request, start_date, end_date, comp, car_dep):
+
+    startDate = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+    endDate = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    b_com = BaseBranchCompany.objects.get(code=comp)
+
+    # 🔹 base queryset
+    base_qs = CarLogbook.objects.filter(
+        branch_company=b_com,
+        created__gte=startDate,   # ✅ use parsed date objects, not raw strings
+        created__lte=endDate,
+        car__car_dep=car_dep,
+
+    ).annotate(
+        year=ExtractYear('created'),
+        month=ExtractMonth('created'),
+        year_month=Concat(
+            Cast(ExtractYear('created'), models.CharField()),
+            Value('-'),
+            Cast(ExtractMonth('created'), models.CharField()),
+            output_field=models.CharField()
+        )
+    )
+
+    # 🔹 Subquery: mile_start (first record of month per car)
+    first_mile = CarLogbook.objects.filter(
+        car=OuterRef('car'),
+        created__year=OuterRef('year'),
+        created__month=OuterRef('month'),
+    ).order_by('created').values('mile_start')[:1]
+
+    # 🔹 Subquery: mile_end (last record of month per car)
+    last_mile = CarLogbook.objects.filter(
+        car=OuterRef('car'),
+        created__year=OuterRef('year'),
+        created__month=OuterRef('month'),
+    ).order_by('-created').values('mile_end')[:1]
+
+    # 🔥 STEP 1: fetch raw rows
+    raw_list = list(
+        base_qs
+        .values('car', 'year', 'month', 'year_month')
+        .annotate(
+            mile_start=Subquery(first_mile),
+            mile_end=Subquery(last_mile),
+        )
+        .annotate(
+            diff_mile=F('mile_end') - F('mile_start')
+        )
+    )
+
+    # ✅ deduplicate by (car, year_month) — keep only 1 row per car/month
+    seen = {}
+    for row in raw_list:
+        key = (row['car'], row['year_month'])
+        if key not in seen:
+            seen[key] = row
+
+    per_car_list = list(seen.values())
+
+    # 🔥 STEP 2: count distinct days PER CAR per month in Python
+    # query: distinct dates per (car, year_month)
+    day_per_car_qs = list(
+        base_qs
+        .values('car', 'year_month')
+        .annotate(
+            count_days=Count('created', distinct=True)
+        )
+    )
+
+    # dict: (car, year_month) -> count_days
+    day_per_car_map = {
+        (d['car'], d['year_month']): d['count_days']
+        for d in day_per_car_qs
+    }
+
+    # 🔥 STEP 3: sum diff_mile and count_days per year_month in Python
+    monthly_map = {}  # year_month -> { sum_diff_mile, count_diff_time }
+
+    for row in per_car_list:
+        ym = row['year_month']
+        car = row['car']
+        diff = row['diff_mile'] or 0
+        days = day_per_car_map.get((car, ym), 0)
+
+        # 🔒 cap each car at 31 days per business rule
+        if days > 31:
+            days = 31
+
+        if ym not in monthly_map:
+            monthly_map[ym] = {'sum_diff_mile': 0, 'count_diff_time': 0}
+
+        monthly_map[ym]['sum_diff_mile'] += diff
+        monthly_map[ym]['count_diff_time'] += days
+
+    # 🔥 STEP 4: build result
+    result = []
+
+    for ym in sorted(monthly_map.keys()):
+        diff_mile = monthly_map[ym]['sum_diff_mile']
+        count = monthly_map[ym]['count_diff_time']
+
+        percent = round(
+            (diff_mile / (count * calByCarDep(car_dep))) * 100,
+            2
+        ) if count else 0
+
+        result.append({
+            'year_month': ym,
+            'sum_diff_mile': diff_mile,
+            'count_diff_time': count,
+            'percent': percent,
+        })
+
+    return Response(result)
+
+###############################################################################
+##########๒๒ ดึงชั่วโมงการทำงานของรถ ตาม car_dep และ company ทั้งหมด ##############
+##############################################################################
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getapiExpWorkByMonthAll(request, start_date, end_date):
+
+    startDate = datetime.datetime.strptime(
+        start_date,
+        "%Y-%m-%d"
+    ).date()
+
+    endDate = datetime.datetime.strptime(
+        end_date,
+        "%Y-%m-%d"
+    ).date()
+
+    # 🔹 base queryset
+    base_qs = (
+        CarLogbook.objects
+        .filter(
+            created__gte=startDate,
+            created__lte=endDate,
+        )
+        .annotate(
+            year=ExtractYear('created'),
+            month=ExtractMonth('created'),
+            year_month=Concat(
+                Cast(
+                    ExtractYear('created'),
+                    models.CharField()
+                ),
+                Value('-'),
+                Cast(
+                    ExtractMonth('created'),
+                    models.CharField()
+                ),
+                output_field=models.CharField()
+            )
+        )
+    )
+
+    # 🔹 first mile per car/month
+    first_mile = (
+        CarLogbook.objects
+        .filter(
+            car=OuterRef('car'),
+            created__year=OuterRef('year'),
+            created__month=OuterRef('month'),
+        )
+        .order_by('created')
+        .values('mile_start')[:1]
+    )
+
+    # 🔹 last mile per car/month
+    last_mile = (
+        CarLogbook.objects
+        .filter(
+            car=OuterRef('car'),
+            created__year=OuterRef('year'),
+            created__month=OuterRef('month'),
+        )
+        .order_by('-created')
+        .values('mile_end')[:1]
+    )
+
+    # 🔥 STEP 1
+    raw_list = list(
+        base_qs
+        .values(
+            'car',
+            'branch_company_id',
+            'car__car_dep_id',
+            'year',
+            'month',
+            'year_month',
+        )
+        .annotate(
+            mile_start=Subquery(first_mile),
+            mile_end=Subquery(last_mile),
+        )
+        .annotate(
+            diff_mile=F('mile_end') - F('mile_start')
+        )
+    )
+
+    # 🔥 remove duplicate per car/month
+    seen = {}
+
+    for row in raw_list:
+
+        key = (
+            row['car'],
+            row['year'],
+            row['month'],
+            row['branch_company_id'],
+            row['car__car_dep_id'],
+        )
+
+        if key not in seen:
+            seen[key] = row
+
+    per_car_list = list(seen.values())
+
+    # 🔥 STEP 2
+    day_per_car_qs = list(
+        base_qs
+        .values(
+            'car',
+            'year_month',
+        )
+        .annotate(
+            count_days=Count(
+                'created',
+                distinct=True
+            )
+        )
+    )
+
+    # 🔹 map
+    day_per_car_map = {
+        (
+            item['car'],
+            item['year_month']
+        ): item['count_days']
+        for item in day_per_car_qs
+    }
+
+    # 🔥 STEP 3
+    monthly_map = defaultdict(lambda: {
+        'sum_diff_mile': 0,
+        'count_diff_time': 0,
+    })
+
+    for row in per_car_list:
+
+        ym = row['year_month']
+
+        car = row['car']
+
+        branch_company = row['branch_company_id']
+
+        car_dep = row['car__car_dep_id']
+
+        # ✅ include car in group key
+        key = (
+            ym,
+            branch_company,
+            car_dep,
+            car,
+        )
+
+        diff = row['diff_mile'] or 0
+
+        days = day_per_car_map.get(
+            (car, ym),
+            0
+        )
+
+        # 🔒 max 31 days
+        if days > 31:
+            days = 31
+
+        monthly_map[key]['sum_diff_mile'] += diff
+        monthly_map[key]['count_diff_time'] += days
+
+    # 🔥 STEP 4
+    result = []
+
+    for key in sorted(monthly_map.keys()):
+
+        ym, branch_company, car_dep, car_id = key
+
+        year, month = ym.split('-')
+
+        month = month.zfill(2)
+
+        diff_mile = monthly_map[key]['sum_diff_mile']
+
+        count = monthly_map[key]['count_diff_time']
+
+        percent = round(
+            (
+                diff_mile /
+                (
+                    count *
+                    calByCarDep(car_dep)
+                )
+            ) * 100,
+            2
+        ) if count else 0
+
+        result.append({
+            "month": month,
+            "month_th": THAI_MONTHS.get(month, ""),
+            "year": str(year),
+
+            "sum_diff_mile": float(diff_mile),
+
+            "count_diff_time": int(count),
+
+            "percent": float(percent),
+
+            "car_id": car_id,
+
+            "branch_company": branch_company,
+
+            "car_dep": car_dep,
+        })
+
+    return Response(result)
 
 def exportExcelByExpense(request):
     active = request.session['company_code']

@@ -265,6 +265,22 @@ urlpatterns = [
     path('baseCarDepartment/api/all/',views.allBaseCarDepartment,name="allBaseCarDepartment"),
 
     path('searchPmRound/',views.searchPmRound,name="searchPmRound"),
+
+    path('exp/repair/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpRepair,name="apiExpRepair"),
+    path('all/exp/repair/api/between/<str:start_date>/<str:end_date>/',views.getapiExpRepairAll,name="getapiExpRepairAll"),
+
+    path('exp/cartype/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpCarType,name="apiExpCarType"),
+    
+    path('exp/by/month/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpByMonth,name="apiExpByMonth"),
+    path('all/exp/by/month/api/between/<str:start_date>/<str:end_date>/',views.getapiExpWorkByMonthAll,name="getapiExpWorkByMonthAll"),
+
+    path('exp/oil/by/month/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpOilByMonth,name="apiExpOilByMonth"),
+    path('all/exp/oil/by/month/api/between/<str:start_date>/<str:end_date>/',views.getapiExpOilByMonthAll,name="getapiExpOilByMonthAll"),
+
+    path('exp/work/by/month/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpWorkByMonth,name="apiExpWorkByMonth"),
+
+    path('car/department/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiCarByDepartment,name="apiCarByDepartment"),
+    path('all/car/department/api/between/<str:start_date>/<str:end_date>/',views.getapiCarByDepartmentAll,name="getapiCarByDepartmentAll"),
 ]
 
 if settings.DEBUG :

@@ -137,6 +137,10 @@ DATABASES = {
         'PASSWORD': 'Suratthani89/*' ,#'Suratthani89/*'
         'HOST': '27.254.142.147',  #'27.254.142.147'
         'PORT': '5432',
+        'CONN_MAX_AGE': 60,   # หรือ 0 ถ้าอยากปิดทุก request
+        'OPTIONS': {
+            'connect_timeout': 10,
+        }
     }
 }
 
@@ -183,7 +187,7 @@ USE_L10N = True
 DATETIME_FORMAT = '%d-%m-%Y %H:%M:%S' 
 
 #USE_TZ = False
-USE_TZ = True
+USE_TZ = False
 
 REST_FRAMEWORK = {
     'NON_FIELD_ERRORS_KEY': 'errors',

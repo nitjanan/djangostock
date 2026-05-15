@@ -1500,7 +1500,7 @@ class ExOESTNH(models.Model):
     audttime = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'OESTNH'
+        db_table = '"OESTNH"'
         managed = False
         indexes = [
             models.Index(fields=['docnum', 'comcod'], name='OESTNH_ID1'),
@@ -1552,7 +1552,7 @@ class ExOESTND(models.Model):
     audttime = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'OESTND'
+        db_table = '"OESTND"'
         managed = False
         indexes = [
             models.Index(fields=['docnum', 'comcod'], name='OESTND_ID1'),
@@ -1824,7 +1824,7 @@ class CarLogbook(models.Model):
     id = models.AutoField(primary_key=True)#เก็บไอดีรหัสบันทึกการใช้รถ
     uniq_code = models.CharField(max_length=10, blank = True, null = True)#UNIQUEID() ใน appsheet
     series = models.IntegerField(null=True, blank = True, verbose_name="ลำดับ")
-    created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
+    created = models.DateField(default=timezone.now, verbose_name="วันที่สร้าง")
     update = models.DateTimeField(auto_now=True) #เก็บวันเวลาที่แก้ไขอัตโนมัติล่าสุด
     car = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='cl_car1', verbose_name="ทะเบียนรถ") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หัว)
     car_tail = models.ForeignKey(BaseCar, on_delete=models.CASCADE, blank=True, null=True, related_name='cl_car2', verbose_name="ทะเบียนรถ (หาง)") #ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน (หาง)
