@@ -266,6 +266,13 @@ urlpatterns = [
 
     path('searchPmRound/',views.searchPmRound,name="searchPmRound"),
 
+    path('dashboard/app/api/',views.apiOverviewDashboardAPP,name="apiOverviewDashboardAPP"),
+
+    path('exp/basecartype/api/',views.apiExpBaseCarType,name="apiExpBaseCarType"),
+    path('exp/baserepairtype/api/',views.apiExpBaseRepairType,name="apiExpBaseRepairType"),
+    path('exp/basecardepartment/api/',views.apiExpBaseCarDepartment,name="apiExpBaseCarDepartment"),
+    path('exp/basecar/api/',views.apiExpBaseCar,name="apiExpBaseCar"),
+
     path('exp/repair/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpRepair,name="apiExpRepair"),
     path('all/exp/repair/api/between/<str:start_date>/<str:end_date>/',views.getapiExpRepairAll,name="getapiExpRepairAll"),
 
