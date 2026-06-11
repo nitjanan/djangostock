@@ -227,13 +227,21 @@ def changeExist(old_product_id, new_product_id):
 
                     alertStr = "เปลี่ยนรหัสสินค้าจาก '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
                     alertType = messages.SUCCESS
-            except RequisitionItem.DoesNotExist:
-                pass
+            except Exception as e:
+                # Log the error for debugging purposes
+                print(f"Error in changeExist function: {e}")
+                alertStr = "เกิดข้อผิดพลาดในการเปลี่ยนรหัสสินค้า"
+                alertType = messages.ERROR
+                return alertType, alertStr
 
     except Product.DoesNotExist:
         alertStr = "ไม่มีรหัสสินค้าในระบบ ไม่สามารถเปลี่ยนรหัสสินค้าได้"
         alertType = messages.WARNING
-        pass
+    except Exception as e:
+        # Handle any other unexpected errors
+        print(f"Unexpected error in changeExist function: {e}")
+        alertStr = "เกิดข้อผิดพลาดที่ไม่คาดคิดในการเปลี่ยนรหัสสินค้า"
+        alertType = messages.ERROR
     return alertType,alertStr
 
 #button New โอน 17-06-2024
@@ -5067,19 +5075,46 @@ def viewPOReport(request):
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
     data = myFilter.qs
-
-    prs = PurchaseOrderItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
+    data = data.select_related(
+        'cp',
+        'credit',
+        'distributor',
+        'pr',
+        'stockman_user',
+    )
 
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+    dataPage.object_list = list(dataPage.object_list)
+
+    po_ids = [po.id for po in dataPage.object_list if po.pr_id]
+    pr_rows = (
+        PurchaseOrderItem.objects
+        .filter(
+            po_id__in=po_ids,
+            item__requisit__pr_ref_no__isnull=False,
+        )
+        .exclude(item__requisit__pr_ref_no='')
+        .values(
+            'po_id',
+            'item__requisit__pr_ref_no',
+            'item__requisit__purchase_requisition_id',
+        )
+        .distinct()
+        .order_by('po_id', 'item__requisit__pr_ref_no')
+    )
+
+    prs_by_po = defaultdict(list)
+    for pr in pr_rows:
+        prs_by_po[pr['po_id']].append(pr)
 
     context = {
         'pos':dataPage,
         'filter':myFilter,
         'is_po_approve_report': is_po_approve_report(request.user),
-        'prs':prs,
+        'prs_by_po':prs_by_po,
         'rp_po_page': "tab-active",
         'rp_po_show': "show",
         active :"active show",
@@ -5168,199 +5203,7 @@ def showRateDistributor(request, pk):
     }
     return render(request, "rateDistributor/showRateDistributor.html", context)
 
-''' old รายงานใบสั่งซื้อเก่า
-def exportExcelPO(request):
-    active = request.session['company_code']
-    company_in = findCompanyIn(request)
 
-    response = HttpResponse(content_type='application/ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="PO_Report_"'+active+'".xls"'
-
-    wb = xlwt.Workbook(encoding='utf-8')
-    ws = wb.add_sheet('รายงานใบสั่งสินค้า', cell_overwrite_ok=True) # this will make a sheet named Users Data
-
-    # Sheet header, first row
-    row_num = 0
-
-    font_style = xlwt.XFStyle()
-    font_style.font.bold = True
-
-    columns = ['เลขที่', 'วันที่', 'บริษัท', 'รหัสผู้จำหน่าย', 'ผู้จำหน่าย','วันที่กำหนดรับของ', 'รับของวันที่', 'เครดิต', 'V', 'ส่วนลด', 'มูลค่าสินค้า','VAT.', 'รวมทั้งสิ้น', 'ผู้สั่งสินค้า', 'ราคาส่วนต่างใบเปรียบเทียบ', 'ราคาที่ประหยัดได้', 'เลขที่ใบขอซื้อ', 'วันที่อนุมัติใบขอซื้อ','รายการสินค้า','ใช้ในระบบงาน','วันที่ต้องการ', 'ระดับความเร่งด่วน',  'ระยะเวลาในการซื้อ','ความล่าช้าในการรับของ']
-
-    for col_num in range(len(columns)):
-        ws.write(row_num, col_num, columns[col_num], font_style) # at 0 row 0 column 
-
-    # Sheet body, remaining rows
-    font_style = xlwt.XFStyle()
-    date_style = xlwt.easyxf(num_format_str='DD/MM/YYYY')
-    decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
-
-    stockman_user = request.GET.get('stockman_user') or None
-    ref_no = request.GET.get('ref_no') or None
-    distributor = request.GET.get('distributor') or None
-    amount_min = request.GET.get('amount_min') or None
-    amount_max = request.GET.get('amount_max') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-
-    my_q = Q()
-    if stockman_user is not None:
-        my_q = Q(stockman_user = stockman_user)
-    if ref_no is not None:
-        my_q &= Q(ref_no__icontains = ref_no)
-    if distributor is not None:
-        my_q &= Q(distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(created__lte = end_created)
-    if amount_min is not None:
-        my_q &= Q(amount__gte = amount_min)
-    if amount_max is not None :
-        my_q &=Q(amount__lte = amount_max)
-
-    my_q &=Q(approver_status = 2, is_cancel = False)
-
-    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
-    if  is_view_report_all(request.user) and active == 'ALL':
-        pass
-    else:
-        my_q &=Q(branch_company__code__in = company_in)
-
-    rows = PurchaseOrder.objects.filter(
-        my_q
-    ).values_list('ref_no', 'created', 'branch_company__name', 'distributor', 'distributor__name','due_receive_update', 'receive_update', 'credit__name', 'vat_type__id','discount', 'total_after_discount','vat' ,'amount','stockman_user__first_name','cp__amount_diff').annotate(
-        save_price=Case(
-			When(vat_type_id = 1, then= F('total_price')- (F('total_after_discount') + F('vat'))),
-			When(vat_type_id = 0, then= F('total_price')-F('total_after_discount')),
-			When(vat_type_id = 2, then= F('total_price')-F('total_after_discount')),
-			)).order_by('amount')
-
-    total_price = PurchaseOrder.objects.filter(my_q).values_list('total_after_discount', flat=True)
-    sum_total_price = sum(total_price)
-
-    vat = PurchaseOrder.objects.filter(my_q).values_list('vat', flat=True)
-    sum_vat = sum(vat)
-
-    amount = PurchaseOrder.objects.filter(my_q).values_list('amount', flat=True)
-    sum_amount = sum(amount)
-
-    count = PurchaseOrder.objects.filter(my_q).count()
-    
-    #หารายละเอียดของสินค้าที่ออกใบสั่งซื้อ
-    po = PurchaseOrder.objects.filter(my_q).order_by('amount')
-    po_items = PurchaseOrderItem.objects.filter(po__in = po).values('po__ref_no', 'item__requisit__pr_ref_no', 'item__product__name', 'item__machine', 'item__desired_date', 'item__urgency', 'item__requisit').order_by('po__amount')
-    
-    po_items_temp = PurchaseOrderItem.objects.filter(po__in = po).values('item__requisit').order_by('po__amount')
-    pr = PurchaseRequisition.objects.filter(requisition__in = po_items_temp).values('ref_no', 'approver_update')
-
-    for row in rows:
-        row_num += 1
-        for col_num in range(len(row)):
-            if isinstance(row[col_num], datetime.date):
-                ws.write(row_num, col_num, row[col_num], date_style)
-            elif col_num == 10 or col_num == 11 or col_num == 12 or col_num == 14 or col_num == 15:
-                ws.write(row_num, col_num, row[col_num], decimal_style)
-            else:
-                ws.write(row_num, col_num, row[col_num], font_style)
-            
-            strPr = ""
-            strPrItem = ""
-            strPrMachine = ""
-            strPrDesired = ""
-            strPrUrgency = ""
-
-            # loop po item
-            for item in po_items:
-                if row[0] == item['po__ref_no']:
-                    strPr = str(item['item__requisit__pr_ref_no'])
-                    strPrItem = " ".join([strPrItem, str(item['item__product__name']), ", "])
-                    strPrMachine = " ".join([strPrMachine, str(item['item__machine']), ", "])
-                    strPrDesired = item['item__desired_date']
-                    strPrUrgency = str(item['item__urgency'])
-            #remove , in last item
-            strPrItem = strPrItem[:-2]
-            strPrMachine = strPrMachine[:-2]
-
-            strApproverUpdate = None
-            strDateDiff = None
-            for p in pr:
-                if strPr == p['ref_no']:
-                    strApproverUpdate = p['approver_update']
-
-            strTempReceiveUpdate = None
-            strDateDelay = None
-            if row[6] and strPrDesired:
-                strTempReceiveUpdate = str(row[6])
-                strReceiveUpdate = convertDateBEtoBC(strTempReceiveUpdate)
-                
-                #DateDelay
-                if row[5]:
-                    if years_between(row[5], strTempReceiveUpdate) > 500:
-                        strDateDelay = str(days_between_nagative(strReceiveUpdate, row[5])) + " วัน"
-                    else:
-                        strDateDelay = str(days_between_nagative(strTempReceiveUpdate, row[5])) + " วัน"
-
-                #DateDiff
-                if row[6]:
-                    if years_between(row[6], strPrDesired) > 500:
-                        strDateDiff = str(days_between_nagative(strReceiveUpdate, strPrDesired)) + " วัน"
-                    else:
-                        strDateDiff = str(days_between_nagative(strTempReceiveUpdate, strPrDesired)) + " วัน"
-
-            
-            ws.write(row_num, 16, strPr, font_style)
-            ws.write(row_num, 17, strApproverUpdate, date_style)
-            ws.write(row_num, 18, strPrItem, font_style)
-            ws.write(row_num, 19, strPrMachine, font_style)
-            ws.write(row_num, 20, strPrDesired, date_style)
-            ws.write(row_num, 21, strPrUrgency, font_style)
-            ws.write(row_num, 22, strDateDiff, font_style)
-            ws.write(row_num, 23, strDateDelay, font_style)
-
-    ws.write(row_num+1, 0, "รวมทั้งสิ้น", font_style)
-    ws.write(row_num+1, 1, count, font_style)
-    ws.write(row_num+1, 2, "ใบ", font_style)
-    ws.write(row_num+1, 9, sum_total_price, decimal_style)
-    ws.write(row_num+1, 10, sum_vat, decimal_style)
-    ws.write(row_num+1, 11, sum_amount, decimal_style)
-
-    ws.write(row_num+3, 0, "ระดับความเร่งด่วน", font_style)
-    ws.write(row_num+3, 1, "1 = A", font_style)
-    ws.write(row_num+3, 2, "ภายใน 48 ชม.", font_style)
-
-    ws.write(row_num+4, 1, "2 = B", font_style)
-    ws.write(row_num+4, 2, "3-5 วัน", font_style)
-
-    ws.write(row_num+5, 1, "3 = C", font_style)
-    ws.write(row_num+5, 2, "7 วัน", font_style)
-
-    ws.write(row_num+6, 1, "4 = D", font_style)
-    ws.write(row_num+6, 2, "15 วัน", font_style)
-
-    ws.write(row_num+8, 0, "ระยะเวลาในการซื้อ คือ วันที่ต้องการเทียบกับรับของวันที่", font_style)
-    ws.write(row_num+8, 1, "น้อยกว่า 0", font_style)
-    ws.write(row_num+8, 2, "รับของช้ากว่าวันที่ต้องการ", font_style)
-
-    ws.write(row_num+9, 1, "เท่ากับ 0", font_style)
-    ws.write(row_num+9, 2, "รับของตรงกับวันที่ต้องการ", font_style)
-
-    ws.write(row_num+10, 1, "มากกว่า 0", font_style)
-    ws.write(row_num+10, 2, "รับของเร็วกว่าวันที่ต้องการ", font_style)
-
-    ws.write(row_num+12, 0, "ความล่าช้าในการรับของ คือ วันที่กำหนดรับของเทียบกับรับของวันที่", font_style)
-    ws.write(row_num+12, 1, "น้อยกว่า 0", font_style)
-    ws.write(row_num+12, 2, "รับของช้ากว่าวันที่กำหนดรับของ", font_style)
-
-    ws.write(row_num+13, 1, "เท่ากับ 0", font_style)
-    ws.write(row_num+13, 2, "รับของตรงกับวันที่กำหนดรับของ", font_style)
-
-    ws.write(row_num+14, 1, "มากกว่า 0", font_style)
-    ws.write(row_num+14, 2, "รับของเร็วกว่าวันที่กำหนดรับของ", font_style)
-    wb.save(response)
-
-    return response
-'''
 
 def cal_days_between_nagative(day1, day2):
     strDate = None
@@ -5422,74 +5265,103 @@ def exportExcelPOToExpress(request):
         my_q &=Q(po__branch_company__code__in = company_in)
 
     queryset = PurchaseOrderItem.objects.filter(my_q).order_by('po__id')
-    if not queryset.exists():
+
+    rows = list(queryset.annotate(
+        save_price=Case(
+            When(po__vat_type_id=1, then=F('po__total_price') - (F('po__total_after_discount') + F('po__vat'))),
+            When(po__vat_type_id=0, then=F('po__total_price') - F('po__total_after_discount')),
+            When(po__vat_type_id=2, then=F('po__total_price') - F('po__total_after_discount')),
+        ),
+        car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
+        machine_display=Case(
+            When(~Q(car_name_code=''), then='car_name_code'),
+            default='item__machine',
+        ),
+    ).values(
+        'po__ref_no', 'po__created', 'po__branch_company__code', 'po__branch_company__name',
+        'po__distributor', 'po__distributor__name', 'item__requisit__expense_dept__name',
+        'po__due_receive_update', 'po__receive_update', 'po__credit__name', 'po__vat_type__id',
+        'po__discount', 'po__total_after_discount', 'po__vat', 'po__amount',
+        'po__stockman_user__first_name', 'po__cp__amount_diff', 'save_price',
+        'item__requisit__pr_ref_no', 'item__requisit', 'item__product__id',
+        'item__product__name', 'item__product__category__name',
+        'quantity', 'unit_price', 'discount', 'price',
+        'machine_display', 'item__desired_date', 'item__urgency',
+        'po__id',
+    ))
+    if not rows:
         return HttpResponse("No data to export.")
 
-    data1 = {'เลขที่': queryset.values_list('po__ref_no', flat=True),
-            'วันที่': queryset.values_list('po__created', flat=True),
-            'รหัสบริษัท': queryset.values_list('po__branch_company__code', flat=True),
-            'บริษัท': queryset.values_list('po__branch_company__name', flat=True),
-            'รหัสผู้จำหน่าย': queryset.values_list('po__distributor', flat=True),
-            'ผู้จำหน่าย': queryset.values_list('po__distributor__name', flat=True),
-            'แผนกคชจ.': queryset.values_list('item__requisit__expense_dept__name', flat=True),
-            'วันที่กำหนดรับของ': queryset.values_list('po__due_receive_update', flat=True),
-            'รับของวันที่': queryset.values_list('po__receive_update', flat=True),
-            'เครดิต': queryset.values_list('po__credit__name', flat=True),
-            'V': queryset.values_list('po__vat_type__id', flat=True),
-            'ส่วนลดท้ายบิล': queryset.values_list('po__discount', flat=True),
-            'มูลค่าสินค้า': queryset.values_list('po__total_after_discount', flat=True),
-            'VAT.': queryset.values_list('po__vat', flat=True),
-            'รวมทั้งสิ้น': queryset.values_list('po__amount', flat=True),
-            'ผู้สั่งสินค้า': queryset.values_list('po__stockman_user__first_name', flat=True),
-            'ราคาส่วนต่างใบเปรียบเทียบ': queryset.values_list('po__cp__amount_diff', flat=True),
-            'ราคาที่ประหยัดได้': queryset.annotate(
-                    save_price=Case(
-                        When(po__vat_type_id = 1, then= F('po__total_price')- (F('po__total_after_discount') + F('po__vat'))),
-                        When(po__vat_type_id = 0, then= F('po__total_price')-F('po__total_after_discount')),
-                        When(po__vat_type_id = 2, then= F('po__total_price')-F('po__total_after_discount')),
-                        )).values_list('save_price', flat=True),        
-            'เลขที่ใบขอซื้อ': queryset.values_list('item__requisit__pr_ref_no', flat=True),
-            'วันที่อนุมัติใบขอซื้อ' :[
-                normalize_datetime(
-                    PurchaseRequisition.objects.filter(requisition = rq).values_list('approver_update', flat=True).first()
-                )
-                for rq in queryset.values_list('item__requisit', flat=True)
-            ],
-            'รหัสสินค้า' : queryset.values_list('item__product__id', flat=True),
-            'รายการสินค้า' : queryset.values_list('item__product__name', flat=True),
-            'กลุ่มสินค้า' : queryset.values_list('item__product__category__name', flat=True),
-            'จำนวน' : queryset.values_list('quantity', flat=True),
-            'ราคาต่อหน่วย' : queryset.values_list('unit_price', flat=True),
-            'ส่วนลด' : queryset.values_list('discount', flat=True),
-            'ราคารวม' : queryset.values_list('price', flat=True),
-            'ใช้ในระบบงาน' : queryset.annotate(
-                car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
-                machine=Case(
-                    When(~Q(car_name_code =''), then='car_name_code'),
-                    default='item__machine'
-                )).values_list('machine', flat=True), #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
-            'วันที่ต้องการ' : queryset.values_list('item__desired_date', flat=True),
-            'ระดับความเร่งด่วน' : queryset.values_list('item__urgency', flat=True),
-            'ระยะเวลาในการซื้อ' :  [ cal_days_between_nagative(qs[1], qs[0]) for qs in queryset.values_list('item__desired_date', 'po__receive_update')],
-            'ความล่าช้าในการรับของ' :  [ cal_days_between_nagative(qs['po__receive_update'], qs['po__due_receive_update']) for qs in queryset.values('po__due_receive_update', 'po__receive_update')],
-            }
+    requisition_ids = {r['item__requisit'] for r in rows if r['item__requisit'] is not None}
+    pr_approval_map = dict(
+        PurchaseRequisition.objects.filter(requisition_id__in=requisition_ids)
+        .values_list('requisition_id', 'approver_update')
+    ) if requisition_ids else {}
+
+    data1 = {
+        'เลขที่': [r['po__ref_no'] for r in rows],
+        'วันที่': [r['po__created'] for r in rows],
+        'รหัสบริษัท': [r['po__branch_company__code'] for r in rows],
+        'บริษัท': [r['po__branch_company__name'] for r in rows],
+        'รหัสผู้จำหน่าย': [r['po__distributor'] for r in rows],
+        'ผู้จำหน่าย': [r['po__distributor__name'] for r in rows],
+        'แผนกคชจ.': [r['item__requisit__expense_dept__name'] for r in rows],
+        'วันที่กำหนดรับของ': [r['po__due_receive_update'] for r in rows],
+        'รับของวันที่': [r['po__receive_update'] for r in rows],
+        'เครดิต': [r['po__credit__name'] for r in rows],
+        'V': [r['po__vat_type__id'] for r in rows],
+        'ส่วนลดท้ายบิล': [r['po__discount'] for r in rows],
+        'มูลค่าสินค้า': [r['po__total_after_discount'] for r in rows],
+        'VAT.': [r['po__vat'] for r in rows],
+        'รวมทั้งสิ้น': [r['po__amount'] for r in rows],
+        'ผู้สั่งสินค้า': [r['po__stockman_user__first_name'] for r in rows],
+        'ราคาส่วนต่างใบเปรียบเทียบ': [r['po__cp__amount_diff'] for r in rows],
+        'ราคาที่ประหยัดได้': [r['save_price'] for r in rows],
+        'เลขที่ใบขอซื้อ': [r['item__requisit__pr_ref_no'] for r in rows],
+        'วันที่อนุมัติใบขอซื้อ': [
+            normalize_datetime(pr_approval_map.get(r['item__requisit']))
+            for r in rows
+        ],
+        'รหัสสินค้า': [r['item__product__id'] for r in rows],
+        'รายการสินค้า': [r['item__product__name'] for r in rows],
+        'กลุ่มสินค้า': [r['item__product__category__name'] for r in rows],
+        'จำนวน': [r['quantity'] for r in rows],
+        'ราคาต่อหน่วย': [r['unit_price'] for r in rows],
+        'ส่วนลด': [r['discount'] for r in rows],
+        'ราคารวม': [r['price'] for r in rows],
+        'ใช้ในระบบงาน': [r['machine_display'] for r in rows],
+        'วันที่ต้องการ': [r['item__desired_date'] for r in rows],
+        'ระดับความเร่งด่วน': [r['item__urgency'] for r in rows],
+        'ระยะเวลาในการซื้อ': [
+            cal_days_between_nagative(r['item__desired_date'], r['po__receive_update'])
+            for r in rows
+        ],
+        'ความล่าช้าในการรับของ': [
+            cal_days_between_nagative(r['po__receive_update'], r['po__due_receive_update'])
+            for r in rows
+        ],
+    }
 
     df1 = pd.DataFrame(data1)
 
-    data2 = {'เลขที่': 'รวมทั้งสิ้น',
-            'วันที่': [queryset.values('po__id').distinct().count()],
-            'บริษัท': 'ใบ',
-            'รหัสผู้จำหน่าย': '',
-            'ผู้จำหน่าย': '',
-            'วันที่กำหนดรับของ': '',
-            'รับของวันที่': '',
-            'เครดิต': '',
-            'V': '',
-            'ส่วนลดท้ายบิล': '',
-            'มูลค่าสินค้า': [queryset.values('po__id').distinct().aggregate(s_t_f_d = Sum('po__total_after_discount'))['s_t_f_d']],
-            'VAT.': [queryset.values('po__id').distinct().aggregate(s_vat = Sum('po__vat'))['s_vat']],
-            'รวมทั้งสิ้น': [queryset.values('po__id').distinct().aggregate(s_amount = Sum('po__amount'))['s_amount']],
-            }
+    distinct_po_rows = list(queryset.values(
+        'po__id', 'po__total_after_discount', 'po__vat', 'po__amount',
+    ).distinct())
+    data2 = {
+        'เลขที่': 'รวมทั้งสิ้น',
+        'วันที่': [len(distinct_po_rows)],
+        'บริษัท': 'ใบ',
+        'รหัสผู้จำหน่าย': '',
+        'ผู้จำหน่าย': '',
+        'วันที่กำหนดรับของ': '',
+        'รับของวันที่': '',
+        'เครดิต': '',
+        'V': '',
+        'ส่วนลดท้ายบิล': '',
+        'มูลค่าสินค้า': [sum((r['po__total_after_discount'] or 0) for r in distinct_po_rows)],
+        'VAT.': [sum((r['po__vat'] or 0) for r in distinct_po_rows)],
+        'รวมทั้งสิ้น': [sum((r['po__amount'] or 0) for r in distinct_po_rows)],
+    }
 
     df2 = pd.DataFrame(data2, index=[0])
 
@@ -5502,14 +5374,9 @@ def exportExcelPOToExpress(request):
     data5 = {"เลขที่": ['ความล่าช้าในการรับของ คือ วันที่กำหนดรับของเทียบกับรับของวันที่', '', ''], "วันที่": ['น้อยกว่า 0', 'เท่ากับ 0', 'มากกว่า 0'], "บริษัท": ['รับของช้ากว่าวันที่กำหนดรับของ', 'รับของตรงกับวันที่กำหนดรับของ', 'รับของเร็วกว่าวันที่ต้องการ']}
     df5 = pd.DataFrame(data5, index=[0, 1, 2])
 
-    frames = [df1, df2, df3, df4, df5]
-    result = pd.concat(frames)
+    result = pd.concat([df1, df2, df3, df4, df5])
 
-    output = BytesIO()
-    output.seek(0)
-    
     response = HttpResponse(
-        output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xlsx'
@@ -5562,59 +5429,152 @@ def exportExcelPO(request):
         my_q &=Q(branch_company__code__in = company_in)
 
     queryset = PurchaseOrder.objects.filter(my_q).distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
-    if not queryset.exists():
+
+    po_rows = list(queryset.annotate(
+        save_price=Case(
+            When(vat_type_id=1, then=F('total_price') - (F('total_after_discount') + F('vat'))),
+            When(vat_type_id=0, then=F('total_price') - F('total_after_discount')),
+            When(vat_type_id=2, then=F('total_price') - F('total_after_discount')),
+        )
+    ).values(
+        'id', 'ref_no', 'created', 'branch_company__code', 'branch_company__name',
+        'distributor', 'distributor__name', 'due_receive_update', 'receive_update',
+        'credit__name', 'vat_type_id', 'discount', 'total_after_discount', 'vat', 'amount',
+        'stockman_user__first_name', 'cp__amount_diff', 'save_price',
+    ))
+    if not po_rows:
         return HttpResponse("No data to export.")
 
-    data1 = {'เลขที่': queryset.values_list('ref_no', flat=True),
-            'วันที่': queryset.values_list('created', flat=True),
-            'รหัสบริษัท': queryset.values_list('branch_company__code', flat=True),
-            'บริษัท': queryset.values_list('branch_company__name', flat=True),
-            'รหัสผู้จำหน่าย': queryset.values_list('distributor', flat=True),
-            'ผู้จำหน่าย': queryset.values_list('distributor__name', flat=True),
-            'วันที่กำหนดรับของ': queryset.values_list('due_receive_update', flat=True),
-            'รับของวันที่': queryset.values_list('receive_update', flat=True),
-            'เครดิต': queryset.values_list('credit__name', flat=True),
-            'V': queryset.values_list('vat_type__id', flat=True),
-            'รวมส่วนลดสินค้า' : [PurchaseOrderItem.objects.filter(po=id).aggregate(s_d = Sum('discount'))['s_d'] for id in queryset.values_list('id', flat=True)],
-            'ส่วนลดท้ายบิล': queryset.values_list('discount', flat=True),
-            'มูลค่าสินค้า': queryset.values_list('total_after_discount', flat=True),
-            'VAT.': queryset.values_list('vat', flat=True),
-            'รวมทั้งสิ้น': queryset.values_list('amount', flat=True),
-            'ผู้สั่งสินค้า': queryset.values_list('stockman_user__first_name', flat=True),
-            'ราคาส่วนต่างใบเปรียบเทียบ': queryset.values_list('cp__amount_diff', flat=True),
-            'ราคาที่ประหยัดได้': queryset.annotate(
-                    save_price=Case(
-                        When(vat_type_id = 1, then= F('total_price')- (F('total_after_discount') + F('vat'))),
-                        When(vat_type_id = 0, then= F('total_price')-F('total_after_discount')),
-                        When(vat_type_id = 2, then= F('total_price')-F('total_after_discount')),
-                        )).values_list('save_price', flat=True),
-            'เลขที่ใบขอซื้อ': [ PurchaseOrderItem.objects.filter(po = id).values_list('item__requisit__pr_ref_no', flat=True).first() for id in queryset.values_list('id', flat=True)],
-            'วันที่อนุมัติใบขอซื้อ' : [
-                normalize_datetime(
-                    PurchaseRequisition.objects.filter(
-                        requisition=PurchaseOrderItem.objects.filter(po=id)
-                        .values_list('item__requisit', flat=True)
-                        .first()
-                    ).values_list('approver_update', flat=True).first()
-                )
-                for id in queryset.values_list('id', flat=True)
-            ],
-            'รหัสสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__id', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
-            'รายการสินค้า' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__product__name', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
-            'ใช้ในระบบงาน' : [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id)
-                                                .annotate(car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'), machine=Case(When(~Q(car_name_code =''), then='car_name_code'),default='item__machine'))
-                                                .values_list('machine', flat=True).distinct()))) 
-                                                for id in queryset.values_list('id', flat=True)], #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
-            'วันที่ต้องการ' :   [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__desired_date', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
-            'ระดับความเร่งด่วน' :  [', '.join(map(str, list(PurchaseOrderItem.objects.filter(po=id).values_list('item__urgency', flat=True).distinct()))) for id in queryset.values_list('id', flat=True)],
-            'ระยะเวลาในการซื้อ' : [ cal_days_between_nagative(qs[1], PurchaseOrderItem.objects.filter(po = qs[0]).values_list('item__desired_date', flat=True).first()) for qs in queryset.values_list('id', 'receive_update')],
-            'ความล่าช้าในการรับของ' : [ cal_days_between_nagative(qs['receive_update'], qs['due_receive_update']) for qs in queryset.values('due_receive_update', 'receive_update')],
+    po_ids = [row['id'] for row in po_rows]
+
+    item_discount_map = dict(
+        PurchaseOrderItem.objects.filter(po_id__in=po_ids)
+        .values('po_id')
+        .annotate(s_d=Sum('discount'))
+        .values_list('po_id', 's_d')
+    )
+
+    po_items_grouped = {}
+    for row in PurchaseOrderItem.objects.filter(po_id__in=po_ids).annotate(
+        car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
+        machine=Case(
+            When(~Q(car_name_code=''), then='car_name_code'),
+            default='item__machine',
+        ),
+    ).values(
+        'po_id',
+        'item__requisit__pr_ref_no',
+        'item__requisit',
+        'item__product__id',
+        'item__product__name',
+        'machine',
+        'item__desired_date',
+        'item__urgency',
+    ):
+        po_id = row['po_id']
+        if po_id not in po_items_grouped:
+            po_items_grouped[po_id] = {
+                'pr_ref_no': None,
+                'requisition_id': None,
+                'product_ids': [],
+                'product_names': [],
+                'machines': [],
+                'desired_dates': [],
+                'urgencies': [],
+                'first_desired_date': None,
             }
+        g = po_items_grouped[po_id]
+        if g['pr_ref_no'] is None:
+            g['pr_ref_no'] = row['item__requisit__pr_ref_no']
+        if g['requisition_id'] is None:
+            g['requisition_id'] = row['item__requisit']
+        if g['first_desired_date'] is None:
+            g['first_desired_date'] = row['item__desired_date']
+        for key, val in (
+            ('product_ids', row['item__product__id']),
+            ('product_names', row['item__product__name']),
+            ('machines', row['machine']),
+            ('desired_dates', row['item__desired_date']),
+            ('urgencies', row['item__urgency']),
+        ):
+            if val is not None and val not in g[key]:
+                g[key].append(val)
+
+    requisition_ids = {
+        g['requisition_id']
+        for g in po_items_grouped.values()
+        if g['requisition_id'] is not None
+    }
+    pr_approval_map = dict(
+        PurchaseRequisition.objects.filter(requisition_id__in=requisition_ids)
+        .values_list('requisition_id', 'approver_update')
+    ) if requisition_ids else {}
+
+    empty_items = {
+        'pr_ref_no': None,
+        'product_ids': [],
+        'product_names': [],
+        'machines': [],
+        'desired_dates': [],
+        'urgencies': [],
+        'first_desired_date': None,
+        'requisition_id': None,
+    }
+
+    data1 = {
+        'เลขที่': [r['ref_no'] for r in po_rows],
+        'วันที่': [r['created'] for r in po_rows],
+        'รหัสบริษัท': [r['branch_company__code'] for r in po_rows],
+        'บริษัท': [r['branch_company__name'] for r in po_rows],
+        'รหัสผู้จำหน่าย': [r['distributor'] for r in po_rows],
+        'ผู้จำหน่าย': [r['distributor__name'] for r in po_rows],
+        'วันที่กำหนดรับของ': [r['due_receive_update'] for r in po_rows],
+        'รับของวันที่': [r['receive_update'] for r in po_rows],
+        'เครดิต': [r['credit__name'] for r in po_rows],
+        'V': [r['vat_type_id'] for r in po_rows],
+        'รวมส่วนลดสินค้า': [item_discount_map.get(r['id']) for r in po_rows],
+        'ส่วนลดท้ายบิล': [r['discount'] for r in po_rows],
+        'มูลค่าสินค้า': [r['total_after_discount'] for r in po_rows],
+        'VAT.': [r['vat'] for r in po_rows],
+        'รวมทั้งสิ้น': [r['amount'] for r in po_rows],
+        'ผู้สั่งสินค้า': [r['stockman_user__first_name'] for r in po_rows],
+        'ราคาส่วนต่างใบเปรียบเทียบ': [r['cp__amount_diff'] for r in po_rows],
+        'ราคาที่ประหยัดได้': [r['save_price'] for r in po_rows],
+        'เลขที่ใบขอซื้อ': [po_items_grouped.get(r['id'], empty_items)['pr_ref_no'] for r in po_rows],
+        'วันที่อนุมัติใบขอซื้อ': [
+            normalize_datetime(
+                pr_approval_map.get(po_items_grouped.get(r['id'], empty_items)['requisition_id'])
+            )
+            for r in po_rows
+        ],
+        'รหัสสินค้า': [', '.join(map(str, po_items_grouped.get(r['id'], empty_items)['product_ids'])) for r in po_rows],
+        'รายการสินค้า': [', '.join(map(str, po_items_grouped.get(r['id'], empty_items)['product_names'])) for r in po_rows],
+        'ใช้ในระบบงาน': [', '.join(map(str, po_items_grouped.get(r['id'], empty_items)['machines'])) for r in po_rows], #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
+        'วันที่ต้องการ': [', '.join(map(str, po_items_grouped.get(r['id'], empty_items)['desired_dates'])) for r in po_rows],
+        'ระดับความเร่งด่วน': [', '.join(map(str, po_items_grouped.get(r['id'], empty_items)['urgencies'])) for r in po_rows],
+        'ระยะเวลาในการซื้อ': [
+            cal_days_between_nagative(
+                r['receive_update'],
+                po_items_grouped.get(r['id'], empty_items)['first_desired_date'],
+            )
+            for r in po_rows
+        ],
+        'ความล่าช้าในการรับของ': [
+            cal_days_between_nagative(r['receive_update'], r['due_receive_update'])
+            for r in po_rows
+        ],
+    }
 
     df1 = pd.DataFrame(data1)
 
+    totals = queryset.aggregate(
+        c_id=Count('id'),
+        s_t_f_d=Sum('total_after_discount'),
+        s_vat=Sum('vat'),
+        s_amount=Sum('amount'),
+    )
     data2 = {'เลขที่': 'รวมทั้งสิ้น',
-            'วันที่': [queryset.aggregate(c_id = Count('id'))['c_id']],
+            'วันที่': [totals['c_id']],
             'บริษัท': 'ใบ',
             'รหัสผู้จำหน่าย': '',
             'ผู้จำหน่าย': '',
@@ -5623,9 +5583,9 @@ def exportExcelPO(request):
             'เครดิต': '',
             'V': '',
             'ส่วนลดท้ายบิล': '',
-            'มูลค่าสินค้า': [queryset.aggregate(s_t_f_d = Sum('total_after_discount'))['s_t_f_d']],
-            'VAT.': [queryset.aggregate(s_vat = Sum('vat'))['s_vat']],
-            'รวมทั้งสิ้น': [queryset.aggregate(s_amount = Sum('amount'))['s_amount']],
+            'มูลค่าสินค้า': [totals['s_t_f_d']],
+            'VAT.': [totals['s_vat']],
+            'รวมทั้งสิ้น': [totals['s_amount']],
             }
 
     df2 = pd.DataFrame(data2, index=[0])
@@ -6782,7 +6742,7 @@ def prepare_data(data):
                 continue
             elif str(item[key]).replace('.','',1).isdigit():
                 item[key] = float(item[key])
-        return data
+    return data
     
 def get_month_start_end(date=None):
     if date is None:
@@ -6918,9 +6878,22 @@ scheduler.start()
 '''
 
 def exportExcelByIVExpense(request):
+    STKTYP_CATEGORIES = (
+        'อะไหล่', 'พัสดุ',
+        'เบนซิล', 'วัตถุระเบิด', 'ทรัพย์สิน', 'เครื่องมือช่าง', 'สิ้นเปลือง',
+    )
+    FIRST_CAT_COL = 6
+    TOTAL_COL = FIRST_CAT_COL + len(STKTYP_CATEGORIES)
+    NUM_COLS = TOTAL_COL
+    HEADER_END_ROW = 3
+    DATA_START_ROW = 4
+    NUMERIC_COLS = range(2, NUM_COLS + 1)
+    first_cat_letter = get_column_letter(FIRST_CAT_COL)
+    last_cat_letter = get_column_letter(FIRST_CAT_COL + len(STKTYP_CATEGORIES) - 1)
+    total_letter = get_column_letter(TOTAL_COL)
+
     active = request.session['company_code']
-    company_in = findCompanyIn(request)
-    b_com = BaseBranchCompany.objects.get(code = active)
+    b_com = BaseBranchCompany.objects.get(code=active)
 
     start_created = request.GET.get('start_created') or None
     end_created = request.GET.get('end_created') or None
@@ -6928,23 +6901,8 @@ def exportExcelByIVExpense(request):
     start_date, end_date = get_month_start_end()
     if not start_created:
         start_created = start_date
-    if not end_date:
+    if not end_created:
         end_created = end_date
-
-    my_q = Q()
-    if start_created is not None:
-        my_q &= Q(iv__created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(iv__created__lte = end_created)
-
-    my_q &=Q(is_express = True)
-    my_q &=Q(iv__requisit__agency__name__isnull = False, iv__expense_dept__isnull = False)
-    
-    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
-    if  is_view_report_all(request.user) and active == 'ALL':
-        pass
-    else:
-        my_q &=Q(iv__branch_company__code__in = company_in)
 
     iv_filters = Q()
     if b_com.invoice_code:
@@ -6952,198 +6910,202 @@ def exportExcelByIVExpense(request):
     if b_com.oi_invoice_code:
         iv_filters |= Q(docnum__startswith=b_com.oi_invoice_code)
 
-    #หน่วยงานภายใน - อะไหล่
-    l_iv = list(
-        ExOESTNH.objects.using('pg_db')
-        .filter(
-            iv_filters,
-            comcod=b_com.affiliated.name,
-            docdat__range=(start_created, end_created)
-        )
-        .values_list('docnum', flat=True)
-    )
-
-    in_queryset = ExOESTND.objects.using('pg_db').filter(
-        comcod=b_com.affiliated.name,
-        docnum__in=l_iv
-    ).extra(
-        select={
-            'depcod': """(
-                SELECT depcod 
-                FROM "OESTNH" 
-                WHERE "OESTNH"."docnum" = "OESTND"."docnum" 
-                AND "OESTNH"."comcod" = "OESTND"."comcod" 
-                LIMIT 1
-            )"""
-        }
-    ).values(
-        'depcod'
-    ).annotate(
-        sum_amount=Sum('trnval'),
-        oil_lir=Sum(Case(
-            When(stktyp ='น้ำมันดีเซล', then='ordqty'),
-            output_field=models.DecimalField()
-        )),
-        eg_o_amount=Sum(Case(
-            When(stktyp ='น้ำมันหล่อลื่น', then='trnval'),
-            output_field=models.DecimalField()
-        )),
-        eg_o_oil_lir=Sum(Case(
-            When(stktyp ='น้ำมันหล่อลื่น', then='ordqty'),
-            output_field=models.DecimalField()
-        )),
-        oil_amount=Sum(Case(
-            When(stktyp ='น้ำมันดีเซล', then='trnval'),
-            output_field=models.DecimalField()
-        )),
-        sum_other=Sum(Case(
-            When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
-            output_field=models.DecimalField()
-        ))
-    ).order_by('depcod')
-
-    #หน่วยงานภายนอก - อะไหล่
     soc_filters = Q()
     if b_com.soc_code:
         soc_filters |= Q(docnum__startswith=b_com.soc_code)
     if b_com.oi_soc_code:
         soc_filters |= Q(docnum__startswith=b_com.oi_soc_code)
 
-    l_soc = list(
-                    ExOEINVH.objects.using('pg_db').filter(soc_filters, comcod = b_com.affiliated.name, docdate__range=(start_created, end_created)).values_list('docnum', flat=True)
-                )
-
-    ex_queryset = ExOEINVD.objects.using('pg_db').filter(
-        comcod = b_com.affiliated.name,
-        docnum__in=l_soc
-    ).extra(
-        select={
-            'cusnam': """(
-                SELECT cusnam 
-                FROM "OEINVH" 
-                WHERE "OEINVH"."docnum" = "OEINVD"."docnum" 
-                AND "OEINVH"."comcod" = "OEINVD"."comcod" 
-                LIMIT 1
-            )"""
-        }
-    ).values(
-        'cusnam'
-    ).annotate(
-        sum_amount=Sum('trnval'),
-        oil_lir=Sum(Case(
-            When(stktyp ='น้ำมันดีเซล', then='ordqty'),
-            output_field=models.DecimalField()
+    expense_annotations = {
+        'sum_amount': Sum('trnval'),
+        'oil_lir': Sum(Case(
+            When(stktyp='น้ำมันดีเซล', then='ordqty'),
+            output_field=models.DecimalField(),
         )),
-        eg_o_amount=Sum(Case(
-            When(stktyp ='น้ำมันหล่อลื่น', then='trnval'),
-            output_field=models.DecimalField()
+        'eg_o_amount': Sum(Case(
+            When(stktyp='น้ำมันหล่อลื่น', then='trnval'),
+            output_field=models.DecimalField(),
         )),
-        eg_o_oil_lir=Sum(Case(
-            When(stktyp ='น้ำมันหล่อลื่น', then='ordqty'),
-            output_field=models.DecimalField()
+        'eg_o_oil_lir': Sum(Case(
+            When(stktyp='น้ำมันหล่อลื่น', then='ordqty'),
+            output_field=models.DecimalField(),
         )),
-        oil_amount=Sum(Case(
-            When(stktyp ='น้ำมันดีเซล', then='trnval'),
-            output_field=models.DecimalField()
+        'oil_amount': Sum(Case(
+            When(stktyp='น้ำมันดีเซล', then='trnval'),
+            output_field=models.DecimalField(),
         )),
-        sum_other=Sum(Case(
-            When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
-            output_field=models.DecimalField()
+    }
+    for cat in STKTYP_CATEGORIES:
+        expense_annotations[cat] = Sum(Case(
+            When(stktyp=cat, then='trnval'),
+            output_field=models.DecimalField(),
         ))
-    ).order_by('cusnam')
 
-    if not in_queryset.exists():
+    # หน่วยงานภายใน - ใช้ Subquery แทน extra() และไม่ materialize docnum list
+    nh_in_docs = ExOESTNH.objects.using('pg_db').filter(
+        iv_filters,
+        comcod=b_com.affiliated.name,
+        docdat__range=(start_created, end_created),
+    )
+    depcod_subquery = nh_in_docs.filter(
+        docnum=OuterRef('docnum'),
+        comcod=OuterRef('comcod'),
+    ).values('depcod')[:1]
+
+    in_rows = list(
+        ExOESTND.objects.using('pg_db')
+        .filter(
+            comcod=b_com.affiliated.name,
+            docnum__in=nh_in_docs.values('docnum'),
+        )
+        .annotate(depcod=Subquery(depcod_subquery))
+        .values('depcod')
+        .annotate(**expense_annotations)
+        .order_by('depcod')
+    )
+
+    # หน่วยงานภายนอก
+    nh_ex_docs = ExOEINVH.objects.using('pg_db').filter(
+        soc_filters,
+        comcod=b_com.affiliated.name,
+        docdate__range=(start_created, end_created),
+    )
+    cusnam_subquery = nh_ex_docs.filter(
+        docnum=OuterRef('docnum'),
+        comcod=OuterRef('comcod'),
+    ).values('cusnam')[:1]
+
+    ex_rows = list(
+        ExOEINVD.objects.using('pg_db')
+        .filter(
+            comcod=b_com.affiliated.name,
+            docnum__in=nh_ex_docs.values('docnum'),
+        )
+        .annotate(cusnam=Subquery(cusnam_subquery))
+        .values('cusnam')
+        .annotate(**expense_annotations)
+        .order_by('cusnam')
+    )
+
+    if not in_rows and not ex_rows:
         return HttpResponse("No data to export.")
 
-    # Prepare data
-    internal_data = []
-    external_data = []
+    def build_expense_row(label, item):
+        row = {
+            'แผนก': label,
+            'ลิตร': item['oil_lir'] or '-',
+            'บาท': item['oil_amount'] or '-',
+            'ลิตร.': item['eg_o_oil_lir'] or '-',
+            'บาท.': item['eg_o_amount'] or '-',
+            'รวม': item['sum_amount'] or 0,
+        }
+        for cat in STKTYP_CATEGORIES:
+            row[cat] = item.get(cat) or '-'
+        return row
 
-    # 1. สร้าง Dict depcod -> name
+    def row_values(item):
+        return [
+            item['แผนก'],
+            item['ลิตร'],
+            item['บาท'],
+            item['ลิตร.'],
+            item['บาท.'],
+        ] + [item[cat] for cat in STKTYP_CATEGORIES] + [item['รวม']]
+
+    def total_values(label, data):
+        return [
+            label,
+            safe_sum(data, 'ลิตร'),
+            safe_sum(data, 'บาท'),
+            safe_sum(data, 'ลิตร.'),
+            safe_sum(data, 'บาท.'),
+        ] + [safe_sum(data, cat) for cat in STKTYP_CATEGORIES] + [safe_sum(data, 'รวม')]
+
+    dept_ids = [
+        item['depcod'].strip()
+        for item in in_rows
+        if item.get('depcod') is not None
+    ]
     dept_map = {
         str(d['id']): d['name']
-        for d in BaseExpenseDepartment.objects.filter(
-            id__in=[item['depcod'].strip() for item in in_queryset if item['depcod'] is not None]
-        ).values('id', 'name')
+        for d in BaseExpenseDepartment.objects.filter(id__in=dept_ids).values('id', 'name')
     }
 
-    # 2. วนลูปสร้าง internal_data
     internal_data = []
-    for item in in_queryset:
-        dep_name = dept_map.get(item['depcod'].strip(), item['depcod'].strip())  # ถ้าไม่มี depcod ก็ใส่ '-'
-        row = {
-            'แผนก': dep_name,
-            'ลิตร': item['oil_lir'] or '-',
-            'บาท': item['oil_amount'] or '-',
-            'ลิตร.': item['eg_o_oil_lir'] or '-',
-            'บาท.': item['eg_o_amount'] or '-',
-            'ค่าอะไหล่': item['sum_other'] or '-',
-            'รวม': item['sum_amount'] or 0
-        }
-        internal_data.append(row)
+    for item in in_rows:
+        depcod = (item.get('depcod') or '').strip() or '-'
+        dep_name = dept_map.get(depcod, depcod)
+        internal_data.append(build_expense_row(dep_name, item))
 
-    for item in ex_queryset:
-        row = {
-            'แผนก': item['cusnam'] or '-',
-            'ลิตร': item['oil_lir'] or '-',
-            'บาท': item['oil_amount'] or '-',
-            'ลิตร.': item['eg_o_oil_lir'] or '-',
-            'บาท.': item['eg_o_amount'] or '-',
-            'ค่าอะไหล่': item['sum_other'] or '-',
-            'รวม': item['sum_amount'] or 0
-        }
-        external_data.append(row)
+    external_data = [
+        build_expense_row(item.get('cusnam') or '-', item)
+        for item in ex_rows
+    ]
 
     internal_data = prepare_data(internal_data) or []
     external_data = prepare_data(external_data) or []
 
-    # สร้าง Workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "รายงานค่าใช้จ่ายพัสดุ"
 
-    # สไตล์
     header_font = Font(bold=True, size=12)
     section_font = Font(bold=True)
     center_alignment = Alignment(horizontal='center', vertical='center')
     border = Border(
-        left=Side(style='thin'), 
+        left=Side(style='thin'),
         right=Side(style='thin'),
-        top=Side(style='thin'), 
-        bottom=Side(style='thin')
+        top=Side(style='thin'),
+        bottom=Side(style='thin'),
     )
 
     start_created = safe_str_to_date(start_created) or start_date
-    end_created = safe_str_to_date(end_created)  or end_date
+    end_created = safe_str_to_date(end_created) or end_date
 
-    # ส่วนหัวหลัก
-    ws.merge_cells('A1:G1')
-    ws['A1'] = "รายงานค่าใช้จ่ายพัสดุ " + start_created.strftime('%d/%m/%Y') + " ถึง " + end_created.strftime('%d/%m/%Y')
+    ws.merge_cells(f'A1:{get_column_letter(NUM_COLS)}1')
+    ws['A1'] = (
+        "รายงานค่าใช้จ่ายพัสดุ "
+        + start_created.strftime('%d/%m/%Y')
+        + " ถึง "
+        + end_created.strftime('%d/%m/%Y')
+    )
     ws['A1'].font = header_font
     ws['A1'].alignment = center_alignment
 
-    # หัวคอลัมน์
-    ws.append(['แผนกคชจ.', 'น้ำมันโซล่า', '', 'น้ำมันหล่อลื่น', '', 'ค่าอะไหล่/สิ่งของ+', 'รวมจำนวนเงิน'])
-    ws.append(['', 'ลิตร', 'บาท', 'ลิตร.', 'บาท.', 'ค่าแรง', 'บาท'])
-
-    # Merge และจัดรูปแบบเซลล์ A2 และ A3
-    ws.merge_cells('A2:A3')
-    ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
-    ws['A2'].font = Font(bold=True)
-    ws['A2'] = "แผนก"  # ข้อความที่คุณต้องการแสดง
-        
-    # รวมหัวคอลัมน์และจัดสไตล์
+    ws['A2'] = 'แผนกคชจ.'
+    ws['B2'] = 'น้ำมันโซล่า'
     ws.merge_cells('B2:C2')
+    ws['D2'] = 'น้ำมันหล่อลื่น'
     ws.merge_cells('D2:E2')
-    for row in ws.iter_rows(min_row=2, max_row=3):
+    ws['F2'] = 'ค่าอะไหล่/สิ่งของ+'
+    ws.merge_cells(f'{first_cat_letter}2:{last_cat_letter}2')
+    ws[f'{total_letter}2'] = 'รวมจำนวนเงิน'
+
+    ws['B3'] = 'ลิตร'
+    ws['C3'] = 'บาท'
+    ws['D3'] = 'ลิตร.'
+    ws['E3'] = 'บาท.'
+    ws[f'{total_letter}3'] = 'บาท'
+
+    for idx, cat in enumerate(STKTYP_CATEGORIES):
+        ws.cell(row=3, column=FIRST_CAT_COL + idx, value=cat)
+
+    ws.merge_cells('A2:A3')
+    ws['A2'] = 'แผนก'
+    ws.merge_cells(f'{total_letter}2:{total_letter}3')
+
+    for row in ws.iter_rows(min_row=2, max_row=HEADER_END_ROW, max_col=NUM_COLS):
         for cell in row:
             cell.font = Font(bold=True)
             cell.alignment = center_alignment
             cell.border = border
 
-    current_row = 4
+    def format_data_row(row_num):
+        for col in NUMERIC_COLS:
+            ws.cell(row=row_num, column=col).number_format = '#,##0.00'
+
+    current_row = DATA_START_ROW
     if internal_data:
-        # ข้อมูลหน่วยงานภายใน
         ws.merge_cells(f'A{current_row}:E{current_row}')
         ws[f'A{current_row}'] = "หน่วยงานภายใน"
         ws[f'A{current_row}'].font = section_font
@@ -7151,40 +7113,19 @@ def exportExcelByIVExpense(request):
         current_row += 1
 
         for item in internal_data:
-            ws.append([
-                item['แผนก'],
-                item['ลิตร'],
-                item['บาท'],
-                item['ลิตร.'],
-                item['บาท.'],
-                item['ค่าอะไหล่'],
-                item['รวม']
-            ])
-            for col in range(1, 8):
-                cell = ws.cell(row=current_row, column=col)
-                if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
-                    cell.number_format = '#,##0.00'
+            ws.append(row_values(item))
+            format_data_row(current_row)
             current_row += 1
 
-        # ผลรวมหน่วยงานภายใน
-        ws.append([
-            "รวมหน่วยงานภายใน",
-            safe_sum(internal_data, 'ลิตร'),
-            safe_sum(internal_data, 'บาท'),
-            safe_sum(internal_data, 'ลิตร.'),
-            safe_sum(internal_data, 'บาท.'),
-            safe_sum(internal_data, 'ค่าอะไหล่'),
-            safe_sum(internal_data, 'รวม')
-        ])
-        for col in range(1, 8):
+        ws.append(total_values("รวมหน่วยงานภายใน", internal_data))
+        for col in range(1, NUM_COLS + 1):
             cell = ws.cell(row=current_row, column=col)
             cell.font = Font(bold=True)
-            if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
+            if col in NUMERIC_COLS:
                 cell.number_format = '#,##0.00'
         current_row += 1
 
     if external_data:
-        # ข้อมูลหน่วยงานภายนอก
         ws.merge_cells(f'A{current_row}:E{current_row}')
         ws[f'A{current_row}'] = "หน่วยงานภายนอก"
         ws[f'A{current_row}'].font = section_font
@@ -7192,99 +7133,48 @@ def exportExcelByIVExpense(request):
         current_row += 1
 
         for item in external_data:
-            ws.append([
-                item['แผนก'],
-                item['ลิตร'],
-                item['บาท'],
-                item['ลิตร.'],
-                item['บาท.'],
-                item['ค่าอะไหล่'],
-                item['รวม']
-            ])
-            for col in range(1, 8):
-                cell = ws.cell(row=current_row, column=col)
-                if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
-                    cell.number_format = '#,##0.00'
+            ws.append(row_values(item))
+            format_data_row(current_row)
             current_row += 1
-            
-        # ผลรวมหน่วยงานภายนอก
-        ws.append([
-            "รวมหน่วยงานภายนอก",
-            safe_sum(external_data, 'ลิตร'),
-            safe_sum(external_data, 'บาท'),
-            safe_sum(external_data, 'ลิตร.'),
-            safe_sum(external_data, 'บาท.'),
-            safe_sum(external_data, 'ค่าอะไหล่'),
-            safe_sum(external_data, 'รวม')
-        ])
-        for col in range(1, 8):
+
+        ws.append(total_values("รวมหน่วยงานภายนอก", external_data))
+        for col in range(1, NUM_COLS + 1):
             cell = ws.cell(row=current_row, column=col)
             cell.font = Font(bold=True)
-            if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
+            if col in NUMERIC_COLS:
                 cell.number_format = '#,##0.00'
         current_row += 1
 
-    # Add one empty row as separator
-    ws.append([''] * 7)  # Empty row separator
-
-    # Add GRAND TOTAL row (sum of both internal and external)
+    ws.append([''] * NUM_COLS)
     grand_total_row = current_row + 1
 
-    # Calculate grand totals
-    grand_total_liter = safe_sum(internal_data, 'ลิตร') + safe_sum(external_data, 'ลิตร')
-    grand_total_baht = safe_sum(internal_data, 'บาท') + safe_sum(external_data, 'บาท')
-    grand_eg_total_liter = safe_sum(internal_data, 'ลิตร.') + safe_sum(external_data, 'ลิตร.')
-    grand_eg_total_baht = safe_sum(internal_data, 'บาท.') + safe_sum(external_data, 'บาท.')
-    grand_total_other = safe_sum(internal_data, 'ค่าอะไหล่') + safe_sum(external_data, 'ค่าอะไหล่')
-    grand_total_amount = safe_sum(internal_data, 'รวม') + safe_sum(external_data, 'รวม')
-
-    # Create grand total row (showing all sums)
-    ws[f'A{grand_total_row}'] = "รวมทั้งหมด"
-    ws[f'B{grand_total_row}'] = grand_total_liter
-    ws[f'C{grand_total_row}'] = grand_total_baht
-    ws[f'D{grand_total_row}'] = grand_eg_total_liter
-    ws[f'E{grand_total_row}'] = grand_eg_total_baht
-    ws[f'F{grand_total_row}'] = grand_total_other
-    ws[f'G{grand_total_row}'] = grand_total_amount
-
-    # Apply formatting to grand total row
-    for col in range(1, 8):
-        cell = ws.cell(row=grand_total_row, column=col)
+    grand_values = total_values("รวมทั้งหมด", internal_data + external_data)
+    for col_idx, value in enumerate(grand_values, start=1):
+        cell = ws.cell(row=grand_total_row, column=col_idx, value=value)
         cell.font = Font(bold=True)
-        if col in [2, 3, 4, 5, 6, 7]:  # Numeric columns
+        if col_idx in NUMERIC_COLS:
             cell.number_format = '#,##0.00'
-        if col == 1:  # Label column
+        if col_idx == 1:
             cell.alignment = Alignment(horizontal='center', vertical='center')
-
-    # Apply special border style
-    for col in range(1, 8):
-        ws.cell(row=grand_total_row, column=col).border = Border(
+        cell.border = Border(
             left=Side(style='thin'),
             right=Side(style='thin'),
             top=Side(style='thin'),
-            bottom=Side(style='double')  # Double line for emphasis
+            bottom=Side(style='double'),
         )
 
-    # ใส่กรอบให้ทุกเซลล์
-    for row in ws.iter_rows(min_row=1, max_row=current_row, max_col=7):
+    for row in ws.iter_rows(min_row=1, max_row=current_row, max_col=NUM_COLS):
         for cell in row:
             cell.border = border
 
-    # Adjust column widths if needed
-    column_widths = {'A': 40, 'B': 15, 'C': 15, 'D': 15, 'E': 15, 'F': 20, 'G': 15}
-    for col, width in column_widths.items():
-        ws.column_dimensions[col].width = width
+    ws.column_dimensions['A'].width = 40
+    for col_idx in range(2, NUM_COLS + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 15
 
-    # สร้าง HttpResponse
-    output = BytesIO()
-    output.seek(0)
-    
     response = HttpResponse(
-        output.getvalue(),
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
     response['Content-Disposition'] = f'attachment; filename=Expense by Department({active}).xlsx'
-    
     wb.save(response)
     return response
 
@@ -10235,11 +10125,15 @@ def apiExpBaseCarDepartment(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def apiExpBaseCar(request):
-    queryset = BaseCar.objects.all()
+    queryset = BaseCar.objects.values(
+        'id',
+        'name',
+        'car_dep',
+        'car_type',
+    )
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
-    serializer = ExpBaseCarSerializer(result_page, many=True)
-    return paginator.get_paginated_response(serializer.data)
+    return paginator.get_paginated_response(result_page)
 
 
 def query_exp_car_all(start_date, end_date, b_com):

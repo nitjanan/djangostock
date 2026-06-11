@@ -138,13 +138,11 @@
             <td>
               {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
               {%if po.pr %}
-                {% for pr in prs %}
-                  {% if po.id == pr.po %}
-                    {% ifchanged pr.item__requisit__pr_ref_no a%}
-                      <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
-                    {% endifchanged %}
-                  {%endif%}
-                {%endfor%}
+                {% with pr_list=prs_by_po|get_item:po.id %}
+                  {% for pr in pr_list %}
+                    <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
+                  {% endfor %}
+                {% endwith %}
               {%endif%}
             </td>
             <td>{{po.distributor}}</td>

@@ -1,6 +1,6 @@
 from django import template
 import datetime
-from django.utils.timezone import localtime
+from django.utils.timezone import get_current_timezone, is_naive, localtime, make_aware
 
 register = template.Library()
 
@@ -21,8 +21,8 @@ def get_item(dictionary, key):
 @register.filter
 def format_datetime(value):
     if isinstance(value, datetime.datetime):
-        if value.time() == datetime.time(0, 0, 0):
-            return localtime(value).strftime("%d/%m/%Y")
+        if is_naive(value):
+            value = make_aware(value, get_current_timezone())
         return localtime(value).strftime("%d/%m/%Y %H:%M")
     return value
 
@@ -31,16 +31,10 @@ def first_chars(value, num=2):
     return value[:num] if value else ''
 
 @register.filter
-def format_datetime(value):
-    if isinstance(value, datetime.datetime):
-        if value.time() == datetime.time(0, 0, 0):
-            return localtime(value).strftime("%d/%m/%Y")
-        return localtime(value).strftime("%d/%m/%Y %H:%M")
-    return value
-
-@register.filter
 def get_localtime(value):
     if isinstance(value, datetime.datetime):
+        if is_naive(value):
+            value = make_aware(value, get_current_timezone())
         if value.time() == datetime.time(0, 0, 0):
             return localtime(value)
         return localtime(value)
