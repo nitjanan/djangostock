@@ -32,7 +32,7 @@ from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisiti
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
-from django.db.models import Prefetch, Sum
+from django.db.models import Prefetch, Sum, Max
 from .resources import ReceiveItemResource, DistributorResource
 from tablib import Dataset
 from django.db.models import Q

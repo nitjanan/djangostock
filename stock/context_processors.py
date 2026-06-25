@@ -32,26 +32,40 @@ def userVisibleTab(request):
     return dict(visible_tab = visible_tab)
 
 def companyVisibleTab(request):
+    company_tab = None
+    global_notification_badge_count = 0
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
-        company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
-        company_code = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
+        if request.user.is_authenticated:
+            user_profile = UserProfile.objects.get(user_id = request.user.id)
+            company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
+            company_code = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
 
-        #ถ้าเป็นจัดซื้อ
-        if is_purchasing(request.user):
-            for i in company_tab:
-                setAlertPurchasingCompanyTab(request, i.code)
-        elif is_supplies(request.user):
-            for i in company_tab:
-                setAlertSupplieCompanyTab(request, i.code)
-        elif is_approve(request.user):
-            for i in company_tab:
-                setAlertApproveCompanyTab(request, i.code, company_code)
-        
+            #ถ้าเป็นจัดซื้อ
+            if is_purchasing(request.user):
+                for i in company_tab:
+                    setAlertPurchasingCompanyTab(request, i.code)
+            elif is_supplies(request.user):
+                for i in company_tab:
+                    setAlertSupplieCompanyTab(request, i.code)
+            elif is_approve(request.user):
+                for i in company_tab:
+                    setAlertApproveCompanyTab(request, i.code, company_code)
+            
+            # Calculate global_notification_badge_count dynamically
+            real_companies = [tab for tab in company_tab if tab.code != 'ALL']
+            if len(real_companies) == 1:
+                single_company_code = real_companies[0].code
+                session_key = f'NUM_{single_company_code}'
+                if single_company_code == 'L1':
+                    session_key = 'NUM_I1'
+                global_notification_badge_count = request.session.get(session_key, 0)
+            else:
+                global_notification_badge_count = request.session.get('NUM_ALL', 0)
     except:
         company_tab = None
+        global_notification_badge_count = 0
 
-    return dict(company_tab = company_tab)
+    return dict(company_tab = company_tab, global_notification_badge_count = global_notification_badge_count)
 
 #หมวดหมู่สินค้าที่ navbar
 def menu_link(request):
@@ -571,6 +585,8 @@ def receiveCounter(request):
 def setAlertPurchasingCompanyTab(request, tab):
     if tab == "S1":
         request.session['NUM_S1'] = findAllPurchasingAlert(request, tab)
+    elif tab == "SG":
+        request.session['NUM_SG'] = findAllPurchasingAlert(request, tab)
     elif tab == "D1":
         request.session['NUM_D1'] = findAllPurchasingAlert(request, tab)
     elif tab == "I1" or tab == "L1":
@@ -614,6 +630,8 @@ def findAllPurchasingAlert(request, tab):
 def setAlertSupplieCompanyTab(request, tab):
     if tab == "S1":
         request.session['NUM_S1'] = findAllSupplieAlert(request, tab)
+    elif tab == "SG":
+        request.session['NUM_SG'] = findAllSupplieAlert(request, tab)
     elif tab == "D1":
         request.session['NUM_D1'] = findAllSupplieAlert(request, tab)
     elif tab == "I1" or tab == "L1":
@@ -662,6 +680,8 @@ def setAlertApproveCompanyTab(request, tab, company_code):
     code = BaseBranchCompany.objects.filter(code = tab).values('code')
     if tab == "S1":
         request.session['NUM_S1'] = findAllApproveAlert(request, code)
+    elif tab == "SG":
+        request.session['NUM_SG'] = findAllApproveAlert(request, code)
     elif tab == "D1":
         request.session['NUM_D1'] = findAllApproveAlert(request, code)
     elif tab == "I1" or tab == "L1":

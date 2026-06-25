@@ -137,23 +137,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
-    <!-- As A jQuery Plugin -->
-    <script src="{% static 'js/bootstrap-nav-paginator.jquery.min.js' %}"></script>
-
-    <!-- As A Vanilla JS Plugin -->
-    <!--script src="{% static 'js/bootstrap-nav-paginator.min.js' %}"></script-->
 	<script>
         
         $(document).ready(function () {
             $('#sidebarCollapse').on('click', function () {
                 $('#sidebar').toggleClass('active');
             });
-
-            // As A jQuery Plugin
-            //$("#nav-tabs").BsNavPaginator(15, "nav-link"); ปิดตัวเลื่อนแท็ปซ้าย-ขวา และซ่อนแท็ปหากจำนวนมากกว่าเลขนี้
-
-            // As A Vanilla JS Plugin
-            //document.querySelector("#nav-tabs").BsNavPaginator(5, "nav-link");
         });
 
         $(document).ready(function () {
@@ -211,6 +200,117 @@
         function scrollToTop(){
             $(window).scrollTop(0);
         }
+
+        // ---------------------------------------------------
+        // PREMIUM IOS/GMAIL STYLE NOTIFICATION BADGE FOR FAVICON & APP BADGING API
+        // ---------------------------------------------------
+        function setBrowserNotificationBadge(count) {
+            // 1. Taskbar/Desktop Shortcut Badge (App Badging API)
+            if ('setAppBadge' in navigator) {
+                if (count > 0) {
+                    navigator.setAppBadge(count).catch(err => console.error(err));
+                } else {
+                    navigator.clearAppBadge();
+                }
+            }
+
+            // 2. Browser Tab Icon Badge (Favicon Canvas Drawing)
+            const favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
+            if (!favicon) return;
+
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = favicon.href;
+
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 32;
+                canvas.height = 32;
+                const ctx = canvas.getContext('2d');
+
+                // Draw original favicon image
+                ctx.drawImage(img, 0, 0, 32, 32);
+
+                if (count > 0) {
+                    const radius = 9;
+                    const x = 32 - radius;
+                    const y = radius;
+
+                    // Draw white border ring
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius + 1.5, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fill();
+
+                    // Draw iOS system red circle
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#FF3B30';
+                    ctx.fill();
+
+                    // Draw white bold count text
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const badgeText = count > 99 ? '99+' : count.toString();
+                    ctx.fillText(badgeText, x, y);
+                }
+
+                favicon.href = canvas.toDataURL('image/png');
+            };
+        }
+
+        $(document).ready(function() {
+            const totalAlertCount = parseInt("{{ global_notification_badge_count|default:0 }}") || 0;
+            setBrowserNotificationBadge(totalAlertCount);
+
+            function adjustTabs() {
+                const navTabs = document.getElementById('nav-tabs');
+                if (!navTabs) return;
+
+                if (window.innerWidth < 768) {
+                    return;
+                }
+
+                const tabs = navTabs.querySelectorAll('.nav-item');
+                const numTabs = tabs.length;
+                if (numTabs === 0) return;
+
+                const containerWidth = navTabs.parentElement.clientWidth;
+                let cols;
+                if (numTabs <= 8) {
+                    cols = numTabs;
+                } else {
+                    cols = Math.ceil(numTabs / 2);
+                }
+
+                const minTabWidth = 140; // minimum readable width in px
+                const requiredWidth = cols * minTabWidth;
+
+                if (requiredWidth > containerWidth) {
+                    navTabs.style.setProperty('display', 'grid', 'important');
+                    navTabs.style.setProperty('grid-template-rows', 'repeat(2, min-content)', 'important');
+                    navTabs.style.setProperty('grid-auto-flow', 'column', 'important');
+                    navTabs.style.setProperty('grid-auto-columns', 'minmax(140px, 1fr)', 'important');
+                    navTabs.style.setProperty('grid-template-columns', 'none', 'important');
+                    navTabs.style.setProperty('overflow-x', 'auto', 'important');
+                    navTabs.style.setProperty('overflow-y', 'hidden', 'important');
+                    navTabs.style.setProperty('white-space', 'nowrap', 'important');
+                } else {
+                    navTabs.style.setProperty('display', 'grid', 'important');
+                    navTabs.style.setProperty('grid-template-rows', 'none', 'important');
+                    navTabs.style.setProperty('grid-auto-flow', 'row', 'important');
+                    navTabs.style.setProperty('grid-template-columns', `repeat(${cols}, 1fr)`, 'important');
+                    navTabs.style.setProperty('overflow-x', 'visible', 'important');
+                    navTabs.style.setProperty('white-space', 'normal', 'important');
+                }
+            }
+
+            adjustTabs();
+            $(window).on('resize', adjustTabs);
+        });
+
 
     </script>
 {% block javascript %}

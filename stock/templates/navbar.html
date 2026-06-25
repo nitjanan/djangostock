@@ -178,6 +178,61 @@
     {% if request.user.is_authenticated and request.user.first_name %}
     <div class="bg-white w-100">
       <div class="bg-light w-100">
+            <select id="company-select" class="form-control {{colorNav}}" onChange="setCompany(this.value)">
+                {% for tab in company_tab %}
+                  {% if 'ALL' in tab.code %}
+                    <option value="{{tab.code}}" {% if ALL %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'S1' in tab.code %}
+                    <option value="{{tab.code}}" {% if S1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'SG' in tab.code %}
+                    <option value="{{tab.code}}" {% if SG %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'D1' in tab.code %}
+                    <option value="{{tab.code}}" {% if D1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'I1' in tab.code %}
+                    <option value="{{tab.code}}" {% if I1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'L1' in tab.code %}
+                    <option value="{{tab.code}}" {% if L1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'U1' in tab.code %}
+                    <option value="{{tab.code}}" {% if U1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'G1' in tab.code %}
+                    <option value="{{tab.code}}" {% if G1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'R1' in tab.code %}
+                    <option value="{{tab.code}}" {% if R1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'Y1' in tab.code %}
+                    <option value="{{tab.code}}" {% if Y1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'P1' in tab.code %}
+                    <option value="{{tab.code}}" {% if P1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'B1' in tab.code %}
+                    <option value="{{tab.code}}" {% if B1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'J1' in tab.code %}
+                    <option value="{{tab.code}}" {% if J1 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'P2' in tab.code %}
+                    <option value="{{tab.code}}" {% if P2 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'Y2' in tab.code %}
+                    <option value="{{tab.code}}" {% if Y2 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'Y4' in tab.code %}
+                    <option value="{{tab.code}}" {% if Y4 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                  {% if 'Y5' in tab.code %}
+                    <option value="{{tab.code}}" {% if Y5 %}selected{% endif %}>{{tab.code}}-{{tab.name}}</option>
+                  {%endif%}
+                {% endfor %}
+            </select>
             <ul id="nav-tabs" class="nav nav-tabs nav-pills flex-column flex-sm-row text-center border-0 w-100 {{colorNav}}">
               {% for tab in company_tab %}
                 {% if 'ALL' in tab.code %}
@@ -194,6 +249,15 @@
                     <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{S1}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}
                       {% if request.session.NUM_S1 > 0%}
                         <span class="badge badge-pill badge-dark notification">{{request.session.NUM_S1}}</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                {%endif%}
+                {% if 'SG' in tab.code %}
+                  <li class="nav-item flex-sm-fill pointer">
+                    <a id="{{tab.code}}" data-toggle="tab" role="tab" aria-selected="true" class="nav-link border-0 text-uppercase font-weight-bold {{SG}} {{disableTab}}" onClick="setCompany('{{tab.code}}')">{{tab.code}}-{{tab.name}}
+                      {% if request.session.NUM_SG > 0%}
+                        <span class="badge badge-pill badge-dark notification">{{request.session.NUM_SG}}</span>
                       {% endif %}
                     </a>
                   </li>

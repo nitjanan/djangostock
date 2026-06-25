@@ -249,3 +249,206 @@ a.article:hover {
         display: none;
     }
 }
+
+/* ---------------------------------------------------
+    PREMIUM IOS/GMAIL STYLE NOTIFICATION BADGE
+----------------------------------------------------- */
+
+/* Wrapper for the icon and badge */
+.badge-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Gmail/iOS style badge */
+.badge-notification {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+    background-color: #FF3B30; /* iOS System Red */
+    color: #FFFFFF !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px; /* Fully rounded pill shape */
+    border: 2px solid #FFFFFF; /* High-contrast white border */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); /* Premium soft drop shadow */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    box-sizing: border-box;
+    z-index: 99;
+    pointer-events: none; /* Let user click the parent icon directly */
+}
+
+/* Make nav-tabs equal width grid and look like clean premium cards */
+#nav-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+}
+
+#nav-tabs.disableNav {
+    background-color: #e9ecef !important;
+}
+
+#nav-tabs.disableNav .nav-link {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+}
+
+#nav-tabs.disableNav .nav-link:hover {
+    background-color: #dee2e6 !important;
+    color: #212529 !important;
+}
+
+#nav-tabs.disableNav .nav-link.active {
+    background-color: #6c757d !important;
+    color: #ffffff !important;
+}
+
+#nav-tabs.enableNav {
+    background-color: #c6e1ff !important;
+}
+
+#nav-tabs.enableNav .nav-link {
+    background-color: #c6e1ff !important;
+    color: #012d5c !important;
+}
+
+#nav-tabs.enableNav .nav-link:hover {
+    background-color: #e2f0ff !important;
+    color: #004085 !important;
+}
+
+#nav-tabs.enableNav .nav-link.active {
+    background-color: #007bff !important;
+    color: #ffffff !important;
+}
+
+#nav-tabs .nav-item {
+    margin: 0 !important;
+    display: flex !important;
+}
+
+#nav-tabs .nav-link {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 6px 8px !important;
+    font-size: 14.5px !important;
+    color: #012d5c !important;
+    background-color: #C1E0F3!important;
+    border: none !important;
+    border-radius: 0 !important;
+    transition: all 0.15s ease-in-out !important;
+    box-shadow: none !important;
+    line-height: 1.2 !important;
+    min-height: 36px !important;
+}
+
+#nav-tabs .nav-link:hover {
+    background-color: #e2f0ff !important;
+    color: #004085 !important;
+    box-shadow: none !important;
+}
+
+#nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background-color: #007bff !important;
+    box-shadow: none !important;
+    font-weight: bold !important;
+}
+
+#nav-tabs .nav-link .badge {
+    margin-left: 4px !important;
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+}
+
+/* Webkit scrollbar customization for a clean look */
+#nav-tabs::-webkit-scrollbar {
+    height: 5px !important;
+}
+#nav-tabs::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+#nav-tabs::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15) !important;
+    border-radius: 4px !important;
+}
+#nav-tabs::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Responsive visibility for navigation modes */
+@media (min-width: 768px) {
+    #nav-tabs {
+        display: grid !important;
+    }
+    #company-select {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #nav-tabs {
+        display: none !important;
+    }
+    #company-select {
+        display: block !important;
+    }
+}
+
+/* Premium styling for mobile company select dropdown */
+#company-select {
+    width: 100% !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    border: 1px solid #ced4da !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    background-color: #ffffff !important;
+    color: #495057 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23495057' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 18px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+#company-select:focus {
+    outline: none !important;
+    border-color: #80bdff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+#company-select.disableNav {
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+}
+
+#company-select.enableNav {
+    background-color: #e3f2fd !important;
+    border-color: #a5d8ff !important;
+    color: #004085 !important;
+}
+
+
+
+
+
+
