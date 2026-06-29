@@ -547,7 +547,11 @@ $(function() {
     setDataRate();//set ข้อมูลประเมินร้านค้า
 });
 
+var isSubmitted = false;
 $('form').submit(function() {
+  if (isSubmitted) {
+    return false;
+  }
   var inputs = $(".item");
   for(var i = 0; i < inputs.length; i++){
     quantity = parseFloat($("#id_purchaseorderitem_set-"+i+"-quantity").val());
@@ -577,6 +581,9 @@ $('form').submit(function() {
   var data = $('#id_purchaseorderitem_set-'+inputId+'-item').val();
   if(data == "")
      $("#div-None" ).remove();
+
+  isSubmitted = true;
+  $(this).find('button[type="submit"]').html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
 });
 
 function updateElementIndex(el, prefix, ndx) {

@@ -3041,6 +3041,10 @@ def createPOItem(request, po_id):
         formset = PurchaseOrderItemModelFormset(request.POST)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         if formset.is_valid() and price_form.is_valid():
+            # Check if PO items already exist for this PO to prevent duplicate creation
+            if PurchaseOrderItem.objects.filter(po=po_data).exists():
+                return redirect('viewPO')
+
             # save ราคาใบ po
             price = price_form.save(commit=False)
             if not price.discount:
@@ -4150,6 +4154,9 @@ def createPOItemFromComparisonPrice(request, po_id):
         formset = PurchaseOrderItemModelFormset(request.POST)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         if formset.is_valid() and price_form.is_valid():
+            # Check if PO items already exist for this PO to prevent duplicate creation
+            if PurchaseOrderItem.objects.filter(po=po_data).exists():
+                return redirect('viewPO')
 
             # save ราคาใบ po
             price_form.save()

@@ -288,7 +288,11 @@ for(var i = 0; i < inputs.length; i++){
     }
 }
 
+var isSubmitted = false;
 $('form').submit(function() {
+  if (isSubmitted) {
+    return false;
+  }
   var inputs = $(".item");
   for(var i = 0; i < inputs.length; i++){
     quantity = parseFloat($("#id_form-"+i+"-quantity").val());
@@ -299,6 +303,8 @@ $('form').submit(function() {
       return false;
     }
   }
+  isSubmitted = true;
+  $(this).find('button[type="submit"]').html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
 });
 
 //price ราคารวม, vat, รวมทั้งสิ้น

@@ -451,5 +451,14 @@ $(".express" ).change(function() {
 
   });
 
+  var isSubmitted = false;
+  $('form').submit(function() {
+    if (isSubmitted) {
+      return false;
+    }
+    isSubmitted = true;
+    $(this).find('button[type="submit"]').html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
+  });
+
 </script>
 {% endblock%}
