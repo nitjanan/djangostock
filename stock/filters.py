@@ -473,14 +473,10 @@ class CarLogbookFilter(django_filters.FilterSet):
         fields = ('ref_no', 'created', 'car', 'name')
 
     def filter_start_created(self, queryset, name, value):
-        #Convert it into an aware datetime at 00:00:00.
-        aware_datetime = make_aware(datetime.combine(value, time.min))
-        return queryset.filter(**{name + '__gte': aware_datetime})
+        return queryset.filter(**{name + '__gte': value})
 
     def filter_end_created(self, queryset, name, value):
-        #Convert date into an aware datetime at 23:59:59.
-        aware_datetime = make_aware(datetime.combine(value, time.max))
-        return queryset.filter(**{name + '__lte': aware_datetime})
+        return queryset.filter(**{name + '__lte': value})
     
     def filter_car(self, queryset, name, value):
         return queryset.filter(

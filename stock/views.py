@@ -8559,15 +8559,12 @@ def excelDailyCL(request):
         bottom=Side(style='thin')
     )
 
-    startDate_dt = make_aware(datetime.datetime.combine(startDate, datetime.time.min))
-    endDate_dt   = make_aware(datetime.datetime.combine(endDate, datetime.time.max))
-
     if cars:
         for car in cars:
             driver = (
                 CarLogbook.objects.filter(
                     car=car,
-                    created__range=(startDate_dt, endDate_dt),
+                    created__range=(startDate, endDate),
                     branch_company__code__in=company_in
                 )
                 .annotate(
@@ -8587,7 +8584,7 @@ def excelDailyCL(request):
             
             qs = CarLogbook.objects.filter(
                 car=car, 
-                created__range=(startDate_dt, endDate_dt), 
+                created__range=(startDate, endDate), 
                 branch_company__code__in=company_in
             )
             data_sum = qs.aggregate(
@@ -8600,8 +8597,8 @@ def excelDailyCL(request):
                 sum_DW_water=Sum('DW_water'),
             )
 
-            first_row = qs.order_by('created').first()
-            last_row = qs.order_by('-created').first()
+            first_row = qs.order_by('created', 'id').first()
+            last_row = qs.order_by('created', 'id').last()
 
             if first_row and last_row:
                 total_mile = last_row.mile_end - first_row.mile_start
@@ -8664,13 +8661,10 @@ def excelDailyCL(request):
             row_index = 9
             for idl, ldate in enumerate(list_date):
                 row_index += 1
-                start_dt = make_aware(datetime.datetime.combine(ldate, datetime.time.min))
-                end_dt   = make_aware(datetime.datetime.combine(ldate, datetime.time.max))
-
                 # aggregate sums
                 data = CarLogbook.objects.filter(
                     car=car, 
-                    created__range=(start_dt, end_dt), 
+                    created=ldate, 
                     branch_company__code__in=company_in
                 ).aggregate(
                     sum_oil=Sum('oil'),
@@ -8684,19 +8678,19 @@ def excelDailyCL(request):
 
                 # first and last records
                 data_first = CarLogbook.objects.filter(
-                    car=car, created__range=(start_dt, end_dt),
+                    car=car, created=ldate,
                     branch_company__code__in=company_in
-                ).order_by('created').first()
+                ).order_by('id').first()
 
                 data_last = CarLogbook.objects.filter(
-                    car=car, created__range=(start_dt, end_dt),
+                    car=car, created=ldate,
                     branch_company__code__in=company_in
-                ).order_by('created').last()
+                ).order_by('id').last()
 
 
                 notes = CarLogbook.objects.filter(
                     car=car,
-                    created__range=(start_dt, end_dt),
+                    created=ldate,
                     branch_company__code__in=company_in
                 ).annotate(
                     full_name=Concat(
@@ -9218,14 +9212,11 @@ def excelExpensesByCarLog(request):
     startDate = datetime.datetime.strptime(start_created or startDateInMonth(current_date_time.strftime('%Y-%m-%d')), "%Y-%m-%d").date()
     endDate = datetime.datetime.strptime(end_created or current_date_time.strftime('%Y-%m-%d'), "%Y-%m-%d").date()
 
-    startDate_dt = make_aware(datetime.datetime.combine(startDate, datetime.time.min))
-    endDate_dt = make_aware(datetime.datetime.combine(endDate, datetime.time.max))
-
     my_q = Q()
     if start_created is not None:
-        my_q &= Q(created__gte = startDate_dt)
+        my_q &= Q(created__gte = startDate)
     if end_created is not None:
-        my_q &=Q(created__lte = endDate_dt)
+        my_q &=Q(created__lte = endDate)
     my_q &=Q(branch_company__code__in = company_in)
 
 
