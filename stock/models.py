@@ -108,12 +108,15 @@ def comparisonPrice_ref_number(branch_company):
     new_no = format + str(formatted)
     return new_no
 
-def purchaseOrder_ref_number(branch_company):
-    today = datetime.datetime.now()
+def purchaseOrder_ref_number(branch_company=None, date=None):
+    if date is None:
+        today = datetime.datetime.now()
+    else:
+        today = date
     year = str(int(today.strftime('%Y')) + 543)[2:4]
     month = str(today.strftime('%m'))
     YM = year + month
-    format = str(branch_company) + YM
+    format = (str(branch_company) if branch_company else "") + YM
 
     try:
         last_no = PurchaseOrder.objects.all().filter(ref_no__contains=format).order_by('id').last()
@@ -124,7 +127,8 @@ def purchaseOrder_ref_number(branch_company):
         return format + '001'
 
     ref_no = last_no.ref_no
-    oldDate =  ref_no[2:-3]
+    prefix_len = len(str(branch_company)) if branch_company else 0
+    oldDate = ref_no[prefix_len:-3]
     if YM == oldDate:
         no_int = int(ref_no.split(format)[-1])
     elif YM != oldDate:
@@ -1307,7 +1311,7 @@ class PurchaseOrder(models.Model):
             company = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.branch_company).first()
             self.address_company = company.address
         if self.ref_no is None:
-            self.ref_no = purchaseOrder_ref_number(self.branch_company)
+            self.ref_no = purchaseOrder_ref_number(self.branch_company, self.created)
 
         # QR Code 17-05-2024
         if not self.qr_code:

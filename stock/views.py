@@ -4095,6 +4095,7 @@ def createPOFromComparisonPrice(request, cp_id):
             new_contact.approver_status_id = 1
             #new_contact.approver_user = cp.approver_user
             new_contact.branch_company = company
+            new_contact.created = cp.created
 
             rate_contact = form_rate.save(commit=False)
             rate_contact.organizer_user = cp.organizer
