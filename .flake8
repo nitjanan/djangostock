@@ -1,0 +1,8 @@
+[flake8]
+; Only report real problems (F = pyflakes: undefined names, syntax errors).
+; Skip all style checks (E/W) and unused/duplicate-import noise:
+; F401 = imported but unused, F811 = redefinition, F841 = unused variable
+select = F
+extend-ignore = F401, F811, F841, F402, F403, F405, F541, F601
+exclude = venv, staticfiles, __pycache__, migrations_old, migrations, .git
+max-line-length = 200
