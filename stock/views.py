@@ -113,8 +113,13 @@ def findCompanyIn(request):
 
     #หาหน้าต่างการมองเห็นบริษัททั้งหมดของ user
     user_profile = UserProfile.objects.get(user = request.user.id)
-    company_all = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
 
+    #ถ้า code == "ALL" return all company than user have permision 
+    #ถ้า code != "ALL" return code that user have permision
+    
+
+    # all Branch than user have permision
+    company_all = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
     if code == "ALL":
         company_in = company_all
     else:
@@ -7624,11 +7629,15 @@ def exportToExcelAllExpensesRegistration(request):
 def viewExInvoice(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    b_com = BaseBranchCompany.objects.get(code = active)
 
-
-    if b_com.oi_invoice_code:
-        data = ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.invoice_code).order_by('-docdat', '-docnum')
+    # ดึงสาขาที่ user มีสิทธิ์ และมี invoice_code
+    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(invoice_code__isnull=True).exclude(invoice_code='')
+    query = Q()
+    for b in b_coms:
+        if b.affiliated:
+            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.invoice_code)
+    if query:
+        data = ExOESTNH.objects.using('pg_db').filter(query).order_by('-docdat', '-docnum')
     else:
         data = ExOESTNH.objects.using('pg_db').none()
 
@@ -7654,10 +7663,15 @@ def viewExInvoice(request):
 def viewExOiInvoice(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    b_com = BaseBranchCompany.objects.get(code = active)
 
-    if b_com.oi_invoice_code:
-        data = ExOESTNH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_invoice_code).order_by('-docdat', '-docnum')
+    # ดึงสาขาที่ user มีสิทธิ์ และมี oi_invoice_code
+    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(oi_invoice_code__isnull=True).exclude(oi_invoice_code='')
+    query = Q()
+    for b in b_coms:
+        if b.affiliated:
+            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.oi_invoice_code)
+    if query:
+        data = ExOESTNH.objects.using('pg_db').filter(query).order_by('-docdat', '-docnum')
     else:
         data = ExOESTNH.objects.using('pg_db').none()
 
@@ -7683,10 +7697,15 @@ def viewExOiInvoice(request):
 def viewExSOC(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    b_com = BaseBranchCompany.objects.get(code = active)
 
-    if b_com.soc_code:
-        data = ExOEINVH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.soc_code).order_by('-docdate', '-docnum')
+    # ดึงสาขาที่ user มีสิทธิ์ และมี soc_code
+    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(soc_code__isnull=True).exclude(soc_code='')
+    query = Q()
+    for b in b_coms:
+        if b.affiliated:
+            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.soc_code)
+    if query:
+        data = ExOEINVH.objects.using('pg_db').filter(query).order_by('-docdate', '-docnum')
     else:
         data = ExOEINVH.objects.using('pg_db').none()
 
@@ -7712,10 +7731,15 @@ def viewExSOC(request):
 def viewExOiSOC(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
-    b_com = BaseBranchCompany.objects.get(code = active)
 
-    if b_com.oi_soc_code:
-        data = ExOEINVH.objects.using('pg_db').filter(comcod = b_com.affiliated.name, docnum__startswith = b_com.oi_soc_code).order_by('-docdate', '-docnum')
+    # ดึงสาขาที่ user มีสิทธิ์ และมี oi_soc_code
+    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(oi_soc_code__isnull=True).exclude(oi_soc_code='')
+    query = Q()
+    for b in b_coms:
+        if b.affiliated:
+            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.oi_soc_code)
+    if query:
+        data = ExOEINVH.objects.using('pg_db').filter(query).order_by('-docdate', '-docnum')
     else:
         data = ExOEINVH.objects.using('pg_db').none()
 
