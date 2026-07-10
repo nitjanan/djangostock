@@ -4,8 +4,6 @@ from multiprocessing import context
 import numbers
 from pickletools import decimalnl_short
 import re
-from tkinter import N
-from turtle import numinput, position, title
 from typing import cast
 from unicodedata import decimal, numeric
 from urllib import response
@@ -16,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType, PoDownloadLog
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -745,7 +743,7 @@ def index(request, category_slug = None):
         visible_tab = BaseVisible.objects.filter(userprofile = user_profile)
     except:
         visible_tab = None
-    
+
     isStaff = False
     isMobile = False
     isPermission = False
@@ -2969,8 +2967,12 @@ def showPO(request, po_id, mode):
     if isPurchasing or isSupplies:
         isUploadeReceipt = True
 
+    #จำนวนครั้งที่ดาวน์โหลด/ปริ้นไปแล้ว ถ้า 0 = ปริ้นครั้งนี้เป็นต้นฉบับ
+    download_count = PoDownloadLog.objects.filter(po = po).count()
+
     context = {
             'po':po,
+            'download_count':download_count,
             'items':items,
             'new_pr':new_pr,
             'form': form,
@@ -2988,6 +2990,33 @@ def showPO(request, po_id, mode):
 			"colorNav":"disableNav"
     }
     return render(request, 'purchaseOrder/showPO.html',context)
+
+#เก็บ log การดาวน์โหลด/ปริ้นใบสั่งซื้อ แล้วส่งจำนวนครั้งทั้งหมดกลับไป
+def logPoDownload(request):
+    if request.method == 'POST':
+        try:
+            po = PurchaseOrder.objects.get(id = request.POST.get('po_id'))
+        except PurchaseOrder.DoesNotExist:
+            return JsonResponse({'count': 0, 'log_id': None})
+
+        log = PoDownloadLog.objects.create(po = po, downloadUser = request.user if request.user.is_authenticated else None)
+        count = PoDownloadLog.objects.filter(po = po).count()
+        return JsonResponse({'count': count, 'log_id': log.id})
+    return JsonResponse({'count': 0, 'log_id': None})
+
+#ลบ log กรณีกดปริ้นแล้วยกเลิก ไม่ได้พิมพ์จริง (ลบได้เฉพาะ log ของตัวเองที่เพิ่งสร้าง)
+def undoPoDownload(request):
+    if request.method == 'POST' and request.user.is_authenticated:
+        try:
+            log = PoDownloadLog.objects.get(id = request.POST.get('log_id'), downloadUser = request.user)
+        except (PoDownloadLog.DoesNotExist, ValueError):
+            return JsonResponse({'success': False, 'count': None})
+
+        po = log.po
+        log.delete()
+        count = PoDownloadLog.objects.filter(po = po).count()
+        return JsonResponse({'success': True, 'count': count})
+    return JsonResponse({'success': False, 'count': None})
 
 def rePOItemIsUse(po_id):
     items = PurchaseOrderItem.objects.filter(po = po_id)

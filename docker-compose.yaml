@@ -1,0 +1,24 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: djangostock-mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --lower-case-table-names=1 # ให้เหมือน Windows/MariaDB (ชื่อตารางไม่สนตัวพิมพ์เล็ก-ใหญ่)
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes" # ตรงกับ PASSWORD: '' ใน settings.py
+      MYSQL_DATABASE: djangostockdb
+    ports:
+      - "13307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql # เก็บข้อมูลถาวร ไม่หายเมื่อลบ container
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
