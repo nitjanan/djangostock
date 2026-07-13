@@ -75,7 +75,7 @@
                     {% endif %}
                     {% endfor %} 
                   </td>
-                  <td>{{cp.created |date:"d/m/Y"}}</td>
+                  <td>{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</td>
                   <td>
                     <button type="button"
                     class="btn btn-block btn-sm
