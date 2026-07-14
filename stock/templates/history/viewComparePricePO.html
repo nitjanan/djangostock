@@ -73,7 +73,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <td>{{cp.created |date:"d/m/Y"}}</td>
+                  <td>{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</td>
                   <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 4 %}">{{cp.ref_no}}</a></th>
                   <td>
                     {% for pr in prs %}

@@ -91,7 +91,7 @@
                     {% endfor %}
                   </td>
                   <td>{{cp.organizer.first_name}}</td>
-                  <td>{{cp.created |date:"d/m/Y"}}</td>
+                  <td>{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</td>
                   <td>{% if cp.select_bidder %}{{cp.select_bidder}}{%endif%}</td>
                   <td>
                     {% for bd in bidder %}

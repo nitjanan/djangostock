@@ -170,9 +170,13 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
             address_company=self.address,
             branch_company=self.branch
         )
-        # Set cp.created back in time so we can verify if the PO copies it
+        # Set cp.created and cp.select_bidder_update to test select_bidder_update copying
         self.cp_created_date = datetime.date(2026, 6, 15)
-        ComparisonPrice.objects.filter(id=self.cp.id).update(created=self.cp_created_date)
+        self.cp_select_bidder_update = datetime.date(2026, 6, 20)
+        ComparisonPrice.objects.filter(id=self.cp.id).update(
+            created=self.cp_created_date,
+            select_bidder_update=self.cp_select_bidder_update
+        )
         self.cp.refresh_from_db()
 
         # Create ComparisonPriceDistributor
@@ -185,7 +189,7 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
             amount=107.00
         )
 
-    def test_create_po_sets_created_from_comparison_price(self):
+    def test_create_po_sets_created_from_select_bidder_update(self):
         url = reverse('createPOFromComparisonPrice', kwargs={'cp_id': self.cp.id})
         
         post_data = {
@@ -206,13 +210,42 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
         }
         
         response = self.client.post(url, data=post_data)
-        # Should redirect to createPOItemFromComparisonPrice
         self.assertEqual(response.status_code, 302)
         
-        # Verify PurchaseOrder is created and created date matches ComparisonPrice
+        # Verify PurchaseOrder is created and created date matches select_bidder_update
         po = PurchaseOrder.objects.get(cp=self.cp)
-        self.assertEqual(po.created, self.cp_created_date)
+        self.assertEqual(po.created, self.cp_select_bidder_update)
         
         # Verify po.ref_no runs by the created date (HO + Buddhist Year 69 + Month 06 + 001)
         self.assertEqual(po.ref_no, 'HO6906001')
+
+    def test_create_po_falls_back_to_comparison_price_created_if_select_bidder_update_null(self):
+        # Set select_bidder_update to None
+        ComparisonPrice.objects.filter(id=self.cp.id).update(select_bidder_update=None)
+        
+        url = reverse('createPOFromComparisonPrice', kwargs={'cp_id': self.cp.id})
+        
+        post_data = {
+            'cp': self.cp.id,
+            'shipping': 'EMS',
+            'address_company': self.address.id,
+            'approver_user': self.user.id,
+            'due_receive_update': '2026-07-20',
+            'po_type': self.po_type.id,
+            
+            # RateDistributorForm fields
+            'distributor': self.distributor.id,
+            'price_rate': 5,
+            'quantity_rate': 5,
+            'service_rate': 5,
+            'safety_rate': 5,
+            'counsel': 'Excellent service'
+        }
+        
+        response = self.client.post(url, data=post_data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify PurchaseOrder created date falls back to cp.created
+        po = PurchaseOrder.objects.get(cp=self.cp)
+        self.assertEqual(po.created, self.cp_created_date)
 

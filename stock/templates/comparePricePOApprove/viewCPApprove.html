@@ -62,7 +62,7 @@
                   <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 2 %}">{{cp.ref_no}}</a></th>
                   <td>{{cp.select_bidder}}</td>
                   <td>{{cp.organizer}}</td>
-                  <td>{{cp.created |date:"d/m/Y"}}</td>
+                  <td>{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</td>
                   <td>
                     <button type="button"
                     class="btn btn-block btn-sm
