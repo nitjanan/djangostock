@@ -5344,7 +5344,7 @@ def exportExcelPOToExpress(request):
         'วันที่ต้องการ': [r['item__desired_date'] for r in rows],
         'ระดับความเร่งด่วน': [r['item__urgency'] for r in rows],
         'ระยะเวลาในการซื้อ': [
-            cal_days_between_nagative(r['item__desired_date'], r['po__receive_update'])
+            cal_days_between_nagative(r['po__receive_update'], r['item__desired_date'])
             for r in rows
         ],
         'ความล่าช้าในการรับของ': [
