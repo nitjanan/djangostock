@@ -4,15 +4,6 @@
 {% load templatehelpers %}
 {% load humanize %}
 
-{% block css %}
-<style>
-  .col-md-1-5 {
-    -ms-flex: 0 0 12.5%;
-    flex: 0 0 12.5%;
-    max-width: 12.5%;
-  }
-</style>
-{% endblock %}
 {% block content %}
 <div class="container my-3">
 <h3 align="center">สรุปใบสั่งซื้อที่อนุมัติ</h3>
@@ -21,8 +12,26 @@
     <form method="get">
       {% csrf_token %}
       <div class="form-row">
-        <div class="form-group col-md-1 mb-0">
+        <div class="form-group col-md-2 mb-0">
             {{ filter.form.ref_no|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{ filter.form.item_product_id_from|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{ filter.form.item_product_id_to|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.item_product_name|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.unit_price_min|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.unit_price_max|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.distri_id|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
             {{filter.form.distributor|as_crispy_field}}
@@ -30,10 +39,13 @@
           <div class="form-group col-md-2 mb-0">
             {{filter.form.stockman_user|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1-5 mb-0">
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.category|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.amount_min|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1-5 mb-0">
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.amount_max|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
@@ -43,15 +55,9 @@
             {{filter.form.item_rq_note|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_product_id|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_product_name|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-1-5 mb-0">
             {{filter.form.pr_ref_no|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1-5 mb-0">
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.cp_ref_no|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
