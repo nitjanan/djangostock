@@ -5237,45 +5237,19 @@ def exportExcelPOToExpress(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    stockman_user = request.GET.get('stockman_user') or None
-    ref_no = request.GET.get('ref_no') or None
-    distributor = request.GET.get('distributor') or None
-    amount_min = request.GET.get('amount_min') or None
-    amount_max = request.GET.get('amount_max') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-
-    my_q = Q()
-    if stockman_user is not None:
-        my_q = Q(po__stockman_user = stockman_user)
-    if ref_no is not None:
-        my_q &= Q(po__ref_no__icontains = ref_no)
-    if distributor is not None:
-        my_q &= Q(po__distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(po__created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(po__created__lte = end_created)
-    if amount_min is not None:
-        my_q &= Q(po__amount__gte = amount_min)
-    if amount_max is not None :
-        my_q &=Q(po__amount__lte = amount_max)
-    if item_machine is not None:
-        my_q &= Q(item__machine__icontains=item_machine)
-    if item_rq_note is not None:
-        my_q &= Q(item__requisit__note__icontains=item_rq_note)
-
-    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
+    po_q = Q(approver_status = 2, is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
         pass
     else:
-        my_q &=Q(po__branch_company__code__in = company_in)
+        po_q &=Q(branch_company__code__in = company_in)
 
-    queryset = PurchaseOrderItem.objects.filter(my_q).order_by('po__id')
+    #กรอง PO ด้วย filter ชุดเดียวกับหน้ารายงาน แล้วดึงรายการสินค้าทั้งหมดของ PO ที่ผ่านการกรอง
+    myFilter = PurchaseOrderFilter(request.GET, queryset = PurchaseOrder.objects.filter(po_q))
+    po_qs = myFilter.qs.distinct()
+
+    queryset = PurchaseOrderItem.objects.filter(po__in = po_qs).order_by('po__id')
 
     rows = list(queryset.annotate(
         save_price=Case(
@@ -5401,37 +5375,7 @@ def exportExcelPO(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    stockman_user = request.GET.get('stockman_user') or None
-    ref_no = request.GET.get('ref_no') or None
-    distributor = request.GET.get('distributor') or None
-    amount_min = request.GET.get('amount_min') or None
-    amount_max = request.GET.get('amount_max') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-
-    my_q = Q()
-    if stockman_user is not None:
-        my_q = Q(stockman_user = stockman_user)
-    if ref_no is not None:
-        my_q &= Q(ref_no__icontains = ref_no)
-    if distributor is not None:
-        my_q &= Q(distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(created__lte = end_created)
-    if amount_min is not None:
-        my_q &= Q(amount__gte = amount_min)
-    if amount_max is not None :
-        my_q &=Q(amount__lte = amount_max)
-    if item_machine is not None:
-        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
-    if item_rq_note is not None:
-        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
-    
-    my_q &=Q(approver_status = 2, is_cancel = False)
+    my_q = Q(approver_status = 2, is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
@@ -5439,7 +5383,9 @@ def exportExcelPO(request):
     else:
         my_q &=Q(branch_company__code__in = company_in)
 
-    queryset = PurchaseOrder.objects.filter(my_q).distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
+    #กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field
+    myFilter = PurchaseOrderFilter(request.GET, queryset = PurchaseOrder.objects.filter(my_q))
+    queryset = myFilter.qs.distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter ผ่าน purchaseorderitem ทำให้เบิ้ลรายการตาม items
 
     po_rows = list(queryset.annotate(
         save_price=Case(
@@ -5624,6 +5570,11 @@ def exportExcelPO(request):
 
     with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
         result.to_excel(writer, index=False)
+        #ขยายคอลัมน์วันที่ ไม่งั้น Excel แสดงเป็น ##### เพราะวันที่กว้างกว่าความกว้าง default ของคอลัมน์
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column('B:B', 12)  #วันที่
+        worksheet.set_column('G:H', 12)  #วันที่กำหนดรับของ, รับของวันที่
+        worksheet.set_column('T:T', 12)  #วันที่อนุมัติใบขอซื้อ
 
     return response
 
@@ -9902,37 +9853,7 @@ def exportExcelApprovePO(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
-    stockman_user = request.GET.get('stockman_user') or None
-    ref_no = request.GET.get('ref_no') or None
-    distributor = request.GET.get('distributor') or None
-    amount_min = request.GET.get('amount_min') or None
-    amount_max = request.GET.get('amount_max') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-
-    my_q = Q()
-    if stockman_user is not None:
-        my_q = Q(stockman_user = stockman_user)
-    if ref_no is not None:
-        my_q &= Q(ref_no__icontains = ref_no)
-    if distributor is not None:
-        my_q &= Q(distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(created__lte = end_created)
-    if amount_min is not None:
-        my_q &= Q(amount__gte = amount_min)
-    if amount_max is not None :
-        my_q &=Q(amount__lte = amount_max)
-    if item_machine is not None:
-        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
-    if item_rq_note is not None:
-        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
-    
-    my_q &=Q(approver_status = 2, is_cancel = False)
+    my_q = Q(approver_status = 2, is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
@@ -9940,7 +9861,9 @@ def exportExcelApprovePO(request):
     else:
         my_q &=Q(branch_company__code__in = company_in)
 
-    queryset = PurchaseOrder.objects.filter(my_q).distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
+    #กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field
+    myFilter = PurchaseOrderFilter(request.GET, queryset = PurchaseOrder.objects.filter(my_q))
+    queryset = myFilter.qs.distinct().order_by('amount', 'id')#ใส่ distinct เพราะ filter ผ่าน purchaseorderitem ทำให้เบิ้ลรายการตาม items
     if not queryset.exists():
         return HttpResponse("No data to export.")
 
