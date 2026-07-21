@@ -9582,7 +9582,10 @@ def exportExcelSummaryByDistributorFrequently(request):
         my_q &= Q(branch_company__code__in=company_in)
 
     # ---------------- BASE QUERY ----------------
-    base_qs = PurchaseOrder.objects.filter(my_q)
+    # ใช้ id__in เพื่อตัด join กับ purchaseorderitem (เช่นตอนกรอง category)
+    # ออกจาก queryset ที่ใช้ Sum ป้องกันค่าถูกคูณซ้ำตามจำนวนรายการสินค้า
+    po_ids = PurchaseOrder.objects.filter(my_q).values_list('id', flat=True).distinct()
+    base_qs = PurchaseOrder.objects.filter(id__in=po_ids)
 
     # ---------------- SUBQUERY (ITEM) ----------------
     item_sub = PurchaseOrderItem.objects.filter(
