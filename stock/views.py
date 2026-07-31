@@ -9844,7 +9844,7 @@ def naive(value):
 
     # ถ้าเป็น datetime (มีเวลา)
     if isinstance(value, datetime.datetime):
-        return timezone.make_naive(value)
+        return timezone.make_naive(value) if timezone.is_aware(value) else value
 
     # ถ้าเป็น date (ไม่มีเวลา) → ใช้ได้เลย
     if isinstance(value, datetime.date):
@@ -10030,11 +10030,7 @@ def exportExcelApprovePO(request):
     frames = [df1, df4, df5]
     result = pd.concat(frames)
 
-    output = BytesIO()
-    output.seek(0)
-    
     response = HttpResponse(
-        output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename=PO_Report_({active}).xlsx'
