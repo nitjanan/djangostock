@@ -68,7 +68,7 @@
             <div class="text-left col-5" style="display: flex; align-items: center;">
                 <img src="/media/{{ma.address_company.logo}}" class="rounded float-left" width="60" height="60"/>
                 <h1 style="font-size:13px" class="pl-1">
-                    <strong style="font-size:15px">{{ma.address_company.name_th}}{% if isUploadeReceipt %}  <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</strong>
+                    <strong style="font-size:15px">{{ma.address_company.name_th}}{% if isUploadeReceipt %}  <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-bs-toggle="modal" data-bs-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</strong>
                     <br>{{ma.address_company.address}}
                     {% if ma.address_company.tel %}<br>โทร {{ma.address_company.tel}}{%endif%}
                     {% if ma.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{ma.address_company.tex}}{%endif%}{% if ma.address_company.branch %} สาขา{{ma.address_company.branch}}{%endif%}
@@ -91,7 +91,7 @@
                       <div class="modal-content">
                         <div class="modal-header">
                           <h5 class="modal-title" id="exampleModalLongTitle">แก้ไขที่อยู่ตามจดทะเบียน</h5>
-                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                           </button>
                         </div>
@@ -99,7 +99,7 @@
                           {{maa_form.address_company | add_class:"form-control"}}
                         </div>
                         <div class="modal-footer">
-                          <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                           <button type="submit"  name="btnformMAa" class="btn btn-primary" onclick="">บันทึกการแก้ไข</button>
                         </div>
                       </div>
@@ -423,7 +423,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
       </div>
       <div class="modal-body">
         <p id="pShowSearch"></p>

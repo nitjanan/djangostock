@@ -40,7 +40,7 @@
             <div class="panel-heading">
                 <h5 class="panel-title">
                   <strong>รายการใบขอเบิก</strong>
-                  <button type="button" style="float: right;" class="btn btn-success" data-toggle="modal" data-target="#exampleModalCenter">
+                  <button type="button" style="float: right;" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exampleModalCenter">
                     <i class="fas fa-plus-circle"></i> เพิ่มรายการ
                   </button>
                 </h5>
@@ -90,7 +90,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLongTitle">รายการสินค้าใบขอเบิก</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
@@ -100,7 +100,7 @@
                 {% csrf_token %}
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <input autocomplete="off" type="submit" class="btn btn-primary" value="Save">
               </div>
         </form>

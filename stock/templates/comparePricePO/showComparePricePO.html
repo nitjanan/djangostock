@@ -94,7 +94,7 @@
             {% if cp.cm_type %}
                 &emsp;<p style="font-size:6px;display: inline-block;align-items: center;">({{cp.cm_type}})</p>
             {%endif%}
-            <h6>{{cp.address_company.name_th}}   {% if isPurchasing %}<button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h6>
+            <h6>{{cp.address_company.name_th}}   {% if isPurchasing %}<button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-bs-toggle="modal" data-bs-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h6>
             <p style="font-size:12px">{{cp.address_company.address}}</p>
          </div>      
         <div class="col-2">
@@ -124,7 +124,7 @@
             <tr>
                 <td scope="col" rowspan="4">ลำดับ</td>
                 <form class="form-inline ml-3" id="search" method="GET">
-                    <td scope="col" rowspan="4" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                    <td scope="col" rowspan="4" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-bs-target="#myEdit" data-bs-toggle="modal">
                       <strong>รายการ <i class="fas fa-list text-danger d-print-none"></i></strong>
                     </td>
                 </form>
@@ -335,10 +335,10 @@
     <div class="row my-3 d-print-none">
      {% if cp.examiner_status_id != 1 and isPurchasing and not cp.is_cancel%}
         <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
-        <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+        <button type="button" class="btn btn-danger d-print-none ml-2" data-bs-toggle="modal" data-bs-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
      {% endif %}
      {% if cp.is_re_approve and isPurchasing and not cp.is_cancel%}
-        <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+        <button type="button" class="btn btn-danger d-print-none ml-2" data-bs-toggle="modal" data-bs-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
      {% endif %}
      {% if cp.is_cancel and isPurchasing %}
         <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
@@ -351,7 +351,7 @@
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title" id="exampleModalLongTitle">แก้ไขที่อยู่ตามจดทะเบียน</h5>
-                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
@@ -359,7 +359,7 @@
                   {{form.address_company | add_class:"form-control"}}
                 </div>
                 <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                   <button type="submit" name="btnformCPa" class="btn btn-primary">บันทึกการแก้ไข</button>
                 </div>
               </div>
@@ -374,7 +374,7 @@
             <div class="modal-content">
                 <div class="modal-header alert alert-danger">
                     <h5 class="modal-title" id="exampleModalLongTitle">เหตุผลที่ยกเลิกรายการ</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -382,7 +382,7 @@
                     {{cancel_form.cancel_reason | add_class:"form-control is-invalid"}}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                     <button type="submit"  name="btnformCancelCP" class="btn btn-primary">บันทึกการยกเลิก</button>
                 </div>
             </div>
@@ -397,7 +397,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="pShowSearch"></p>

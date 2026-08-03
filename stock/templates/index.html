@@ -13,13 +13,13 @@
     {% endif %}
     <a class="badge badge-pill badge-danger notification mr-2" style="background-color:#376e5b;color:white;" href="{% url 'export_products' %}?{{request.GET.urlencode}}" download>รายงานสินค้า <i class="fas fa-file-excel"></i></a>
     {% if isEditNewOld %}
-      <span class="badge badge-pill badge-warning notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldModal">New โอน รหัสสินค้า <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
+      <span class="badge badge-pill badge-warning notification mr-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#newOldModal">New โอน รหัสสินค้า <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
     {% endif %}
     {% if isEditChangeExist %}
-      <span class="badge badge-pill badge-danger notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#changeExistModal">Change Exist รหัสสินค้า <i class="fas fa-recycle" style="color: #ffffff;"></i></span>
+      <span class="badge badge-pill badge-danger notification mr-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#changeExistModal">Change Exist รหัสสินค้า <i class="fas fa-recycle" style="color: #ffffff;"></i></span>
     {% endif %}
     {% if isEditNewOldDistributor %}
-      <span class="badge badge-pill badge-success notification mr-2" style="cursor: pointer;" data-toggle="modal" data-target="#newOldDistributorModal">New โอน รหัสผู้จัดจำหน่าย <i class="fas fa-exchange-alt" style="color: #ffffff;"></i></span>
+      <span class="badge badge-pill badge-success notification mr-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#newOldDistributorModal">New โอน รหัสผู้จัดจำหน่าย <i class="fas fa-exchange-alt" style="color: #ffffff;"></i></span>
     {% endif %}
     {% if messages %}
       {% for message in messages %}
@@ -99,7 +99,7 @@
     <div class="modal-content">
       <div class="modal-header alert alert-warning">
         <h5 class="modal-title" id="newOldModalTitle">แก้ไขรหัสสินค้า</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -121,7 +121,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
         <button type="submit" name="btnformNewOld" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
       </div>
     </form>
@@ -134,7 +134,7 @@
     <div class="modal-content">
       <div class="modal-header alert alert-danger">
         <h5 class="modal-title" id="changeExistModalTitle">เปลี่ยนรหัสสินค้าที่มีอยู่แล้ว</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -161,7 +161,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
         <button type="submit" name="btnformChangeExist" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
       </div>
     </form>
@@ -174,7 +174,7 @@
     <div class="modal-content">
       <div class="modal-header alert alert-success">
         <h5 class="modal-title" id="newOldDistributorModalTitle">แก้ไขรหัสผู้จำหน่าย</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -196,7 +196,7 @@
           </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด <i class="far fa-times-circle" style="color: #ffffff;"></i></button>
         <button type="submit" name="btnformNewOldDistributor" class="btn btn-primary">บันทึก <i class="far fa-save" style="color: #ffffff;"></i></button>
       </div>
     </form>

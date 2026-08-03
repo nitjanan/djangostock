@@ -55,7 +55,7 @@
                 <h3 class="text-danger">*ยกเลิก</h3>
                 <h4 class="text-danger">({{po.cancel_reason}})</h4>
               {%endif%}
-              <h4>{{po.address_company.name_th}}{% if isUploadeReceipt %}   <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h4>
+              <h4>{{po.address_company.name_th}}{% if isUploadeReceipt %}   <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-bs-toggle="modal" data-bs-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</h4>
 		                {{po.address_company.address}}
                     {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
                     {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}{% if po.address_company.branch %} สาขา{{po.address_company.branch}}{%endif%}
@@ -86,7 +86,7 @@
                       <div class="modal-content">
                         <div class="modal-header">
                           <h5 class="modal-title" id="exampleModalLongTitle">แก้ไขที่อยู่ตามจดทะเบียน</h5>
-                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                           </button>
                         </div>
@@ -94,7 +94,7 @@
                           {{poa_form.address_company | add_class:"form-control"}}
                         </div>
                         <div class="modal-footer">
-                          <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                           <button type="submit"  name="btnformPOa" class="btn btn-primary" onclick="">บันทึกการแก้ไข</button>
                         </div>
                       </div>
@@ -178,7 +178,7 @@
                     <tr>
                         <th scope="col" class="text-center">No.</th>
                         <form class="form-inline ml-3" id="search" method="GET">					
-                          <th scope="col" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                          <th scope="col" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-bs-target="#myEdit" data-bs-toggle="modal">
                             รหัสสินค้า/รายละเอียด <i class="fas fa-list text-danger d-print-none"></i>
                           </th>
                         </form>
@@ -365,10 +365,10 @@
                     <!-- ขอเปลี่ยนแปลงรายละเอียกรายการ -->
                     <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
                     <!-- ขอยกเลิกรายการ -->
-                    <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelPO"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+                    <button type="button" class="btn btn-danger d-print-none ml-2" data-bs-toggle="modal" data-bs-target="#cancelPO"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
                   {% endif %}
                   {% if po.is_re_approve and isPurchasing and not po.is_cancel %}
-                    <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
+                    <button type="button" class="btn btn-danger d-print-none ml-2" data-bs-toggle="modal" data-bs-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
                   {% endif %}
                   {% if po.is_cancel and isPurchasing %}
                     <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'editPOItem' po.id False True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
@@ -394,7 +394,7 @@
           <div class="modal-content">
             <div class="modal-header alert alert-danger">
                 <h5 class="modal-title" id="exampleModalLongTitle">เหตุผลที่ยกเลิกรายการ</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                   <span aria-hidden="true">&times;</span>
                 </button>
               </div>
@@ -402,7 +402,7 @@
                 {{cancel_form.cancel_reason | add_class:"form-control is-invalid"}}
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                 <button type="submit"  name="btnformCancelPO" class="btn btn-primary">บันทึกการยกเลิก</button>
               </div>
           </div>
@@ -416,7 +416,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
       </div>
       <div class="modal-body">
         <p id="pShowSearch"></p>

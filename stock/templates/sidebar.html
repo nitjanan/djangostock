@@ -12,7 +12,7 @@
         {% for tab in visible_tab %}
             {% if 'Request' in tab.name %}
                 <li class="">
-                    <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page or ma_page or cl_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <a href="{% if request.user.is_authenticated %}#requestSubmenu {% endif %}" data-bs-toggle="collapse" aria-expanded="{% if requisitions_page or pr_page or po_page or cp_page or ma_page or cl_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                         <i class="fas fa-file"></i>
                         Request
                         {% if pc_all > 0%}
@@ -63,7 +63,7 @@
             {% endif %}
             {% if 'Approve' in tab.name %}
                 <li class="">
-                    <a href="{% if request.user.is_authenticated %}#approveSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ap_pr_page or ap_po_page or ap_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <a href="{% if request.user.is_authenticated %}#approveSubmenu{% endif %}" data-bs-toggle="collapse" aria-expanded="{% if ap_pr_page or ap_po_page or ap_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                         <i class="fas fa-file-signature"></i> Approve
                         {% if ap_all > 0%}
                             <span class="float-right badge badge-pill badge-warning notification mr-5">{{ap_all}}</span>
@@ -101,7 +101,7 @@
                         -->
                     </a>
                     <!--
-                    <a href="{% if request.user.is_authenticated %}#receiveSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rc_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                    <a href="{% if request.user.is_authenticated %}#receiveSubmenu{% endif %}" data-bs-toggle="collapse" aria-expanded="{% if rc_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                         <i class="fas fa-warehouse"></i> Receive
                         {% if rc_count > 0%}
                             <span class="float-right badge badge-pill badge-warning notification mr-5">{{rc_count}}</span>
@@ -121,7 +121,7 @@
             {% endif %}
             {% if 'History' in tab.name %}
             <li class="">
-                <a href="{% if request.user.is_authenticated %}#historySubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if h_requisitions_page or h_ma_page or h_pr_page or h_po_page or h_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <a href="{% if request.user.is_authenticated %}#historySubmenu{% endif %}" data-bs-toggle="collapse" aria-expanded="{% if h_requisitions_page or h_ma_page or h_pr_page or h_po_page or h_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-history"></i>
                     History
                 </a>
@@ -146,7 +146,7 @@
             {% endif %}
             {% if 'Incomplete' in tab.name %}
             <li class="">
-                <a href="{% if request.user.is_authenticated %}#historyIncompleteSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if h_i_requisitions_page or h_i_pr_page or h_i_po_page or h_i_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <a href="{% if request.user.is_authenticated %}#historyIncompleteSubmenu{% endif %}" data-bs-toggle="collapse" aria-expanded="{% if h_i_requisitions_page or h_i_pr_page or h_i_po_page or h_i_cp_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-times-circle"></i>
                     Incomplete
                 </a>
@@ -169,7 +169,7 @@
             {% endif %}
             {% if 'Express' in tab.name %}
             <li class="">
-                <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ex_old_iv_show or ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-bs-toggle="collapse" aria-expanded="{% if ex_old_iv_show or ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fab fa-xing"></i>
                     Express
                 </a>
@@ -198,7 +198,7 @@
             {% endif %}
             {% if 'Report' in tab.name %}
             <li class="">
-                <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page%}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-bs-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page%}true{% else %}false{% endif %}" class="dropdown-toggle">
                     <i class="fas fa-file-pdf"></i> Report
                 </a>
                 <ul class="collapse list-unstyled {{rp_po_show}} {{rp_poi_show}} {{rp_rd_show}} {{rp_cl_show}}" id="reportSubmenu">
