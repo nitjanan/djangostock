@@ -175,7 +175,9 @@ git commit -m "feat: upgrade Bootstrap 4 to 5.3.8 with project-wide data-bs-* co
 - Consumes: Task 1's Bootstrap 5 CSS being loaded globally (crispy-bootstrap5's markup — `mb-3` wrappers, `form-select`, `form-check` — needs Bootstrap 5 CSS to render correctly; that's now true site-wide after Task 1).
 - Produces: every `{{ field|as_crispy_field }}` / `{% crispy form %}` call site project-wide now renders Bootstrap 5 markup. No template call sites change.
 
-- [ ] **Step 1: Add crispy_bootstrap5 to INSTALLED_APPS**
+- [ ] **Step 1: Replace crispy_bootstrap4 with crispy_bootstrap5 in INSTALLED_APPS**
+
+Nothing in this codebase references a template pack by name (`grep -rE "crispy.*bootstrap4|\{%\s*crispy\s+\w+\s+['\"]bootstrap4" stock/templates` returns no matches) — `CRISPY_TEMPLATE_PACK` is the only thing that selects a pack, and every render goes through it. So `crispy_bootstrap4` becomes genuinely unused the moment step 2 flips the default pack; keep it registered and it's dead config. Remove it.
 
 In `djangostock/settings.py`, replace:
 
@@ -188,11 +190,10 @@ with:
 
 ```python
     'crispy_forms',
-    'crispy_bootstrap4',
     'crispy_bootstrap5',
 ```
 
-(Both packs stay installed — `crispy_bootstrap4` remains available as a fallback pack name if any code references it explicitly; only the *default* pack changes in step 2.)
+(`crispy-bootstrap4` stays in `requirements.txt` — leaving the *package* installed but unregistered is harmless and outside this task's scope; removing the Django app registration is what actually matters, since that's the part that's dead.)
 
 - [ ] **Step 2: Switch the default template pack**
 
