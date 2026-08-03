@@ -3,7 +3,7 @@
 ## Goal
 
 Modernize the frontend visual design across the whole project (400+ Django
-templates) and upgrade from Bootstrap 4.1.0 to Bootstrap 5.3.3, without
+templates) and upgrade from Bootstrap 4.1.0 to Bootstrap 5.3.8, without
 changing any business logic. This spec covers **Phase 1 only**: build the
 shared design system (shell + reusable components) and prove it on a small
 set of representative pages. Later phases (not covered here) roll the same
@@ -65,7 +65,7 @@ mandatory everywhere.
 
 | Area | Decision |
 |---|---|
-| Bootstrap | 4.1.0 CDN → 5.3.3 CDN, single `bootstrap.bundle.min.js` (ships Popper v2 — drop the separate Popper 1.14 CDN `<script>` tag) |
+| Bootstrap | 4.1.0 CDN → 5.3.8 CDN, single `bootstrap.bundle.min.js` (ships Popper v2 — drop the separate Popper 1.14 CDN `<script>` tag) |
 | jQuery | **Kept.** `layouts.html`/`navbar.html` custom scripts (company-switch AJAX, sidebar collapse toggle, scroll-based navbar color, favicon badge canvas, tab-width resize logic) stay as-is. Bootstrap 5's own JS does not require jQuery, so there's no conflict keeping it loaded for app code. |
 | Forms | `CRISPY_TEMPLATE_PACK` in `djangostock/settings.py`: `'bootstrap4'` → `'bootstrap5'`. `crispy-bootstrap5==0.7` is already in `requirements.txt` and installed — add `'crispy_bootstrap5'` to `INSTALLED_APPS` alongside (or in place of, once migration completes) `crispy_bootstrap4`. |
 | Bootstrap API renames | Fixed mapping applied wherever these classes/attributes appear: `data-toggle`→`data-bs-toggle`, `data-target`→`data-bs-target`, `data-dismiss`→`data-bs-dismiss`, `.ml-*`/`.mr-*`→`.ms-*`/`.me-*`, `.pl-*`/`.pr-*`→`.ps-*`/`.pe-*`, `.float-left`/`.float-right`→`.float-start`/`.float-end`, `.text-left`/`.text-right`→`.text-start`/`.text-end`, `.badge-pill`→`.rounded-pill`, `.badge-{color}`→`.bg-{color}` (on a `.badge` element), `.thead-dark`/`.thead-light`→`.table-dark`/`.table-light`, `.sr-only`→`.visually-hidden`, `.form-row`→`.row.g-3`, `.custom-control`/`.custom-checkbox`/`.custom-radio`/`.custom-select`→`.form-check`/`.form-select`, `.close`→`.btn-close` |

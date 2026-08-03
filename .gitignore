@@ -30,6 +30,7 @@ djangostock/.env
 
 # Claude Code
 .claude/settings.local.json
+.superpowers/
 
 # OS
 Thumbs.db
