@@ -106,6 +106,13 @@ class PurchaseOrderFilter(django_filters.FilterSet):
         lookup_expr='icontains'
     )
 
+    item_product_id_from  = django_filters.CharFilter(field_name="purchaseorderitem__item__product_id", lookup_expr='gte')
+    item_product_id_to  = django_filters.CharFilter(field_name="purchaseorderitem__item__product_id", lookup_expr='lte')
+    unit_price_min  = django_filters.CharFilter(field_name="purchaseorderitem__unit_price", lookup_expr='gte')
+    unit_price_max  = django_filters.CharFilter(field_name="purchaseorderitem__unit_price", lookup_expr='lte')
+    distri_id  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='startswith')
+    category = django_filters.ModelChoiceFilter(field_name="purchaseorderitem__item__product__category__name", queryset= Category.objects.all())
+
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     amount_min  = django_filters.CharFilter(field_name="amount", lookup_expr='gte')
@@ -132,6 +139,12 @@ PurchaseOrderFilter.base_filters['item_product_id'].label = 'รหัสสิ�
 PurchaseOrderFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
 PurchaseOrderFilter.base_filters['cp_ref_no'].label = 'รหัสใบเปรียบ'
 PurchaseOrderFilter.base_filters['pr_ref_no'].label = 'รหัสใบขอซื้อ'
+PurchaseOrderFilter.base_filters['item_product_id_from'].label = 'รหัสสินค้าจาก'
+PurchaseOrderFilter.base_filters['item_product_id_to'].label = 'ถึง'
+PurchaseOrderFilter.base_filters['unit_price_min'].label = 'ราคาต่อหน่วยจาก'
+PurchaseOrderFilter.base_filters['unit_price_max'].label = 'ถึง'
+PurchaseOrderFilter.base_filters['distri_id'].label = 'รหัสผู้จำหน่าย'
+PurchaseOrderFilter.base_filters['category'].label = 'หมวดหมู่สินค้า'
 
 class PurchaseOrderItemFilter(django_filters.FilterSet):
     item_product_id_from  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='gte')

@@ -4,25 +4,34 @@
 {% load templatehelpers %}
 {% load humanize %}
 
-{% block css %}
-<style>
-  .col-md-1-5 {
-    -ms-flex: 0 0 12.5%;
-    flex: 0 0 12.5%;
-    max-width: 12.5%;
-  }
-</style>
-{% endblock %}
 {% block content %}
 <div class="container my-3">
 <h3 align="center">สรุปใบสั่งซื้อที่อนุมัติ</h3>
 <div class="card my-3 bg-light div-shadow">
   <div class="card-body">
-    <form method="get">
+    <form method="get" id="po-filter-form">
       {% csrf_token %}
       <div class="form-row">
-        <div class="form-group col-md-1 mb-0">
+        <div class="form-group col-md-2 mb-0">
             {{ filter.form.ref_no|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{ filter.form.item_product_id_from|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{ filter.form.item_product_id_to|as_crispy_field }}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.item_product_name|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.unit_price_min|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.unit_price_max|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.distri_id|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
             {{filter.form.distributor|as_crispy_field}}
@@ -30,10 +39,13 @@
           <div class="form-group col-md-2 mb-0">
             {{filter.form.stockman_user|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1-5 mb-0">
+          <div class="form-group col-md-2 mb-0">
+            {{filter.form.category|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.amount_min|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1-5 mb-0">
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.amount_max|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
@@ -43,15 +55,9 @@
             {{filter.form.item_rq_note|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_product_id|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_product_name|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-1-5 mb-0">
             {{filter.form.pr_ref_no|as_crispy_field}}
           </div>
-          <div class="form-group col-md-1-5 mb-0">
+          <div class="form-group col-md-2 mb-0">
             {{filter.form.cp_ref_no|as_crispy_field}}
           </div>
           <div class="form-group col-md-2 mb-0">
@@ -60,54 +66,41 @@
           <div class="form-group col-md-2 mb-0">
             {{filter.form.end_created|as_crispy_field}}
           </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
-          </div>
-        </div>
       </div>
     </form>
-    <div class="row">
-        <div class="col-2">
-          <button id="po_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#32714B;color:white;">
-            <span id="po_btn-text">รายงานใบสั่งสินค้า <i class="fas fa-file-excel"></i></span>
-              <div id="po_btn-progress" 
-                style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
-                background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
-              <span id="po_btn-percent" style="position: absolute; left: 50%; top: 50%; 
-                transform: translate(-50%, -50%); font-weight: bold; display: none;">
-                0%
-              </span>
-          </button>
-        </div>
-        <div class="col-2">
-          <button id="poe_download-btn" class="btn btn-success" style="position: relative; overflow: hidden;">
-            <span id="poe_btn-text">PO to Express <i class="far fa-file-excel"></i></span>
-              <div id="poe_btn-progress" 
-                style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
-                background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
-              <span id="poe_btn-percent" style="position: absolute; left: 50%; top: 50%; 
-                transform: translate(-50%, -50%); font-weight: bold; display: none;">
-                0%
-              </span>
-          </button>
-        </div>
+    <div class="d-flex flex-wrap align-items-center mt-2" style="gap: 0.5rem;">
+        <button type="submit" form="po-filter-form" class="btn btn-info">กรอง <i class="fas fa-filter"></i></button>
+        <button id="po_download-btn" type="button" class="btn" style="position: relative; overflow: hidden; background-color:#32714B;color:white;">
+          <span id="po_btn-text">รายงานใบสั่งสินค้า <i class="fas fa-file-excel"></i></span>
+            <div id="po_btn-progress"
+              style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+              background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
+            <span id="po_btn-percent" style="position: absolute; left: 50%; top: 50%;
+              transform: translate(-50%, -50%); font-weight: bold; display: none;">
+              0%
+            </span>
+        </button>
+        <button id="poe_download-btn" type="button" class="btn btn-success" style="position: relative; overflow: hidden;">
+          <span id="poe_btn-text">PO to Express <i class="far fa-file-excel"></i></span>
+            <div id="poe_btn-progress"
+              style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+              background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
+            <span id="poe_btn-percent" style="position: absolute; left: 50%; top: 50%;
+              transform: translate(-50%, -50%); font-weight: bold; display: none;">
+              0%
+            </span>
+        </button>
         {% if request.user.is_superuser or is_po_approve_report %}
-        <div class="col-2">
-          <button id="poa_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#5CB881;color:white;">
-            <span id="poa_btn-text">PO Approve <i class="far fa-file-excel"></i></span>
-              <div id="poa_btn-progress" 
-                style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
-                background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
-              <span id="poa_btn-percent" style="position: absolute; left: 50%; top: 50%; 
-                transform: translate(-50%, -50%); font-weight: bold; display: none;">
-                0%
-              </span>
-          </button>
-        </div>
+        <button id="poa_download-btn" type="button" class="btn" style="position: relative; overflow: hidden; background-color:#5CB881;color:white;">
+          <span id="poa_btn-text">PO Approve <i class="far fa-file-excel"></i></span>
+            <div id="poa_btn-progress"
+              style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+              background: rgba(255,255,255,0.4); transition: width 0.1s;"></div>
+            <span id="poa_btn-percent" style="position: absolute; left: 50%; top: 50%;
+              transform: translate(-50%, -50%); font-weight: bold; display: none;">
+              0%
+            </span>
+        </button>
         {%endif%}
     </div>
   </div>
