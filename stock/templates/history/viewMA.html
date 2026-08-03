@@ -24,7 +24,7 @@
   <div class="card-body">
     <form method="get">
       {% csrf_token %}
-      <div class="form-row">
+      <div class="row">
         <div class="form-group col-md-2 mb-0">
           {{ filter.form.ref_no|as_crispy_field }}
         </div>
