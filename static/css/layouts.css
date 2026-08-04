@@ -1,11 +1,25 @@
-@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+:root {
+    --stg-ink: #23295e;
+    --stg-indigo: #3d478f;
+    --stg-indigo-deep: #2a3170;
+    --stg-periwinkle: #7386d5;
+    --stg-mist: #eef0fa;
+    --stg-red: #ed3237;
+    --stg-bg: #f4f5fa;
+    --stg-radius: 14px;
+}
+
 body {
-    font-family: 'Poppins', sans-serif;
-    background: #fafafa;
+    font-family: 'Sarabun', sans-serif;
+    background: var(--stg-bg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Prompt', sans-serif;
 }
 
 p {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Sarabun', sans-serif;
     font-size: 1.1em;
     font-weight: 300;
     line-height: 1.7em;
@@ -59,8 +73,8 @@ span {
 #sidebar {
     min-width: 250px;
     max-width: 250px;
-    background: #7386D5;
-    color: #fff;
+    background: linear-gradient(180deg, var(--stg-indigo) 0%, var(--stg-indigo-deep) 100%);
+    color: #dfe3f7;
     transition: all 0.3s;
 }
 
@@ -111,7 +125,7 @@ span {
 
 #sidebar .sidebar-header {
     padding: 20px;
-    background: #d5daf2;
+    background: rgba(255, 255, 255, 0.08);
 }
 
 #sidebar .sidebar-header strong {
@@ -121,17 +135,18 @@ span {
 
 #sidebar ul.components {
     padding: 20px 0;
-    border-bottom: 1px solid #47748b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 #sidebar ul li a {
     padding: 10px;
     font-size: 1.1em;
     display: block;
+    color: #dfe3f7;
 }
 
 #sidebar ul li a:hover {
-    color: #7386D5;
+    color: var(--stg-indigo);
     background: #fff;
 }
 
@@ -142,10 +157,10 @@ span {
 #sidebar ul li.active>a,
 a[aria-expanded="true"] {
     color: #fff;
-    background: #6d7fcc;
+    background: rgba(255, 255, 255, 0.14);
 }
 
-a[data-toggle="collapse"] {
+a[data-bs-toggle="collapse"] {
     position: relative;
 }
 
@@ -160,7 +175,7 @@ a[data-toggle="collapse"] {
 ul ul a {
     font-size: 0.9em !important;
     padding-left: 30px !important;
-    background: #6d7fcc;
+    background: rgba(0, 0, 0, 0.12);
 }
 
 ul.CTAs {
@@ -177,12 +192,12 @@ ul.CTAs a {
 
 a.download {
     background: #fff;
-    color: #7386D5;
+    color: var(--stg-indigo);
 }
 
 a.article,
 a.article:hover {
-    background: #6d7fcc !important;
+    background: var(--stg-indigo-deep) !important;
     color: #fff !important;
 }
 
@@ -195,6 +210,163 @@ a.article:hover {
     padding: 20px;
     min-height: 100vh;
     transition: all 0.3s;
+}
+
+/* ---------------------------------------------------
+    REUSABLE COMPONENTS (STG Modern design system)
+----------------------------------------------------- */
+
+.card-stg {
+    background: #fff;
+    border: 0;
+    border-radius: var(--stg-radius);
+    box-shadow: 0 1px 2px rgba(35, 41, 94, .05), 0 8px 24px rgba(35, 41, 94, .06);
+}
+
+.filter-card label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #6b7195;
+    margin-bottom: 5px;
+}
+
+.table-stg {
+    margin: 0;
+    font-size: 14.5px;
+}
+
+.table-stg thead th {
+    background: var(--stg-mist);
+    color: #3a4160;
+    font-weight: 600;
+    font-size: 13px;
+    border: 0;
+    padding: 11px 18px;
+    white-space: nowrap;
+}
+
+.table-stg tbody td,
+.table-stg tbody th {
+    padding: 12px 18px;
+    border-color: #f0f1f8;
+    vertical-align: middle;
+}
+
+.table-stg tbody tr:hover {
+    background: #fafbfe;
+}
+
+.doc-link {
+    color: var(--stg-indigo);
+    font-weight: 700;
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.doc-link:hover {
+    text-decoration: underline;
+}
+
+.badge-status {
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 99px;
+    padding: 4px 12px;
+}
+
+.badge-status.st-done {
+    background: #e5f6ec;
+    color: #177245;
+}
+
+.badge-status.st-wait {
+    background: #fff4e0;
+    color: #a06008;
+}
+
+.badge-status.st-urgent {
+    background: #fdeaea;
+    color: var(--stg-red);
+}
+
+.btn-stg {
+    background: var(--stg-indigo);
+    border: 0;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 10px;
+}
+
+.btn-stg:hover {
+    background: var(--stg-indigo-deep);
+    color: #fff;
+}
+
+.pagination-stg .page-link {
+    border: 0;
+    color: #4d568c;
+    font-weight: 600;
+    border-radius: 9px;
+    margin: 0 3px;
+    font-size: 14px;
+}
+
+.pagination-stg .page-item.active .page-link {
+    background: var(--stg-indigo);
+    color: #fff;
+}
+
+.pagination-stg .page-link:hover {
+    background: var(--stg-mist);
+}
+
+/* KPI summary row */
+
+.kpi-row {
+    --bs-gutter-x: 1rem;
+}
+
+.kpi-card {
+    background: #fff;
+    border: 1px solid #e5e8ee;
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    height: 100%;
+}
+
+.kpi-card .kpi-label {
+    font-size: 12.5px;
+    color: #69748c;
+    font-weight: 500;
+}
+
+.kpi-card .kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    color: var(--stg-ink);
+}
+
+.kpi-card .kpi-sub {
+    font-size: 12px;
+    color: #9aa3b5;
+}
+
+.kpi-card.kpi-hot {
+    border-top: 3px solid #e8a33d;
+}
+
+.kpi-card.kpi-hot .kpi-value {
+    color: #b97f27;
+}
+
+.kpi-card.kpi-ok .kpi-value {
+    color: #1f9d5b;
 }
 
 /* ---------------------------------------------------
@@ -446,8 +618,6 @@ a.article:hover {
     border-color: #a5d8ff !important;
     color: #004085 !important;
 }
-
-
 
 
 
