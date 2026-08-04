@@ -7,7 +7,10 @@
 {% block content %}
 <div class="container my-3">
 <h3 align="center">สรุปใบสั่งซื้อที่อนุมัติ</h3>
-<div class="card my-3 bg-light div-shadow">
+
+{% include 'partials/kpi_row.html' %}
+
+<div class="card-stg filter-card my-3">
   <div class="card-body">
     <form method="get" id="po-filter-form">
       {% csrf_token %}
@@ -69,7 +72,7 @@
       </div>
     </form>
     <div class="d-flex flex-wrap align-items-center mt-2" style="gap: 0.5rem;">
-        <button type="submit" form="po-filter-form" class="btn btn-info">กรอง <i class="fas fa-filter"></i></button>
+        <button type="submit" form="po-filter-form" class="btn btn-stg">กรอง <i class="fas fa-filter"></i></button>
         <button id="po_download-btn" type="button" class="btn" style="position: relative; overflow: hidden; background-color:#32714B;color:white;">
           <span id="po_btn-text">รายงานใบสั่งสินค้า <i class="fas fa-file-excel"></i></span>
             <div id="po_btn-progress"
@@ -105,10 +108,10 @@
     </div>
   </div>
 </div>
-<div class="card div-shadow">
+<div class="card-stg">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-bordered my-3">
+      <table class="table table-stg my-3">
         <thead class="table-active">
             <tr>
                 <th scope="col">วันที่สั่งซื้อ</th>
@@ -127,7 +130,7 @@
         {% for po in pos %}
           <tr>
             <td>{{po.created |date:"d/m/Y"}}</td>
-            <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
+            <th scope="row"><a class="doc-link {% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
             <td>
               {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
               {%if po.pr %}
@@ -141,9 +144,9 @@
             <td>{{po.distributor}}</td>
             <td>{{po.credit}}</td>
             <td>{{po.stockman_user}}</td>
-            <td class="text-right">{% if po.total_after_discount %}{{po.total_after_discount | intcomma}}{%endif%}</td>
-            <td class="text-right">{% if po.vat %}{{po.vat | intcomma}}{%else%}0.00{%endif%}</td>
-            <td class="text-right">{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
+            <td class="text-end">{% if po.total_after_discount %}{{po.total_after_discount | intcomma}}{%endif%}</td>
+            <td class="text-end">{% if po.vat %}{{po.vat | intcomma}}{%else%}0.00{%endif%}</td>
+            <td class="text-end">{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
             <td>
               {% if po.is_receive == True %}
                 {{ po.receive_update |date:"d/m/Y" }}
@@ -159,7 +162,7 @@
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">
-        <ul class="pagination justify-content-center">
+        <ul class="pagination pagination-stg justify-content-center">
         {% if pos.has_previous %}
             <li class="page-item">
             <a class="page-link" href="{% my_url pos.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
@@ -179,7 +182,7 @@
                 <li class="page-item active" aria-current="page">
               <span class="page-link">
                 {{ i }}
-                <span class="sr-only">(current)</span>
+                <span class="visually-hidden">(current)</span>
               </span>
             </li>
             {% elif i > pos.number|add:'-5' and i < pos.number|add:'5' %}

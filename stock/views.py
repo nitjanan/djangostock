@@ -5086,6 +5086,7 @@ def viewPOReport(request):
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
     data = myFilter.qs
+    po_total_amount = data.aggregate(total=Sum('total_after_discount'))['total'] or 0
     data = data.select_related(
         'cp',
         'credit',
@@ -5121,11 +5122,17 @@ def viewPOReport(request):
     for pr in pr_rows:
         prs_by_po[pr['po_id']].append(pr)
 
+    kpi_cards = [
+        {'label': 'จำนวนรายการทั้งหมด', 'value': dataPage.paginator.count},
+        {'label': 'มูลค่ารวม (ตามตัวกรอง)', 'value': po_total_amount, 'sub': 'บาท'},
+    ]
+
     context = {
         'pos':dataPage,
         'filter':myFilter,
         'is_po_approve_report': is_po_approve_report(request.user),
         'prs_by_po':prs_by_po,
+        'kpi_cards': kpi_cards,
         'rp_po_page': "tab-active",
         'rp_po_show': "show",
         active :"active show",
