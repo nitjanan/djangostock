@@ -165,6 +165,61 @@ git commit -m "feat: upgrade Bootstrap 4 to 5.3.8 with project-wide data-bs-* co
 
 ---
 
+### Task 1b: Fix project-wide filter-form layout collapse (`.form-row` removed in Bootstrap 5)
+
+**Inserted after Task 1 shipped.** Bootstrap 5 removed `.form-row` entirely — it was Bootstrap 4's flex container specifically for form grids (a lighter-gutter sibling of `.row`). Every filter form in this project wraps its `.form-group col-md-N` columns in `<div class="form-row">`. Under Bootstrap 4 that div established `display: flex`, which is what made the columns sit side-by-side. Under Bootstrap 5, `.form-row` has no CSS at all, so the wrapper is an inert block-level div and every column collapses to full width, stacked vertically — every filter form project-wide currently looks broken (confirmed live by the human partner immediately after Task 1 landed, with a screenshot showing exactly this).
+
+This was a severity misjudgment in the original plan: `.form-row` was bucketed with the *cosmetic* Bootstrap-4-only renames (`text-left`, `badge-pill`, etc. — deferred to per-page work in later phases) when it is actually structural, like the `data-toggle` sweep in Task 1. It needs the same project-wide, immediate treatment.
+
+**Files:**
+- Modify: all templates under `stock/templates/` containing `form-row` (42 files — see step 1)
+
+**Interfaces:**
+- Produces: every existing `<div class="form-row">` becomes `<div class="row">`, restoring Bootstrap 5's own flex grid behavior for the `col-md-N` children already inside. No other markup changes — column classes, field names, and all `{{ }}`/`{% %}` template logic stay exactly as they are.
+
+- [ ] **Step 1: Capture the baseline**
+
+Run: `grep -rl "form-row" stock/templates --include="*.html" | wc -l`
+Expected: `42`
+
+- [ ] **Step 2: Run the sweep**
+
+Use the PowerShell tool (not Bash), for the same UTF-8-safety reason as Task 1's sweep:
+
+```powershell
+Get-ChildItem -Path stock/templates -Filter *.html -Recurse | ForEach-Object {
+    $content = Get-Content -Raw -LiteralPath $_.FullName -Encoding UTF8
+    $updated = $content -replace 'class="form-row"', 'class="row"' `
+                         -replace "class='form-row'", "class='row'"
+    if ($updated -ne $content) {
+        [System.IO.File]::WriteAllText($_.FullName, $updated, (New-Object System.Text.UTF8Encoding($false)))
+    }
+}
+```
+
+This only matches `form-row` when it is the *entire* class attribute value (`class="form-row"` or with single quotes) — deliberately narrow, so it can't accidentally clip a hypothetical `class="form-row-something-else"` or a multi-class attribute where `form-row` sits next to other classes. Confirm with step 1's grep (searching for the bare substring `form-row`) that this narrower replace still catches all 42 files; if any file uses `form-row` combined with another class in the same attribute (e.g. `class="form-row mb-2"`), report that file in NEEDS_CONTEXT rather than guessing how to handle it — do not broaden the regex without checking each such case individually first.
+
+- [ ] **Step 3: Verify**
+
+Run: `grep -rl "form-row" stock/templates --include="*.html" | wc -l`
+Expected: `0`
+
+Run: `python manage.py check`
+Expected: only the one pre-existing `fields.W340` warning noted in the plan's ledger — no new issues.
+
+- [ ] **Step 4: Manual verification**
+
+Start the dev server, open a page with a filter form that was previously broken (e.g. Report → "สรุปใบสั่งซื้อที่อนุมัติ" / `viewPO.html`, or the Express oil invoice page) and confirm the filter fields now sit in a proper multi-column grid again (not stacked full-width). This is the human partner's exact complaint — the fix must be visibly confirmed, not just grep-verified.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -u stock/templates
+git commit -m "fix: restore filter-form grid layout after Bootstrap 5 removed .form-row"
+```
+
+---
+
 ### Task 2: Switch crispy-forms to the Bootstrap 5 template pack
 
 **Files:**
