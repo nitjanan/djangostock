@@ -7676,10 +7676,20 @@ def viewExOiInvoice(request):
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
-    
+
+    # ยอดรวมเฉพาะรายการที่แสดงในหน้านี้ (get_total_price ต้อง query ทีละแถว
+    # จาก pg_db อยู่แล้วเพื่อแสดงในตาราง จึงรวมยอดจากแถวเดียวกันนี้ ไม่ query เพิ่ม)
+    page_oi_total = sum(oi.get_total_price() for oi in dataPage)
+
+    kpi_cards = [
+        {'label': 'จำนวนรายการทั้งหมด', 'value': dataPage.paginator.count},
+        {'label': 'ยอดรวมหน้านี้', 'value': page_oi_total, 'sub': 'บาท (เฉพาะหน้าที่แสดง)'},
+    ]
+
     context = {
         'ois': dataPage,
         'filter':myFilter,
+        'kpi_cards': kpi_cards,
         'ex_o_i_page': "tab-active",
         'ex_o_i_show': "show",
         active :"active show",
