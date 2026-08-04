@@ -128,7 +128,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
-        'PORT': '13307',
+        'PORT': '',
     },
     'pg_db': {  # Remote PostgreSQL Server
         'ENGINE': 'django.db.backends.postgresql',
