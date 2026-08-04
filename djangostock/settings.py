@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'stock',
     'django.contrib.humanize',
     'crispy_forms',
-    'crispy_bootstrap4',
+    'crispy_bootstrap5',
     'stripe',
     'widget_tweaks',
     'django_filters',
@@ -128,7 +128,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
-        'PORT': '',
+        'PORT': '13307',
     },
     'pg_db': {  # Remote PostgreSQL Server
         'ENGINE': 'django.db.backends.postgresql',
@@ -214,7 +214,7 @@ SIMPLE_JWT = {
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 PUBLIC_KEY='pk_test_51IzdMHKiE6HamVX7WqKkIKhiGeFpz3rR9ZHriRV2StKN35TZDmc7vphtxppAGHx9iG0gt6CqYgn2a0BhQZocczBw00rAq31PBT'
 SECRET_KEY='sk_test_51IzdMHKiE6HamVX71KKMhE2F0ZLINGFBuZkMYnGyUL3adyL5JFUEVkqE0BxSdKIcu5fqPRpPlbUhRa30JobB39du00pweAykb7'
