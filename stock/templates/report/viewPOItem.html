@@ -7,7 +7,10 @@
 {% block content %}
 <div class="container my-3">
 <h3 align="center">รายงานตามสินค้าที่สั่งซื้อ</h3>
-<div class="card my-3 bg-light div-shadow">
+
+{% include 'partials/kpi_row.html' %}
+
+<div class="card-stg filter-card my-3">
   <div class="card-body">
     <form method="get">
       {% csrf_token %}
@@ -64,7 +67,7 @@
           <div>
             <label for=""></label>
             <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+              <button type="submit" class="btn btn-stg">กรอง<i class="fas fa-filter"></i></button>
             </div>
           </div>
         </div>
@@ -106,10 +109,10 @@
     </div>
   </div>
 </div>
-<div class="card div-shadow">
+<div class="card-stg">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-bordered my-3">
+      <table class="table table-stg my-3">
         <thead class="table-active">
             <tr>
                 <th scope="col">วันที่สั่งซื้อ</th>
@@ -134,13 +137,13 @@
             <td>{{item.item.product_name}}</td>
             <td>{{item.item.machine}}</td>
             <td>{% if item.item.requisit.note %}{{item.item.requisit.note}}{% endif %}</td>
-            <td class="text-right">{{item.unit_price | intcomma}}</td>
+            <td class="text-end">{{item.unit_price | intcomma}}</td>
             <th scope="row">
               <ul>
-                <li><a href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></li>
-                <li><a href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></li>
-                {% if item.po.cp.ref_no %}<li><a class="{% if item.po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' item.po.cp.id 4 %}">{{item.po.cp.ref_no}}</a></li>{%endif%}
-                <li><a class="{% if item.po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' item.po.id 4 %}">{{item.po.ref_no}}</a></li>
+                <li><a class="doc-link" href="{% url 'showRequisition' item.item.requisit.id 4 %}">{{item.item.requisit.ref_no}}</a></li>
+                <li><a class="doc-link" href="{% url 'showPR' item.item.requisit.purchase_requisition_id 4 %}">{{item.item.requisit.pr_ref_no}}</a></li>
+                {% if item.po.cp.ref_no %}<li><a class="doc-link {% if item.po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' item.po.cp.id 4 %}">{{item.po.cp.ref_no}}</a></li>{%endif%}
+                <li><a class="doc-link {% if item.po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' item.po.id 4 %}">{{item.po.ref_no}}</a></li>
               </ul>
             </th>
           </tr>
@@ -153,7 +156,7 @@
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">
-        <ul class="pagination justify-content-center">
+        <ul class="pagination pagination-stg justify-content-center">
         {% if po_item.has_previous %}
             <li class="page-item">
             <a class="page-link" href="{% my_url po_item.previous_page_number 'page' request.GET.urlencode %}">Previous</a>
@@ -173,7 +176,7 @@
                 <li class="page-item active" aria-current="page">
               <span class="page-link">
                 {{ i }}
-                <span class="sr-only">(current)</span>
+                <span class="visually-hidden">(current)</span>
               </span>
             </li>
             {% elif i > po_item.number|add:'-5' and i < po_item.number|add:'5' %}

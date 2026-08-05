@@ -5148,15 +5148,22 @@ def viewPOItemReport(request):
     #กรองข้อมูล
     myFilter = PurchaseOrderItemFilter(request.GET, queryset = data)
     data = myFilter.qs
+    poi_total_amount = data.aggregate(total=Sum('price'))['total'] or 0
 
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
+    kpi_cards = [
+        {'label': 'จำนวนรายการทั้งหมด', 'value': dataPage.paginator.count},
+        {'label': 'มูลค่ารวม (ตามตัวกรอง)', 'value': poi_total_amount, 'sub': 'บาท'},
+    ]
+
     context = {
         'po_item':dataPage,
         'filter':myFilter,
+        'kpi_cards': kpi_cards,
         'rp_poi_page': "tab-active",
         'rp_poi_show': "show",
         active :"active show",
