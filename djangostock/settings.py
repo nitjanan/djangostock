@@ -215,6 +215,7 @@ SIMPLE_JWT = {
 
 STATIC_URL = '/static/'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
+CRISPY_ALLOWED_TEMPLATE_PACKS = ('uni_form', 'bootstrap3', 'bootstrap4', 'bootstrap5')
 
 PUBLIC_KEY='pk_test_51IzdMHKiE6HamVX7WqKkIKhiGeFpz3rR9ZHriRV2StKN35TZDmc7vphtxppAGHx9iG0gt6CqYgn2a0BhQZocczBw00rAq31PBT'
 SECRET_KEY='sk_test_51IzdMHKiE6HamVX71KKMhE2F0ZLINGFBuZkMYnGyUL3adyL5JFUEVkqE0BxSdKIcu5fqPRpPlbUhRa30JobB39du00pweAykb7'
