@@ -280,6 +280,12 @@ git commit -m "feat: switch crispy-forms to the bootstrap5 template pack"
 
 ---
 
+### Task 2b: Fix login page 500 error — add CRISPY_ALLOWED_TEMPLATE_PACKS (CRITICAL, found during Task 10)
+
+**Inserted after Task 3b.** Task 2 fixed the `as_crispy_field` filter path but missed that django-crispy-forms 2.0's `{% crispy %}` **tag** validates the pack name against a separate whitelist that doesn't include `'bootstrap5'` by default — breaking every `{% crispy form %}`-tag page project-wide, including `/account/login`. Never caught earlier because every later task's verification bypassed login via direct session injection. Full brief, root-cause traceback, and controller-confirmed fix at `.superpowers/sdd/2026-08-03-bootstrap5-ui-redesign-phase1/task-2b-brief.md`.
+
+---
+
 ### Task 3: Restyle navbar.html to the STG Modern design
 
 **Files:**
@@ -317,6 +323,12 @@ Expected: `System check identified no issues (0 silenced).`
 git add stock/templates/navbar.html
 git commit -m "style: remove hardcoded navbar background color for design system"
 ```
+
+---
+
+### Task 3b: Finish navbar.html's Bootstrap 5 class migration (gap found by Task 10's verification sweep)
+
+**Inserted after Task 9 shipped, found by running Task 10's own Step 1 check early.** Task 3 was scoped too narrowly — it only removed one hardcoded inline background-color. navbar.html still had real, live, rendering Bootstrap-4-only classes (`ml-5` on the mobile toggler, `badge-pill`/`badge-dark` on all 17 company-tab notification badges) that were never migrated, violating the plan's Global Constraint of zero remaining Bootstrap-4-only classes in files a task touched. Full brief at `.superpowers/sdd/2026-08-03-bootstrap5-ui-redesign-phase1/task-3b-brief.md` (written directly, not via the numbered task-brief script, for the same "3b" vs "3" heading-collision reason as Task 1b).
 
 ---
 
