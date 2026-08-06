@@ -13,7 +13,7 @@
     {% endif %}
     <a class="badge rounded-pill bg-danger notification mr-2" style="background-color:#376e5b;color:white;" href="{% url 'export_products' %}?{{request.GET.urlencode}}" download>รายงานสินค้า <i class="fas fa-file-excel"></i></a>
     {% if isEditNewOld %}
-      <span class="badge rounded-pill bg-warning notification mr-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#newOldModal">New โอน รหัสสินค้า <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
+      <span class="badge rounded-pill text-bg-warning notification mr-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#newOldModal">New โอน รหัสสินค้า <i class="fas fa-exchange-alt" style="color: #000000;"></i></span>
     {% endif %}
     {% if isEditChangeExist %}
       <span class="badge rounded-pill bg-danger notification mr-2" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#changeExistModal">Change Exist รหัสสินค้า <i class="fas fa-recycle" style="color: #ffffff;"></i></span>
