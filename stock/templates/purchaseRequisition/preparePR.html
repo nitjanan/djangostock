@@ -57,7 +57,7 @@
           {% endif %}
           {% for i in requisitions.paginator.page_range %}
             {% if requisitions.number == i %}
-              <li class="page-item active"><a class="page-link">{{ i }}<span class="sr-only">(current)</span></a></li>
+              <li class="page-item active"><a class="page-link">{{ i }}<span class="visually-hidden">(current)</span></a></li>
             {% else %}
               <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
             {% endif %}
