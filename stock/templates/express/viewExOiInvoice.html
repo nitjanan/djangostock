@@ -85,7 +85,7 @@
             <td>{{oi.depcod}}</td>
             <td>{{oi.get_depnam}}</td>
             <td>{{oi.remark}}</td>
-            <td class="text-end">{{oi.get_total_price | intcomma}}</td>
+            <td class="text-end">{{oi.total_price_cached | intcomma}}</td>
           </tr>
         {% endfor %}
         </tbody>

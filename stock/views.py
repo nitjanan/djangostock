@@ -7691,9 +7691,12 @@ def viewExOiInvoice(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
-    # ยอดรวมเฉพาะรายการที่แสดงในหน้านี้ (get_total_price ต้อง query ทีละแถว
-    # จาก pg_db อยู่แล้วเพื่อแสดงในตาราง จึงรวมยอดจากแถวเดียวกันนี้ ไม่ query เพิ่ม)
-    page_oi_total = sum(oi.get_total_price() for oi in dataPage)
+    # ยอดรวมเฉพาะรายการที่แสดงในหน้านี้ (get_total_price ต้อง query ทีละแถวจาก pg_db
+    # จึงคำนวณ/แคชค่าไว้ที่ oi.total_price_cached ครั้งเดียวต่อแถว แล้วนำไปใช้ทั้งใน
+    # การรวมยอดนี้และในเทมเพลต เพื่อไม่ให้ query ซ้ำสองครั้งต่อแถว)
+    for oi in dataPage:
+        oi.total_price_cached = oi.get_total_price()
+    page_oi_total = sum(oi.total_price_cached for oi in dataPage)
 
     kpi_cards = [
         {'label': 'จำนวนรายการทั้งหมด', 'value': dataPage.paginator.count},
