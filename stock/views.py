@@ -9665,6 +9665,10 @@ def autoUploadeRecive(request):
     active = request.session['company_code']
     company_in = findCompanyIn(request)
 
+    branch = BaseBranchCompany.objects.filter(code=active).first()
+    if not branch or not branch.affiliated:
+        return redirect('viewReceive')
+
     all_po = PurchaseOrder.objects.filter(
         approver_status_id=2,
         is_receive=False,
@@ -9675,7 +9679,10 @@ def autoUploadeRecive(request):
 
     for po_ref_no in all_po:
         try:
-            rc = ExAPTRNH.objects.using('pg_db').filter(ponum = po_ref_no).order_by('docdat').first()
+            rc = ExAPTRNH.objects.using('pg_db').filter(
+                ponum = po_ref_no,
+                comcod = branch.affiliated.name
+            ).order_by('docdat').first()
 
             if rc:
                 po = PurchaseOrder.objects.get(ref_no = rc.ponum)
@@ -9754,6 +9761,9 @@ def uploade_receive_3am(request):
     three_months_ago = timezone.now() - timedelta(days=90)
 
     for comp in comp_all:
+        if not comp.affiliated:
+            continue
+
         all_po = PurchaseOrder.objects.filter(
             approver_status_id=2,
             is_receive=False,
@@ -9765,7 +9775,10 @@ def uploade_receive_3am(request):
 
         for po_ref_no in all_po:
             try:
-                rc = ExAPTRNH.objects.using('pg_db').filter(ponum = po_ref_no).order_by('docdat').first()
+                rc = ExAPTRNH.objects.using('pg_db').filter(
+                    ponum = po_ref_no,
+                    comcod = comp.affiliated.name
+                ).order_by('docdat').first()
 
                 if rc:
                     po = PurchaseOrder.objects.get(ref_no = rc.ponum)
