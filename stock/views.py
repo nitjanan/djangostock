@@ -5366,7 +5366,7 @@ def exportExcelPOToExpress(request):
     )
     response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xlsx'
 
-    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+    with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
         result.to_excel(writer, index=False)
 
     return response
@@ -5568,7 +5568,7 @@ def exportExcelPO(request):
     )
     response['Content-Disposition'] = f'attachment; filename=PO_Report_({active}).xlsx'
 
-    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+    with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
         result.to_excel(writer, index=False)
         #ขยายคอลัมน์วันที่ ไม่งั้น Excel แสดงเป็น ##### เพราะวันที่กว้างกว่าความกว้าง default ของคอลัมน์
         worksheet = writer.sheets['Sheet1']
@@ -6202,7 +6202,7 @@ def exportExcelRQ(request):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename=Requisition_Report_({active}).xlsx'
 
-    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+    with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
         result.to_excel(writer, index=False)
 
     return response
@@ -6274,7 +6274,7 @@ def exportExcelIVToExpress(request):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename=IB_to_Express_Report_({active}).xlsx'
 
-    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+    with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
         result.to_excel(writer, index=False)
 
     return response
@@ -10035,7 +10035,7 @@ def exportExcelApprovePO(request):
     )
     response['Content-Disposition'] = f'attachment; filename=PO_Report_({active}).xlsx'
 
-    with pd.ExcelWriter(response, engine='xlsxwriter', options={'strings_to_numbers': True}) as writer:
+    with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
         result.to_excel(writer, index=False)
 
     return response
@@ -11239,11 +11239,8 @@ def getapiExpOilByMonthAll(request, start_date, end_date):
                 continue
 
             # =============================================
-            # ถ้าไม่มี car_dep
+            # นับรวมแม้ไม่มี car_dep (ไม่ข้าม)
             # =============================================
-            if not car_obj.get("car_dep_id"):
-                continue
-
             used_car_ids.add(
                 car_obj["id"]
             )
@@ -11386,12 +11383,6 @@ def getapiExpOilByMonthAll(request, start_date, end_date):
 
             meta = meta_map[key]
 
-            # =============================================
-            # ถ้าไม่มี car_dep ข้าม
-            # =============================================
-            if not meta.get("car_dep"):
-                continue
-
             qty = grouped_qty[key]
 
             km = grouped_km[key]
@@ -11428,7 +11419,7 @@ def getapiExpOilByMonthAll(request, start_date, end_date):
             x["year"],
             x["month"],
             x["branch_company"],
-            x["car_dep"],
+            x["car_dep"] if x["car_dep"] is not None else -1,
             x["car_id"],
         )
     )
