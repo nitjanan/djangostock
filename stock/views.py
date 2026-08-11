@@ -109,7 +109,7 @@ def car_search(request):
     return JsonResponse({'results': []})
 
 def findCompanyIn(request):
-    code = request.session['company_code']
+    code = request.session.get('company_code', 'ALL')
 
     #หาหน้าต่างการมองเห็นบริษัททั้งหมดของ user
     user_profile = UserProfile.objects.get(user = request.user.id)
@@ -405,7 +405,7 @@ def calculateGradeRate(total_rate):
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def index(request, category_slug = None):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         user_profile = UserProfile.objects.get(user = request.user.id)
         company = BaseBranchCompany.objects.filter(userprofile = user_profile).first()
@@ -980,8 +980,9 @@ def signInView(request):
                     company = BaseBranchCompany.objects.filter(userprofile = user_profile).first()
                 except:
                     company = None
-                request.session['company_code'] = company.code
-                request.session['company'] = company.name
+                if company is not None:
+                    request.session['company_code'] = company.code
+                    request.session['company'] = company.name
                 return redirect('home')
             else:
                 return redirect('signUp')
@@ -998,7 +999,7 @@ def signOutView(request):
     return redirect('signIn')
 
 def search(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     name = request.GET['title']
     products = Product.objects.filter(Q(name__icontains=name) | Q(id__icontains=name))
@@ -1203,7 +1204,7 @@ def crudRequisitionItemView(request, requisition_id):
     
 @login_required(login_url='signIn')
 def requisition(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
@@ -1237,7 +1238,7 @@ def requisition(request):
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createRequisition(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company = BaseBranchCompany.objects.get(code = active)
     #requestName = User.objects.all()
     #chiefName = User.objects.filter(groups__name='หัวหน้างาน')
@@ -1319,7 +1320,7 @@ def createRequisitionItem(request, requisition_id):
     template_name = 'requisitionItem/createRequisitionItem.html'
     heading_message = 'Model Formset Demo'
 
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     requisition = Requisition.objects.get(id=requisition_id)
@@ -1523,7 +1524,7 @@ def CUInvoiceAndItem(request, rq_id):
 class CrudView(TemplateView):
     template_name = 'requisition/crud.html'
     def get_context_data(self, *args, **kwargs):
-        active = self.request.session['company_code']
+        active = self.request.session.get('company_code', 'ALL')
 
         bc = BaseBranchCompany.objects.get(code = active)
         context = super().get_context_data(*args,**kwargs)
@@ -1726,7 +1727,7 @@ class DeleteCrudUser(View):
         return JsonResponse(data)
 
 def editAllRequisition(request, requisition_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
     users = RequisitionItem.objects.filter(requisition_id = requisition_id)
     requisition = Requisition.objects.get(id=requisition_id)
@@ -1824,7 +1825,7 @@ def editAllRequisition(request, requisition_id):
     return render(request, "requisition/editAllRequisition.html", context)
 
 def showRequisition(request, requisition_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     items = RequisitionItem.objects.filter(requisition_id = requisition_id)
@@ -1885,7 +1886,7 @@ def showRequisition(request, requisition_id, mode):
 
 @login_required(login_url='signIn')
 def viewPR(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
@@ -1924,7 +1925,7 @@ def viewPR(request):
     return render(request,'purchaseRequisition/viewPR.html',context)
 
 def preparePR(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     requisitions = Requisition.objects.filter(Q(invoice_id__isnull = True) & Q(purchase_requisition_id__isnull = True) & Q(is_edit = True), branch_company__code = active)
 
     #สร้าง page
@@ -2034,7 +2035,7 @@ def searchExpenseDept(request):
     return JsonResponse(data)
 
 def setDataProductExpress(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     if 'id_product' in request.GET:
         id_product = request.GET.get('id_product')
@@ -2071,7 +2072,7 @@ def setDataProductExpress(request):
     return JsonResponse(data)
 
 def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     try:
         company_in = findCompanyIn(request)
@@ -2093,7 +2094,7 @@ def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
     return user
 
 def findApproveUserComparisonPrice(request, cpd_id, cm_type):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     try:
         company_in = findCompanyIn(request)
@@ -2159,7 +2160,7 @@ def get_bool(str):
     return bol
 
 def createPR(request, requisition_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     company = BaseBranchCompany.objects.get(code = active)
@@ -2261,11 +2262,11 @@ def createPR(request, requisition_id):
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createCMorPO(request, pr_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     try:
-        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+        company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     except:
         return redirect('signOut')
 
@@ -2437,7 +2438,7 @@ def removePR(request, pr_id):
     return redirect('viewPR')
 
 def editPR(request, pr_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     pr = PurchaseRequisition.objects.get(id=pr_id)
     bc = BaseBranchCompany.objects.get(code = pr.branch_company)
     form = PurchaseRequisitionForm(request, instance=pr)
@@ -2483,7 +2484,7 @@ def editPR(request, pr_id):
     return render(request, "purchaseRequisition/createPR.html", context)
 
 def showPR(request, pr_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     pr = PurchaseRequisition.objects.get(id=pr_id)
     bc = BaseBranchCompany.objects.get(code = pr.branch_company)
@@ -2610,7 +2611,7 @@ def saveIdExpressPR(request):
 
 @login_required(login_url='signIn')
 def viewPRApprove(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1)| Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), branch_company__code__in = company_in)
 
@@ -2635,7 +2636,7 @@ def viewPRApprove(request):
     return render(request,'purchaseRequisitionApprove/viewPRApprove.html',context)
 
 def editPRApprove(request, pr_id, isFromHome):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     try:
         company_in = findCompanyIn(request)
@@ -2729,7 +2730,7 @@ def editPRApprove(request, pr_id, isFromHome):
 
 @login_required(login_url='signIn')
 def viewPO(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     data = PurchaseOrder.objects.filter(Q(approver_status_id = 1) | Q(is_receive = False) & ~Q(approver_status_id = 3), is_cancel = False, branch_company__code = active)
 
     #กรองข้อมูล
@@ -2759,7 +2760,7 @@ def preparePO(request):
 
 def createPO(request):
     try:
-        company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+        company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     except:
         return redirect('signOut')
 
@@ -2800,8 +2801,8 @@ def editPO(request, po_id):
     return render(request, "purchaseOrder/createPO.html", context)
 
 def editPOFromPR(request, po_id):
-    active = request.session['company_code']
-    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    active = request.session.get('company_code', 'ALL')
+    company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
@@ -2914,7 +2915,7 @@ def removePO(request, po_id):
     return redirect('viewPO')
 
 def showPO(request, po_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     base_po_type = BasePOType.objects.all()
     po = PurchaseOrder.objects.get(id = po_id)
@@ -3030,7 +3031,7 @@ def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
 
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     #ดึง item ที่ทำใบ po แล้ว
@@ -3080,7 +3081,7 @@ def createPOItem(request, po_id):
     return render(request, template_name, context)
 
 def editPOItem(request, po_id, isFromPR, isReApprove):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     base_po_type = BasePOType.objects.all()
@@ -3100,7 +3101,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     itemList = PurchaseOrderItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id', 'unit__id', 'item__quantity_used', 'quantity', 'po__cp').filter(po__id = po_id).annotate(
                     q_remain = ExpressionWrapper(F('item__quantity_pr') -  (F('item__quantity_used') - F('quantity')) , output_field = models.DecimalField()),
                 )
-    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
@@ -3255,7 +3256,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
 
 @login_required(login_url='signIn')
 def viewPOApprove(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     data = PurchaseOrder.objects.filter(approver_status_id = 1, amount__isnull = False, amount__gt = 0, branch_company__code__in = company_in)
 
@@ -3280,7 +3281,7 @@ def viewPOApprove(request):
     return render(request,'purchaseOrderApprove/viewPOApprove.html',context)
 
 def editPOApprove(request, po_id, isFromHome):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     try:
         company_in = findCompanyIn(request)
@@ -3379,7 +3380,7 @@ def editPOApprove(request, po_id, isFromHome):
 
 @login_required(login_url='signIn')
 def viewComparePricePO(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
     data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) & ~Q(special_approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), is_cancel = False, branch_company__code = active)
@@ -3492,7 +3493,7 @@ def prepareComparePricePO(request):
     return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id, 'False')))
 
 def createComparePricePOItem(request, cp_id, isReApprove):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
@@ -3500,7 +3501,7 @@ def createComparePricePOItem(request, cp_id, isReApprove):
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
     itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp_id)
     #
-    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
@@ -3650,14 +3651,14 @@ def setDataDistributor(request):
     return JsonResponse(data)
 
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
     itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'quantity', 'item__product__unit__id', 'unit__id').filter(cp = cp_id)
 
-    #company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    #company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
@@ -3741,7 +3742,7 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     return render(request, 'comparePricePOItem/editComparePricePOItemFromPR.html',context)
 
 def editComparePricePOItem(request, cp_id , cpd_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     cp = ComparisonPrice.objects.get(id=cp_id)
 
     #ดึง item ที่ทำใบ po แล้ว
@@ -3749,7 +3750,7 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
     itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id').filter(cp = cp_id)
     #
-    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
@@ -3896,7 +3897,7 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
     return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
 def printComparePricePO(request, cp_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     try:
@@ -3979,7 +3980,7 @@ def printComparePricePO(request, cp_id):
     return render(request, 'comparePricePO/printComparePricePO.html',context)
 
 def showComparePricePO(request, cp_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     try:
         bidder_oldest = ComparisonPriceDistributor.objects.filter(cp = cp_id).order_by('id').first()
         items_oldest = ComparisonPriceItem.objects.filter(bidder = bidder_oldest.id)
@@ -4059,7 +4060,7 @@ def showComparePricePO(request, cp_id, mode):
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createPOFromComparisonPrice(request, cp_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company = BaseBranchCompany.objects.get(code = active)
 
 
@@ -4133,7 +4134,7 @@ def createPOFromComparisonPrice(request, cp_id):
     return render(request, "purchaseOrder/createPO.html", context)
 
 def createPOItemFromComparisonPrice(request, po_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
     base_po_type = BasePOType.objects.all()
@@ -4212,7 +4213,7 @@ def createPOItemFromComparisonPrice(request, po_id):
 
 @login_required(login_url='signIn')
 def viewCPApprove(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3), select_bidder_id__isnull = False, branch_company__code__in = company_in)
 
@@ -4237,7 +4238,7 @@ def viewCPApprove(request):
     return render(request, "comparePricePOApprove/viewCPApprove.html",context)
 
 def printCPApprove(request, cp_id, isFromHome):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     try:
         company_in = findCompanyIn(request)
@@ -4455,7 +4456,7 @@ def searchItemExpress(request):
     return JsonResponse(data)
 
 def viewReceive(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     data = PurchaseOrder.objects.filter(approver_status_id = 2, is_receive = False, is_cancel = False, branch_company__code = active)
 
     #กรองข้อมูล
@@ -4556,7 +4557,7 @@ def editReceiveItem(request, rc_id):
 
 #ดึงรายการใบขอซื้อกลับมาทำใหม่
 def reBuyPR(request, pr_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     pr = PurchaseRequisition.objects.get(id = pr_id)
 
     try:
@@ -4584,7 +4585,7 @@ def reBuyPR(request, pr_id):
     return render(request, "purchaseRequisition/showPR.html", context)
 
 def reApprovePR(request, pr_id):
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
         bc = BaseBranchCompany.objects.get(code = active)
 
         pr = PurchaseRequisition.objects.get(id = pr_id)
@@ -4694,7 +4695,7 @@ def correct_date_format(date_str):
     return "Invalid date format"
 
 def uploadReceive(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     if request.method == 'POST':
         uploaded_file = request.FILES.get('myfile', False)
         df = pd.read_excel(uploaded_file)
@@ -4816,7 +4817,7 @@ def showReceive(request, rc_id):
     return render(request, 'receive/showReceive.html',context)
 
 def viewRequisitionHistory(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     month = datetime.datetime.now().month
@@ -4848,7 +4849,7 @@ def viewRequisitionHistory(request):
 
 @login_required(login_url='signIn')
 def viewPRHistory(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     
     data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 2, approver_status_id = 2), branch_company__code__in = company_in)
@@ -4888,7 +4889,7 @@ def viewPRHistory(request):
 
 @login_required(login_url='signIn')
 def viewMAHistory(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = Maintenance.objects.filter(Q(is_cancel = True) | Q(is_complete__isnull=False), branch_company__code__in = company_in)
@@ -4914,7 +4915,7 @@ def viewMAHistory(request):
     return render(request,'history/viewMA.html',context)
 
 def viewPOHistory(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = PurchaseOrder.objects.filter(Q(~Q(approver_status_id = 1), is_receive = True), is_cancel = False, branch_company__code__in = company_in)
@@ -4941,7 +4942,7 @@ def viewPOHistory(request):
     return render(request, "history/viewPO.html", context)
 
 def viewComparePricePOHistory(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = ComparisonPrice.objects.filter(Q(examiner_status_id = 2, approver_status_id = 2) & ~Q(special_approver_status_id = 3) & ~Q(special_approver_status_id = 1), is_cancel = False, branch_company__code__in = company_in)
@@ -4972,7 +4973,7 @@ def viewComparePricePOHistory(request):
 
 #Incomplate อันนี้ไม่ได้ใช้อยู่ 19-08-2024
 def viewRequisitionHistoryIncomplete(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     month = datetime.datetime.now().month
@@ -5001,7 +5002,7 @@ def viewRequisitionHistoryIncomplete(request):
     return render(request,'historyIncomplete/viewRequisition.html', context)
 
 def viewPRHistoryIncomplete(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 3) | Q(approver_status_id = 3) | Q(approver_status_id = 4), branch_company__code__in = company_in)
@@ -5027,7 +5028,7 @@ def viewPRHistoryIncomplete(request):
     return render(request,'historyIncomplete/viewPR.html',context)
 
 def viewPOHistoryIncomplete(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = PurchaseOrder.objects.filter(Q(approver_status_id = 3) | Q(is_cancel = True), branch_company__code__in = company_in)
@@ -5052,7 +5053,7 @@ def viewPOHistoryIncomplete(request):
     return render(request, "historyIncomplete/viewPO.html", context)
 
 def viewComparePricePOHistoryIncomplete(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = ComparisonPrice.objects.filter(Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3) | Q(is_cancel = True), branch_company__code__in = company_in)
@@ -5079,7 +5080,7 @@ def viewComparePricePOHistoryIncomplete(request):
     return render(request, 'historyIncomplete/viewComparePricePO.html',context)
 
 def viewPOReport(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     data = PurchaseOrder.objects.filter(approver_status = 2, branch_company__code__in = company_in, is_cancel = False).distinct() #ใส่ distinct เพราะ filter purchaseorderitem__item__machine ทำให้เบิ้ลรายการตาม items
 
@@ -5134,7 +5135,7 @@ def viewPOReport(request):
     return render(request, "report/viewPO.html", context)
 
 def viewPOItemReport(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     data = PurchaseOrderItem.objects.filter(po__approver_status = 2, po__branch_company__code__in = company_in, po__is_cancel = False).order_by('-po__created')
 
@@ -5158,7 +5159,7 @@ def viewPOItemReport(request):
     return render(request, "report/viewPOItem.html", context)
 
 def viewRateDistributorReport(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     #data = RateDistributor.objects.filter(po__branch_company__code__in = company_in, grade__isnull = False)
     rd = RateDistributor.objects.filter(po__branch_company__code__in = company_in).values('distributor__id')
@@ -5185,7 +5186,7 @@ def viewRateDistributorReport(request):
     return render(request, "report/viewRD.html", context)
 
 def showRateDistributor(request, pk):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     distributor = Distributor.objects.get(id = pk)
     
@@ -5234,7 +5235,7 @@ def normalize_datetime(value):
     return value.strftime('%Y-%m-%d')  #Format as string
 
 def exportExcelPOToExpress(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     po_q = Q(approver_status = 2, is_cancel = False)
@@ -5372,7 +5373,7 @@ def exportExcelPOToExpress(request):
     return response
 
 def exportExcelPO(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     my_q = Q(approver_status = 2, is_cancel = False)
@@ -5579,7 +5580,7 @@ def exportExcelPO(request):
     return response
 
 def exportExcelSummaryByProductValue(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     output = BytesIO()
@@ -5717,7 +5718,7 @@ def exportExcelSummaryByProductValue(request):
     return response
 
 def exportExcelSummaryByProductFrequently(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     output = BytesIO()
@@ -5927,7 +5928,7 @@ def get_grade(average_total_rate):
         return '-'
 
 def exportToExcelRateDistributor(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     company_name = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).values_list('address__name_th', flat=True)[:1] or None
@@ -6052,15 +6053,15 @@ def getLastDayInSixMonth(start_date):
 def setSessionCompany(request):
     name = request.GET.get('title', None)
     request.session['company_code'] = name
-    company = BaseBranchCompany.objects.get(code = request.session['company_code'])
+    company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     request.session['company'] = company.affiliated.name_sh
     data = {
-        'instance': request.session['company_code'],
+        'instance': request.session.get('company_code', 'ALL'),
     }
     return JsonResponse(data)
 
 def viewInvoice(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     data = Invoice.objects.filter(branch_company__code = active, is_express = False)
 
     #กรองข้อมูล
@@ -6085,7 +6086,7 @@ def viewInvoice(request):
     return render(request, "invoice/viewInvoice.html", context)
 
 def showInvoice(request, iv_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     items = InvoiceItem.objects.filter(iv = iv_id)
     iv = Invoice.objects.get(id = iv_id)
@@ -6123,7 +6124,7 @@ def removeInvoice(request, iv_id):
     return redirect('viewInvoice')
 
 def exportExcelRQ(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     ref_no = request.GET.get('ref_no') or None
@@ -6208,7 +6209,7 @@ def exportExcelRQ(request):
     return response
 
 def exportExcelIVToExpress(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     ref_no = request.GET.get('ref_no') or None
@@ -6447,7 +6448,7 @@ def allBaseCarDepartment(request):
     return Response(serializer.data)
 
 def exportExcelByExpense(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     stockman_user = request.GET.get('stockman_user') or None
@@ -6727,7 +6728,7 @@ def safe_str_to_date(date_str):
 
 # Flow เก่า 29/04/2568
 def viewExInvoice_old(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
     '''
     data = ExOESTNH.objects.using('pg_db').filter(comcod = 'SLC').order_by('-docdat', '-docnum')
@@ -6854,7 +6855,7 @@ def exportExcelByIVExpense(request):
     last_cat_letter = get_column_letter(FIRST_CAT_COL + len(STKTYP_CATEGORIES) - 1)
     total_letter = get_column_letter(TOTAL_COL)
 
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาทั้งหมดที่ user มีสิทธิ์
@@ -7155,7 +7156,7 @@ def exportExcelByIVExpense(request):
     return response
 
 def exportToExcelAllExpensesRegistration(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาทั้งหมดที่ user มีสิทธิ์
@@ -7403,7 +7404,7 @@ def exportToExcelAllExpensesRegistration(request):
 
 
 def exportToExcelRegistrationAndRepair(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาทั้งหมดที่ user มีสิทธิ์
@@ -7620,7 +7621,7 @@ def exportToExcelRegistrationAndRepair(request):
 
 
 def viewExInvoice(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาที่ user มีสิทธิ์ และมี invoice_code
@@ -7654,7 +7655,7 @@ def viewExInvoice(request):
     return render(request, "express/viewExInvoice.html", context)
 
 def viewExOiInvoice(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาที่ user มีสิทธิ์ และมี oi_invoice_code
@@ -7688,7 +7689,7 @@ def viewExOiInvoice(request):
     return render(request, "express/viewExOiInvoice.html", context)
 
 def viewExSOC(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาที่ user มีสิทธิ์ และมี soc_code
@@ -7722,7 +7723,7 @@ def viewExSOC(request):
     return render(request, "express/viewExSOC.html", context)
 
 def viewExOiSOC(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ดึงสาขาที่ user มีสิทธิ์ และมี oi_soc_code
@@ -7999,7 +8000,7 @@ def update_maintenance_appsheet(request):
 
 @login_required(login_url='signIn')
 def viewMA(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     data = Maintenance.objects.filter(is_cancel = False, is_complete__isnull = True, branch_company__code__in = company_in)
@@ -8025,7 +8026,7 @@ def viewMA(request):
 
 @login_required(login_url='signIn')
 def showMA(request, ma_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     base_ma_type = BaseMAType.objects.all()
 
     ma = Maintenance.objects.get(id = ma_id)
@@ -8068,7 +8069,7 @@ def showMA(request, ma_id, mode):
 
 @login_required(login_url='signIn')
 def editMA(request, ma_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     ma = Maintenance.objects.get(id=ma_id)
 
@@ -8126,7 +8127,7 @@ def cancelMA(request, ma_id):
     return redirect('viewMA')
 
 def autocompalte_maintenance(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
 
     if 'term' in request.GET:
         term = request.GET.get('term')
@@ -8480,7 +8481,7 @@ def roi_carLogBook_appsheet(request):
 
 @login_required(login_url='signIn')
 def viewCL(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     data = CarLogbook.objects.filter(branch_company__code = active)
 
     #กรองข้อมูล
@@ -8538,7 +8539,7 @@ def startDateInMonth(day):
     return f"{result}"
 
 def excelDailyCL(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     comp = BaseBranchCompany.objects.get(code = active)
@@ -8924,7 +8925,7 @@ def createCL(request):
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def editCLRoi(request, cl_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     cl = CarLogbook.objects.get(id=cl_id)
 
     if request.method == 'POST':
@@ -8953,7 +8954,7 @@ def editCLRoi(request, cl_id):
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def editCL(request, cl_id):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     cl = CarLogbook.objects.get(id=cl_id)
 
     if request.method == 'POST':
@@ -9102,7 +9103,7 @@ def createPmRoundItem(ma_id):
 
 @login_required(login_url='signIn')
 def viewMAApprove(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     # ได้รายการ car_dep และ branch_company ของ user นี้
@@ -9147,7 +9148,7 @@ def viewMAApprove(request):
 @login_required(login_url='signIn')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def editMAApprove(request, ma_id, mode):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     base_ma_type = BaseMAType.objects.all()
 
     ma = Maintenance.objects.get(id = ma_id)
@@ -9221,7 +9222,7 @@ def format_duration(duration):
     return result
 
 def excelExpensesByCarLog(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     comp = BaseBranchCompany.objects.get(code = active)
@@ -9450,7 +9451,7 @@ def searchPmRound(request):
 
 @login_required(login_url='signIn')
 def viewCLReport(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     data = CarLogbook.objects.filter(branch_company__code = active)
 
     #กรองข้อมูล
@@ -9474,7 +9475,7 @@ def viewCLReport(request):
 
 
 def exportExcelSummaryByDistributorFrequently(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     output = BytesIO()
@@ -9662,7 +9663,7 @@ def exportExcelSummaryByDistributorFrequently(request):
 
 #button click auto uploade recive
 def autoUploadeRecive(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     branch = BaseBranchCompany.objects.filter(code=active).first()
@@ -9866,7 +9867,7 @@ def naive(value):
     return value
 
 def exportExcelApprovePO(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
 
     my_q = Q(approver_status = 2, is_cancel = False)

@@ -7,7 +7,7 @@ from collections import Counter
 from django.contrib.auth.decorators import login_required
 
 def findCompanyIn(request):
-    active = request.session['company_code']
+    active = request.session.get('company_code', 'ALL')
     #หาหน้าต่างการมองเห็นบริษัททั้งหมดของ user
     try:
         user_profile = UserProfile.objects.get(user = request.user.id)
@@ -97,7 +97,7 @@ def counter(request):
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสิทธิอนุมัติ
 def approvePendingCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
     
@@ -140,7 +140,7 @@ def approvePendingCounter(request):
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสิทธิขอซื้อ
 def approvePRCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
 
@@ -163,7 +163,7 @@ def approvePRCounter(request):
 #หาจำนวนสถานะรอดำเนินการในการอนุมัติของผู้มีสั่งซื้อ
 def approvePOCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
     
@@ -251,7 +251,7 @@ def allApproveCPCounter(request):
 #หาจำนวนสถานะรอดำเนินการในใบเปรียบเทียบราคาของผู้อนุมัติและผู้ตรวจสอบ
 def approveCPAllCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
 
@@ -451,7 +451,7 @@ def findBaseUrgency(request, id):
 
 def isPurchasingPRCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
 
@@ -483,7 +483,7 @@ def is_approve(user):
 
 def addPOCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
 
@@ -497,7 +497,7 @@ def addPOCounter(request):
 
 def MACounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
 
@@ -570,7 +570,7 @@ def purchasingAllConter(request):
 
 def receiveCounter(request):
     try:
-        active = request.session['company_code']
+        active = request.session.get('company_code', 'ALL')
     except:
         active = ""
 
