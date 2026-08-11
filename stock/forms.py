@@ -39,14 +39,14 @@ class RequisitionForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (RequisitionForm,self).__init__(*args,**kwargs)
         #เปลี่ยนการจัดกลุ่มเป็นแบบอื่นเพราะมีเคสที่ใช้เงื่อนไขนี้ไม่ได้
-        #self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.filter(userprofile__branch_company__code = request.session['company_code']))
-        #self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน', userprofile__branch_company__code = request.session['company_code']))
-        #self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        #self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.filter(userprofile__branch_company__code = request.session.get('company_code', 'ALL')))
+        #self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน', userprofile__branch_company__code = request.session.get('company_code', 'ALL')))
+        #self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')))
         
         #เปลี่ยนเป็นการค้นหาชื่อแทน
         # self.fields['name'] = forms.ModelChoiceField(label='ชื่อผู้ขอตั้งเบิก', queryset= User.objects.all())
         # self.fields['chief_approve_user_name'] = forms.ModelChoiceField(label='หัวหน้างาน', queryset= User.objects.filter(groups__name='หัวหน้างาน'))
-        # self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        # self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')))
 
     name = forms.ModelChoiceField(
         queryset = User.objects.all(),
@@ -138,12 +138,12 @@ RequisitionItemModelFormset = modelformset_factory(
 class PurchaseRequisitionForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseRequisitionForm,self).__init__(*args,**kwargs)
-        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
-        position = PositionBasePermission.objects.filter(base_permission__codename='CAAPR', branch_company__code = request.session['company_code']).values('position_id')
-        user_profile = UserProfile.objects.filter(position__in = position, branch_company__code = request.session['company_code']).values('user__id')
+        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')))
+        position = PositionBasePermission.objects.filter(base_permission__codename='CAAPR', branch_company__code = request.session.get('company_code', 'ALL')).values('position_id')
+        user_profile = UserProfile.objects.filter(position__in = position, branch_company__code = request.session.get('company_code', 'ALL')).values('user__id')
         self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบขอซื้อ', queryset = User.objects.filter(id__in = user_profile))
         
-        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
+        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session.get('company_code', 'ALL'))
         self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
 
     class Meta:
@@ -210,10 +210,10 @@ class PurchaseOrderCancelForm(forms.ModelForm):
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
-        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session['company_code'])
+        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session.get('company_code', 'ALL'))
         self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
-        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session['company_code']), required=False)
-        #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session['company_code']))
+        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')), required=False)
+        #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session.get('company_code', 'ALL')))
 
     class Meta:
        model = PurchaseOrder
@@ -324,7 +324,7 @@ class PurchaseRequisitionAddressCompanyForm(forms.ModelForm):
 class PurchaseRequisitionOrganizerForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseRequisitionOrganizerForm,self).__init__(*args,**kwargs)
-        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session['company_code']))
+        self.fields['organizer'] = forms.ModelChoiceField(label='ส่งให้เจ้าหน้าที่จัดซื้อ', queryset= User.objects.filter(groups__name='จัดซื้อ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')))
     
     class Meta:
        model = PurchaseRequisition
