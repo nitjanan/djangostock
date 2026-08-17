@@ -1,4 +1,4 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from dis import dis
 from multiprocessing import context
 import numbers
@@ -50,7 +50,7 @@ import string
 from openpyxl import Workbook
 from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from django.utils.timezone import is_aware, make_naive, make_aware
 from django.db import models, connections
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -9670,12 +9670,13 @@ def autoUploadeRecive(request):
     if not branch or not branch.affiliated:
         return redirect('viewReceive')
 
+    start_date = datetime(2026, 1, 1)
+
     all_po = PurchaseOrder.objects.filter(
         approver_status_id=2,
-        is_receive=False,
         is_cancel=False,
-        receive_update__isnull = True,
-        branch_company__code=active
+        branch_company__code=active,
+        created__gte=start_date
     ).values_list('ref_no', flat=True)
 
     for po_ref_no in all_po:
