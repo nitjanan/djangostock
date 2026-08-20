@@ -9670,7 +9670,7 @@ def autoUploadeRecive(request):
     if not branch or not branch.affiliated:
         return redirect('viewReceive')
 
-    start_date = datetime(2026, 1, 1)
+    start_date = datetime.datetime(2026, 1, 1)
 
     all_po = PurchaseOrder.objects.filter(
         approver_status_id=2,
