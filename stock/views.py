@@ -365,6 +365,37 @@ def convertDateBEtoBC(strDateBE):
     strDateBC = strYear + "-" + strDateBE[5:7] + "-" + strDateBE[8:10]
     return strDateBC
 
+def normalize_to_ad(date_value):
+    """Normalize a date/datetime/Timestamp/string to Gregorian (AD).
+
+    Buddhist Era (BE) years (>= 2400) are converted to AD by subtracting 543.
+    Values already in AD are returned unchanged. Returns None for null/invalid input.
+    """
+    if date_value is None or date_value == '':
+        return None
+
+    if isinstance(date_value, str):
+        try:
+            date_value = datetime.datetime.strptime(date_value[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+    elif hasattr(date_value, 'to_pydatetime'):
+        date_value = date_value.to_pydatetime()
+
+    if isinstance(date_value, datetime.datetime):
+        date_value = date_value.date()
+
+    if not isinstance(date_value, datetime.date):
+        return None
+
+    if date_value.year >= 2400:
+        try:
+            return date_value.replace(year=date_value.year - 543)
+        except ValueError:
+            return None
+
+    return date_value
+
 def calculateDurationRate(receive_update, due_receive_update):
     dateDelay = days_between_nagative(receive_update, due_receive_update)
     duration_rate = None
@@ -5219,12 +5250,12 @@ def showRateDistributor(request, pk):
 
 def cal_days_between_nagative(day1, day2):
     strDate = None
-    
-    if day1 and day2:
-        if years_between(day2, day1) > 500:
-            strDate = str(days_between_nagative(convertDateBEtoBC(str(day1)), str(day2))) + " วัน"
-        else:
-            strDate = str(days_between_nagative(str(day1), str(day2))) + " วัน"
+
+    d1 = normalize_to_ad(day1)
+    d2 = normalize_to_ad(day2)
+
+    if d1 and d2:
+        strDate = str((d2 - d1).days) + " วัน"
     return strDate
 
 def normalize_datetime(value):
