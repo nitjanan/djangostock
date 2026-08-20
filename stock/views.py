@@ -9197,8 +9197,9 @@ def searchJobByCarDep(request):
     if 'car' in request.GET:
         car = request.GET.get('car')
 
-        bc_dep = BaseCar.objects.get(id = car)
-        job = BaseJobCarDep.objects.filter(car_dep = bc_dep.car_dep).values('id', 'name')
+        #bc_dep = BaseCar.objects.get(id = car)
+        #job = BaseJobCarDep.objects.filter(car_dep = bc_dep.car_dep).values('id', 'name')
+        job = BaseJobCarDep.objects.filter(~Q(car_dep_id = 4)).values('id', 'name') #เปลี่ยนให้ค้นหาได้ทุกรายละเอียดงาน ยกเว้น รถร้อยเกาะ
         
     data = {
         'job_list': list(job),
