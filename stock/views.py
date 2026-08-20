@@ -50,7 +50,7 @@ import string
 from openpyxl import Workbook
 from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from django.utils.timezone import is_aware, make_naive, make_aware
 from django.db import models, connections
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
