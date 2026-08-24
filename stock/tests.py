@@ -1,8 +1,9 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from decimal import Decimal
 import datetime
-from stock.models import BaseBranchCompany, BaseVatType, BaseAddress, PurchaseOrder, RequisitionItem, PurchaseOrderItem, BaseUnit, ComparisonPrice, ComparisonPriceDistributor, Distributor, BaseCredit, BaseApproveStatus, BasePOType, BranchCompanyBaseAdress, RateDistributor
+from stock.models import BaseBranchCompany, BaseVatType, BaseAddress, PurchaseOrder, RequisitionItem, PurchaseOrderItem, BaseUnit, ComparisonPrice, ComparisonPriceDistributor, Distributor, BaseCredit, BaseApproveStatus, BasePOType, BranchCompanyBaseAdress, RateDistributor, CarLogbook, BaseCar
 
 class PurchaseOrderItemDoubleSubmitTestCase(TestCase):
     def setUp(self):
@@ -248,4 +249,74 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
         # Verify PurchaseOrder created date falls back to cp.created
         po = PurchaseOrder.objects.get(cp=self.cp)
         self.assertEqual(po.created, self.cp_created_date)
+
+
+class CarLogbookMileDecimalTestCase(TestCase):
+    def setUp(self):
+        self.branch = BaseBranchCompany.objects.create(id="1", code="HO", name="Head Office")
+        self.address = BaseAddress.objects.create(name_th="Test Company", address="123 Test St")
+        BranchCompanyBaseAdress.objects.create(branch_company=self.branch, address=self.address)
+
+    def test_case1_existing_integer_value(self):
+        cl = CarLogbook.objects.create(
+            branch_company=self.branch, address_company=self.address,
+            mile_start=1000, mile_end=1100,
+        )
+        self.assertEqual(cl.diff_mile, Decimal("100.00"))
+
+    def test_case2_decimal_value(self):
+        cl = CarLogbook.objects.create(
+            branch_company=self.branch, address_company=self.address,
+            mile_start=Decimal("1000.25"), mile_end=Decimal("1100.75"),
+        )
+        self.assertEqual(cl.diff_mile, Decimal("100.50"))
+
+    def test_case3_small_decimal_difference(self):
+        cl = CarLogbook.objects.create(
+            branch_company=self.branch, address_company=self.address,
+            mile_start=Decimal("100.10"), mile_end=Decimal("100.25"),
+        )
+        self.assertEqual(cl.diff_mile, Decimal("0.15"))
+
+    def test_case4_zero(self):
+        cl = CarLogbook.objects.create(
+            branch_company=self.branch, address_company=self.address,
+            mile_start=Decimal("0.00"), mile_end=Decimal("0.00"),
+        )
+        self.assertEqual(cl.diff_mile, Decimal("0.00"))
+
+    def test_case5_null_handling(self):
+        cl = CarLogbook.objects.create(
+            branch_company=self.branch, address_company=self.address,
+            mile_start=None, mile_end=None,
+        )
+        self.assertIsNone(cl.diff_mile)
+        self.assertIsNone(cl.mile_start_job1)
+        self.assertIsNone(cl.mile_end_job1)
+        self.assertIsNone(cl.diff_mile_job1)
+
+    def test_job_mile_fields_accept_decimal_and_compute_diff(self):
+        cl = CarLogbook.objects.create(
+            branch_company=self.branch, address_company=self.address,
+            mile_start_job1=Decimal("500.50"), mile_end_job1=Decimal("600.75"),
+        )
+        self.assertEqual(cl.diff_mile_job1, Decimal("100.25"))
+        # auto-fill: mile_start should default from mile_start_job1 when mile_start is None
+        self.assertEqual(cl.mile_start, Decimal("500.50"))
+
+    def test_max_digits_precision_field_definition(self):
+        field = CarLogbook._meta.get_field("mile_start")
+        self.assertEqual(field.max_digits, 8)
+        self.assertEqual(field.decimal_places, 2)
+        for name in [
+            "mile_start", "mile_end", "diff_mile",
+            "mile_start_job1", "mile_end_job1", "diff_mile_job1",
+            "mile_start_job2", "mile_end_job2", "diff_mile_job2",
+            "mile_start_job3", "mile_end_job3", "diff_mile_job3",
+            "mile_start_job4", "mile_end_job4", "diff_mile_job4",
+            "mile_start_job5", "mile_end_job5", "diff_mile_job5",
+            "mile_start_job6", "mile_end_job6", "diff_mile_job6",
+        ]:
+            f = CarLogbook._meta.get_field(name)
+            self.assertEqual(f.__class__.__name__, "DecimalField", name)
 

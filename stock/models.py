@@ -1851,9 +1851,9 @@ class CarLogbook(models.Model):
     coolant = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำยาหม้อน้ำ ( ขวด )")
     DW_water = models.DecimalField(max_digits=8,decimal_places=2, null=True, blank = True, verbose_name="น้ำกลั่น ( ขวด )")
 
-    mile_start = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่ม")
-    mile_end = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุด")
-    diff_mile = models.IntegerField(null=True, blank = True, verbose_name="diff mile")
+    mile_start = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่ม")
+    mile_end = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุด")
+    diff_mile = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile")
     
     orig1 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig1', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 1")
     job1_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 1")
@@ -1862,9 +1862,9 @@ class CarLogbook(models.Model):
     end_job1 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 1")
     diff_time_job1 = models.DurationField(null=True, blank=True)  # store the difference
 
-    mile_start_job1 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 1")
-    mile_end_job1 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 1")
-    diff_mile_job1 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 1")
+    mile_start_job1 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 1")
+    mile_end_job1 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 1")
+    diff_mile_job1 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile งานที่ 1")
     exd_job1 = models.ForeignKey(BaseExpenseDepartment,
                 on_delete=models.CASCADE,
                 blank=True, null=True,
@@ -1878,9 +1878,9 @@ class CarLogbook(models.Model):
     end_job2 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 2")
     diff_time_job2 = models.DurationField(null=True, blank=True)  # store the difference
 
-    mile_start_job2 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 2")
-    mile_end_job2 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 2")
-    diff_mile_job2 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 2")
+    mile_start_job2 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 2")
+    mile_end_job2 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 2")
+    diff_mile_job2 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile งานที่ 2")
     exd_job2 = models.ForeignKey(BaseExpenseDepartment,
                 on_delete=models.CASCADE,
                 blank=True, null=True,
@@ -1894,9 +1894,9 @@ class CarLogbook(models.Model):
     end_job3 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 3")
     diff_time_job3 = models.DurationField(null=True, blank=True)  # store the difference
 
-    mile_start_job3 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 3")
-    mile_end_job3 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 3")
-    diff_mile_job3 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 3")
+    mile_start_job3 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 3")
+    mile_end_job3 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 3")
+    diff_mile_job3 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile งานที่ 3")
     exd_job3 = models.ForeignKey(BaseExpenseDepartment,
                 on_delete=models.CASCADE,
                 blank=True, null=True,
@@ -1910,9 +1910,9 @@ class CarLogbook(models.Model):
     end_job4 = models.TimeField(blank=True, null=True, verbose_name="เวลาสิ้นสุดงานที่ 4")
     diff_time_job4 = models.DurationField(null=True, blank=True)  # store the difference
 
-    mile_start_job4 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 4")
-    mile_end_job4 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 4")
-    diff_mile_job4 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 4")
+    mile_start_job4 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 4")
+    mile_end_job4 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 4")
+    diff_mile_job4 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile งานที่ 4")
     exd_job4 = models.ForeignKey(BaseExpenseDepartment,
                 on_delete=models.CASCADE,
                 blank=True, null=True,
@@ -1922,16 +1922,16 @@ class CarLogbook(models.Model):
     orig5 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig5', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 5")
     job5_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 5")
     job5 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 5")
-    mile_start_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 5")
-    mile_end_job5 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 5")
-    diff_mile_job5 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 5")
+    mile_start_job5 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 5")
+    mile_end_job5 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 5")
+    diff_mile_job5 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile งานที่ 5")
 
     orig6 = models.ForeignKey(BaseOrigSta, on_delete=models.CASCADE, blank=True, null=True, related_name='orig6', verbose_name="ต้นทางรถขนส่งร้อยเกาะ 6")
     job6_id = models.IntegerField(blank=True, null=True, verbose_name="id รายละเอียดงานที่ 6")
     job6 = models.CharField(blank=True, null=True, max_length=255, verbose_name="รายละเอียดงานที่ 6")
-    mile_start_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 6")
-    mile_end_job6 = models.IntegerField(null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 6")
-    diff_mile_job6 = models.IntegerField(null=True, blank = True, verbose_name="diff mile งานที่ 6")
+    mile_start_job6 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์เริ่มต้นงานที่ 6")
+    mile_end_job6 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="เลขไมล์สิ้นสุดงานที่ 6")
+    diff_mile_job6 = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank = True, verbose_name="diff mile งานที่ 6")
 
     note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ")#หมายเหตุ
     err_log = models.TextField(blank=True, null = True, verbose_name="error log")
@@ -1974,25 +1974,25 @@ class CarLogbook(models.Model):
         if self.start_job4 and self.end_job4:
             self.diff_time_job4 = calculateDiffTime(self.start_job4, self.end_job4)
 
-        if self.mile_start_job1 and self.mile_end_job1:
+        if self.mile_start_job1 is not None and self.mile_end_job1 is not None:
             self.diff_mile_job1 = self.mile_end_job1 - self.mile_start_job1
 
-        if self.mile_start_job2 and self.mile_end_job2:
+        if self.mile_start_job2 is not None and self.mile_end_job2 is not None:
             self.diff_mile_job2 = self.mile_end_job2 - self.mile_start_job2
 
-        if self.mile_start_job3 and self.mile_end_job3:
+        if self.mile_start_job3 is not None and self.mile_end_job3 is not None:
             self.diff_mile_job3 = self.mile_end_job3 - self.mile_start_job3
 
-        if self.mile_start_job4 and self.mile_end_job4:
+        if self.mile_start_job4 is not None and self.mile_end_job4 is not None:
             self.diff_mile_job4 = self.mile_end_job4 - self.mile_start_job4
 
-        if self.mile_start_job5 and self.mile_end_job5:
+        if self.mile_start_job5 is not None and self.mile_end_job5 is not None:
             self.diff_mile_job5 = self.mile_end_job5 - self.mile_start_job5
 
-        if self.mile_start_job6 and self.mile_end_job6:
+        if self.mile_start_job6 is not None and self.mile_end_job6 is not None:
             self.diff_mile_job6 = self.mile_end_job6 - self.mile_start_job6
 
-        if self.mile_start and self.mile_end:
+        if self.mile_start is not None and self.mile_end is not None:
             self.diff_mile = self.mile_end - self.mile_start
         
         super(CarLogbook, self).save(*args, **kwargs)
