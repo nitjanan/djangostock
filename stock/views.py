@@ -8253,6 +8253,14 @@ def parse_int(value):
         return int(str(value))
     except Exception:
         return int(0)
+
+def parse_decimal_or_none(value):
+    try:
+        if value in (None, '', ' ', 'null'):
+            return None
+        return Decimal(str(value))
+    except Exception:
+        return None
     
 @csrf_exempt
 def carLogBook_appsheet(request):
@@ -8280,8 +8288,8 @@ def carLogBook_appsheet(request):
             column_hydraulic = parse_decimal(data.get("column_hydraulic"))
             column_grease = parse_decimal(data.get("column_grease"))
 
-            column_mile_start = data.get("column_mile_start") 
-            column_mile_end = data.get("column_mile_end")
+            column_mile_start = parse_decimal_or_none(data.get("column_mile_start"))
+            column_mile_end = parse_decimal_or_none(data.get("column_mile_end"))
 
             column_job1 = data.get("column_job1")
             column_start_job1 = parse_sheet_time(data.get("column_start_job1"))
@@ -8402,28 +8410,28 @@ def roi_carLogBook_appsheet(request):
             column_grease = parse_decimal(data.get("column_grease"))
 
             column_job1 = data.get("column_job1")
-            column_mile_start_job1 = parse_int(data.get("column_mile_start_job1"))
-            column_mile_end_job1 = parse_int(data.get("column_mile_end_job1"))
+            column_mile_start_job1 = parse_decimal(data.get("column_mile_start_job1"))
+            column_mile_end_job1 = parse_decimal(data.get("column_mile_end_job1"))
 
             column_job2 = data.get("column_job2")
-            column_mile_start_job2 = parse_int(data.get("column_mile_start_job2"))
-            column_mile_end_job2 = parse_int(data.get("column_mile_end_job2"))
+            column_mile_start_job2 = parse_decimal(data.get("column_mile_start_job2"))
+            column_mile_end_job2 = parse_decimal(data.get("column_mile_end_job2"))
 
             column_job3 = data.get("column_job3")
-            column_mile_start_job3 = parse_int(data.get("column_mile_start_job3"))
-            column_mile_end_job3 = parse_int(data.get("column_mile_end_job3"))
+            column_mile_start_job3 = parse_decimal(data.get("column_mile_start_job3"))
+            column_mile_end_job3 = parse_decimal(data.get("column_mile_end_job3"))
 
             column_job4 = data.get("column_job4")
-            column_mile_start_job4 = parse_int(data.get("column_mile_start_job4"))
-            column_mile_end_job4 = parse_int(data.get("column_mile_end_job4"))
+            column_mile_start_job4 = parse_decimal(data.get("column_mile_start_job4"))
+            column_mile_end_job4 = parse_decimal(data.get("column_mile_end_job4"))
 
             column_job5 = data.get("column_job5")
-            column_mile_start_job5 = parse_int(data.get("column_mile_start_job5"))
-            column_mile_end_job5 = parse_int(data.get("column_mile_end_job5"))
+            column_mile_start_job5 = parse_decimal(data.get("column_mile_start_job5"))
+            column_mile_end_job5 = parse_decimal(data.get("column_mile_end_job5"))
 
             column_job6 = data.get("column_job6")
-            column_mile_start_job6 = parse_int(data.get("column_mile_start_job6"))
-            column_mile_end_job6 = parse_int(data.get("column_mile_end_job6"))
+            column_mile_start_job6 = parse_decimal(data.get("column_mile_start_job6"))
+            column_mile_end_job6 = parse_decimal(data.get("column_mile_end_job6"))
 
             try:
                 comp = BaseBranchCompany.objects.get(code = column_comp)
@@ -9469,7 +9477,7 @@ def searchPmRound(request):
 
             if car and pm_item:
                 next_pm = car.pm_round + pm_item.num_pm
-                if parse_int(mile_end) >= next_pm:
+                if parse_decimal(mile_end) >= next_pm:
                     alert_pm = True
         except BaseCar.DoesNotExist or PmRoundItem.DoesNotExist:
             pass
@@ -11088,7 +11096,7 @@ def apiExpOilByMonth(request, start_date, end_date, comp, car_dep):
             entries = logbook_map.get((car_id, month), [])
             if entries:
                 diff_km = entries[-1]["mile_end"] - entries[0]["mile_start"]
-                grouped_km[month] += diff_km
+                grouped_km[month] += float(diff_km)
 
         grouped_qty[month] += float(item["sum_qty"] or 0)
 
@@ -11403,7 +11411,7 @@ def getapiExpOilByMonthAll(request, start_date, end_date):
 
                 if diff_km > 0:
 
-                    grouped_km[key] += diff_km
+                    grouped_km[key] += float(diff_km)
 
             # =============================================
             # META
