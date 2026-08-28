@@ -79,7 +79,7 @@
                 <li class="list-group-item">
                     <div class="row">
                         <div class="col-2">{% if it.item %}{{it.item.product_name}}{% endif %}</div>
-                        <div class="col">{% if it.description %}{{it.description}}{% endif %}</div>
+                        <div class="col">{% if it.description %}{{it.description|linebreaksbr}}{% endif %}</div>
                         <div class="col">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
                         <div class="col">{% if it.unit %}{{it.unit}}{% endif %}</div>
                         <div class="col">{% if it.brand %}{{it.brand}}{% endif %}</div>
@@ -352,7 +352,7 @@ $(function() {
     "{% for it in cp_item %}"
         "{% if it.bidder.id == bidder_oldest %}"
             $("#id_form-{{forloop.counter0}}-item").val("{{it.item.id}}");
-            $("#id_form-{{forloop.counter0}}-description").val("{{it.description}}");
+            $("#id_form-{{forloop.counter0}}-description").val("{{it.description|escapejs}}");
             $("#id_form-{{forloop.counter0}}-quantity").val("{{it.quantity}}");
             $("#id_form-{{forloop.counter0}}-oldquantity").val("{{it.quantity}}");
             $("#id_form-{{forloop.counter0}}-unit").val("{{it.unit.id}}");

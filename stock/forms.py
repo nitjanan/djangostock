@@ -266,6 +266,7 @@ PurchaseOrderItemModelFormset = modelformset_factory(
         'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price text-right'}),
         'discount': forms.TextInput(attrs={'placeholder':'0.00 ', 'class': 'form-control discount text-right'}),
         'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price text-right'}),
+        'description': forms.Textarea(attrs={'rows': 1}),
     }
 )
 
@@ -281,6 +282,7 @@ PurchaseOrderItemInlineFormset = inlineformset_factory(
         'unit_price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control unit-price text-right'}),
         'discount': forms.TextInput(attrs={'placeholder':'0.00 ', 'class': 'form-control discount text-right'}),
         'price': forms.NumberInput(attrs={'size': 3 ,'class': 'form-control price text-right'}),
+        'description': forms.Textarea(attrs={'rows': 1}),
     }
     , can_delete=True
 )
@@ -425,6 +427,7 @@ CPitemFormset = modelformset_factory(
         'unit_price': forms.NumberInput(attrs={}),
         'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
         'price': forms.NumberInput(attrs={}),
+        'description': forms.Textarea(attrs={'rows': 1}),
     },
     labels = {
         'item': _('สินค้า'),
@@ -443,6 +446,7 @@ CPitemInlineFormset = inlineformset_factory(
         'unit_price': forms.NumberInput(attrs={}),
         'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
         'price': forms.NumberInput(attrs={}),
+        'description': forms.Textarea(attrs={'rows': 1}),
     },
     labels = {
         'item': _('สินค้า'),
