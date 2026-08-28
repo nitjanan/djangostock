@@ -311,6 +311,22 @@
             $(window).on('resize', adjustTabs);
         });
 
+        // ---------------------------------------------------
+        // Prevent mouse wheel from changing <input type="number"> values.
+        // Delegated / global handler. Only blocks the wheel-driven value
+        // change while the number field is focused; normal page scrolling,
+        // typing, min/max/step, precision and validation are untouched.
+        // Non-passive listener so preventDefault() is allowed here
+        // (never use preventDefault in a passive wheel listener).
+        // ---------------------------------------------------
+        document.addEventListener('wheel', function (event) {
+            var target = event.target;
+            if (target instanceof HTMLInputElement &&
+                target.type === 'number' &&
+                target === document.activeElement) {
+                event.preventDefault();
+            }
+        }, { passive: false });
 
     </script>
 {% block javascript %}
