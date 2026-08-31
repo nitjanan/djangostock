@@ -48,7 +48,7 @@ ComparisonPriceItem → ComparisonPriceDistributor → PurchaseOrder → Purchas
 | `PurchaseRequisition` | `.requisition` (FK) | `Requisition` | PR attaches to the Requisition, not to the item. Reverse: `requisition.purchaserequisition_set` |
 | `ComparisonPriceItem` | `.item` (FK) | `RequisitionItem` | reverse: `requisitionitem.comparisonpriceitem_set` |
 | `ComparisonPriceItem` | `.bidder` (FK) | `ComparisonPriceDistributor` | |
-| `ComparisonPriceItem` | `.cp` | — | bare IntegerField, **not used** |
+| `ComparisonPriceItem` | `.cp` | — | bare IntegerField (no FK). Populated and queried elsewhere in the codebase, but this feature deliberately does not use it: it routes to `ComparisonPrice` through `bidder.cp`, the real FK, which has no referential-integrity gap. |
 | `ComparisonPriceDistributor` | `.cp` (FK) | `ComparisonPrice` | `.is_select` BooleanField marks chosen bidder |
 | `PurchaseOrder` | `.cp` (FK, nullable) | `ComparisonPrice` | |
 | `PurchaseOrder` | `.pr` (FK, nullable) | `PurchaseRequisition` | |

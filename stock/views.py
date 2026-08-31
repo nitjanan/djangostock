@@ -5212,25 +5212,36 @@ def viewAllDetailsReport(request):
 def _all_details_dashboard(qs):
     item_ids = qs.values('id')
     req_ids = qs.values('requisit_id')
-    cpi = ComparisonPriceItem.objects.filter(item_id__in=item_ids)
+    cpi = (ComparisonPriceItem.objects
+           .filter(item_id__in=item_ids)
+           .exclude(bidder__cp__is_cancel=True))
+    cp_agg = cpi.aggregate(
+        comparison_items=Count('id'),
+        comparison_prices=Count('bidder__cp', distinct=True),
+        distributors=Count('bidder__distributor', distinct=True),
+    )
+    po_agg = (PurchaseOrderItem.objects
+              .filter(item_id__in=item_ids, po__is_cancel=False)
+              .aggregate(po_items=Count('id'),
+                         purchase_orders=Count('po', distinct=True)))
+    ri_agg = qs.aggregate(
+        requisition_items=Count('id', distinct=True),
+        requisitions=Count('requisit_id', distinct=True),
+    )
     return {
-        'requisitions': qs.values('requisit_id').distinct().count(),
-        'requisition_items': qs.count(),
+        'requisitions': ri_agg['requisitions'],
+        'requisition_items': ri_agg['requisition_items'],
         'purchase_reqs': (PurchaseRequisition.objects
                           .filter(requisition_id__in=req_ids).distinct().count()),
-        'comparison_prices': cpi.values('bidder__cp').distinct().count(),
-        'comparison_items': cpi.count(),
-        'distributors': cpi.values('bidder__distributor').distinct().count(),
-        'purchase_orders': (PurchaseOrder.objects
-                            .filter(purchaseorderitem__item_id__in=item_ids)
-                            .distinct().count()),
-        'po_items': PurchaseOrderItem.objects.filter(item_id__in=item_ids).count(),
+        'comparison_prices': cp_agg['comparison_prices'],
+        'comparison_items': cp_agg['comparison_items'],
+        'distributors': cp_agg['distributors'],
+        'purchase_orders': po_agg['purchase_orders'],
+        'po_items': po_agg['po_items'],
     }
 
 
 def _all_details_rows(items):
-    from collections import defaultdict
-
     if not items:
         return []
 
@@ -5239,11 +5250,13 @@ def _all_details_rows(items):
 
     poi_qs = (PurchaseOrderItem.objects
               .filter(item_id__in=item_ids)
+              .exclude(po__is_cancel=True)
               .select_related('po', 'po__cp', 'po__pr', 'po__distributor',
                               'po__approver_status', 'unit')
               .order_by('id'))
     cpi_qs = (ComparisonPriceItem.objects
               .filter(item_id__in=item_ids)
+              .exclude(bidder__cp__is_cancel=True)
               .select_related('bidder', 'bidder__distributor', 'bidder__cp', 'unit')
               .order_by('id'))
     pr_qs = (PurchaseRequisition.objects
@@ -5268,15 +5281,24 @@ def _all_details_rows(items):
         # index this item's CP items by their CP id, to pair with a PO's cp
         cpi_by_cp = {}
         for cpi in item_cpis:
-            cp_id = cpi.bidder.cp_id if cpi.bidder_id else None
-            if cp_id is not None:
-                cpi_by_cp.setdefault(cp_id, cpi)
+            if not cpi.bidder_id:
+                continue
+            key = cpi.bidder.cp_id
+            prev = cpi_by_cp.get(key)
+            if prev is None or (not prev.bidder.is_select and cpi.bidder.is_select):
+                cpi_by_cp[key] = cpi
 
         if item_pois:
             for poi in item_pois:
                 po = poi.po
                 cp = po.cp if po else None
                 cpi = cpi_by_cp.get(po.cp_id) if po else None
+                if po and po.distributor_id:
+                    for c in item_cpis:
+                        if (c.bidder_id and c.bidder.cp_id == po.cp_id
+                                and c.bidder.distributor_id == po.distributor_id):
+                            cpi = c
+                            break
                 cpd = cpi.bidder if cpi else None
                 distributor = (po.distributor if po and po.distributor_id
                                else (cpd.distributor if cpd else None))

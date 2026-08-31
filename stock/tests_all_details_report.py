@@ -50,7 +50,8 @@ class AllDetailsReportTests(TestCase):
     def _build_chain(cls, *, code="HO", stage="PO", product_code="P001",
                      product_name="Computer", distributor_name="ABC Company",
                      rq_ref="REQ-2026-001", pr_ref="PR-00125", cp_ref="CP-0007",
-                     po_ref="PO-0056", qty="2.0000", price="1000.00", n_po_items=1):
+                     po_ref="PO-0056", qty="2.0000", price="1000.00", n_po_items=1,
+                     n_bidders=1):
         """Build a procurement chain up to `stage` in {'RQ','PR','CP','PO'}.
         Returns a dict of the created objects."""
         branch = BaseBranchCompany.objects.get(code=code)
@@ -85,13 +86,29 @@ class AllDetailsReportTests(TestCase):
             organizer=cls.approver, branch_company=branch, address_company=cls.address,
             ref_no=cp_ref, select_bidder=distributor,
         )
+        # Losing bidders first, so the selected bidder's ComparisonPriceItem is
+        # NOT the lowest id — exercises the "prefer selected bidder" pairing.
+        for b in range(1, n_bidders):
+            loser_dist = Distributor.objects.create(
+                id="D-" + product_code + "-b" + str(b),
+                name=distributor_name + " bidder " + str(b),
+            )
+            loser_cpd = ComparisonPriceDistributor.objects.create(
+                cp=cp, distributor=loser_dist, vat_type=cls.vat, is_select=False,
+                amount=Decimal(price),
+            )
+            ComparisonPriceItem.objects.create(
+                item=item, bidder=loser_cpd, unit=cls.unit, quantity=Decimal(qty),
+                unit_price=Decimal(price), price=Decimal(price),
+                brand="BRAND-LOSE-" + str(b),
+            )
         cpd = ComparisonPriceDistributor.objects.create(
             cp=cp, distributor=distributor, vat_type=cls.vat, is_select=True,
             amount=Decimal(price),
         )
         cpi = ComparisonPriceItem.objects.create(
             item=item, bidder=cpd, unit=cls.unit, quantity=Decimal(qty),
-            unit_price=Decimal(price), price=Decimal(price),
+            unit_price=Decimal(price), price=Decimal(price), brand="BRAND-SEL",
         )
         out.update(cp=cp, cpd=cpd, cpi=cpi)
         if stage == "CP":
@@ -189,14 +206,16 @@ class AllDetailsReportTests(TestCase):
         from django.db import connection
 
         for i in range(3):
-            self._build_chain(stage="PO", rq_ref=f"REQ-Q{i}", pr_ref=f"PR-Q{i}",
+            stage = "PO" if i % 2 == 0 else "CP"
+            self._build_chain(stage=stage, rq_ref=f"REQ-Q{i}", pr_ref=f"PR-Q{i}",
                               cp_ref=f"CP-Q{i}", po_ref=f"PO-Q{i}", product_code=f"Q{i}")
         with CaptureQueriesContext(connection) as ctx3:
             self.client.get(reverse(URL_NAME))
         count3 = len(ctx3)
 
         for i in range(3, 8):
-            self._build_chain(stage="PO", rq_ref=f"REQ-Q{i}", pr_ref=f"PR-Q{i}",
+            stage = "PO" if i % 2 == 0 else "CP"
+            self._build_chain(stage=stage, rq_ref=f"REQ-Q{i}", pr_ref=f"PR-Q{i}",
                               cp_ref=f"CP-Q{i}", po_ref=f"PO-Q{i}", product_code=f"Q{i}")
         with CaptureQueriesContext(connection) as ctx8:
             self.client.get(reverse(URL_NAME))
@@ -204,8 +223,40 @@ class AllDetailsReportTests(TestCase):
 
         self.assertEqual(count3, count8,
                          msg=f"query count scales with rows: {count3} -> {count8} (N+1)")
-        self.assertLess(count8, 70,
+        self.assertLess(count8, 60,
                         msg=f"view issued {count8} queries for 8 chains — investigate query balloon")
+
+    def test_multi_bidder_po_row_uses_selected_bidder(self):
+        self._build_chain(stage="PO", rq_ref="REQ-MB", pr_ref="PR-MB", cp_ref="CP-MB",
+                          po_ref="PO-MB", product_code="MB1", n_bidders=3)
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertEqual(len(resp.context["rows"]), 1)
+        row = resp.context["rows"][0]
+        self.assertEqual(row["comparison_item"].brand, "BRAND-SEL")
+        self.assertIs(row["is_selected_distributor"], True)
+
+    def test_cancelled_po_falls_back_to_cp_stage(self):
+        chain = self._build_chain(stage="PO", rq_ref="REQ-XPO", pr_ref="PR-XPO",
+                                  cp_ref="CP-XPO", po_ref="PO-XPO", product_code="XPO1")
+        PurchaseOrder.objects.filter(id=chain["po"].id).update(is_cancel=True)
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertEqual(len(resp.context["rows"]), 1)
+        row = resp.context["rows"][0]
+        self.assertEqual(row["stage"], "CP")
+        self.assertIsNone(row["purchase_order"])
+        d = resp.context["dashboard"]
+        self.assertEqual(d["purchase_orders"], 0)
+        self.assertEqual(d["comparison_prices"], 1)
+
+    def test_cancelled_cp_excluded_from_dashboard(self):
+        chain = self._build_chain(stage="CP", rq_ref="REQ-XCP", pr_ref="PR-XCP",
+                                  cp_ref="CP-XCP", product_code="XCP1")
+        ComparisonPrice.objects.filter(id=chain["cp"].id).update(is_cancel=True)
+        resp = self.client.get(reverse(URL_NAME))
+        d = resp.context["dashboard"]
+        self.assertEqual(d["comparison_prices"], 0)
+        self.assertEqual(d["comparison_items"], 0)
+        self.assertEqual(d["distributors"], 0)
 
     def test_global_search_matches_each_ref_type(self):
         chain = self._build_chain(rq_ref="REQ-A-1", pr_ref="PR-A-1", cp_ref="CP-A-1",

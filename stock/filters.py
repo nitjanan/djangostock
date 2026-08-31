@@ -502,6 +502,8 @@ CarLogbookFilter.base_filters['start_created'].label = 'วันที่ใช
 CarLogbookFilter.base_filters['end_created'].label = 'ถึง'
 CarLogbookFilter.base_filters['car'].label = 'ทะเบียนรถ'
 CarLogbookFilter.base_filters['name'].label = 'ชื่อผู้ใช้รถ'
+
+
 class AllDetailsFilter(django_filters.FilterSet):
     search = django_filters.CharFilter(method='filter_search')
     rq_ref_no = django_filters.CharFilter(field_name='requisit__ref_no', lookup_expr='icontains')
@@ -578,9 +580,15 @@ class AllDetailsFilter(django_filters.FilterSet):
         if value == 'PR':
             return queryset.filter(requisit__purchaserequisition__isnull=False).distinct()
         if value == 'CP':
-            return queryset.filter(comparisonpriceitem__isnull=False).distinct()
+            return queryset.filter(
+                comparisonpriceitem__isnull=False,
+                comparisonpriceitem__bidder__cp__is_cancel=False,
+            ).distinct()
         if value == 'PO':
-            return queryset.filter(purchaseorderitem__isnull=False).distinct()
+            return queryset.filter(
+                purchaseorderitem__isnull=False,
+                purchaseorderitem__po__is_cancel=False,
+            ).distinct()
         return queryset
 
 
