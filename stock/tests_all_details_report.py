@@ -204,6 +204,8 @@ class AllDetailsReportTests(TestCase):
 
         self.assertEqual(count3, count8,
                          msg=f"query count scales with rows: {count3} -> {count8} (N+1)")
+        self.assertLess(count8, 70,
+                        msg=f"view issued {count8} queries for 8 chains — investigate query balloon")
 
     def test_global_search_matches_each_ref_type(self):
         chain = self._build_chain(rq_ref="REQ-A-1", pr_ref="PR-A-1", cp_ref="CP-A-1",
@@ -251,3 +253,46 @@ class AllDetailsReportTests(TestCase):
                           stage="PR")
         resp = self.client.get(reverse(URL_NAME))
         self.assertEqual({r["requisition"].ref_no for r in resp.context["rows"]}, {"REQ-HO"})
+
+    def test_dashboard_counts_reflect_filter(self):
+        # 1 full PO chain for HO, 1 PR-only chain for HO, 1 chain for BR (out of scope)
+        self._build_chain(stage="PO", rq_ref="REQ-DA", pr_ref="PR-DA", cp_ref="CP-DA",
+                          po_ref="PO-DA", product_code="DA1", n_po_items=2)
+        self._build_chain(stage="PR", rq_ref="REQ-DB", pr_ref="PR-DB", product_code="DB1")
+        self._build_chain(code="BR", stage="PO", rq_ref="REQ-DC", pr_ref="PR-DC",
+                          cp_ref="CP-DC", po_ref="PO-DC", product_code="DC1")
+        resp = self.client.get(reverse(URL_NAME))
+        d = resp.context["dashboard"]
+        self.assertEqual(d["requisitions"], 2)
+        self.assertEqual(d["requisition_items"], 2)
+        self.assertEqual(d["purchase_reqs"], 2)
+        self.assertEqual(d["comparison_prices"], 1)
+        self.assertEqual(d["comparison_items"], 1)
+        self.assertEqual(d["distributors"], 1)
+        self.assertEqual(d["purchase_orders"], 1)
+        self.assertEqual(d["po_items"], 2)
+
+    def test_dashboard_counts_follow_search(self):
+        self._build_chain(stage="PO", rq_ref="REQ-S1", pr_ref="PR-S1", cp_ref="CP-S1",
+                          po_ref="PO-S1", product_code="S1", product_name="Keyboard")
+        self._build_chain(stage="PO", rq_ref="REQ-S2", pr_ref="PR-S2", cp_ref="CP-S2",
+                          po_ref="PO-S2", product_code="S2", product_name="Monitor")
+        resp = self.client.get(reverse(URL_NAME), {"search": "Keyboard"})
+        self.assertEqual(resp.context["dashboard"]["requisition_items"], 1)
+        self.assertEqual(resp.context["dashboard"]["purchase_orders"], 1)
+
+    def test_pagination_preserves_querystring(self):
+        for i in range(30):
+            self._build_chain(stage="PR", rq_ref=f"REQ-P{i:02d}", pr_ref=f"PR-P{i:02d}",
+                              product_code=f"PP{i:02d}", product_name="Widget")
+        resp = self.client.get(reverse(URL_NAME), {"search": "Widget"})
+        self.assertEqual(len(resp.context["rows"]), 25)
+        self.assertContains(resp, "search=Widget")
+        resp2 = self.client.get(reverse(URL_NAME), {"search": "Widget", "page": 2})
+        self.assertEqual(len(resp2.context["rows"]), 5)
+
+    def test_filter_form_renders(self):
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertContains(resp, 'name="search"')
+        self.assertContains(resp, 'name="stage"')
+        self.assertContains(resp, 'name="start_created"')
