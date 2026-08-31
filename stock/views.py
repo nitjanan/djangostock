@@ -5177,6 +5177,16 @@ def viewAllDetailsReport(request):
     myFilter = AllDetailsFilter(request.GET, queryset=base)
     qs = myFilter.qs.distinct()
     dashboard = _all_details_dashboard(qs)
+    dashboard_cards = [
+        {'label': 'ใบขอเบิก', 'value': dashboard['requisitions']},
+        {'label': 'รายการขอเบิก', 'value': dashboard['requisition_items']},
+        {'label': 'ใบขอซื้อ', 'value': dashboard['purchase_reqs']},
+        {'label': 'ใบเปรียบเทียบ', 'value': dashboard['comparison_prices']},
+        {'label': 'รายการเปรียบเทียบ', 'value': dashboard['comparison_items']},
+        {'label': 'ร้านค้า', 'value': dashboard['distributors']},
+        {'label': 'ใบสั่งซื้อ', 'value': dashboard['purchase_orders']},
+        {'label': 'รายการสั่งซื้อ', 'value': dashboard['po_items']},
+    ]
 
     p = Paginator(qs, 25)
     page = request.GET.get('page')
@@ -5190,6 +5200,7 @@ def viewAllDetailsReport(request):
         'page_obj': dataPage,
         'filter': myFilter,
         'dashboard': dashboard,
+        'dashboard_cards': dashboard_cards,
         'rp_all_page': "tab-active",
         'rp_all_show': "show",
         active: "active show",
@@ -5199,9 +5210,22 @@ def viewAllDetailsReport(request):
 
 
 def _all_details_dashboard(qs):
-    zero = ('requisitions', 'requisition_items', 'purchase_reqs', 'comparison_prices',
-            'comparison_items', 'distributors', 'purchase_orders', 'po_items')
-    return {k: 0 for k in zero}
+    item_ids = qs.values('id')
+    req_ids = qs.values('requisit_id')
+    cpi = ComparisonPriceItem.objects.filter(item_id__in=item_ids)
+    return {
+        'requisitions': qs.values('requisit_id').distinct().count(),
+        'requisition_items': qs.count(),
+        'purchase_reqs': (PurchaseRequisition.objects
+                          .filter(requisition_id__in=req_ids).distinct().count()),
+        'comparison_prices': cpi.values('bidder__cp').distinct().count(),
+        'comparison_items': cpi.count(),
+        'distributors': cpi.values('bidder__distributor').distinct().count(),
+        'purchase_orders': (PurchaseOrder.objects
+                            .filter(purchaseorderitem__item_id__in=item_ids)
+                            .distinct().count()),
+        'po_items': PurchaseOrderItem.objects.filter(item_id__in=item_ids).count(),
+    }
 
 
 def _all_details_rows(items):
