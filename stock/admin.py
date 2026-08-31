@@ -1,4 +1,8 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.http import JsonResponse
+from django.urls import path
 from django.db.models import fields
 from django.forms import CheckboxSelectMultiple, MultipleChoiceField, widgets
 from django.db import models
@@ -11,7 +15,7 @@ from .resources import ReceiveItemResource, DistributorResource
 from django.utils.translation import gettext_lazy as _
 from related_admin import RelatedFieldAdmin
 from related_admin import getter_for_related_field
-from stock.forms import ProductAdminForm, BaseCarAdminForm
+from stock.forms import ProductAdminForm, BaseCarAdminForm, PositionBasePermissionAdminForm
 
 # Register your models here.
 class CategoryAdmin(ImportExportModelAdmin):
@@ -83,13 +87,65 @@ class PositionAdmin(ImportExportModelAdmin):
     list_editable = ['name']
 
 class PositionBasePermissionAdmin(ImportExportModelAdmin):
+    form = PositionBasePermissionAdminForm
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
-    autocomplete_fields = ['position',]
-    list_display = ['id', 'position',]
-    search_fields = ['id', 'position__name', 'branch_company__name']
+    list_select_related = ('user', 'position')
+    list_display = ['id', 'user_full_name', 'position', 'get_base_permission', 'get_branch_company']
+    search_fields = ['id', 'user__first_name', 'user__last_name', 'user__username', 'position__name', 'branch_company__name']
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
+
+    class Media:
+        js = ('stock/js/position_base_permission_admin.js',)
+
+    def get_urls(self):
+        custom_urls = [
+            path(
+                'user-position/',
+                self.admin_site.admin_view(self.user_position_view),
+                name='stock_positionbasepermission_user_position',
+            ),
+        ]
+        return custom_urls + super().get_urls()
+
+    def user_position_view(self, request):
+        """คืนค่าตำแหน่งงานของผู้ใช้ที่เลือก (อ่านจาก UserProfile.position ในฐานข้อมูล)"""
+        user_id = request.GET.get('user_id')
+        if not user_id:
+            return JsonResponse({'ok': False, 'error': 'missing_user_id'}, status=400)
+        try:
+            user = User.objects.get(pk=user_id)
+        except (User.DoesNotExist, ValueError, TypeError):
+            return JsonResponse({'ok': False, 'error': 'invalid_user',
+                                 'message': 'ไม่พบผู้ใช้ที่เลือก'}, status=404)
+
+        profile = UserProfile.objects.filter(user=user).select_related('position').first()
+        if profile is None:
+            return JsonResponse({'ok': False, 'error': 'no_profile',
+                                 'message': 'ผู้ใช้นี้ยังไม่มีข้อมูลผู้ใช้และตำแหน่งงาน (UserProfile)'})
+        if profile.position is None:
+            return JsonResponse({'ok': False, 'error': 'no_position',
+                                 'message': 'ผู้ใช้นี้ยังไม่ได้กำหนดตำแหน่งงานใน UserProfile'})
+        return JsonResponse({'ok': True,
+                             'position_id': profile.position.pk,
+                             'position_name': str(profile.position)})
+
+    def user_full_name(self, obj):
+        if not obj.user:
+            return '-'
+        full_name = obj.user.get_full_name()
+        return '%s (%s)' % (full_name, obj.user.username) if full_name else obj.user.username
+    user_full_name.short_description = 'ผู้ใช้'
+    user_full_name.admin_order_field = 'user__first_name'
+
+    def get_base_permission(self, obj):
+        return ", ".join([str(e) for e in obj.base_permission.all()])
+    get_base_permission.short_description = 'สิทธิการทำงาน'
+
+    def get_branch_company(self, obj):
+        return ", ".join([str(e) for e in obj.branch_company.all()])
+    get_branch_company.short_description = 'สิทธิการอนุมัติตามบริษัท'
 
 class BaseDistributorGenreAdmin(ImportExportModelAdmin):
     search_fields = ['name']
@@ -467,3 +523,25 @@ admin.site.register(BaseOrigSta, BaseOrigStaAdmin)
 admin.site.register(UserCarDepartment, UserCarDepartmentAdmin)
 admin.site.register(ApproveCarDepartment, ApproveCarDepartmentAdmin)
 admin.site.register(PmRoundItem, PmRoundItemAdmin)
+
+
+class UserResource(resources.ModelResource):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name',
+                  'is_staff', 'is_active', 'is_superuser', 'date_joined', 'last_login')
+        export_order = fields
+
+
+class UserAdmin(ImportExportModelAdmin, DjangoUserAdmin):
+    resource_classes = [UserResource]
+    list_display = ('user_id',) + DjangoUserAdmin.list_display
+    list_display_links = ('username',)
+
+    @admin.display(ordering='id', description='User ID')
+    def user_id(self, obj):
+        return obj.id
+
+
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)

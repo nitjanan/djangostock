@@ -885,3 +885,66 @@ class CrMaintenanceForm(forms.ModelForm):
         labels = {
             'name': _('ชื่อ'),
         }
+
+class PositionBasePermissionAdminForm(forms.ModelForm):
+    """ฟอร์มสำหรับ Django Admin ของ PositionBasePermission
+
+    - เลือกผู้ใช้ (User) แล้วระบบจะดึงตำแหน่งงานจาก UserProfile.position ให้โดยอัตโนมัติ
+    - การตรวจสอบฝั่งเซิร์ฟเป็นตัวตัดสิน ไม่เชื่อ JavaScript อย่างเดียว
+    """
+
+    user = forms.ModelChoiceField(
+        queryset=User.objects.select_related("userprofile", "userprofile__position")
+        .order_by("first_name", "last_name", "username"),
+        widget=Select2Widget(attrs={
+            "data-placeholder": "ค้นหาผู้ใช้ (ชื่อ / นามสกุล / username)",
+            "style": "width: 100%;",
+        }),
+        label="ผู้ใช้",
+        required=True,
+    )
+
+    class Meta:
+        model = PositionBasePermission
+        fields = ("user", "position", "base_permission", "branch_company")
+
+    @staticmethod
+    def _user_label(obj):
+        full_name = ("%s %s" % (obj.first_name, obj.last_name)).strip()
+        return "%s (%s)" % (full_name, obj.username) if full_name else obj.username
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].label_from_instance = self._user_label
+        if "position" in self.fields:
+            # ตำแหน่งงานถูกกำหนดโดยอัตโนมัติจากผู้ใช้ที่เลือก
+            self.fields["position"].required = False
+            self.fields["position"].help_text = (
+                "ระบบจะกำหนดให้อัตโนมัติจากตำแหน่งงานของผู้ใช้ที่เลือก"
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user = cleaned_data.get("user")
+        if not user:
+            return cleaned_data
+
+        profile = (
+            UserProfile.objects.filter(user=user)
+            .select_related("position")
+            .first()
+        )
+        if profile is None:
+            self.add_error(
+                "user",
+                "ผู้ใช้นี้ยังไม่มีข้อมูลผู้ใช้และตำแหน่งงาน (UserProfile)",
+            )
+        elif profile.position is None:
+            self.add_error(
+                "user",
+                "ผู้ใช้นี้ยังไม่ได้กำหนดตำแหน่งงานใน UserProfile",
+            )
+        else:
+            # ฝั่งเซร์ฟเป็นผู้ตัดสิน: บังคับใช้ตำแหน่งจากโปรไฟล์ของผู้ใช้เสมอ
+            cleaned_data["position"] = profile.position
+        return cleaned_data
