@@ -124,3 +124,130 @@ class AllDetailsReportTests(TestCase):
         resp = self.client.get(reverse(URL_NAME), {"search": "x", "stage": "PO"})
         self.assertEqual(resp.status_code, 200)
         self.assertIsInstance(resp.context["filter"], AllDetailsFilter)
+
+    # ----- Task 3 tests: row assembly -----
+    def test_full_chain_row(self):
+        self._build_chain(stage="PO", rq_ref="REQ-FULL", pr_ref="PR-FULL",
+                          cp_ref="CP-FULL", po_ref="PO-FULL", product_code="F1")
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertEqual(len(resp.context["rows"]), 1)
+        row = resp.context["rows"][0]
+        self.assertEqual(row["requisition"].ref_no, "REQ-FULL")
+        self.assertEqual([pr.ref_no for pr in row["purchase_reqs"]], ["PR-FULL"])
+        self.assertEqual(row["comparison_price"].ref_no, "CP-FULL")
+        self.assertIsNotNone(row["comparison_item"])
+        self.assertEqual(row["purchase_order"].ref_no, "PO-FULL")
+        self.assertIsNotNone(row["po_item"])
+        self.assertTrue(row["is_selected_distributor"])
+        self.assertEqual(row["stage"], "PO")
+        self.assertEqual(row["amount"], Decimal("1000.00"))
+
+    def test_partial_chain_row_pr_only(self):
+        self._build_chain(stage="PR", rq_ref="REQ-PART", pr_ref="PR-PART", product_code="PT1")
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertEqual(len(resp.context["rows"]), 1)
+        row = resp.context["rows"][0]
+        self.assertEqual([pr.ref_no for pr in row["purchase_reqs"]], ["PR-PART"])
+        self.assertIsNone(row["comparison_price"])
+        self.assertIsNone(row["purchase_order"])
+        self.assertEqual(row["stage"], "PR")
+        self.assertIsNone(row["amount"])
+
+    def test_requisition_only_row(self):
+        self._build_chain(stage="RQ", rq_ref="REQ-BARE", product_code="B1")
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertEqual(len(resp.context["rows"]), 1)
+        row = resp.context["rows"][0]
+        self.assertEqual(row["purchase_reqs"], [])
+        self.assertEqual(row["stage"], "RQ")
+
+    def test_cp_stage_row(self):
+        self._build_chain(stage="CP", rq_ref="REQ-CP", pr_ref="PR-CP", cp_ref="CP-CP",
+                          product_code="C1")
+        resp = self.client.get(reverse(URL_NAME))
+        row = resp.context["rows"][0]
+        self.assertEqual(row["stage"], "CP")
+        self.assertEqual(row["comparison_price"].ref_no, "CP-CP")
+        self.assertIsNone(row["purchase_order"])
+        self.assertEqual(row["amount"], Decimal("1000.00"))
+
+    def test_fan_out_two_po_items_two_rows_no_dupes(self):
+        self._build_chain(stage="PO", rq_ref="REQ-FAN", pr_ref="PR-FAN", cp_ref="CP-FAN",
+                          po_ref="PO-FAN", product_code="FN1", n_po_items=2)
+        resp = self.client.get(reverse(URL_NAME))
+        rows = resp.context["rows"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({r["requisition"].ref_no for r in rows}, {"REQ-FAN"})
+        self.assertEqual(len({id(r["po_item"]) for r in rows}), 2)
+
+    def test_query_budget(self):
+        # Row assembly must not be N+1: the query count for the report must be
+        # constant regardless of how many procurement chains are on the page.
+        # (The absolute count is dominated by base-template nav/permission queries
+        # unrelated to _all_details_rows; what this guards is const-ness.)
+        from django.test.utils import CaptureQueriesContext
+        from django.db import connection
+
+        for i in range(3):
+            self._build_chain(stage="PO", rq_ref=f"REQ-Q{i}", pr_ref=f"PR-Q{i}",
+                              cp_ref=f"CP-Q{i}", po_ref=f"PO-Q{i}", product_code=f"Q{i}")
+        with CaptureQueriesContext(connection) as ctx3:
+            self.client.get(reverse(URL_NAME))
+        count3 = len(ctx3)
+
+        for i in range(3, 8):
+            self._build_chain(stage="PO", rq_ref=f"REQ-Q{i}", pr_ref=f"PR-Q{i}",
+                              cp_ref=f"CP-Q{i}", po_ref=f"PO-Q{i}", product_code=f"Q{i}")
+        with CaptureQueriesContext(connection) as ctx8:
+            self.client.get(reverse(URL_NAME))
+        count8 = len(ctx8)
+
+        self.assertEqual(count3, count8,
+                         msg=f"query count scales with rows: {count3} -> {count8} (N+1)")
+
+    def test_global_search_matches_each_ref_type(self):
+        chain = self._build_chain(rq_ref="REQ-A-1", pr_ref="PR-A-1", cp_ref="CP-A-1",
+                                  po_ref="PO-A-1", product_code="PA1",
+                                  product_name="Laptop", distributor_name="ACME Ltd")
+        self._build_chain(rq_ref="REQ-B-9", pr_ref="PR-B-9", cp_ref="CP-B-9",
+                          po_ref="PO-B-9", product_code="PB9", product_name="Chair",
+                          distributor_name="Other Co")
+        for term in ["REQ-A-1", "PR-A-1", "CP-A-1", "PO-A-1", "Laptop", "ACME"]:
+            resp = self.client.get(reverse(URL_NAME), {"search": term})
+            refs = {r["requisition"].ref_no for r in resp.context["rows"]}
+            self.assertEqual(refs, {"REQ-A-1"}, msg=f"search={term!r}")
+
+    def test_stage_filter(self):
+        self._build_chain(stage="PR", rq_ref="REQ-PR", pr_ref="PR-PR", product_code="PR1")
+        self._build_chain(stage="PO", rq_ref="REQ-PO", pr_ref="PR-PO", cp_ref="CP-PO",
+                          po_ref="PO-PO", product_code="PO1")
+        resp = self.client.get(reverse(URL_NAME), {"stage": "PO"})
+        refs = {r["requisition"].ref_no for r in resp.context["rows"]}
+        self.assertEqual(refs, {"REQ-PO"})
+
+    def test_date_range_filter(self):
+        chain = self._build_chain(stage="PR", rq_ref="REQ-DATE", pr_ref="PR-DATE",
+                                  product_code="PD1")
+        Requisition.objects.filter(id=chain["rq"].id).update(
+            created=datetime.date(2020, 1, 1))
+        resp = self.client.get(reverse(URL_NAME),
+                               {"start_created": "2019-12-01", "end_created": "2020-02-01"})
+        self.assertEqual({r["requisition"].ref_no for r in resp.context["rows"]}, {"REQ-DATE"})
+        resp = self.client.get(reverse(URL_NAME), {"start_created": "2021-01-01"})
+        self.assertEqual(resp.context["rows"], [])
+
+    def test_distributor_filter(self):
+        self._build_chain(rq_ref="REQ-D1", pr_ref="PR-D1", cp_ref="CP-D1", po_ref="PO-D1",
+                          product_code="D1", distributor_name="Unique Vendor")
+        self._build_chain(rq_ref="REQ-D2", pr_ref="PR-D2", cp_ref="CP-D2", po_ref="PO-D2",
+                          product_code="D2", distributor_name="Nope Vendor")
+        resp = self.client.get(reverse(URL_NAME), {"distributor": "Unique"})
+        self.assertEqual({r["requisition"].ref_no for r in resp.context["rows"]}, {"REQ-D1"})
+
+    def test_company_scope_excludes_other_branch(self):
+        self._build_chain(code="BR", rq_ref="REQ-BR", pr_ref="PR-BR", product_code="BR1",
+                          stage="PR")
+        self._build_chain(code="HO", rq_ref="REQ-HO", pr_ref="PR-HO", product_code="HO1",
+                          stage="PR")
+        resp = self.client.get(reverse(URL_NAME))
+        self.assertEqual({r["requisition"].ref_no for r in resp.context["rows"]}, {"REQ-HO"})

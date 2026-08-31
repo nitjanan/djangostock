@@ -5205,7 +5205,104 @@ def _all_details_dashboard(qs):
 
 
 def _all_details_rows(items):
-    return []
+    from collections import defaultdict
+
+    if not items:
+        return []
+
+    item_ids = [ri.id for ri in items]
+    req_ids = {ri.requisit_id for ri in items if ri.requisit_id}
+
+    poi_qs = (PurchaseOrderItem.objects
+              .filter(item_id__in=item_ids)
+              .select_related('po', 'po__cp', 'po__pr', 'po__distributor',
+                              'po__approver_status', 'unit')
+              .order_by('id'))
+    cpi_qs = (ComparisonPriceItem.objects
+              .filter(item_id__in=item_ids)
+              .select_related('bidder', 'bidder__distributor', 'bidder__cp', 'unit')
+              .order_by('id'))
+    pr_qs = (PurchaseRequisition.objects
+             .filter(requisition_id__in=req_ids)
+             .order_by('id'))
+
+    poi_by_item = defaultdict(list)
+    for poi in poi_qs:
+        poi_by_item[poi.item_id].append(poi)
+    cpi_by_item = defaultdict(list)
+    for cpi in cpi_qs:
+        cpi_by_item[cpi.item_id].append(cpi)
+    prs_by_req = defaultdict(list)
+    for pr in pr_qs:
+        prs_by_req[pr.requisition_id].append(pr)
+
+    rows = []
+    for ri in items:
+        prs = prs_by_req.get(ri.requisit_id, [])
+        item_pois = poi_by_item.get(ri.id, [])
+        item_cpis = cpi_by_item.get(ri.id, [])
+        # index this item's CP items by their CP id, to pair with a PO's cp
+        cpi_by_cp = {}
+        for cpi in item_cpis:
+            cp_id = cpi.bidder.cp_id if cpi.bidder_id else None
+            if cp_id is not None:
+                cpi_by_cp.setdefault(cp_id, cpi)
+
+        if item_pois:
+            for poi in item_pois:
+                po = poi.po
+                cp = po.cp if po else None
+                cpi = cpi_by_cp.get(po.cp_id) if po else None
+                cpd = cpi.bidder if cpi else None
+                distributor = (po.distributor if po and po.distributor_id
+                               else (cpd.distributor if cpd else None))
+                rows.append({
+                    'requisition': ri.requisit,
+                    'item': ri,
+                    'purchase_reqs': prs,
+                    'comparison_price': cp,
+                    'comparison_item': cpi,
+                    'distributor': distributor,
+                    'is_selected_distributor': bool(cpd and cpd.is_select),
+                    'purchase_order': po,
+                    'po_item': poi,
+                    'stage': 'PO',
+                    'amount': poi.price,
+                    'created': ri.requisit.created if ri.requisit_id else ri.created,
+                })
+        elif item_cpis:
+            for cpi in item_cpis:
+                cpd = cpi.bidder
+                rows.append({
+                    'requisition': ri.requisit,
+                    'item': ri,
+                    'purchase_reqs': prs,
+                    'comparison_price': cpd.cp if cpd else None,
+                    'comparison_item': cpi,
+                    'distributor': cpd.distributor if cpd else None,
+                    'is_selected_distributor': bool(cpd and cpd.is_select),
+                    'purchase_order': None,
+                    'po_item': None,
+                    'stage': 'CP',
+                    'amount': cpi.price,
+                    'created': ri.requisit.created if ri.requisit_id else ri.created,
+                })
+        else:
+            rows.append({
+                'requisition': ri.requisit,
+                'item': ri,
+                'purchase_reqs': prs,
+                'comparison_price': None,
+                'comparison_item': None,
+                'distributor': None,
+                'is_selected_distributor': False,
+                'purchase_order': None,
+                'po_item': None,
+                'stage': 'PR' if prs else 'RQ',
+                'amount': None,
+                'created': ri.requisit.created if ri.requisit_id else ri.created,
+            })
+    return rows
 
 
 def viewPOItemReport(request):
