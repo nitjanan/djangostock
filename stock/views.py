@@ -5165,6 +5165,48 @@ def viewPOReport(request):
     }
     return render(request, "report/viewPO.html", context)
 
+def viewAllDetailsReport(request):
+    active = request.session.get('company_code', 'ALL')
+    company_in = findCompanyIn(request)
+
+    base = (RequisitionItem.objects
+            .filter(requisit__branch_company__code__in=company_in)
+            .select_related('requisit', 'requisit__name', 'product')
+            .order_by('-requisit__id', 'id'))
+
+    qs = base
+    dashboard = _all_details_dashboard(qs)
+
+    p = Paginator(qs, 25)
+    page = request.GET.get('page')
+    dataPage = p.get_page(page)
+    dataPage.object_list = list(dataPage.object_list)
+
+    rows = _all_details_rows(dataPage.object_list)
+
+    context = {
+        'rows': rows,
+        'page_obj': dataPage,
+        'filter': None,
+        'dashboard': dashboard,
+        'rp_all_page': "tab-active",
+        'rp_all_show': "show",
+        active: "active show",
+        "colorNav": "enableNav",
+    }
+    return render(request, "report/viewAllDetails.html", context)
+
+
+def _all_details_dashboard(qs):
+    zero = ('requisitions', 'requisition_items', 'purchase_reqs', 'comparison_prices',
+            'comparison_items', 'distributors', 'purchase_orders', 'po_items')
+    return {k: 0 for k in zero}
+
+
+def _all_details_rows(items):
+    return []
+
+
 def viewPOItemReport(request):
     active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
