@@ -1,0 +1,109 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">รายละเอียดการจัดซื้อทั้งหมด</h3>
+
+  <div class="row my-3">
+    {% for card in dashboard_cards %}
+    <div class="col-6 col-md-3 mb-2">
+      <div class="card div-shadow text-center">
+        <div class="card-body py-2">
+          <div class="text-muted small">{{ card.label }}</div>
+          <div class="h4 mb-0">{{ card.value|intcomma }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="text-muted small">ตัวเลขทั้งหมดนับตามเงื่อนไขการกรองปัจจุบัน</p>
+
+  <div class="card div-shadow">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered my-2">
+          <thead class="table-active">
+            <tr>
+              <th>ใบขอเบิก</th><th>รายการ</th><th>ใบขอซื้อ</th><th>ใบเปรียบเทียบ</th>
+              <th>รายการเปรียบเทียบ</th><th>ร้านค้า</th><th>ใบสั่งซื้อ</th>
+              <th>รายการสั่งซื้อ</th><th>ขั้นตอน</th><th class="text-right">จำนวนเงิน</th>
+              <th>วันที่</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{% if row.requisition %}<a href="{% url 'showRequisition' row.requisition.id 4 %}">{{ row.requisition.ref_no }}</a>{% else %}-{% endif %}</td>
+              <td>{{ row.item.product_name|default:"-" }}</td>
+              <td>{% for pr in row.purchase_reqs %}<a href="{% url 'showPR' pr.id 4 %}">{{ pr.ref_no }}</a><br>{% empty %}-{% endfor %}</td>
+              <td>{% if row.comparison_price %}<a href="{% url 'showComparePricePO' row.comparison_price.id 4 %}">{{ row.comparison_price.ref_no }}</a>{% else %}-{% endif %}</td>
+              <td>{% if row.comparison_item %}{{ row.comparison_item.brand|default:row.comparison_item.quantity }}{% else %}-{% endif %}</td>
+              <td>{% if row.distributor %}{{ row.distributor.name }}{% if row.is_selected_distributor %} <span class="badge badge-success">เลือก</span>{% endif %}{% else %}-{% endif %}</td>
+              <td>{% if row.purchase_order %}<a href="{% url 'showPO' row.purchase_order.id 4 %}">{{ row.purchase_order.ref_no }}</a>{% else %}-{% endif %}</td>
+              <td>{% if row.po_item %}{{ row.po_item.quantity }} × {{ row.po_item.unit_price|intcomma }}{% else %}-{% endif %}</td>
+              <td><span class="badge badge-secondary">{{ row.stage }}</span></td>
+              <td class="text-right">{% if row.amount != None %}{{ row.amount|intcomma }}{% else %}-{% endif %}</td>
+              <td>{{ row.created|date:"d/m/Y" }}</td>
+              <td><button type="button" class="btn btn-sm btn-outline-info chain-toggle">ดูสายงาน</button></td>
+            </tr>
+            <tr class="chain-detail" hidden>
+              <td colspan="12">
+                <ul class="mb-0">
+                  <li>{{ row.requisition.ref_no|default:"-" }}</li>
+                  {% for pr in row.purchase_reqs %}<li>{{ pr.ref_no }}</li>{% endfor %}
+                  <li>{{ row.comparison_price.ref_no|default:"-" }}</li>
+                  <li>{{ row.distributor.name|default:"-" }}</li>
+                  <li>{{ row.purchase_order.ref_no|default:"-" }}</li>
+                </ul>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="12" class="text-center text-muted">ไม่พบข้อมูล ลองปรับเงื่อนไขการค้นหาหรือการกรอง</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <br/>
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="{% my_url page_obj.previous_page_number 'page' request.GET.urlencode %}">Previous</a></li>
+      {% else %}
+        <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a></li>
+      {% endif %}
+      {% for i in page_obj.paginator.page_range %}
+        {% if page_obj.number == i %}
+          <li class="page-item active" aria-current="page"><span class="page-link">{{ i }}<span class="sr-only">(current)</span></span></li>
+        {% elif i > page_obj.number|add:'-5' and i < page_obj.number|add:'5' %}
+          <li class="page-item"><a class="page-link" href="{% my_url i 'page' request.GET.urlencode %}">{{ i }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="{% my_url page_obj.next_page_number 'page' request.GET.urlencode %}">Next</a></li>
+      {% else %}
+        <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script>
+  document.querySelectorAll('.chain-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var detail = btn.closest('tr').nextElementSibling;
+      if (detail && detail.classList.contains('chain-detail')) {
+        detail.hidden = !detail.hidden;
+      }
+    });
+  });
+</script>
+{% endblock %}
