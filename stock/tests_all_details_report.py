@@ -117,3 +117,10 @@ class AllDetailsReportTests(TestCase):
         self.assertTemplateUsed(resp, "report/viewAllDetails.html")
         self.assertEqual(list(resp.context["rows"]), [])
         self.assertEqual(resp.context["dashboard"]["requisition_items"], 0)
+
+    # ----- Task 2 test -----
+    def test_filter_instance_and_params_accepted(self):
+        from stock.filters import AllDetailsFilter
+        resp = self.client.get(reverse(URL_NAME), {"search": "x", "stage": "PO"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsInstance(resp.context["filter"], AllDetailsFilter)

@@ -26,7 +26,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter, CarLogbookFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter, CarLogbookFilter, AllDetailsFilter
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -5174,7 +5174,8 @@ def viewAllDetailsReport(request):
             .select_related('requisit', 'requisit__name', 'product')
             .order_by('-requisit__id', 'id'))
 
-    qs = base
+    myFilter = AllDetailsFilter(request.GET, queryset=base)
+    qs = myFilter.qs.distinct()
     dashboard = _all_details_dashboard(qs)
 
     p = Paginator(qs, 25)
@@ -5187,7 +5188,7 @@ def viewAllDetailsReport(request):
     context = {
         'rows': rows,
         'page_obj': dataPage,
-        'filter': None,
+        'filter': myFilter,
         'dashboard': dashboard,
         'rp_all_page': "tab-active",
         'rp_all_show': "show",
