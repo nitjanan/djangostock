@@ -15,6 +15,22 @@ import string
 from django.db.models import Q
 from django_select2.forms import Select2Widget
 
+def address_company_queryset(branch_company_code):
+    """BaseAddress choices registered to a single branch company code.
+
+    ``branch_company_code`` may be a ``BaseBranchCompany`` instance (its
+    ``__str__`` is the code) or the code string itself. When no usable code is
+    given the queryset is empty on purpose, so the ``address_company`` dropdown
+    never falls back to exposing every address in the system.
+    """
+    if not branch_company_code:
+        return BaseAddress.objects.none()
+    address_ids = BranchCompanyBaseAdress.objects.filter(
+        branch_company__code=branch_company_code
+    ).values_list('address_id', flat=True)
+    return BaseAddress.objects.filter(id__in=address_ids)
+
+
 class MyClearableFileInput(ClearableFileInput):
     initial_text = 'ไฟล์ปัจจุบัน'
     input_text = 'เปลี่ยนไฟล์'
@@ -143,8 +159,7 @@ class PurchaseRequisitionForm(forms.ModelForm):
         user_profile = UserProfile.objects.filter(position__in = position, branch_company__code = request.session.get('company_code', 'ALL')).values('user__id')
         self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบขอซื้อ', queryset = User.objects.filter(id__in = user_profile))
         
-        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session.get('company_code', 'ALL'))
-        self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+        self.fields['address_company'].queryset = address_company_queryset(request.session.get('company_code', 'ALL'))
 
     class Meta:
        model = PurchaseRequisition 
@@ -160,9 +175,8 @@ class PurchaseRequisitionForm(forms.ModelForm):
 class PurchaseOrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
+       self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
        if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
            self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = self.instance.branch_company) , required=False)
 
     class Meta:
@@ -190,9 +204,7 @@ class PurchaseOrderForm(forms.ModelForm):
 class PurchaseOrderAddressCompanyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
-       if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+       self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
 
     class Meta:
        model = PurchaseOrder
@@ -210,8 +222,7 @@ class PurchaseOrderCancelForm(forms.ModelForm):
 class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
-        bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = request.session.get('company_code', 'ALL'))
-        self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+        self.fields['address_company'].queryset = address_company_queryset(request.session.get('company_code', 'ALL'))
         self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')), required=False)
         #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session.get('company_code', 'ALL')))
 
@@ -312,9 +323,7 @@ class RequisitionMemorandumForm(forms.ModelForm):
 class PurchaseRequisitionAddressCompanyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
-       if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+       self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
 
     class Meta:
        model = PurchaseRequisition
@@ -351,9 +360,7 @@ class ComparisonPriceForm(forms.ModelForm):
 class ComparisonPriceAddressCompanyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
-       if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+       self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
     
     class Meta:
        model = ComparisonPrice
@@ -458,9 +465,7 @@ CPitemInlineFormset = inlineformset_factory(
 class CPSelectBidderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
-       if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+       self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
 
     class Meta:
        model = ComparisonPrice
@@ -666,9 +671,7 @@ class MaintenanceForm(forms.ModelForm):
 class MaintenanceAddressCompanyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
-       if self.instance.branch_company is not None:
-           bc = BranchCompanyBaseAdress.objects.filter(branch_company__code = self.instance.branch_company)
-           self.fields['address_company'].queryset = BaseAddress.objects.filter(id__in=bc)
+       self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
 
     class Meta:
        model = Maintenance
