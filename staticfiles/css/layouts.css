@@ -198,6 +198,28 @@ a.article:hover {
 }
 
 /* ---------------------------------------------------
+    FULL-WIDTH MAIN CONTENT
+    The app shell (navbar + sidebar + #content) already
+    spans the viewport. Bootstrap's .container caps the
+    page body at a fixed breakpoint width and centers it,
+    which leaves large empty gutters on wide screens and
+    needlessly squeezes tables / dashboards / forms.
+    Inside #content we let every .container behave like
+    .container-fluid so page content uses 100% of the
+    available width. Inner .row / .col-* / .card / .mx-auto
+    wrappers still control alignment, so centered forms
+    (sign in, sign up, password reset) keep their layout.
+----------------------------------------------------- */
+#content .container,
+#content .container-sm,
+#content .container-md,
+#content .container-lg,
+#content .container-xl {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* ---------------------------------------------------
     MEDIAQUERIES
 ----------------------------------------------------- */
 /* อันเดิม 768 */
@@ -346,7 +368,7 @@ a.article:hover {
     padding: 6px 8px !important;
     font-size: 14.5px !important;
     color: #012d5c !important;
-    background-color: #c6e1ff!important;
+    background-color: #C1E0F3!important;
     border: none !important;
     border-radius: 0 !important;
     transition: all 0.15s ease-in-out !important;
@@ -460,6 +482,125 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
     -moz-appearance: textfield;
+}
+
+/* ---------------------------------------------------
+    SELECT2 – GLOBAL SIZING / ALIGNMENT NORMALIZATION
+    Project-wide fix so every Select2 (single + multiple,
+    JS-initialised with width:'resolve' / no width / a
+    fixed width) fills the available width of its form
+    field like a Bootstrap .form-control, stays inside
+    its .form-group / .row / .col-* / .card / <form>,
+    and keeps the same height + vertical rhythm as
+    native inputs and <select>s.
+    Sizing/alignment only – search, placeholder, AJAX,
+    multiple, tags and every JS option are untouched.
+----------------------------------------------------- */
+
+/* Container always tracks the parent width, never an
+   inline px width Select2 may have written itself. */
+.select2-container {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Every inner wrapper must track the container width too – some
+   Select2 builds leave the .selection span shrink-wrapped. */
+.select2-container > .selection,
+.select2-container .select2-selection,
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Single select – match .form-control box + height
+   (Bootstrap 4: calc(1.5em + 0.75rem + 2px) ≈ 38px). */
+.select2-container--default .select2-selection--single {
+    height: calc(1.5em + 0.75rem + 2px) !important;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.5 !important;
+    padding-left: 0;
+    padding-right: 1rem;
+    color: #495057;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #6c757d;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: calc(1.5em + 0.75rem) !important;
+    right: 0.5rem;
+}
+
+/* Multiple select – same width + border + min height as
+   .form-control, free to grow taller as chips wrap. */
+.select2-container--default .select2-selection--multiple {
+    min-height: calc(1.5em + 0.75rem + 2px) !important;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+    padding: 0 0.375rem 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.select2-container--default .select2-selection--multiple .select2-search--inline .select2-search__field {
+    margin-top: 0.35rem;
+}
+
+/* Focus ring consistent with Bootstrap form controls. */
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--multiple {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Inside an .input-group, behave like a flex form-control
+   so it shares the row with addons/buttons without
+   overflowing or pushing siblings. */
+.input-group > .select2-container {
+    position: relative;
+    flex: 1 1 auto;
+    width: 1% !important;
+    margin-bottom: 0;
+}
+
+.input-group > .select2-container:not(:first-child) .select2-selection {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group > .select2-container:not(:last-child) .select2-selection {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Dropdown above Bootstrap modals (modal z-index 1050+). */
+.select2-container--open {
+    z-index: 1056;
+}
+
+.select2-dropdown {
+    z-index: 1056;
 }
 
 

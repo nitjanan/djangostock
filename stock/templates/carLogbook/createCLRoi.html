@@ -14,9 +14,17 @@
 <!-- Boostrap 4 icon -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 <style>
+/* Select2: fill parent width like a Bootstrap .form-control */
+.select2-container{display:block !important;width:100% !important;max-width:100% !important;box-sizing:border-box;}
+.select2-container > .selection,
+.select2-container .select2-selection,
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
+.input-group > .select2-container{flex:1 1 auto;width:1% !important;}
+
     @media (min-width: 360px) { /* Styles for screens 768px and wider */
         .select2-container .select2-selection {
-            width: 70vw !important;
+            width: 100% !important;
             height: 37px !important;
             line-height: 50px !important;
             padding: 5px 12px;
@@ -24,13 +32,13 @@
         }
 
         .select2-container {
-            width: 70vw !important;
+            width: 100% !important;
         }
     }
 
     @media (min-width: 768px) { /* Styles for screens 1200px and wider */
         .select2-container .select2-selection {
-            width: 66.5vw !important;
+            width: 100% !important;
             height: 37px !important;
             line-height: 50px !important;
             padding: 5px 12px;
@@ -38,13 +46,13 @@
         }
 
         .select2-container {
-            width: 66.5vw !important;
+            width: 100% !important;
         }
     }
 
     @media (min-width: 1200px) { /* Styles for screens 1200px and wider */
         .select2-container .select2-selection {
-            width: 55.5vw !important;
+            width: 100% !important;
             height: 37px !important;
             line-height: 50px !important;
             padding: 5px 7px;
@@ -53,7 +61,7 @@
         }
 
         .select2-container {
-            width: 55.5vw !important;
+            width: 100% !important;
         }
     }
     
@@ -444,19 +452,19 @@
     $('#id_created').val(today);
 
     $(function() {
-        $('#id_orig1').select2();
-        $('#id_orig2').select2();
-        $('#id_orig3').select2();
-        $('#id_orig4').select2();
-        $('#id_orig5').select2();
-        $('#id_orig6').select2();
+        $('#id_orig1').select2({ width: '100%' });
+        $('#id_orig2').select2({ width: '100%' });
+        $('#id_orig3').select2({ width: '100%' });
+        $('#id_orig4').select2({ width: '100%' });
+        $('#id_orig5').select2({ width: '100%' });
+        $('#id_orig6').select2({ width: '100%' });
 
-        $('#id_job1').select2();
-        $('#id_job2').select2();
-        $('#id_job3').select2();
-        $('#id_job4').select2();
-        $('#id_job5').select2();
-        $('#id_job6').select2();
+        $('#id_job1').select2({ width: '100%' });
+        $('#id_job2').select2({ width: '100%' });
+        $('#id_job3').select2({ width: '100%' });
+        $('#id_job4').select2({ width: '100%' });
+        $('#id_job5').select2({ width: '100%' });
+        $('#id_job6').select2({ width: '100%' });
 
         //setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
         //setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");

@@ -10,14 +10,18 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 
 <style>
-    /* When inside col-12 */
-    .form-group .select2-container .select2-selection--single {
-        width: 55.5vw !important;
-    }
+/* Select2: fill parent width like a Bootstrap .form-control */
+.select2-container{display:block !important;width:100% !important;max-width:100% !important;box-sizing:border-box;}
+.select2-container > .selection,
+.select2-container .select2-selection,
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
+.input-group > .select2-container{flex:1 1 auto;width:1% !important;}
 
-    /* When inside col-6 */
+    /* Fill the parent column / form-group width */
+    .form-group .select2-container .select2-selection--single,
     .col-md-6 .select2-container .select2-selection--single {
-        width: 27.4vw !important;
+        width: 100% !important;
     }
 
     /* Adjust the Select2 container */
@@ -244,11 +248,11 @@
         $('#id_start_rp').val('{{ ma.start_rp|get_localtime|date:"Y-m-d\\TH:i"}}');
         $('#id_end_rp').val('{{ ma.end_rp|get_localtime|date:"Y-m-d\\TH:i"}}');
         $('#id_chief_update').val('{{ ma.chief_update|get_localtime|date:"Y-m-d\\TH:i"}}');
-        $('#id_repair_name').select2();
-        $('#id_chief_name').select2();
-        $('#id_repair_type').select2();
-        $('#id_contact_name').select2();
-        $('#id_sender_name').select2();
+        $('#id_repair_name').select2({ width: '100%' });
+        $('#id_chief_name').select2({ width: '100%' });
+        $('#id_repair_type').select2({ width: '100%' });
+        $('#id_contact_name').select2({ width: '100%' });
+        $('#id_sender_name').select2({ width: '100%' });
         visibleRepair();
         requiredFail();
         setDataDistributor();

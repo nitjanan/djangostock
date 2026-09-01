@@ -5,7 +5,7 @@
 {% load humanize %}
 
 {% block content %}
-<div class="container my-3">
+<div class="container-fluid my-3 px-3">
   <h3 align="center">รายละเอียดการจัดซื้อทั้งหมด</h3>
 
   <div class="row my-3">
@@ -26,29 +26,16 @@
     <div class="card-body">
       <form method="get">
         {% csrf_token %}
-        <div class="form-row">
-          <div class="form-group col-md-4 mb-0">{{ filter.form.search|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.rq_ref_no|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.pr_ref_no|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.cp_ref_no|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.po_ref_no|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.requester|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.product_id|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.product_name|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.machine|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.description|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.distributor|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.stage|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.po_status|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.quantity_min|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.quantity_max|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.amount_min|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.amount_max|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.start_created|as_crispy_field }}</div>
-          <div class="form-group col-md-2 mb-0">{{ filter.form.end_created|as_crispy_field }}</div>
+        <div class="form-row align-items-end">
+          <div class="form-group col-md-6 mb-0">{{ filter.form.search|as_crispy_field }}</div>
+          <div class="form-group col-md-3 mb-0">{{ filter.form.stage|as_crispy_field }}</div>
+          <div class="form-group col-md-3 mb-0">
+            <div class="my-3">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+              <a href="{% url 'viewAllDetailsReport' %}" class="btn btn-secondary">ล้าง</a>
+            </div>
+          </div>
         </div>
-        <button type="submit" class="btn btn-info">กรอง <i class="fas fa-filter"></i></button>
-        <a href="{% url 'viewAllDetailsReport' %}" class="btn btn-secondary">ล้าง</a>
       </form>
     </div>
   </div>
@@ -59,26 +46,43 @@
         <table class="table table-bordered my-2">
           <thead class="table-active">
             <tr>
-              <th>ใบขอเบิก</th><th>รายการ</th><th>ใบขอซื้อ</th><th>ใบเปรียบเทียบ</th>
-              <th>รายการเปรียบเทียบ</th><th>ร้านค้า</th><th>ใบสั่งซื้อ</th>
-              <th>รายการสั่งซื้อ</th><th>ขั้นตอน</th><th class="text-right">จำนวนเงิน</th>
-              <th>วันที่</th><th>จัดการ</th>
+              <th>เอกสาร</th>
+              <th>ขั้นตอน / วันที่ล่าสุด</th>
+              <th>ผู้ขอเบิก / แผนก</th><th>รายการ</th>
+              <th>ใช้ในระบบงาน (ใบเบิก)</th><th>หมายเหตุ (ใบเบิก)</th>
+              <!--th>รายการเปรียบเทียบ</th--><th>ร้านค้า</th>
+              <th>จำนวน</th><th class="text-right">ราคาต่อหน่วย</th>
+              <th>จัดการ</th>
             </tr>
           </thead>
           <tbody>
           {% for row in rows %}
             <tr>
-              <td>{% if row.requisition %}<a href="{% url 'showRequisition' row.requisition.id 4 %}">{{ row.requisition.ref_no }}</a>{% else %}-{% endif %}</td>
-              <td>{{ row.item.product_name|default:"-" }}</td>
-              <td>{% for pr in row.purchase_reqs %}<a href="{% url 'showPR' pr.id 4 %}">{{ pr.ref_no }}</a><br>{% empty %}-{% endfor %}</td>
-              <td>{% if row.comparison_price %}<a href="{% url 'showComparePricePO' row.comparison_price.id 4 %}">{{ row.comparison_price.ref_no }}</a>{% else %}-{% endif %}</td>
-              <td>{% if row.comparison_item %}{{ row.comparison_item.brand|default:"-" }}{% else %}-{% endif %}</td>
+              <td>
+                <ul class="list-unstyled mb-0">
+                  <li class="mb-1 text-nowrap"><span class="badge badge-primary">RQ</span> {% if row.requisition %}<a href="{% url 'showRequisition' row.requisition.id 4 %}">{{ row.requisition.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
+                  <li class="mb-1 text-nowrap"><span class="badge badge-info">PR</span> {% for pr in row.purchase_reqs %}<a href="{% url 'showPR' pr.id 4 %}">{{ pr.ref_no }}</a>{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</li>
+                  <li class="mb-1 text-nowrap"><span class="badge badge-warning">CP</span> {% if row.comparison_price %}<a href="{% url 'showComparePricePO' row.comparison_price.id 4 %}">{{ row.comparison_price.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
+                  <li class="text-nowrap"><span class="badge badge-success">PO</span> {% if row.purchase_order %}<a href="{% url 'showPO' row.purchase_order.id 4 %}">{{ row.purchase_order.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
+                </ul>
+              </td>
+              <td class="text-nowrap">
+                <span class="badge {% if row.stage == 'RQ' %}badge-primary{% elif row.stage == 'PR' %}badge-info{% elif row.stage == 'CP' %}badge-warning{% elif row.stage == 'PO' %}badge-success{% else %}badge-secondary{% endif %}">{{ row.stage }}</span>
+                <br><small class="text-muted">{{ row.stage_date|date:"d/m/Y" }}</small>
+              </td>
+              <td>
+                {% if row.requisition %}
+                  {{ row.requisition.name.get_full_name|default:row.requisition.name.username }}
+                  <br><small class="text-muted">{{ row.requisition.section.name|default:"-" }}</small>
+                {% else %}-{% endif %}
+              </td>
+              <td class="text-nowrap">{{ row.item.product_name|default:"-" }}{% if row.po_item.description %}<br><small class="text-muted">{{ row.po_item.description }}</small>{% endif %}</td>
+              <td>{{ row.item.machine|default:"-" }}</td>
+              <td>{% if row.requisition and row.requisition.note %}{{ row.requisition.note }}{% else %}-{% endif %}</td>
+              <!--td>{% if row.comparison_item %}{{ row.comparison_item.brand|default:"-" }}{% else %}-{% endif %}</td-->
               <td>{% if row.distributor %}{{ row.distributor.name }}{% if row.is_selected_distributor %} <span class="badge badge-success">เลือก</span>{% endif %}{% else %}-{% endif %}</td>
-              <td>{% if row.purchase_order %}<a href="{% url 'showPO' row.purchase_order.id 4 %}">{{ row.purchase_order.ref_no }}</a>{% else %}-{% endif %}</td>
               <td>{% if row.po_item %}{{ row.po_item.quantity }} × {{ row.po_item.unit_price|intcomma }}{% else %}-{% endif %}</td>
-              <td><span class="badge badge-secondary">{{ row.stage }}</span></td>
               <td class="text-right">{% if row.amount != None %}{{ row.amount|intcomma }}{% else %}-{% endif %}</td>
-              <td>{{ row.created|date:"d/m/Y" }}</td>
               <td><button type="button" class="btn btn-sm btn-outline-info chain-toggle">ดูสายงาน</button></td>
             </tr>
             <tr class="chain-detail" hidden>

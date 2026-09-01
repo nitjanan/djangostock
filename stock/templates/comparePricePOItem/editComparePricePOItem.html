@@ -6,6 +6,14 @@
 
 {% block css %}
 <style>
+/* Select2: fill parent width like a Bootstrap .form-control */
+.select2-container{display:block !important;width:100% !important;max-width:100% !important;box-sizing:border-box;}
+.select2-container > .selection,
+.select2-container .select2-selection,
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
+.input-group > .select2-container{flex:1 1 auto;width:1% !important;}
+
 
 .verybigmodal {
     max-width: 80%;
@@ -336,7 +344,7 @@ $('div.pdf a').text('Download');
 //แสดงครั้งแรกเมื่อเปิด page
 $(function() {
     //search cradit 06-01-2024
-    $('#id_credit').select2();
+    $('#id_credit').select2({ width: '100%' });
 
     //get datalist to set input
     var inputs = $(".item");

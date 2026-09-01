@@ -5171,24 +5171,25 @@ def viewAllDetailsReport(request):
 
     base = (RequisitionItem.objects
             .filter(requisit__branch_company__code__in=company_in)
-            .select_related('requisit', 'requisit__name', 'product')
-            .order_by('-requisit__id', 'id'))
+            .select_related('requisit', 'requisit__name', 'requisit__section', 'product')
+            .order_by('-requisit__ref_no', '-id'))
 
     myFilter = AllDetailsFilter(request.GET, queryset=base)
     qs = myFilter.qs.distinct()
     dashboard = _all_details_dashboard(qs)
     dashboard_cards = [
         {'label': 'ใบขอเบิก', 'value': dashboard['requisitions']},
-        {'label': 'รายการขอเบิก', 'value': dashboard['requisition_items']},
         {'label': 'ใบขอซื้อ', 'value': dashboard['purchase_reqs']},
         {'label': 'ใบเปรียบเทียบ', 'value': dashboard['comparison_prices']},
-        {'label': 'รายการเปรียบเทียบ', 'value': dashboard['comparison_items']},
-        {'label': 'ร้านค้า', 'value': dashboard['distributors']},
         {'label': 'ใบสั่งซื้อ', 'value': dashboard['purchase_orders']},
-        {'label': 'รายการสั่งซื้อ', 'value': dashboard['po_items']},
+        {'label': 'รวมเป็นเงิน', 'value': dashboard['po_total_price']},
+        {'label': 'ส่วนลด', 'value': dashboard['po_discount']},
+       # {'label': 'หลังหักส่วนลด', 'value': dashboard['po_total_after_discount']},
+        {'label': 'ภาษี', 'value': dashboard['po_vat']},
+        {'label': 'จำนวนเงินทั้งสิ้น', 'value': dashboard['amount']},
     ]
 
-    p = Paginator(qs, 25)
+    p = Paginator(qs, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
     dataPage.object_list = list(dataPage.object_list)
@@ -5212,18 +5213,48 @@ def viewAllDetailsReport(request):
 def _all_details_dashboard(qs):
     item_ids = qs.values('id')
     req_ids = qs.values('requisit_id')
+    cancelled_cp = ComparisonPrice.objects.filter(is_cancel=True).values('id')
     cpi = (ComparisonPriceItem.objects
            .filter(item_id__in=item_ids)
-           .exclude(bidder__cp__is_cancel=True))
+           .exclude(cp__in=cancelled_cp))
     cp_agg = cpi.aggregate(
         comparison_items=Count('id'),
-        comparison_prices=Count('bidder__cp', distinct=True),
+        comparison_prices=Count('cp', distinct=True),
         distributors=Count('bidder__distributor', distinct=True),
     )
     po_agg = (PurchaseOrderItem.objects
               .filter(item_id__in=item_ids, po__is_cancel=False)
               .aggregate(po_items=Count('id'),
                          purchase_orders=Count('po', distinct=True)))
+    # Money totals: PurchaseOrder header (deduped, non-cancelled) ...
+    po_money = (PurchaseOrder.objects
+                .filter(purchaseorderitem__item_id__in=item_ids, is_cancel=False)
+                .distinct()
+                .aggregate(total_price=Sum('total_price'),
+                           total_after_discount=Sum('total_after_discount'),
+                           vat=Sum('vat'),
+                           amount=Sum('amount')))
+    # ... plus the selected ComparisonPriceDistributor for comparisons that
+    # stand on their own (a CP-stage row: not the source of any scoped PO).
+    scoped_po_cp_ids = (PurchaseOrder.objects
+                        .filter(purchaseorderitem__item_id__in=item_ids,
+                                is_cancel=False, cp__isnull=False)
+                        .values('cp'))
+    cpd_money = (ComparisonPriceDistributor.objects
+                 .filter(comparisonpriceitem__item_id__in=item_ids, is_select=True)
+                 .exclude(cp__is_cancel=True)
+                 .exclude(cp__in=scoped_po_cp_ids)
+                 .distinct()
+                 .aggregate(total_price=Sum('total_price'),
+                            total_after_discount=Sum('total_after_discount'),
+                            vat=Sum('vat'),
+                            amount=Sum('amount')))
+
+    def _tot(key):
+        return (po_money[key] or 0) + (cpd_money[key] or 0)
+
+    tp = _tot('total_price')
+    tad = _tot('total_after_discount')
     ri_agg = qs.aggregate(
         requisition_items=Count('id', distinct=True),
         requisitions=Count('requisit_id', distinct=True),
@@ -5238,6 +5269,11 @@ def _all_details_dashboard(qs):
         'distributors': cp_agg['distributors'],
         'purchase_orders': po_agg['purchase_orders'],
         'po_items': po_agg['po_items'],
+        'po_total_price': tp,
+        'po_discount': tp - tad,
+        'po_total_after_discount': tad,
+        'po_vat': _tot('vat'),
+        'amount': _tot('amount'),
     }
 
 
@@ -5254,11 +5290,30 @@ def _all_details_rows(items):
               .select_related('po', 'po__cp', 'po__pr', 'po__distributor',
                               'po__approver_status', 'unit')
               .order_by('id'))
+    cancelled_cp_ids = set(
+        ComparisonPrice.objects.filter(is_cancel=True).values_list('id', flat=True)
+    )
     cpi_qs = (ComparisonPriceItem.objects
               .filter(item_id__in=item_ids)
-              .exclude(bidder__cp__is_cancel=True)
-              .select_related('bidder', 'bidder__distributor', 'bidder__cp', 'unit')
+              .select_related('bidder', 'bidder__distributor', 'unit')
               .order_by('id'))
+    cpi_qs = [cpi for cpi in cpi_qs if cpi.cp not in cancelled_cp_ids]
+    # Resolve the parent ComparisonPrice via the `cp` integer column (the link the
+    # rest of the codebase uses); `bidder.cp` is only a fallback when `cp` is unset.
+    cp_ids = {cpi.cp for cpi in cpi_qs if cpi.cp}
+    cp_by_id = {c.id: c for c in ComparisonPrice.objects.filter(id__in=cp_ids)}
+
+    def _cpi_cp(cpi):
+        if cpi is None:
+            return None
+        if cpi.cp and cpi.cp in cp_by_id:
+            return cp_by_id[cpi.cp]
+        return getattr(cpi.bidder, 'cp', None) if cpi.bidder_id else None
+
+    def _cpi_cp_id(cpi):
+        cp = _cpi_cp(cpi)
+        return cp.id if cp else None
+
     pr_qs = (PurchaseRequisition.objects
              .filter(requisition_id__in=req_ids)
              .order_by('id'))
@@ -5278,62 +5333,78 @@ def _all_details_rows(items):
         prs = prs_by_req.get(ri.requisit_id, [])
         item_pois = poi_by_item.get(ri.id, [])
         item_cpis = cpi_by_item.get(ri.id, [])
+        rq_created = ri.requisit.created if ri.requisit_id else ri.created
         # index this item's CP items by their CP id, to pair with a PO's cp
         cpi_by_cp = {}
         for cpi in item_cpis:
-            if not cpi.bidder_id:
+            key = _cpi_cp_id(cpi)
+            if key is None:
                 continue
-            key = cpi.bidder.cp_id
             prev = cpi_by_cp.get(key)
-            if prev is None or (not prev.bidder.is_select and cpi.bidder.is_select):
+            cpi_sel = bool(cpi.bidder and cpi.bidder.is_select)
+            prev_sel = bool(prev and prev.bidder and prev.bidder.is_select)
+            if prev is None or (not prev_sel and cpi_sel):
                 cpi_by_cp[key] = cpi
 
-        if item_pois:
-            for poi in item_pois:
-                po = poi.po
-                cp = po.cp if po else None
-                cpi = cpi_by_cp.get(po.cp_id) if po else None
-                if po and po.distributor_id:
-                    for c in item_cpis:
-                        if (c.bidder_id and c.bidder.cp_id == po.cp_id
-                                and c.bidder.distributor_id == po.distributor_id):
-                            cpi = c
-                            break
-                cpd = cpi.bidder if cpi else None
-                distributor = (po.distributor if po and po.distributor_id
-                               else (cpd.distributor if cpd else None))
-                rows.append({
-                    'requisition': ri.requisit,
-                    'item': ri,
-                    'purchase_reqs': prs,
-                    'comparison_price': cp,
-                    'comparison_item': cpi,
-                    'distributor': distributor,
-                    'is_selected_distributor': bool(cpd and cpd.is_select),
-                    'purchase_order': po,
-                    'po_item': poi,
-                    'stage': 'PO',
-                    'amount': poi.price,
-                    'created': ri.requisit.created if ri.requisit_id else ri.created,
-                })
-        elif item_cpis:
-            for cpi in item_cpis:
-                cpd = cpi.bidder
-                rows.append({
-                    'requisition': ri.requisit,
-                    'item': ri,
-                    'purchase_reqs': prs,
-                    'comparison_price': cpd.cp if cpd else None,
-                    'comparison_item': cpi,
-                    'distributor': cpd.distributor if cpd else None,
-                    'is_selected_distributor': bool(cpd and cpd.is_select),
-                    'purchase_order': None,
-                    'po_item': None,
-                    'stage': 'CP',
-                    'amount': cpi.price,
-                    'created': ri.requisit.created if ri.requisit_id else ri.created,
-                })
-        else:
+        # PO rows — one per PurchaseOrderItem. A comparison is shown on a PO row
+        # ONLY when that PO was generated from it (po.cp matches); comparisons
+        # that stand on their own branch get their own CP rows below.
+        consumed_cp_ids = set()
+        for poi in item_pois:
+            po = poi.po
+            cpi = cpi_by_cp.get(po.cp_id) if po and po.cp_id else None
+            if po and po.cp_id and po.distributor_id:
+                for c in item_cpis:
+                    if (c.bidder_id and c.bidder
+                            and _cpi_cp_id(c) == po.cp_id
+                            and c.bidder.distributor_id == po.distributor_id):
+                        cpi = c
+                        break
+            if po and po.cp_id:
+                consumed_cp_ids.add(po.cp_id)
+            cp = po.cp if po and po.cp_id else None
+            cpd = cpi.bidder if cpi else None
+            distributor = (po.distributor if po and po.distributor_id
+                           else (cpd.distributor if cpd else None))
+            rows.append({
+                'requisition': ri.requisit,
+                'item': ri,
+                'purchase_reqs': prs,
+                'comparison_price': cp,
+                'comparison_item': cpi,
+                'distributor': distributor,
+                'is_selected_distributor': bool(cpd and cpd.is_select),
+                'purchase_order': po,
+                'po_item': poi,
+                'stage': 'PO',
+                'amount': poi.price,
+                'created': rq_created,
+                'stage_date': (po.created if po else rq_created),
+            })
+
+        # CP rows — every comparison item for this RequisitionItem that a PO row
+        # above did not already represent (its own procurement branch).
+        cp_source = [c for c in item_cpis if _cpi_cp_id(c) not in consumed_cp_ids]
+        for cpi in cp_source:
+            cpd = cpi.bidder
+            cp = _cpi_cp(cpi)
+            rows.append({
+                'requisition': ri.requisit,
+                'item': ri,
+                'purchase_reqs': prs,
+                'comparison_price': cp,
+                'comparison_item': cpi,
+                'distributor': cpd.distributor if cpd else None,
+                'is_selected_distributor': bool(cpd and cpd.is_select),
+                'purchase_order': None,
+                'po_item': None,
+                'stage': 'CP',
+                'amount': cpi.price,
+                'created': rq_created,
+                'stage_date': (cp.created if cp else (cpi.created or rq_created)),
+            })
+
+        if not item_pois and not cp_source:
             rows.append({
                 'requisition': ri.requisit,
                 'item': ri,
@@ -5346,8 +5417,18 @@ def _all_details_rows(items):
                 'po_item': None,
                 'stage': 'PR' if prs else 'RQ',
                 'amount': None,
-                'created': ri.requisit.created if ri.requisit_id else ri.created,
+                'created': rq_created,
+                'stage_date': (prs[0].created if prs else rq_created),
             })
+
+    def _row_sort_key(r):
+        rq = r['requisition'].ref_no if r['requisition'] else ''
+        pr = r['purchase_reqs'][0].ref_no if r['purchase_reqs'] else ''
+        cp = r['comparison_price'].ref_no if r['comparison_price'] else ''
+        po = r['purchase_order'].ref_no if r['purchase_order'] else ''
+        return (rq or '', pr or '', cp or '', po or '')
+
+    rows.sort(key=_row_sort_key, reverse=True)
     return rows
 
 

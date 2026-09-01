@@ -4,6 +4,14 @@
 
 {% block css %}
 <style>
+/* Select2: fill parent width like a Bootstrap .form-control */
+.select2-container{display:block !important;width:100% !important;max-width:100% !important;box-sizing:border-box;}
+.select2-container > .selection,
+.select2-container .select2-selection,
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
+.input-group > .select2-container{flex:1 1 auto;width:1% !important;}
+
 
 /* Adjust the Select2 container */
 .select2-container .select2-selection--single {
@@ -12,7 +20,7 @@
   padding: 5px 12px;
   border-radius: 4px;
   border: 1px solid #ced4da;
-  width: 55.5vw !important;
+  width: 100% !important;
 }
 
 /* Adjust the dropdown arrow height and alignment */
@@ -26,7 +34,6 @@
 .select2-container .select2-dropdown {
   border-radius: 4px;
   border: 1px solid #ced4da;
-  width: 55.5vw !important;
 }
 
 /* Align the clear button */
@@ -342,7 +349,7 @@
     //After page load
     $(function () {
         //search cradit 06-01-2024
-        $('#id_credit').select2();
+        $('#id_credit').select2({ width: '100%' });
 
         //ปิดไม่ให้แก้รหัสใบสั่งซื้อหากไม่มีสิทธิ
         "{% if not isEditPO %}"
