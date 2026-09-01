@@ -506,31 +506,14 @@ CarLogbookFilter.base_filters['name'].label = 'ชื่อผู้ใช้ร
 
 class AllDetailsFilter(django_filters.FilterSet):
     search = django_filters.CharFilter(method='filter_search')
-    rq_ref_no = django_filters.CharFilter(field_name='requisit__ref_no', lookup_expr='icontains')
-    pr_ref_no = django_filters.CharFilter(method='filter_pr_ref_no')
-    cp_ref_no = django_filters.CharFilter(method='filter_cp_ref_no')
-    po_ref_no = django_filters.CharFilter(field_name='purchaseorderitem__po__ref_no', lookup_expr='icontains')
-    requester = django_filters.ModelChoiceFilter(field_name='requisit__name', queryset=User.objects.all())
-    product_name = django_filters.CharFilter(field_name='product_name', lookup_expr='icontains')
-    product_id = django_filters.CharFilter(field_name='product__id', lookup_expr='icontains')
-    machine = django_filters.CharFilter(field_name='machine', lookup_expr='icontains')
-    description = django_filters.CharFilter(field_name='description', lookup_expr='icontains')
-    distributor = django_filters.CharFilter(method='filter_distributor')
-    quantity_min = django_filters.NumberFilter(field_name='quantity', lookup_expr='gte')
-    quantity_max = django_filters.NumberFilter(field_name='quantity', lookup_expr='lte')
-    amount_min = django_filters.NumberFilter(field_name='purchaseorderitem__price', lookup_expr='gte')
-    amount_max = django_filters.NumberFilter(field_name='purchaseorderitem__price', lookup_expr='lte')
-    start_created = django_filters.DateFilter(field_name='requisit__created', lookup_expr='gte',
-                                             widget=DateInput(attrs={'type': 'date'}))
-    end_created = django_filters.DateFilter(field_name='requisit__created', lookup_expr='lte',
-                                           widget=DateInput(attrs={'type': 'date'}))
     stage = django_filters.ChoiceFilter(
         method='filter_stage',
-        choices=(('PR', 'มีใบขอซื้อ'), ('CP', 'มีใบเปรียบเทียบ'), ('PO', 'มีใบสั่งซื้อ')),
-    )
-    po_status = django_filters.ModelChoiceFilter(
-        field_name='purchaseorderitem__po__approver_status',
-        queryset=BaseApproveStatus.objects.all(),
+        choices=(
+            ('RQ', 'ใบขอเบิก'),
+            ('PR', 'ใบขอซื้อ'),
+            ('CP', 'ใบเปรียบเทียบ'),
+            ('PO', 'ใบสั่งซื้อ'),
+        ),
     )
 
     class Meta:
@@ -547,9 +530,12 @@ class AllDetailsFilter(django_filters.FilterSet):
             | Q(product__id__icontains=value)
             | Q(machine__icontains=value)
             | Q(description__icontains=value)
+            | Q(requisit__note__icontains=value)
             | Q(requisit__name__first_name__icontains=value)
             | Q(requisit__name__last_name__icontains=value)
             | Q(comparisonpriceitem__bidder__cp__ref_no__icontains=value)
+            | Q(comparisonpriceitem__cp__in=ComparisonPrice.objects
+               .filter(ref_no__icontains=value).values('id'))
             | Q(comparisonpriceitem__bidder__distributor__name__icontains=value)
             | Q(purchaseorderitem__po__ref_no__icontains=value)
             | Q(purchaseorderitem__po__cp__ref_no__icontains=value)
@@ -558,56 +544,25 @@ class AllDetailsFilter(django_filters.FilterSet):
         )
         return queryset.filter(q).distinct()
 
-    def filter_pr_ref_no(self, queryset, name, value):
-        return queryset.filter(
-            Q(requisit__pr_ref_no__icontains=value)
-            | Q(purchaseorderitem__po__pr__ref_no__icontains=value)
-        ).distinct()
-
-    def filter_cp_ref_no(self, queryset, name, value):
-        return queryset.filter(
-            Q(comparisonpriceitem__bidder__cp__ref_no__icontains=value)
-            | Q(purchaseorderitem__po__cp__ref_no__icontains=value)
-        ).distinct()
-
-    def filter_distributor(self, queryset, name, value):
-        return queryset.filter(
-            Q(comparisonpriceitem__bidder__distributor__name__icontains=value)
-            | Q(purchaseorderitem__po__distributor__name__icontains=value)
-        ).distinct()
-
     def filter_stage(self, queryset, name, value):
-        if value == 'PR':
-            return queryset.filter(requisit__purchaserequisition__isnull=False).distinct()
-        if value == 'CP':
-            return queryset.filter(
-                comparisonpriceitem__isnull=False,
-                comparisonpriceitem__bidder__cp__is_cancel=False,
-            ).distinct()
+        """Match the row's *deepest* reached stage, mirroring _all_details_rows:
+        cancelled PurchaseOrder / ComparisonPrice do not count."""
+        active_cp = ComparisonPrice.objects.filter(is_cancel=False).values('id')
+        has_po = Q(purchaseorderitem__isnull=False,
+                   purchaseorderitem__po__is_cancel=False)
+        has_cp = Q(comparisonpriceitem__isnull=False,
+                   comparisonpriceitem__cp__in=active_cp)
+        has_pr = Q(requisit__purchaserequisition__isnull=False)
         if value == 'PO':
-            return queryset.filter(
-                purchaseorderitem__isnull=False,
-                purchaseorderitem__po__is_cancel=False,
-            ).distinct()
+            return queryset.filter(has_po).distinct()
+        if value == 'CP':
+            return queryset.filter(has_cp).exclude(has_po).distinct()
+        if value == 'PR':
+            return queryset.filter(has_pr).exclude(has_cp).exclude(has_po).distinct()
+        if value == 'RQ':
+            return queryset.exclude(has_pr).exclude(has_cp).exclude(has_po).distinct()
         return queryset
 
 
 AllDetailsFilter.base_filters['search'].label = 'ค้นหา (ใบขอเบิก/ขอซื้อ/เปรียบเทียบ/สั่งซื้อ/สินค้า/ร้านค้า)'
-AllDetailsFilter.base_filters['rq_ref_no'].label = 'เลขที่ใบขอเบิก'
-AllDetailsFilter.base_filters['pr_ref_no'].label = 'เลขที่ใบขอซื้อ'
-AllDetailsFilter.base_filters['cp_ref_no'].label = 'เลขที่ใบเปรียบเทียบ'
-AllDetailsFilter.base_filters['po_ref_no'].label = 'เลขที่ใบสั่งซื้อ'
-AllDetailsFilter.base_filters['requester'].label = 'ผู้ขอเบิก'
-AllDetailsFilter.base_filters['product_name'].label = 'ชื่อสินค้า'
-AllDetailsFilter.base_filters['product_id'].label = 'รหัสสินค้า'
-AllDetailsFilter.base_filters['machine'].label = 'ใช้ในระบบงาน'
-AllDetailsFilter.base_filters['description'].label = 'รายละเอียด'
-AllDetailsFilter.base_filters['distributor'].label = 'ร้านค้า'
-AllDetailsFilter.base_filters['quantity_min'].label = 'จำนวนตั้งแต่'
-AllDetailsFilter.base_filters['quantity_max'].label = 'ถึง'
-AllDetailsFilter.base_filters['amount_min'].label = 'ยอดเงินตั้งแต่'
-AllDetailsFilter.base_filters['amount_max'].label = 'ถึง'
-AllDetailsFilter.base_filters['start_created'].label = 'วันที่ตั้งเบิก'
-AllDetailsFilter.base_filters['end_created'].label = 'ถึง'
-AllDetailsFilter.base_filters['stage'].label = 'ขั้นตอน'
-AllDetailsFilter.base_filters['po_status'].label = 'สถานะใบสั่งซื้อ'
+AllDetailsFilter.base_filters['stage'].label = 'ขั้นตอนล่าสุด'
