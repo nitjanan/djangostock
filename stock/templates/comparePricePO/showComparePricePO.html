@@ -179,13 +179,19 @@
                     <td>{{oldest.item.product_name}} <b class="text-success" style="white-space: pre-line;">{{oldest.description|linebreaksbr}}</b></td>
                     <td class="text-right">{{oldest.quantity |floatformat:"-4"}}</td>
                     <td class="text-center">{{oldest.unit}}</td>
-                        {% for it in itemName %}
-                            {% if oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
-                            <td>{{it.brand}}</td>
-                            <td class="text-right">{% if it.unit_price %}{{it.unit_price |intcomma}}{%else%}{%endif%}</td>
-                            <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
-                            <td class="text-right">{% if it.price %}{{it.price |intcomma}}{%else%}{%endif%}</td>
-                            {% endif %}
+                        {% comment %}
+                        วนตามคอลัมน์ร้านค้า (bidder) แล้วจับคู่เฉพาะรายการของร้านค้านั้น ๆ ด้วย it.bidder_id == bd.id
+                        เพื่อไม่ให้ราคา/สินค้าไปแสดงผิดคอลัมน์เวลาลำดับ queryset ไม่ตรงกัน
+                        {% endcomment %}
+                        {% for bd in bidder %}
+                            {% for it in itemName %}
+                                {% if it.bidder_id == bd.id and oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
+                                <td>{{it.brand}}</td>
+                                <td class="text-right">{% if it.unit_price %}{{it.unit_price |intcomma}}{%else%}{%endif%}</td>
+                                <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
+                                <td class="text-right">{% if it.price %}{{it.price |intcomma}}{%else%}{%endif%}</td>
+                                {% endif %}
+                            {% endfor %}
                         {% endfor %}
                     <td><!-- * --></td>
                 </tr>
