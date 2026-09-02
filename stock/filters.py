@@ -525,6 +525,7 @@ class AllDetailsFilter(django_filters.FilterSet):
             return queryset
         q = (
             Q(requisit__ref_no__icontains=value)
+            | Q(requisit__ma_ref_no__icontains=value)
             | Q(requisit__pr_ref_no__icontains=value)
             | Q(product_name__icontains=value)
             | Q(product__id__icontains=value)
