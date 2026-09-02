@@ -4,17 +4,256 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+<style>
+  /* ===== Dashboard cards — scoped to .dashboard-cards only ===== */
+  .dashboard-cards {
+    --dash-ink: #1f2933;
+    --dash-muted: #6b7583;
+    --dash-line: #e7e9ef;
+    /* per-card theme defaults (overridden by :nth-child rules below) */
+    --accent: #3b82f6;
+    --accent-2: #2563eb;
+    --tint: rgba(59, 130, 246, 0.06);
+    --icon: "\f0f6"; /* fa-file */
+  }
+
+  .dashboard-cards .dash-card {
+    border: 1px solid var(--dash-line);
+    border-top: 3px solid var(--accent);
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, var(--tint) 0%, rgba(255, 255, 255, 0) 55%),
+      #fff;
+    box-shadow:
+      0 1px 2px rgba(31, 41, 51, 0.04),
+      0 8px 20px rgba(31, 41, 51, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .dashboard-cards .dash-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow:
+      0 2px 6px rgba(31, 41, 51, 0.07),
+      0 16px 34px rgba(31, 41, 51, 0.13);
+  }
+
+  /* compact layout: icon chip beside a stacked label + value */
+  .dashboard-cards .mb-3 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .dashboard-cards .dash-card .card-body {
+    padding: 0.6rem 0.8rem;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.65rem;
+    row-gap: 0;
+    align-items: center;
+  }
+
+  /* icon chip — injected without touching markup */
+  .dashboard-cards .dash-card .card-body::before {
+    content: var(--icon);
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 0.9rem;
+    line-height: 1;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    grid-row: 1 / span 2;
+    align-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    box-shadow: 0 5px 12px -4px var(--accent-2);
+    transition: transform 0.2s ease;
+  }
+
+  .dashboard-cards .dash-card:hover .card-body::before {
+    transform: scale(1.06);
+  }
+
+  .dashboard-cards .dash-card__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--dash-muted);
+    letter-spacing: 0.01em;
+  }
+
+  .dashboard-cards .dash-card__value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0;
+    color: var(--dash-ink);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.015em;
+  }
+
+  /* ---- per-card colour palette (soft, harmonious) ---- */
+  .dashboard-cards > [class*="col-"]:nth-child(1) .dash-card {
+    --accent: #3b82f6; --accent-2: #2563eb; --tint: rgba(59, 130, 246, 0.07);
+    --icon: "\f570"; /* file-invoice — requisition */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(2) .dash-card {
+    --accent: #6366f1; --accent-2: #4f46e5; --tint: rgba(99, 102, 241, 0.07);
+    --icon: "\f07a"; /* shopping-cart — purchase request */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(3) .dash-card {
+    --accent: #f59e0b; --accent-2: #d97706; --tint: rgba(245, 158, 11, 0.08);
+    --icon: "\f0db"; /* columns — comparison */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(4) .dash-card {
+    --accent: #10b981; --accent-2: #059669; --tint: rgba(16, 185, 129, 0.07);
+    --icon: "\f46c"; /* clipboard-check — purchase order */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(5) .dash-card {
+    --accent: #14b8a6; --accent-2: #0d9488; --tint: rgba(20, 184, 166, 0.07);
+    --icon: "\f53a"; /* money-bill-wave — subtotal */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(6) .dash-card {
+    --accent: #f97316; --accent-2: #ea580c; --tint: rgba(249, 115, 22, 0.07);
+    --icon: "\f02b"; /* tag — discount */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(7) .dash-card {
+    --accent: #ef4444; --accent-2: #dc2626; --tint: rgba(239, 68, 68, 0.07);
+    --icon: "\f02c"; /* tags — bill-end discount */
+  }
+  .dashboard-cards > [class*="col-"]:nth-child(8) .dash-card {
+    --accent: #8b5cf6; --accent-2: #7c3aed; --tint: rgba(139, 92, 246, 0.08);
+    --icon: "\f555"; /* wallet — grand total */
+  }
+  /* grand total: let the KPI carry the accent colour */
+  .dashboard-cards > [class*="col-"]:nth-child(8) .dash-card__value {
+    color: #6d28d9;
+  }
+
+  @media (max-width: 575.98px) {
+    .dashboard-cards .dash-card .card-body {
+      padding: 0.5rem 0.65rem;
+      column-gap: 0.55rem;
+    }
+    .dashboard-cards .dash-card .card-body::before {
+      width: 30px;
+      height: 30px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+    }
+    .dashboard-cards .dash-card__value {
+      font-size: 1.2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dashboard-cards .dash-card,
+    .dashboard-cards .dash-card .card-body::before {
+      transition: none;
+    }
+    .dashboard-cards .dash-card:hover {
+      transform: none;
+    }
+    .dashboard-cards .dash-card:hover .card-body::before {
+      transform: none;
+    }
+  }
+
+  /* every ref_no rendered bold */
+  table.table td ul.list-unstyled a,
+  .chain-panel__ref,
+  .chain-panel__ref a {
+    font-weight: 700;
+  }
+
+  /* ===== Chain-detail expandable panel ===== */
+  .chain-detail > td {
+    background: #f7f9fc;
+    padding: 0.85rem 1rem;
+  }
+  .chain-panel {
+    border: 1px solid #e3e7ef;
+    border-top: 3px solid var(--stage, #6c757d);
+    border-radius: 10px;
+    background: #fff;
+    height: 100%;
+    overflow: hidden;
+  }
+  .chain-panel--ma { --stage: #6c757d; }
+  .chain-panel--rq { --stage: #007bff; }
+  .chain-panel--pr { --stage: #17a2b8; }
+  .chain-panel--cp { --stage: #ffc107; }
+  .chain-panel--po { --stage: #28a745; }
+  .chain-panel__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid #eef1f6;
+  }
+  .chain-panel__ref {
+    font-weight: 700;
+    font-size: 0.9rem;
+    word-break: break-all;
+  }
+  .chain-panel__body {
+    margin: 0;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  .chain-panel__body > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.12rem 0;
+  }
+  .chain-panel__body dt {
+    color: #8a929e;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .chain-panel__body dd {
+    margin: 0;
+    text-align: right;
+    color: #2b333d;
+    font-variant-numeric: tabular-nums;
+  }
+  .chain-panel__empty {
+    padding: 0.7rem;
+    font-size: 0.8rem;
+    color: #a0a6b0;
+    font-style: italic;
+  }
+  .chain-panel__note {
+    display: block;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed #e6e9f0;
+    color: #6b7280;
+    font-size: 0.78rem;
+    text-align: left;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid my-3 px-3">
   <h3 align="center">รายละเอียดการจัดซื้อทั้งหมด</h3>
-
-  <div class="row my-3">
+  <div class="row mt-4 dashboard-cards">
     {% for card in dashboard_cards %}
-    <div class="col-6 col-md-3 mb-2">
-      <div class="card div-shadow text-center">
-        <div class="card-body py-2">
-          <div class="text-muted small">{{ card.label }}</div>
-          <div class="h4 mb-0">{{ card.value|intcomma }}</div>
+    <div class="col-6 col-md-3 mb-3">
+      <div class="card dash-card h-100">
+        <div class="card-body">
+          <div class="dash-card__label">{{ card.label }}</div>
+          <div class="dash-card__value">{{ card.value|intcomma }}</div>
         </div>
       </div>
     </div>
@@ -51,7 +290,7 @@
               <th>ผู้ขอเบิก / แผนก</th><th>รายการ</th>
               <th>ใช้ในระบบงาน (ใบเบิก)</th><th>หมายเหตุ (ใบเบิก)</th>
               <!--th>รายการเปรียบเทียบ</th--><th>ร้านค้า</th>
-              <th>จำนวน</th><th class="text-right">ราคาต่อหน่วย</th>
+              <th>จำนวน × ราคาต่อหน่วย</th><th class="text-right">รวมเป็นเงิน</th>
               <th>จัดการ</th>
             </tr>
           </thead>
@@ -60,6 +299,7 @@
             <tr>
               <td>
                 <ul class="list-unstyled mb-0">
+                  {% if row.requisition.ma_ref_no %}<li class="mb-1 text-nowrap"><span class="badge badge-secondary">MA</span> {% if row.requisition.ma_id %}<a href="{% url 'showMA' row.requisition.ma_id 4 %}">{{ row.requisition.ma_ref_no }}</a>{% else %}{{ row.requisition.ma_ref_no }}{% endif %}</li>{% endif %}
                   <li class="mb-1 text-nowrap"><span class="badge badge-primary">RQ</span> {% if row.requisition %}<a href="{% url 'showRequisition' row.requisition.id 4 %}">{{ row.requisition.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
                   <li class="mb-1 text-nowrap"><span class="badge badge-info">PR</span> {% for pr in row.purchase_reqs %}<a href="{% url 'showPR' pr.id 4 %}">{{ pr.ref_no }}</a>{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</li>
                   <li class="mb-1 text-nowrap"><span class="badge badge-warning">CP</span> {% if row.comparison_price %}<a href="{% url 'showComparePricePO' row.comparison_price.id 4 %}">{{ row.comparison_price.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
@@ -83,17 +323,142 @@
               <td>{% if row.distributor %}{{ row.distributor.name }}{% if row.is_selected_distributor %} <span class="badge badge-success">เลือก</span>{% endif %}{% else %}-{% endif %}</td>
               <td>{% if row.po_item %}{{ row.po_item.quantity }} × {{ row.po_item.unit_price|intcomma }}{% else %}-{% endif %}</td>
               <td class="text-right">{% if row.amount != None %}{{ row.amount|intcomma }}{% else %}-{% endif %}</td>
-              <td><button type="button" class="btn btn-sm btn-outline-info chain-toggle">ดูสายงาน</button></td>
+              <td><button type="button" class="btn btn-sm btn-outline-info chain-toggle">รายละเอียด</button></td>
             </tr>
             <tr class="chain-detail" hidden>
               <td colspan="12">
-                <ul class="mb-0">
-                  <li>{{ row.requisition.ref_no|default:"-" }}</li>
-                  {% for pr in row.purchase_reqs %}<li>{{ pr.ref_no }}</li>{% endfor %}
-                  <li>{{ row.comparison_price.ref_no|default:"-" }}</li>
-                  <li>{{ row.distributor.name|default:"-" }}</li>
-                  <li>{{ row.purchase_order.ref_no|default:"-" }}</li>
-                </ul>
+                <div class="row">
+
+                  {% if row.requisition.ma_ref_no %}
+                  {# ---- MA : ใบแจ้งซ่อม ---- #}
+                  <div class="col-12 col-md-6 col-lg-3 mb-2">
+                    <div class="chain-panel chain-panel--ma">
+                      <div class="chain-panel__head">
+                        <span class="badge badge-secondary">MA</span>
+                        <span class="chain-panel__ref">
+                          {% if row.requisition.ma_id %}<a href="{% url 'showMA' row.requisition.ma_id 4 %}">{{ row.requisition.ma_ref_no }}</a>{% else %}{{ row.requisition.ma_ref_no }}{% endif %}
+                        </span>
+                      </div>
+                      <dl class="chain-panel__body">
+                        <div><dt>เลขที่ใบแจ้งซ่อม</dt><dd>{{ row.requisition.ma_ref_no }}</dd></div>
+                        <div><dt>รถ/เครื่องจักร</dt><dd>{{ row.requisition.car.name|default:row.item.machine|default:"-" }}</dd></div>
+                      </dl>
+                    </div>
+                  </div>
+                  {% endif %}
+
+                  {# ---- RQ : ใบขอเบิก ---- #}
+                  <div class="col-12 col-md-6 col-lg-3 mb-2">
+                    <div class="chain-panel chain-panel--rq">
+                      <div class="chain-panel__head">
+                        <span class="badge badge-primary">RQ</span>
+                        <span class="chain-panel__ref">
+                          {% if row.requisition %}<a href="{% url 'showRequisition' row.requisition.id 4 %}">{{ row.requisition.ref_no|default:"-" }}</a>{% else %}-{% endif %}
+                        </span>
+                      </div>
+                      {% if row.requisition %}
+                      <dl class="chain-panel__body">
+                        <div><dt>วันที่สร้าง</dt><dd>{{ row.requisition.created|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>วันที่ต้องการ</dt><dd>{{ row.item.desired_date|default:row.requisition.desired_date|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>ความเร่งด่วน</dt><dd>{{ row.requisition.urgency.name|default:"-" }}</dd></div>
+                        <div><dt>ประเภท</dt><dd>{{ row.requisition.rq_type.name|default:"-" }}</dd></div>
+                        <div><dt>รถ/เครื่องจักร</dt><dd>{{ row.requisition.car.name|default:row.item.machine|default:"-" }}</dd></div>
+                        <div><dt>ผู้ขอเบิก</dt><dd>{{ row.requisition.name.get_full_name|default:row.requisition.name.username }}</dd></div>
+                        <div><dt>แผนก</dt><dd>{{ row.requisition.section.name|default:"-" }}</dd></div>
+                        <div><dt>จำนวนขอเบิก</dt><dd>{{ row.item.quantity|default:"-" }} {{ row.item.unit|default:"" }}</dd></div>
+                        {% if row.requisition.note %}<span class="chain-panel__note">{{ row.requisition.note }}</span>{% endif %}
+                      </dl>
+                      {% else %}<div class="chain-panel__empty">ไม่มีข้อมูล</div>{% endif %}
+                    </div>
+                  </div>
+
+                  {# ---- PR : ใบขอซื้อ ---- #}
+                  <div class="col-12 col-md-6 col-lg-3 mb-2">
+                    <div class="chain-panel chain-panel--pr">
+                      <div class="chain-panel__head">
+                        <span class="badge badge-info">PR</span>
+                        <span class="chain-panel__ref">
+                          {% for pr in row.purchase_reqs %}<a href="{% url 'showPR' pr.id 4 %}">{{ pr.ref_no }}</a>{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}
+                        </span>
+                      </div>
+                      {% if row.purchase_reqs %}
+                      {% for pr in row.purchase_reqs %}
+                      <dl class="chain-panel__body">
+                        {% if not forloop.first %}<div><dt>เลขที่</dt><dd>{{ pr.ref_no }}</dd></div>{% endif %}
+                        <div><dt>วันที่สร้าง</dt><dd>{{ pr.created|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>สถานะอนุมัติ</dt><dd>{{ pr.approver_status.name|default:"-" }}</dd></div>
+                        <div><dt>วันที่อนุมัติ</dt><dd>{{ pr.approver_update|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>ผู้จัดทำ</dt><dd>{% if pr.organizer %}{{ pr.organizer.get_full_name|default:pr.organizer.username }}{% else %}-{% endif %}</dd></div>
+                        {% if pr.note %}<span class="chain-panel__note">{{ pr.note }}</span>{% endif %}
+                      </dl>
+                      {% endfor %}
+                      {% else %}<div class="chain-panel__empty">ยังไม่มีใบขอซื้อ</div>{% endif %}
+                    </div>
+                  </div>
+
+                  {# ---- CP : ใบเปรียบเทียบราคา ---- #}
+                  <div class="col-12 col-md-6 col-lg-3 mb-2">
+                    <div class="chain-panel chain-panel--cp">
+                      <div class="chain-panel__head">
+                        <span class="badge badge-warning">CP</span>
+                        <span class="chain-panel__ref">
+                          {% if row.comparison_price %}<a href="{% url 'showComparePricePO' row.comparison_price.id 4 %}">{{ row.comparison_price.ref_no|default:"-" }}</a>{% else %}-{% endif %}
+                        </span>
+                      </div>
+                      {% if row.comparison_price %}
+                      <dl class="chain-panel__body">
+                        <div><dt>วันที่สร้าง</dt><dd>{{ row.comparison_price.created|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>สถานะอนุมัติ</dt><dd>{{ row.comparison_price.approver_status.name|default:"-" }}</dd></div>
+                        <div><dt>ผู้จัดทำ</dt><dd>{% if row.comparison_price.organizer %}{{ row.comparison_price.organizer.get_full_name|default:row.comparison_price.organizer.username }}{% else %}-{% endif %}</dd></div>
+                        <div><dt>ร้านที่เลือก</dt><dd>{{ row.comparison_price.select_bidder.name|default:"-" }}</dd></div>
+                        {% if row.comparison_item %}
+                        <div><dt>ยี่ห้อ</dt><dd>{{ row.comparison_item.brand|default:"-" }}</dd></div>
+                        <div><dt>จำนวน</dt><dd>{{ row.comparison_item.quantity|default:"-" }} {{ row.comparison_item.unit.name|default:"" }}</dd></div>
+                        <div><dt>ราคา/หน่วย</dt><dd>{{ row.comparison_item.unit_price|intcomma|default:"-" }}</dd></div>
+                        <div><dt>ส่วนลด</dt><dd>{{ row.comparison_item.discount|default:"-" }}</dd></div>
+                        <div><dt>รวมเป็นเงิน</dt><dd>{{ row.comparison_item.price|intcomma|default:"-" }}</dd></div>
+                        {% endif %}
+                        {% if row.comparison_price.note %}<span class="chain-panel__note">{{ row.comparison_price.note }}</span>{% endif %}
+                      </dl>
+                      {% else %}<div class="chain-panel__empty">ยังไม่มีใบเปรียบเทียบ</div>{% endif %}
+                    </div>
+                  </div>
+
+                  {# ---- PO : ใบสั่งซื้อ ---- #}
+                  <div class="col-12 col-md-6 col-lg-3 mb-2">
+                    <div class="chain-panel chain-panel--po">
+                      <div class="chain-panel__head">
+                        <span class="badge badge-success">PO</span>
+                        <span class="chain-panel__ref">
+                          {% if row.purchase_order %}<a href="{% url 'showPO' row.purchase_order.id 4 %}">{{ row.purchase_order.ref_no|default:"-" }}</a>{% else %}-{% endif %}
+                        </span>
+                      </div>
+                      {% if row.purchase_order %}
+                      <dl class="chain-panel__body">
+                        <div><dt>วันที่สร้าง</dt><dd>{{ row.purchase_order.created|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>สถานะอนุมัติ</dt><dd>{{ row.purchase_order.approver_status.name|default:"-" }}</dd></div>
+                        <div><dt>วันที่อนุมัติ</dt><dd>{{ row.purchase_order.approver_update|date:"d/m/Y"|default:"-" }}</dd></div>
+                        <div><dt>ร้านค้า</dt><dd>{{ row.distributor.name|default:"-" }}{% if row.is_selected_distributor %} ✓{% endif %}</dd></div>
+                        <div><dt>เครดิต</dt><dd>{{ row.purchase_order.credit.name|default:"-" }}</dd></div>
+                        <div><dt>การจัดส่ง</dt><dd>{{ row.purchase_order.delivery.name|default:"-" }}</dd></div>
+                        {% if row.po_item %}
+                        <div><dt>จำนวน</dt><dd>{{ row.po_item.quantity|default:"-" }} {{ row.po_item.unit.name|default:"" }}</dd></div>
+                        <div><dt>ราคา/หน่วย</dt><dd>{{ row.po_item.unit_price|intcomma|default:"-" }}</dd></div>
+                        <div><dt>ส่วนลดสินค้า</dt><dd>{{ row.po_item.discount|default:"-" }}</dd></div>
+                        <div><dt>รวมรายการ</dt><dd>{{ row.po_item.price|intcomma|default:"-" }}</dd></div>
+                        {% endif %}
+                        <div><dt>รวมเป็นเงิน</dt><dd>{{ row.purchase_order.total_price|intcomma|default:"-" }}</dd></div>
+                        <div><dt>ส่วนลดท้ายบิล</dt><dd>{{ row.purchase_order.discount|default:"-" }}</dd></div>
+                        <div><dt>ภาษี</dt><dd>{{ row.purchase_order.vat|intcomma|default:"-" }}</dd></div>
+                        <div><dt>จำนวนเงินทั้งสิ้น</dt><dd>{{ row.purchase_order.amount|intcomma|default:"-" }}</dd></div>
+                        <div><dt>รับของแล้ว</dt><dd>{% if row.purchase_order.is_receive %}ใช่ ({{ row.purchase_order.receive_update|date:"d/m/Y" }}){% else %}ยัง{% if row.purchase_order.due_receive_update %} (กำหนด {{ row.purchase_order.due_receive_update|date:"d/m/Y" }}){% endif %}{% endif %}</dd></div>
+                        {% if row.purchase_order.note %}<span class="chain-panel__note">{{ row.purchase_order.note }}</span>{% endif %}
+                      </dl>
+                      {% else %}<div class="chain-panel__empty">ยังไม่มีใบสั่งซื้อ</div>{% endif %}
+                    </div>
+                  </div>
+
+                </div>
               </td>
             </tr>
           {% empty %}

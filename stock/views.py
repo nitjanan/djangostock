@@ -5171,7 +5171,8 @@ def viewAllDetailsReport(request):
 
     base = (RequisitionItem.objects
             .filter(requisit__branch_company__code__in=company_in)
-            .select_related('requisit', 'requisit__name', 'requisit__section', 'product')
+            .select_related('requisit', 'requisit__name', 'requisit__section', 'product',
+                            'requisit__urgency', 'requisit__rq_type', 'requisit__car')
             .order_by('-requisit__ref_no', '-id'))
 
     myFilter = AllDetailsFilter(request.GET, queryset=base)
@@ -5183,10 +5184,9 @@ def viewAllDetailsReport(request):
         {'label': 'ใบเปรียบเทียบ', 'value': dashboard['comparison_prices']},
         {'label': 'ใบสั่งซื้อ', 'value': dashboard['purchase_orders']},
         {'label': 'รวมเป็นเงิน', 'value': dashboard['po_total_price']},
-        {'label': 'ส่วนลด', 'value': dashboard['po_discount']},
-       # {'label': 'หลังหักส่วนลด', 'value': dashboard['po_total_after_discount']},
-        {'label': 'ภาษี', 'value': dashboard['po_vat']},
-        {'label': 'จำนวนเงินทั้งสิ้น', 'value': dashboard['amount']},
+        {'label': 'ส่วนลด', 'value': dashboard['po_item_discount']},
+        {'label': 'ส่วนลดท้ายบิล', 'value': dashboard['po_discount']},
+        {'label': 'จำนวนเงินทั้งสิ้นรวม vat7%', 'value': dashboard['amount']},
     ]
 
     p = Paginator(qs, 10)
@@ -5226,6 +5226,21 @@ def _all_details_dashboard(qs):
               .filter(item_id__in=item_ids, po__is_cancel=False)
               .aggregate(po_items=Count('id'),
                          purchase_orders=Count('po', distinct=True)))
+    # PurchaseOrderItem.discount is a free-text CharField holding either a
+    # decimal amount or a "%" value; sum only the plain decimal entries.
+    po_item_discount = 0
+    for raw in (PurchaseOrderItem.objects
+                .filter(item_id__in=item_ids, po__is_cancel=False)
+                .values_list('discount', flat=True)):
+        if not raw:
+            continue
+        s = str(raw).strip()
+        if s.endswith('%'):
+            continue
+        try:
+            po_item_discount += float(s.replace(',', ''))
+        except ValueError:
+            continue
     # Money totals: PurchaseOrder header (deduped, non-cancelled) ...
     po_money = (PurchaseOrder.objects
                 .filter(purchaseorderitem__item_id__in=item_ids, is_cancel=False)
@@ -5271,6 +5286,7 @@ def _all_details_dashboard(qs):
         'po_items': po_agg['po_items'],
         'po_total_price': tp,
         'po_discount': tp - tad,
+        'po_item_discount': po_item_discount,
         'po_total_after_discount': tad,
         'po_vat': _tot('vat'),
         'amount': _tot('amount'),
@@ -5288,20 +5304,22 @@ def _all_details_rows(items):
               .filter(item_id__in=item_ids)
               .exclude(po__is_cancel=True)
               .select_related('po', 'po__cp', 'po__pr', 'po__distributor',
-                              'po__approver_status', 'unit')
+                              'po__approver_status', 'po__credit', 'po__delivery', 'unit')
               .order_by('id'))
     cancelled_cp_ids = set(
         ComparisonPrice.objects.filter(is_cancel=True).values_list('id', flat=True)
     )
     cpi_qs = (ComparisonPriceItem.objects
               .filter(item_id__in=item_ids)
-              .select_related('bidder', 'bidder__distributor', 'unit')
+              .select_related('bidder', 'bidder__distributor', 'unit',
+                              'bidder__cp')
               .order_by('id'))
     cpi_qs = [cpi for cpi in cpi_qs if cpi.cp not in cancelled_cp_ids]
     # Resolve the parent ComparisonPrice via the `cp` integer column (the link the
     # rest of the codebase uses); `bidder.cp` is only a fallback when `cp` is unset.
     cp_ids = {cpi.cp for cpi in cpi_qs if cpi.cp}
-    cp_by_id = {c.id: c for c in ComparisonPrice.objects.filter(id__in=cp_ids)}
+    cp_by_id = {c.id: c for c in ComparisonPrice.objects.filter(id__in=cp_ids)
+                .select_related('approver_status', 'select_bidder', 'organizer')}
 
     def _cpi_cp(cpi):
         if cpi is None:
@@ -5316,6 +5334,7 @@ def _all_details_rows(items):
 
     pr_qs = (PurchaseRequisition.objects
              .filter(requisition_id__in=req_ids)
+             .select_related('approver_status', 'organizer')
              .order_by('id'))
 
     poi_by_item = defaultdict(list)
