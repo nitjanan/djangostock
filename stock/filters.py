@@ -502,3 +502,68 @@ CarLogbookFilter.base_filters['start_created'].label = 'วันที่ใช
 CarLogbookFilter.base_filters['end_created'].label = 'ถึง'
 CarLogbookFilter.base_filters['car'].label = 'ทะเบียนรถ'
 CarLogbookFilter.base_filters['name'].label = 'ชื่อผู้ใช้รถ'
+
+
+class AllDetailsFilter(django_filters.FilterSet):
+    search = django_filters.CharFilter(method='filter_search')
+    stage = django_filters.ChoiceFilter(
+        method='filter_stage',
+        choices=(
+            ('RQ', 'ใบขอเบิก'),
+            ('PR', 'ใบขอซื้อ'),
+            ('CP', 'ใบเปรียบเทียบ'),
+            ('PO', 'ใบสั่งซื้อ'),
+        ),
+    )
+
+    class Meta:
+        model = RequisitionItem
+        fields = []
+
+    def filter_search(self, queryset, name, value):
+        if not value:
+            return queryset
+        q = (
+            Q(requisit__ref_no__icontains=value)
+            | Q(requisit__ma_ref_no__icontains=value)
+            | Q(requisit__pr_ref_no__icontains=value)
+            | Q(product_name__icontains=value)
+            | Q(product__id__icontains=value)
+            | Q(machine__icontains=value)
+            | Q(description__icontains=value)
+            | Q(requisit__note__icontains=value)
+            | Q(requisit__name__first_name__icontains=value)
+            | Q(requisit__name__last_name__icontains=value)
+            | Q(comparisonpriceitem__bidder__cp__ref_no__icontains=value)
+            | Q(comparisonpriceitem__cp__in=ComparisonPrice.objects
+               .filter(ref_no__icontains=value).values('id'))
+            | Q(comparisonpriceitem__bidder__distributor__name__icontains=value)
+            | Q(purchaseorderitem__po__ref_no__icontains=value)
+            | Q(purchaseorderitem__po__cp__ref_no__icontains=value)
+            | Q(purchaseorderitem__po__pr__ref_no__icontains=value)
+            | Q(purchaseorderitem__po__distributor__name__icontains=value)
+        )
+        return queryset.filter(q).distinct()
+
+    def filter_stage(self, queryset, name, value):
+        """Match the row's *deepest* reached stage, mirroring _all_details_rows:
+        cancelled PurchaseOrder / ComparisonPrice do not count."""
+        active_cp = ComparisonPrice.objects.filter(is_cancel=False).values('id')
+        has_po = Q(purchaseorderitem__isnull=False,
+                   purchaseorderitem__po__is_cancel=False)
+        has_cp = Q(comparisonpriceitem__isnull=False,
+                   comparisonpriceitem__cp__in=active_cp)
+        has_pr = Q(requisit__purchaserequisition__isnull=False)
+        if value == 'PO':
+            return queryset.filter(has_po).distinct()
+        if value == 'CP':
+            return queryset.filter(has_cp).exclude(has_po).distinct()
+        if value == 'PR':
+            return queryset.filter(has_pr).exclude(has_cp).exclude(has_po).distinct()
+        if value == 'RQ':
+            return queryset.exclude(has_pr).exclude(has_cp).exclude(has_po).distinct()
+        return queryset
+
+
+AllDetailsFilter.base_filters['search'].label = 'ค้นหา (ใบขอเบิก/ขอซื้อ/เปรียบเทียบ/สั่งซื้อ/สินค้า/ร้านค้า)'
+AllDetailsFilter.base_filters['stage'].label = 'ขั้นตอนล่าสุด'

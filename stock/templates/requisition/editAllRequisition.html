@@ -10,20 +10,24 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 
 <style>
+/* Select2: fill parent width like a Bootstrap .form-control */
+.select2-container{display:block !important;width:100% !important;max-width:100% !important;box-sizing:border-box;}
+.select2-container > .selection,
+.select2-container .select2-selection,
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
+.input-group > .select2-container{flex:1 1 auto;width:1% !important;}
+
 @media print {
     .hidden-print {
     display: none;
     }
 }
 
-/* When inside col-12 */
-.form-group .select2-container .select2-selection--single {
-  width: 55.5vw !important;
-}
-
-/* When inside col-6 */
+/* Fill the parent column / form-group width */
+.form-group .select2-container .select2-selection--single,
 .col-md-6 .select2-container .select2-selection--single {
-  width: 27.4vw !important;
+  width: 100% !important;
 }
 
 /* Adjust the Select2 container */
@@ -1116,10 +1120,10 @@ $("#rName").change(function() {
 
     //after load
     $(document).ready(function() {
-        $('#id_name').select2();
-        $('#id_chief_approve_user_name').select2();
-        $('#id_repair_type').select2();
-        $('#id_expense_dept').select2();
+        $('#id_name').select2({ width: '100%' });
+        $('#id_chief_approve_user_name').select2({ width: '100%' });
+        $('#id_repair_type').select2({ width: '100%' });
+        $('#id_expense_dept').select2({ width: '100%' });
 
         //เส้น
         $('#div_id_expense_dept').after("<hr class='my-4' style='border: 1px solid #7DCEA0; border-radius: 1px;'>");
