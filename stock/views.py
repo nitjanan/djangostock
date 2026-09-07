@@ -2102,6 +2102,32 @@ def setDataProductExpress(request):
     }
     return JsonResponse(data)
 
+def findComparisonPriceAmountPermissionPosition(cpd, codenames, company_in):
+    '''
+    หา position ที่มีสิทธิตรวจสอบ/อนุมัติใบเปรียบเทียบตามช่วงยอดเงิน โดยยึด "บริษัท" เป็นเกณฑ์ด้วย
+
+    BasePermission ไม่มีฟิลด์บริษัท ความสัมพันธ์กับบริษัทอยู่ที่ PositionBasePermission.branch_company
+    ดังนั้นต้องกรอง codename + ช่วงยอดเงิน + บริษัท บนแถว PositionBasePermission เดียวกัน
+    เพื่อไม่ให้สิทธิของบริษัทอื่นที่ช่วงยอดเงินซ้อนทับกันถูกเลือกมาผิด (เช่น CAECP5/CAACP5 ของบริษัท 09
+    ที่ช่วงยอดเงินซ้อนกับ CAECP2/CAACP2 ของบริษัทอื่น)
+    '''
+    # ใช้บริษัทของใบเปรียบเทียบเป็นเกณฑ์ ถ้าไม่มีค่อย fallback เป็นบริษัทที่ผู้ใช้มองเห็น
+    cp_company_code = None
+    if cpd.cp is not None and cpd.cp.branch_company is not None:
+        cp_company_code = cpd.cp.branch_company.code
+
+    if cp_company_code:
+        branch_filter = Q(branch_company__code = cp_company_code)
+    else:
+        branch_filter = Q(branch_company__code__in = company_in)
+
+    return PositionBasePermission.objects.filter(
+        branch_filter,
+        base_permission__codename__in = codenames,
+        base_permission__ap_amount_min__lte = cpd.amount,
+        base_permission__ap_amount_max__gte = cpd.amount,
+    ).values('position_id')
+
 def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
     active = request.session.get('company_code', 'ALL')
 
@@ -2118,8 +2144,11 @@ def findExaminerUserComparisonPrice(request, cpd_id, cm_type):
             permiss = BasePermission.objects.get(codename = 'CAECPA')
         position = PositionBasePermission.objects.filter(base_permission = permiss.id, branch_company__code__in = company_in).values('position_id')
     else:
-        permiss = BasePermission.objects.filter(ap_amount_min__lte = cpd.amount , ap_amount_max__gte = cpd.amount, codename__in = ['CAECP1','CAECP2','CAECP3','CAECP4']).values('id')
-        position = PositionBasePermission.objects.filter(base_permission__in = permiss, branch_company__code__in = company_in).values('position_id')
+        position = findComparisonPriceAmountPermissionPosition(
+            cpd,
+            ['CAECP1','CAECP2','CAECP3','CAECP4','CAECP5','CAECP6'],
+            company_in,
+        )
     user = UserProfile.objects.filter(position__in = position, branch_company__code = active).values('user__id', 'user__first_name','user__last_name')
 
     return user
@@ -2139,9 +2168,12 @@ def findApproveUserComparisonPrice(request, cpd_id, cm_type):
         elif cm_type == '2':
             permiss = BasePermission.objects.get(codename = 'CAACPA')
         position = PositionBasePermission.objects.filter(base_permission = permiss.id, branch_company__code__in = company_in).values('position_id')
-    else: 
-        permiss = BasePermission.objects.filter(ap_amount_min__lte = cpd.amount , ap_amount_max__gte = cpd.amount, codename__in= ['CAACP1','CAACP2','CAACP3','CAACP4']).values('id')
-        position = PositionBasePermission.objects.filter(base_permission__in = permiss, branch_company__code__in = company_in).values('position_id')
+    else:
+        position = findComparisonPriceAmountPermissionPosition(
+            cpd,
+            ['CAACP1','CAACP2','CAACP3','CAACP4','CAACP5','CAACP6'],
+            company_in,
+        )
     user = UserProfile.objects.filter(position__in = position, branch_company__code = active).values('user__id', 'user__first_name','user__last_name')
 
     return user

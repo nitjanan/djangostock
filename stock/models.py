@@ -1024,6 +1024,7 @@ class BaseMAType(models.Model):
 
 
 class PositionBasePermission(models.Model):
+    user = models.ForeignKey(User, on_delete = models.CASCADE, null=True, blank=True, verbose_name="ผู้ใช้")
     position = models.ForeignKey(Position, on_delete = models.CASCADE, verbose_name="ตำแหน่งงาน")
     base_permission = models.ManyToManyField(BasePermission, verbose_name="สิทธิการทำงาน")
     branch_company = models.ManyToManyField(BaseBranchCompany,verbose_name="สิทธิการอนุมัติตามบริษัท")

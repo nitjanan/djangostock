@@ -1,0 +1,39 @@
+/*
+ * PositionBasePermission admin add/change form
+ * - related-widget-wrapper (FK fields) : บรรทัดละ 1 ฟิลด์
+ * - base_permission (CheckboxSelectMultiple) : บรรทัดละ 1 รายการ ข้อความที่ตัดบรรทัดจัดให้ตรงแนว
+ * หมายเหตุ: ใน Django admin div เดียวมีทั้ง class "form-row" และ "field-<name>" จึงต้องเขียนติดกัน
+ */
+
+/* แต่ละ related-widget-wrapper ขึ้นบรรทัดใหม่ */
+.form-row .related-widget-wrapper {
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* base_permission : บรรทัดละ 1 รายการ */
+.form-row.field-base_permission ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.form-row.field-base_permission ul li {
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* ข้อความอยู่ภายใน <label> ถัดจาก <input> ทำ hang-indent ให้บรรทัดที่ตัดตรงแนวข้อความบรรทัดแรก */
+.form-row.field-base_permission ul li label {
+    display: block;
+    font-weight: normal;
+    line-height: 1.35;
+    padding-left: 22px;
+    text-indent: -22px;
+}
+
+.form-row.field-base_permission ul li label input[type="checkbox"] {
+    margin-right: 6px;
+    text-indent: 0;
+    vertical-align: -2px;
+}
