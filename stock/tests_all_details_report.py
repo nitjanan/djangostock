@@ -15,7 +15,10 @@ from stock.models import (
 URL_NAME = "viewAllDetailsReport"
 
 
-class AllDetailsReportTests(TestCase):
+class _AllDetailsBase(TestCase):
+    """Shared fixture + `_build_chain` helper for the all-details report and its
+    Excel export. Holds no tests of its own."""
+
     @classmethod
     def setUpTestData(cls):
         cls.branch = BaseBranchCompany.objects.create(id="1", code="HO", name="Head Office")
@@ -156,6 +159,8 @@ class AllDetailsReportTests(TestCase):
             ))
         return out
 
+
+class AllDetailsReportTests(_AllDetailsBase):
     # ----- Task 1 test -----
     def test_page_loads_empty_db(self):
         resp = self.client.get(reverse(URL_NAME))
@@ -339,6 +344,17 @@ class AllDetailsReportTests(TestCase):
         self.assertEqual(keys, sorted(keys, reverse=True))
         self.assertEqual(keys[0][0], "RQ-B")
 
+    def test_rows_ordered_by_stage_date_desc(self):
+        import datetime as _dt
+        po_c = self._build_chain(stage="PO", rq_ref="RQ-OLD", pr_ref="PR-OLD",
+                                 cp_ref="CP-OLD", po_ref="PO-OLD", product_code="OD1")
+        pr_c = self._build_chain(stage="PR", rq_ref="RQ-NEW", pr_ref="PR-NEW",
+                                 product_code="ND1")
+        PurchaseOrder.objects.filter(id=po_c["po"].id).update(created=_dt.date(2020, 1, 1))
+        PurchaseRequisition.objects.filter(id=pr_c["pr"].id).update(created=_dt.date(2025, 12, 31))
+        rows = self.client.get(reverse(URL_NAME)).context["rows"]
+        self.assertEqual([r["requisition"].ref_no for r in rows], ["RQ-NEW", "RQ-OLD"])
+
     def test_stage_filter_combines_with_search(self):
         self._build_chain(stage="PO", rq_ref="REQ-C1", pr_ref="PR-C1", cp_ref="CP-C1",
                           po_ref="PO-C1", product_code="SC1", product_name="Router")
@@ -478,6 +494,16 @@ class AllDetailsReportTests(TestCase):
             refs = {r["requisition"].ref_no for r in resp.context["rows"]}
             self.assertEqual(refs, {"REQ-A-1"}, msg=f"search={term!r}")
 
+    def test_store_search_hides_sibling_bidders_of_same_comparison(self):
+        """Searching a store name must show only that store's branch rows, not
+        every other bidder on the same comparison sheet."""
+        self._build_chain(stage="CP", rq_ref="REQ-BID", pr_ref="PR-BID",
+                          cp_ref="CP-BID", product_code="BID1",
+                          distributor_name="Kasikorn", n_bidders=3)
+        resp = self.client.get(reverse(URL_NAME), {"search": "bidder 1"})
+        stores = [r["distributor"].name for r in resp.context["rows"] if r["distributor"]]
+        self.assertEqual(stores, ["Kasikorn bidder 1"])
+
     def test_company_scope_excludes_other_branch(self):
         self._build_chain(code="BR", rq_ref="REQ-BR", pr_ref="PR-BR", product_code="BR1",
                           stage="PR")
@@ -572,3 +598,75 @@ class AllDetailsReportTests(TestCase):
         self.assertContains(resp, "<th>ผู้ขอเบิก / แผนก</th>")
         self.assertContains(resp, "Somchai Jaidee")   # requester full name
         self.assertContains(resp, "ฝ่ายจัดซื้อกลาง")     # department name
+
+
+EXPORT_URL_NAME = "viewAllDetailsReportExport"
+
+_XLSX_CT = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+class AllDetailsReportExportTests(_AllDetailsBase):
+    """Excel export of the all-details report. Reuses the shared fixture
+    helper (`_build_chain`) and login/session setup."""
+
+    def _load_sheet(self, resp):
+        from io import BytesIO
+        import openpyxl
+        wb = openpyxl.load_workbook(BytesIO(resp.content))
+        ws = wb.active
+        return [list(r) for r in ws.iter_rows(values_only=True)]
+
+    def test_export_empty_db_has_only_header_row(self):
+        resp = self.client.get(reverse(EXPORT_URL_NAME))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], _XLSX_CT)
+        self.assertIn("attachment; filename=All_Details_Report_(HO).xlsx",
+                      resp["Content-Disposition"])
+        grid = self._load_sheet(resp)
+        self.assertEqual(len(grid), 1)                       # header only
+        self.assertEqual(grid[0][0], "เอกสาร: MA")
+        self.assertIn("ขั้นตอน", grid[0])
+        # chain-detail fields added since the first export version
+        for h in ("MA เลขที่ใบแจ้งซ่อม", "MA สภาพรถ", "MA ช่างซ่อม", "MA รายละเอียด",
+                  "RQ วันที่ต้องการ", "RQ ผู้ขอเบิก", "RQ หมายเหตุ",
+                  "PR พัสดุ (ผู้รับเรื่อง)", "PR ฝ่ายจัดซื้อ", "PR สถานะจัดซื้อ",
+                  "PR ผู้อนุมัติ", "PR ซื้อครบแล้ว", "CP หมายเหตุ", "PO หมายเหตุ"):
+            self.assertIn(h, grid[0])
+        # removed columns from the first export version must be gone
+        for gone in ("PR สถานะอนุมัติ", "PR ผู้จัดทำ", "RQ หน่วย", "เลือกร้านนี้"):
+            self.assertNotIn(gone, grid[0])
+        # no duplicate headers
+        self.assertEqual(len(grid[0]), len(set(grid[0])))
+
+    def test_export_row_carries_all_stage_details(self):
+        self._build_chain(stage="PO", rq_ref="REQ-XL", pr_ref="PR-XL",
+                          cp_ref="CP-XL", po_ref="PO-XL", product_code="XL1",
+                          product_name="Cable", ma_ref_no="MA-XL-1", ma_id=777)
+        grid = self._load_sheet(self.client.get(reverse(EXPORT_URL_NAME)))
+        self.assertEqual(len(grid), 2)
+        header, row = grid[0], grid[1]
+        cell = dict(zip(header, row))
+        self.assertEqual(cell["ขั้นตอน"], "PO")
+        self.assertEqual(cell["MA เลขที่ใบแจ้งซ่อม"], "MA-XL-1")
+        self.assertEqual(cell["RQ เลขที่"], "REQ-XL")
+        self.assertEqual(cell["PR เลขที่"], "PR-XL")
+        self.assertEqual(cell["CP เลขที่"], "CP-XL")
+        self.assertEqual(cell["PO เลขที่"], "PO-XL")
+        self.assertEqual(cell["รายการ"], "Cable")
+        self.assertEqual(cell["รวมเป็นเงิน"], 1000.0)
+        # PR panel columns mirror the current chain-detail (no approver_status/organizer)
+        self.assertEqual(cell["PR พัสดุ (ผู้รับเรื่อง)"], "-")
+        self.assertEqual(cell["PR ซื้อครบแล้ว"], "ยัง")
+        # CP / PO detail values land in the right columns
+        self.assertEqual(cell["CP ยี่ห้อ"], "BRAND-SEL")
+        self.assertEqual(cell["PO ร้านค้า"], "ABC Company ✓")
+
+    def test_export_honours_active_filter(self):
+        self._build_chain(stage="PO", rq_ref="REQ-K1", pr_ref="PR-K1", cp_ref="CP-K1",
+                          po_ref="PO-K1", product_code="K1", product_name="Keyboard")
+        self._build_chain(stage="PO", rq_ref="REQ-K2", pr_ref="PR-K2", cp_ref="CP-K2",
+                          po_ref="PO-K2", product_code="K2", product_name="Monitor")
+        grid = self._load_sheet(
+            self.client.get(reverse(EXPORT_URL_NAME), {"search": "Keyboard"}))
+        self.assertEqual(len(grid), 2)                       # header + 1 match
+        self.assertEqual(dict(zip(grid[0], grid[1]))["RQ เลขที่"], "REQ-K1")

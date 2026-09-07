@@ -5235,7 +5235,7 @@ def viewAllDetailsReport(request):
     dataPage = p.get_page(page)
     dataPage.object_list = list(dataPage.object_list)
 
-    rows = _all_details_rows(dataPage.object_list)
+    rows = _all_details_rows(dataPage.object_list, request.GET.get('search'))
 
     context = {
         'rows': rows,
@@ -5334,12 +5334,64 @@ def _all_details_dashboard(qs):
     }
 
 
-def _all_details_rows(items):
+def _all_details_rows(items, search=None):
     if not items:
         return []
 
+    # When the user searched by store name (or a CP/PO ref) the parent
+    # RequisitionItem queryset is correctly narrowed, but the fan-out below emits
+    # one row per bidder / per PurchaseOrderItem. For an item that matched ONLY
+    # through a distributor/CP/PO relation, keep just the branches that actually
+    # match so sibling bidders of the same comparison sheet don't leak in.
+    term = (search or '').strip().lower()
+
+    def _hay(*vals):
+        return ' '.join(str(v) for v in vals if v not in (None, '')).lower()
+
+    def _item_shared_match(ri):
+        req = ri.requisit if ri.requisit_id else None
+        name = req.name if req and req.name_id else None
+        return term in _hay(
+            getattr(req, 'ref_no', None),
+            getattr(req, 'ma_ref_no', None),
+            getattr(req, 'pr_ref_no', None),
+            getattr(req, 'note', None),
+            getattr(name, 'first_name', None),
+            getattr(name, 'last_name', None),
+            ri.product_name,
+            ri.product_id,
+            ri.machine,
+            ri.description,
+        )
+
+    def _cpi_match(cpi):
+        bidder = cpi.bidder if cpi.bidder_id else None
+        dist = bidder.distributor if bidder and bidder.distributor_id else None
+        cp = getattr(bidder, 'cp', None)
+        return term in _hay(getattr(dist, 'name', None),
+                            getattr(cp, 'ref_no', None))
+
+    def _poi_match(poi):
+        po = poi.po
+        return term in _hay(
+            getattr(getattr(po, 'distributor', None), 'name', None),
+            getattr(po, 'ref_no', None),
+            getattr(getattr(po, 'cp', None), 'ref_no', None),
+            getattr(getattr(po, 'pr', None), 'ref_no', None),
+        )
+
     item_ids = [ri.id for ri in items]
     req_ids = {ri.requisit_id for ri in items if ri.requisit_id}
+
+    # MA attachments — the requisition carries only ma_id/ma_ref_no, so pull the
+    # Maintenance rows once to expose ma_pdf on the chain-detail panel.
+    ma_ids = {ri.requisit.ma_id for ri in items
+              if ri.requisit_id and ri.requisit.ma_id}
+    ma_by_id = ({m.id: m for m in
+                 Maintenance.objects.filter(id__in=ma_ids)
+                 .select_related('ma_type', 'repair_type', 'name',
+                                 'approve_name', 'repair_name', 'distributor')}
+                if ma_ids else {})
 
     poi_qs = (PurchaseOrderItem.objects
               .filter(item_id__in=item_ids)
@@ -5375,7 +5427,9 @@ def _all_details_rows(items):
 
     pr_qs = (PurchaseRequisition.objects
              .filter(requisition_id__in=req_ids)
-             .select_related('approver_status', 'organizer')
+             .select_related('approver_status', 'organizer', 'purchase_status',
+                             'stockman_user', 'purchase_user', 'approver_user',
+                             'branch_company')
              .order_by('id'))
 
     poi_by_item = defaultdict(list)
@@ -5391,20 +5445,45 @@ def _all_details_rows(items):
     rows = []
     for ri in items:
         prs = prs_by_req.get(ri.requisit_id, [])
+        ma = ma_by_id.get(ri.requisit.ma_id) if ri.requisit_id else None
         item_pois = poi_by_item.get(ri.id, [])
         item_cpis = cpi_by_item.get(ri.id, [])
+        if term and not _item_shared_match(ri):
+            narrowed_pois = [p for p in item_pois if _poi_match(p)]
+            narrowed_cpis = [c for c in item_cpis if _cpi_match(c)]
+            # Only narrow when the term actually hit a branch; otherwise the
+            # match came from a relation we don't mirror here — leave the row
+            # intact rather than dropping it entirely.
+            if narrowed_pois or narrowed_cpis:
+                item_pois, item_cpis = narrowed_pois, narrowed_cpis
         rq_created = ri.requisit.created if ri.requisit_id else ri.created
         # index this item's CP items by their CP id, to pair with a PO's cp
         cpi_by_cp = {}
+        # every bidder on a CP (for this item), so the ร้านค้า column can list
+        # all shops that were compared, not just the paired/selected one.
+        cpis_by_cp_all = defaultdict(list)
         for cpi in item_cpis:
             key = _cpi_cp_id(cpi)
             if key is None:
                 continue
+            cpis_by_cp_all[key].append(cpi)
             prev = cpi_by_cp.get(key)
             cpi_sel = bool(cpi.bidder and cpi.bidder.is_select)
             prev_sel = bool(prev and prev.bidder and prev.bidder.is_select)
             if prev is None or (not prev_sel and cpi_sel):
                 cpi_by_cp[key] = cpi
+
+        def _cp_distributors(cp_id):
+            seen, out = set(), []
+            for c in cpis_by_cp_all.get(cp_id, []):
+                bidder = c.bidder if c.bidder_id else None
+                dist = bidder.distributor if bidder and bidder.distributor_id else None
+                if not dist or dist.id in seen:
+                    continue
+                seen.add(dist.id)
+                out.append({'distributor': dist,
+                            'is_selected': bool(bidder and bidder.is_select)})
+            return out
 
         # PO rows — one per PurchaseOrderItem. A comparison is shown on a PO row
         # ONLY when that PO was generated from it (po.cp matches); comparisons
@@ -5428,11 +5507,13 @@ def _all_details_rows(items):
                            else (cpd.distributor if cpd else None))
             rows.append({
                 'requisition': ri.requisit,
+                'maintenance': ma,
                 'item': ri,
                 'purchase_reqs': prs,
                 'comparison_price': cp,
                 'comparison_item': cpi,
                 'distributor': distributor,
+                'cp_distributors': _cp_distributors(po.cp_id) if po and po.cp_id else [],
                 'is_selected_distributor': bool(cpd and cpd.is_select),
                 'purchase_order': po,
                 'po_item': poi,
@@ -5450,11 +5531,13 @@ def _all_details_rows(items):
             cp = _cpi_cp(cpi)
             rows.append({
                 'requisition': ri.requisit,
+                'maintenance': ma,
                 'item': ri,
                 'purchase_reqs': prs,
                 'comparison_price': cp,
                 'comparison_item': cpi,
                 'distributor': cpd.distributor if cpd else None,
+                'cp_distributors': _cp_distributors(_cpi_cp_id(cpi)),
                 'is_selected_distributor': bool(cpd and cpd.is_select),
                 'purchase_order': None,
                 'po_item': None,
@@ -5467,11 +5550,13 @@ def _all_details_rows(items):
         if not item_pois and not cp_source:
             rows.append({
                 'requisition': ri.requisit,
+                'maintenance': ma,
                 'item': ri,
                 'purchase_reqs': prs,
                 'comparison_price': None,
                 'comparison_item': None,
                 'distributor': None,
+                'cp_distributors': [],
                 'is_selected_distributor': False,
                 'purchase_order': None,
                 'po_item': None,
@@ -5482,14 +5567,191 @@ def _all_details_rows(items):
             })
 
     def _row_sort_key(r):
-        rq = r['requisition'].ref_no if r['requisition'] else ''
-        pr = r['purchase_reqs'][0].ref_no if r['purchase_reqs'] else ''
-        cp = r['comparison_price'].ref_no if r['comparison_price'] else ''
-        po = r['purchase_order'].ref_no if r['purchase_order'] else ''
-        return (rq or '', pr or '', cp or '', po or '')
+        # Order strictly by the row's own stage date, latest first. Normalise
+        # datetime -> date so values from different stages compare cleanly;
+        # rows without a stage date sort last.
+        sd = r['stage_date']
+        sd = getattr(sd, 'date', lambda: sd)() if hasattr(sd, 'date') else sd
+        return sd if sd is not None else date.min
 
     rows.sort(key=_row_sort_key, reverse=True)
     return rows
+
+
+def _all_details_export_queryset(request):
+    """The full (unpaginated) filtered RequisitionItem queryset for the
+    all-details report — shared by the on-screen report and the Excel export so
+    both honour the same search/stage filter."""
+    company_in = findCompanyIn(request)
+    base = (RequisitionItem.objects
+            .filter(requisit__branch_company__code__in=company_in)
+            .select_related('requisit', 'requisit__name', 'requisit__section', 'product',
+                            'requisit__urgency', 'requisit__rq_type', 'requisit__car')
+            .order_by('-requisit__ref_no', '-id'))
+    myFilter = AllDetailsFilter(request.GET, queryset=base)
+    return myFilter.qs.distinct()
+
+
+def viewAllDetailsReportExport(request):
+    """Export the all-details procurement report to a single flat .xlsx sheet,
+    one spreadsheet row per report row, with every MA / RQ / PR / CP / PO field
+    flattened side by side. Respects the currently applied filter."""
+    active = request.session.get('company_code', 'ALL')
+    qs = _all_details_export_queryset(request)
+    rows = _all_details_rows(list(qs), request.GET.get('search'))
+
+    def _u(user):
+        if not user:
+            return ''
+        return user.get_full_name() or user.username
+
+    def _d(value):
+        try:
+            return value.strftime('%d/%m/%Y') if value else ''
+        except AttributeError:
+            return str(value) if value else ''
+
+    def _s(value):
+        return '' if value in (None, '') else str(value)
+
+    def _dash(value):
+        """Mirror the template's ``|default:"-"`` — show '-' for empty values."""
+        return _s(value) or '-'
+
+    def _qty(quantity, unit_name):
+        """Mirror the template's ``{{ qty|default:"-" }} {{ unit|default:"" }}``."""
+        return (_dash(quantity) + (' ' + str(unit_name) if unit_name else '')).strip()
+
+    # ----- per-panel guards, matching the {% if %} conditions in chain-detail -----
+    def _ma_on(r):
+        q = r['requisition']
+        return bool(q and q.ma_ref_no)
+
+    def _ma(r):
+        return r['maintenance'] if _ma_on(r) else None
+
+    # ==== columns: 1:1 with the chain-detail panels in viewAllDetails.html ====
+    columns = [
+        # ---- visible table row ----
+        ('เอกสาร: MA', lambda r: _s(r['requisition'].ma_ref_no) if r['requisition'] else ''),
+        ('เอกสาร: RQ', lambda r: _dash(r['requisition'].ref_no) if r['requisition'] else '-'),
+        ('เอกสาร: PR', lambda r: ', '.join(pr.ref_no for pr in r['purchase_reqs'] if pr.ref_no) or '-'),
+        ('เอกสาร: CP', lambda r: _dash(r['comparison_price'].ref_no) if r['comparison_price'] else '-'),
+        ('เอกสาร: PO', lambda r: _dash(r['purchase_order'].ref_no) if r['purchase_order'] else '-'),
+        ('ขั้นตอน', lambda r: r['stage']),
+        ('วันที่ล่าสุด', lambda r: _d(r['stage_date'])),
+        ('ผู้ขอเบิก', lambda r: _u(r['requisition'].name) if r['requisition'] else '-'),
+        ('แผนก', lambda r: _dash(r['requisition'].section.name) if r['requisition'] and r['requisition'].section_id else '-'),
+        ('รายการ', lambda r: _dash(r['item'].product_name)),
+        ('รายละเอียด (PO)', lambda r: _s(r['po_item'].description) if r['po_item'] else ''),
+        ('ใช้ในระบบงาน (ใบเบิก)', lambda r: _dash(r['item'].machine)),
+        ('หมายเหตุ (ใบเบิก)', lambda r: _dash(r['requisition'].note) if r['requisition'] and r['requisition'].note else '-'),
+        ('ร้านค้า', lambda r: (_dash(r['distributor'].name) if r['distributor'] else '-') + (' เลือก' if r['is_selected_distributor'] else '')),
+        ('จำนวน × ราคาต่อหน่วย (จำนวน)', lambda r: _s(r['po_item'].quantity) if r['po_item'] else '-'),
+        ('จำนวน × ราคาต่อหน่วย (ราคาต่อหน่วย)', lambda r: _s(r['po_item'].unit_price) if r['po_item'] else '-'),
+        ('รวมเป็นเงิน', lambda r: '-' if r['amount'] is None else float(r['amount'])),
+        # ---- MA : ใบแจ้งซ่อม ----
+        ('MA เลขที่ใบแจ้งซ่อม', lambda r: _s(r['requisition'].ma_ref_no) if _ma_on(r) else ''),
+        ('MA รถ/เครื่องจักร', lambda r: ((r['requisition'].car.name if r['requisition'].car_id else '') or _s(r['item'].machine) or '-') if _ma_on(r) else ''),
+        ('MA วันที่แจ้งซ่อม', lambda r: (_d(_ma(r).created) or '-') if _ma(r) else ''),
+        ('MA ประเภทใบแจ้งซ่อม', lambda r: _dash(_ma(r).ma_type.name if _ma(r) and _ma(r).ma_type_id else None) if _ma(r) else ''),
+        ('MA ประเภทการซ่อม', lambda r: _dash(_ma(r).repair_type.name if _ma(r) and _ma(r).repair_type_id else None) if _ma(r) else ''),
+        ('MA ผู้แจ้งซ่อม', lambda r: (_u(_ma(r).name) or '-') if _ma(r) else ''),
+        ('MA อาการเสีย', lambda r: _dash(_ma(r).broke_reason) if _ma(r) else ''),
+        ('MA สภาพรถ', lambda r: _dash(_ma(r).car_state) if _ma(r) else ''),
+        ('MA เลขไมล์/ชม.', lambda r: _dash(_ma(r).mile) if _ma(r) else ''),
+        ('MA สถานที่ซ่อม', lambda r: _dash(_ma(r).location) if _ma(r) else ''),
+        ('MA เริ่มดำเนินการ', lambda r: (_d(_ma(r).start_rp) or '-') if _ma(r) else ''),
+        ('MA กำหนดเสร็จ', lambda r: (_d(_ma(r).end_rp) or '-') if _ma(r) else ''),
+        ('MA สถานะอนุมัติซ่อม', lambda r: _dash(_ma(r).approve_status) if _ma(r) else ''),
+        ('MA ผู้อนุมัติซ่อม', lambda r: (_u(_ma(r).approve_name) or '-') if _ma(r) else ''),
+        ('MA ช่างซ่อม', lambda r: (_u(_ma(r).repair_name) or '-') if _ma(r) else ''),
+        ('MA ผู้รับเหมา/ร้าน', lambda r: _dash(_ma(r).distributor.name if _ma(r) and _ma(r).distributor_id else None) if _ma(r) else ''),
+        ('MA รายละเอียด', lambda r: _s(_ma(r).detail) if _ma(r) else ''),
+        # ---- RQ : ใบขอเบิก ----
+        ('RQ เลขที่', lambda r: _dash(r['requisition'].ref_no) if r['requisition'] else ''),
+        ('RQ วันที่สร้าง', lambda r: (_d(r['requisition'].created) or '-') if r['requisition'] else ''),
+        ('RQ วันที่ต้องการ', lambda r: (_d(r['item'].desired_date or r['requisition'].desired_date) or '-') if r['requisition'] else ''),
+        ('RQ ความเร่งด่วน', lambda r: _dash(r['requisition'].urgency.name if r['requisition'].urgency_id else None) if r['requisition'] else ''),
+        ('RQ ประเภท', lambda r: _dash(r['requisition'].rq_type.name if r['requisition'].rq_type_id else None) if r['requisition'] else ''),
+        ('RQ รถ/เครื่องจักร', lambda r: ((r['requisition'].car.name if r['requisition'].car_id else r['item'].machine) or '-') if r['requisition'] else ''),
+        ('RQ ผู้ขอเบิก', lambda r: _u(r['requisition'].name) if r['requisition'] else ''),
+        ('RQ แผนก', lambda r: _dash(r['requisition'].section.name if r['requisition'].section_id else None) if r['requisition'] else ''),
+        ('RQ จำนวนขอเบิก', lambda r: _qty(r['item'].quantity, r['item'].unit) if r['requisition'] else ''),
+        ('RQ หมายเหตุ', lambda r: _s(r['requisition'].note) if r['requisition'] else ''),
+        # ---- PR : ใบขอซื้อ ----
+        ('PR เลขที่', lambda r: ', '.join(pr.ref_no for pr in r['purchase_reqs'] if pr.ref_no) or '-'),
+        ('PR วันที่สร้าง', lambda r: (_d(r['purchase_reqs'][0].created) or '-') if r['purchase_reqs'] else ''),
+        ('PR พัสดุ (ผู้รับเรื่อง)', lambda r: (_u(r['purchase_reqs'][0].stockman_user) or '-') if r['purchase_reqs'] else ''),
+        ('PR ฝ่ายจัดซื้อ', lambda r: (_u(r['purchase_reqs'][0].purchase_user) or '-') if r['purchase_reqs'] else ''),
+        ('PR สถานะจัดซื้อ', lambda r: _dash(getattr(r['purchase_reqs'][0].purchase_status, 'name', None)) if r['purchase_reqs'] else ''),
+        ('PR ผู้อนุมัติ', lambda r: (_u(r['purchase_reqs'][0].approver_user) or '-') if r['purchase_reqs'] else ''),
+        ('PR วันที่อนุมัติ', lambda r: (_d(r['purchase_reqs'][0].approver_update) or '-') if r['purchase_reqs'] else ''),
+        ('PR ซื้อครบแล้ว', lambda r: ('ใช่' if r['purchase_reqs'][0].is_complete else 'ยัง') if r['purchase_reqs'] else ''),
+        ('PR ขออนุมัติใหม่', lambda r: ('ใช่' if r['purchase_reqs'][0].is_re_approve else '') if r['purchase_reqs'] else ''),
+        ('PR หมายเหตุ', lambda r: _s(r['purchase_reqs'][0].note) if r['purchase_reqs'] else ''),
+        # ---- CP : ใบเปรียบเทียบราคา ----
+        ('CP เลขที่', lambda r: _dash(r['comparison_price'].ref_no) if r['comparison_price'] else ''),
+        ('CP วันที่สร้าง', lambda r: (_d(r['comparison_price'].created) or '-') if r['comparison_price'] else ''),
+        ('CP สถานะอนุมัติ', lambda r: _dash(r['comparison_price'].approver_status.name if r['comparison_price'].approver_status_id else None) if r['comparison_price'] else ''),
+        ('CP ผู้จัดทำ', lambda r: (_u(r['comparison_price'].organizer) or '-') if r['comparison_price'] else ''),
+        ('CP ร้านที่เลือก', lambda r: _dash(r['comparison_price'].select_bidder.name if r['comparison_price'].select_bidder_id else None) if r['comparison_price'] else ''),
+        ('CP ยี่ห้อ', lambda r: _dash(r['comparison_item'].brand) if r['comparison_item'] else ''),
+        ('CP จำนวน', lambda r: _qty(r['comparison_item'].quantity, r['comparison_item'].unit.name if r['comparison_item'].unit_id else '') if r['comparison_item'] else ''),
+        ('CP ราคา/หน่วย', lambda r: _dash(r['comparison_item'].unit_price) if r['comparison_item'] else ''),
+        ('CP ส่วนลด', lambda r: _dash(r['comparison_item'].discount) if r['comparison_item'] else ''),
+        ('CP รวมเป็นเงิน', lambda r: _dash(r['comparison_item'].price) if r['comparison_item'] else ''),
+        ('CP หมายเหตุ', lambda r: _s(r['comparison_price'].note) if r['comparison_price'] else ''),
+        # ---- PO : ใบสั่งซื้อ ----
+        ('PO เลขที่', lambda r: _dash(r['purchase_order'].ref_no) if r['purchase_order'] else ''),
+        ('PO วันที่สร้าง', lambda r: (_d(r['purchase_order'].created) or '-') if r['purchase_order'] else ''),
+        ('PO สถานะอนุมัติ', lambda r: _dash(r['purchase_order'].approver_status.name if r['purchase_order'].approver_status_id else None) if r['purchase_order'] else ''),
+        ('PO วันที่อนุมัติ', lambda r: (_d(r['purchase_order'].approver_update) or '-') if r['purchase_order'] else ''),
+        ('PO ร้านค้า', lambda r: ((_dash(r['distributor'].name) if r['distributor'] else '-') + (' ✓' if r['is_selected_distributor'] else '')) if r['purchase_order'] else ''),
+        ('PO เครดิต', lambda r: _dash(r['purchase_order'].credit.name if r['purchase_order'].credit_id else None) if r['purchase_order'] else ''),
+        ('PO การจัดส่ง', lambda r: _dash(r['purchase_order'].delivery.name if r['purchase_order'].delivery_id else None) if r['purchase_order'] else ''),
+        ('PO จำนวน', lambda r: _qty(r['po_item'].quantity, r['po_item'].unit.name if r['po_item'].unit_id else '') if r['po_item'] else ''),
+        ('PO ราคา/หน่วย', lambda r: _dash(r['po_item'].unit_price) if r['po_item'] else ''),
+        ('PO ส่วนลดสินค้า', lambda r: _dash(r['po_item'].discount) if r['po_item'] else ''),
+        ('PO รวมรายการ', lambda r: _dash(r['po_item'].price) if r['po_item'] else ''),
+        ('PO รวมเป็นเงิน', lambda r: _dash(r['purchase_order'].total_price) if r['purchase_order'] else ''),
+        ('PO ส่วนลดท้ายบิล', lambda r: _dash(r['purchase_order'].discount) if r['purchase_order'] else ''),
+        ('PO ภาษี', lambda r: _dash(r['purchase_order'].vat) if r['purchase_order'] else ''),
+        ('PO จำนวนเงินทั้งสิ้น', lambda r: _dash(r['purchase_order'].amount) if r['purchase_order'] else ''),
+        ('PO รับของแล้ว', lambda r: (
+            ('ใช่ (%s)' % _d(r['purchase_order'].receive_update)) if r['purchase_order'].is_receive
+            else ('ยัง' + (' (กำหนด %s)' % _d(r['purchase_order'].due_receive_update)
+                           if r['purchase_order'].due_receive_update else ''))
+        ) if r['purchase_order'] else ''),
+        ('PO หมายเหตุ', lambda r: _s(r['purchase_order'].note) if r['purchase_order'] else ''),
+    ]
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = 'AllDetails'
+    sheet.append([label for label, _ in columns])
+    for cell in next(sheet.iter_rows(min_row=1, max_row=1)):
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center')
+    for r in rows:
+        out = []
+        for _, getter in columns:
+            try:
+                out.append(getter(r))
+            except Exception:
+                out.append('')
+        sheet.append(out)
+    for column_cells in sheet.columns:
+        letter = column_cells[0].column_letter
+        max_length = max((len(str(c.value)) for c in column_cells if c.value is not None), default=0)
+        sheet.column_dimensions[letter].width = min(max_length + 2, 50)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=All_Details_Report_({active}).xlsx'
+    workbook.save(response)
+    return response
 
 
 def viewPOItemReport(request):
