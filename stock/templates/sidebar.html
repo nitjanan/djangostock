@@ -167,57 +167,54 @@
                 </ul>
             </li>
             {% endif %}
-            {% if 'Express' in tab.name %}
-            <li class="">
-                <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ex_old_iv_show or ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
-                    <i class="fab fa-xing"></i>
-                    Express
-                </a>
-                <ul class="collapse list-unstyled {{ex_old_iv_show}} {{ex_iv_show}} {{ex_o_i_show}} {{ex_ie_show}} {{ex_o_ie_show}}" id="expressSubmenu">
-                    <!--
-                    {% if request.user.is_superuser %}
-                    <li>
-                        <a class="{{ex_old_iv_page}}" href="{% url 'viewExInvoice_old' %}">OLD ใบจ่ายสินค้าภายใน - อะไหล่</a>
-                    </li>
-                    {%endif%}
-                    -->
-                    <li>
-                        <a class="{{ex_iv_page}}" href="{% url 'viewExInvoice' %}">ใบจ่ายสินค้าภายใน - อะไหล่</a>
-                    </li>
-                    <li>
-                        <a class="{{ex_o_i_page}}" href="{% url 'viewExOiInvoice' %}">ใบจ่ายสินค้าภายใน - น้ำมัน</a>
-                    </li>
-                    <li>
-                        <a class="{{ex_ie_page}}" href="{% url 'viewExSOC' %}">ใบขายเงินเชื่อ - อะไหล่</a>
-                    </li>
-                    <li>
-                        <a class="{{ex_o_ie_page}}" href="{% url 'viewExOiSOC' %}">ใบขายเงินเชื่อ - น้ำมัน</a>
-                    </li>
-                </ul>
-            </li>
-            {% endif %}
-            {% if 'Report' in tab.name %}
-            <li class="">
-                <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page%}true{% else %}false{% endif %}" class="dropdown-toggle">
-                    <i class="fas fa-file-pdf"></i> Report
-                </a>
-                <ul class="collapse list-unstyled {{rp_po_show}} {{rp_poi_show}} {{rp_rd_show}} {{rp_cl_show}}" id="reportSubmenu">
-                    <li>
-                        <a class="{{rp_po_page}}" href="{% url 'viewPOReport' %}">สรุปใบสั่งซื้อที่อนุมัติ</a>
-                    </li>                
-                    <li>
-                        <a class="{{rp_poi_page}}" href="{% url 'viewPOItemReport' %}">รายงานตามสินค้าที่สั่งซื้อ</a>
-                    </li>
-                    <li>
-                        <a class="{{rp_rd_page}}" href="{% url 'viewRateDistributorReport' %}">รายงานการประเมินร้านค้า</a>
-                    </li>
-                    <li>
-                        <a class="{{rp_cl_page}}" href="{% url 'viewCLReport' %}">รายงานบันทึกการใช้รถ</a>
-                    </li>
-                </ul>
-            </li>
-            {% endif %}
         {% endfor %}
+        {# Report and Express tabs are available to all users by default (not filtered by visible_tab). #}
+        <li class="">
+            <a href="{% if request.user.is_authenticated %}#expressSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if ex_old_iv_show or ex_iv_page or ex_o_i_page or ex_ie_page or ex_o_ie_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <i class="fab fa-xing"></i>
+                Express
+            </a>
+            <ul class="collapse list-unstyled {{ex_old_iv_show}} {{ex_iv_show}} {{ex_o_i_show}} {{ex_ie_show}} {{ex_o_ie_show}}" id="expressSubmenu">
+                <!--
+                {% if request.user.is_superuser %}
+                <li>
+                    <a class="{{ex_old_iv_page}}" href="{% url 'viewExInvoice_old' %}">OLD ใบจ่ายสินค้าภายใน - อะไหล่</a>
+                </li>
+                {%endif%}
+                -->
+                <li>
+                    <a class="{{ex_iv_page}}" href="{% url 'viewExInvoice' %}">ใบจ่ายสินค้าภายใน - อะไหล่</a>
+                </li>
+                <li>
+                    <a class="{{ex_o_i_page}}" href="{% url 'viewExOiInvoice' %}">ใบจ่ายสินค้าภายใน - น้ำมัน</a>
+                </li>
+                <li>
+                    <a class="{{ex_ie_page}}" href="{% url 'viewExSOC' %}">ใบขายเงินเชื่อ - อะไหล่</a>
+                </li>
+                <li>
+                    <a class="{{ex_o_ie_page}}" href="{% url 'viewExOiSOC' %}">ใบขายเงินเชื่อ - น้ำมัน</a>
+                </li>
+            </ul>
+        </li>
+        <li class="">
+            <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page%}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <i class="fas fa-file-pdf"></i> Report
+            </a>
+            <ul class="collapse list-unstyled {{rp_po_show}} {{rp_poi_show}} {{rp_rd_show}} {{rp_cl_show}}" id="reportSubmenu">
+                <li>
+                    <a class="{{rp_po_page}}" href="{% url 'viewPOReport' %}">สรุปใบสั่งซื้อที่อนุมัติ</a>
+                </li>
+                <li>
+                    <a class="{{rp_poi_page}}" href="{% url 'viewPOItemReport' %}">รายงานตามสินค้าที่สั่งซื้อ</a>
+                </li>
+                <li>
+                    <a class="{{rp_rd_page}}" href="{% url 'viewRateDistributorReport' %}">รายงานการประเมินร้านค้า</a>
+                </li>
+                <li>
+                    <a class="{{rp_cl_page}}" href="{% url 'viewCLReport' %}">รายงานบันทึกการใช้รถ</a>
+                </li>
+            </ul>
+        </li>
     </ul>
     <ul class="list-unstyled CTAs">
         <li>
