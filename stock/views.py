@@ -5939,7 +5939,7 @@ def searchLastPoItem(request):
                     '''
 
                     strName = ''.join([strName, "<tr>"])
-                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ i.po.created.strftime("%d/%m/%Y") + "</td><td>"+ f'{i.unit_price:,}' + "</td><td>" + str(i.unit.name) + "</td><td>" + str(brand) + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"+ "</td><td>" + str(i.po.stockman_user) + "</b></td>"])
+                    strName = ''.join([strName, "<td>" + str(index) + ")</td><td><b>"+ i.po.created.strftime("%d/%m/%Y") + "</td><td>"+ f'{i.unit_price:,}' + "</td><td>" + str(i.unit.name) + "</td><td style='white-space: pre-line;'>" + str(brand) + "</td><td>" + str(i.po.distributor.name) + "</td><td>" + str(i.po.branch_company.name) + "</b></td>"+ "</td><td>" + str(i.po.stockman_user) + "</b></td>"])
                     strName = ''.join([strName, "</tr>"])
                     index += 1
             count += 1

@@ -434,6 +434,7 @@ CPitemFormset = modelformset_factory(
         'unit_price': forms.NumberInput(attrs={}),
         'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
         'price': forms.NumberInput(attrs={}),
+        'brand': forms.Textarea(attrs={'rows': 1}),
         'description': forms.Textarea(attrs={'rows': 1}),
     },
     labels = {
@@ -453,6 +454,7 @@ CPitemInlineFormset = inlineformset_factory(
         'unit_price': forms.NumberInput(attrs={}),
         'discount': forms.TextInput(attrs={'placeholder':'0.00'}),
         'price': forms.NumberInput(attrs={}),
+        'brand': forms.Textarea(attrs={'rows': 1}),
         'description': forms.Textarea(attrs={'rows': 1}),
     },
     labels = {

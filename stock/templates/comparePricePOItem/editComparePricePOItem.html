@@ -57,9 +57,9 @@
             <div class="row">
                 <div class="col-2">สินค้า</div>
                 <div class="col">รายละเอียด</div>
-                <div class="col">จำนวน</div>
-                <div class="col">หน่วย</div>
-                <div class="col">เกรด/ยี่ห้อ</div>
+                <div class="col-1">จำนวน</div>
+                <div class="col-1">หน่วย</div>
+                <div class="col-2">เกรด/ยี่ห้อ</div>
                 <div class="col text-right">ราคาหน่วยละ</div>
                 <div class="col text-right">ส่วนลด</div>
                 <div class="col text-right">รวม</div>
@@ -71,9 +71,9 @@
                     <div class="row">
                         <div class="col-2">{% if it.item %}{{it.item.product_name}}{% endif %}</div>
                         <div class="col">{% if it.description %}{{it.description|linebreaksbr}}{% endif %}</div>
-                        <div class="col">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
-                        <div class="col">{% if it.unit %}{{it.unit}}{% endif %}</div>
-                        <div class="col">{% if it.brand %}{{it.brand}}{% endif %}</div>
+                        <div class="col-1">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
+                        <div class="col-1">{% if it.unit %}{{it.unit}}{% endif %}</div>
+                        <div class="col-2">{% if it.brand %}{{it.brand|linebreaksbr}}{% endif %}</div>
                         <div class="col text-right">{% if it.unit_price %}{{it.unit_price | intcomma}}{% endif %}</div>
                         <div class="col text-right">{% if it.discount %}{{it.discount| intcomma}}{%else%}0.00{% endif %}</div>
                         <div class="col text-right">{% if it.price %}{{it.price | intcomma}}{% endif %}</div>
@@ -165,9 +165,9 @@
                         </div>
                     </form>
                     <div class="col">รายละเอียด</div>
-                    <div class="col">จำนวน</div>
-                    <div class="col">หน่วย</div>
-                    <div class="col">เกรด/ยี่ห้อ</div>
+                    <div class="col-1">จำนวน</div>
+                    <div class="col-1">หน่วย</div>
+                    <div class="col-2">เกรด/ยี่ห้อ</div>
                     <div class="col">ราคาหน่วยละ</div>
                     <div class="col">ส่วนลด</div>
                     <div class="col text-center">รวม</div>
@@ -193,9 +193,9 @@
                                 {% endfor %}
                             </datalist>
                             {{form.description | add_class:"form-control description"}}
-                            {{form.quantity | add_class:"form-control quantity"}}
-                            {{form.unit | add_class:"form-control"|attr:"required:true"}}
-                            {{form.brand | add_class:"form-control"}}
+                            {{form.quantity | add_class:"form-control quantity"|attr:"style:flex:0 0 90px;max-width:90px"}}
+                            {{form.unit | add_class:"form-control"|attr:"required:true"|attr:"style:flex:0 0 95px;max-width:95px"}}
+                            {{form.brand | add_class:"form-control brand"|attr:"style:flex:1 1 220px;min-width:180px"}}
                             {{form.unit_price | add_class:"form-control unit-price text-right"}}
                             {{form.discount | add_class:"form-control discount text-right"}}
                             {{form.price | add_class:"form-control text-right price"}}

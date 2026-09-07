@@ -176,7 +176,7 @@
             {% for oldest in items_oldest %}
                 <tr>
                     <th scope="row" class="text-center">{{forloop.counter}}</th>
-                    <td>{{oldest.item.product_name}} <b class="text-success" style="white-space: pre-line;">{{oldest.description|linebreaksbr}}</b></td>
+                    <td>{{oldest.item.product_name}} <b class="text-success">{{oldest.description|linebreaksbr}}</b></td>
                     <td class="text-right">{{oldest.quantity |floatformat:"-4"}}</td>
                     <td class="text-center">{{oldest.unit}}</td>
                         {% comment %}
@@ -186,7 +186,7 @@
                         {% for bd in bidder %}
                             {% for it in itemName %}
                                 {% if it.bidder_id == bd.id and oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
-                                <td>{{it.brand}}</td>
+                                <td>{{it.brand|linebreaksbr}}</td>
                                 <td class="text-right">{% if it.unit_price %}{{it.unit_price |intcomma}}{%else%}{%endif%}</td>
                                 <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
                                 <td class="text-right">{% if it.price %}{{it.price |intcomma}}{%else%}{%endif%}</td>
