@@ -523,7 +523,9 @@ class AllDetailsFilter(django_filters.FilterSet):
     def filter_search(self, queryset, name, value):
         if not value:
             return queryset
-        q = (
+        # Forward-FK / local-column branches: a plain OR is safe here because
+        # every hop is to-one (single join, no row fan-out).
+        local_q = (
             Q(requisit__ref_no__icontains=value)
             | Q(requisit__ma_ref_no__icontains=value)
             | Q(requisit__pr_ref_no__icontains=value)
@@ -534,34 +536,51 @@ class AllDetailsFilter(django_filters.FilterSet):
             | Q(requisit__note__icontains=value)
             | Q(requisit__name__first_name__icontains=value)
             | Q(requisit__name__last_name__icontains=value)
-            | Q(comparisonpriceitem__bidder__cp__ref_no__icontains=value)
-            | Q(comparisonpriceitem__cp__in=ComparisonPrice.objects
-               .filter(ref_no__icontains=value).values('id'))
-            | Q(comparisonpriceitem__bidder__distributor__name__icontains=value)
-            | Q(purchaseorderitem__po__ref_no__icontains=value)
-            | Q(purchaseorderitem__po__cp__ref_no__icontains=value)
-            | Q(purchaseorderitem__po__pr__ref_no__icontains=value)
-            | Q(purchaseorderitem__po__distributor__name__icontains=value)
         )
-        return queryset.filter(q).distinct()
+        # Reverse-relation branches (comparison items / PO items): fold into
+        # EXISTS subqueries instead of LEFT JOINs. Previously these joins made
+        # the base queryset emit one row per comparison-item x PO-item, which
+        # forced SELECT DISTINCT + a filesort over the exploded join and was
+        # then re-run ~12x per request (paginator count + every dashboard
+        # aggregate). The EXISTS form returns the identical set of rows.
+        cpi_match = ComparisonPriceItem.objects.filter(
+            Q(bidder__cp__ref_no__icontains=value)
+            | Q(cp__in=ComparisonPrice.objects
+                .filter(ref_no__icontains=value).values('id'))
+            | Q(bidder__distributor__name__icontains=value),
+            item=OuterRef('pk'),
+        )
+        poi_match = PurchaseOrderItem.objects.filter(
+            Q(po__ref_no__icontains=value)
+            | Q(po__cp__ref_no__icontains=value)
+            | Q(po__pr__ref_no__icontains=value)
+            | Q(po__distributor__name__icontains=value),
+            item=OuterRef('pk'),
+        )
+        return queryset.filter(
+            local_q | Q(Exists(cpi_match)) | Q(Exists(poi_match))
+        ).distinct()
 
     def filter_stage(self, queryset, name, value):
         """Match the row's *deepest* reached stage, mirroring _all_details_rows:
         cancelled PurchaseOrder / ComparisonPrice do not count."""
         active_cp = ComparisonPrice.objects.filter(is_cancel=False).values('id')
-        has_po = Q(purchaseorderitem__isnull=False,
-                   purchaseorderitem__po__is_cancel=False)
-        has_cp = Q(comparisonpriceitem__isnull=False,
-                   comparisonpriceitem__cp__in=active_cp)
-        has_pr = Q(requisit__purchaserequisition__isnull=False)
+        # EXISTS subqueries rather than reverse-relation JOINs + DISTINCT: same
+        # membership test, no row fan-out.
+        has_po = Q(Exists(PurchaseOrderItem.objects.filter(
+            item=OuterRef('pk'), po__is_cancel=False)))
+        has_cp = Q(Exists(ComparisonPriceItem.objects.filter(
+            item=OuterRef('pk'), cp__in=active_cp)))
+        has_pr = Q(Exists(PurchaseRequisition.objects.filter(
+            requisition=OuterRef('requisit_id'))))
         if value == 'PO':
-            return queryset.filter(has_po).distinct()
+            return queryset.filter(has_po)
         if value == 'CP':
-            return queryset.filter(has_cp).exclude(has_po).distinct()
+            return queryset.filter(has_cp).exclude(has_po)
         if value == 'PR':
-            return queryset.filter(has_pr).exclude(has_cp).exclude(has_po).distinct()
+            return queryset.filter(has_pr).exclude(has_cp).exclude(has_po)
         if value == 'RQ':
-            return queryset.exclude(has_pr).exclude(has_cp).exclude(has_po).distinct()
+            return queryset.exclude(has_pr).exclude(has_cp).exclude(has_po)
         return queryset
 
 

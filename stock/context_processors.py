@@ -6,11 +6,40 @@ from django.db import connection
 from collections import Counter
 from django.contrib.auth.decorators import login_required
 
+_NO_PROFILE = object()
+
+
+def _user_profile(request):
+    """The request user's UserProfile, fetched at most once per request.
+
+    Nearly every context processor below needs it, and they all run on every
+    page render — findAllApproveAlert alone is invoked once per company tab —
+    so without memoisation a single page issued ~40 identical UserProfile
+    queries. The row cannot change midway through a request, so caching it on
+    the request object is behaviour-neutral.
+
+    Raises UserProfile.DoesNotExist exactly like the .get() it replaces (and
+    caches that outcome too), so the surrounding try/except blocks at every
+    call site keep behaving as before.
+    """
+    cached = getattr(request, '_stock_user_profile_cache', None)
+    if cached is None:
+        try:
+            cached = UserProfile.objects.get(user_id=request.user.id)
+        except UserProfile.DoesNotExist:
+            cached = _NO_PROFILE
+        request._stock_user_profile_cache = cached
+    if cached is _NO_PROFILE:
+        raise UserProfile.DoesNotExist(
+            'UserProfile matching query does not exist.')
+    return cached
+
+
 def findCompanyIn(request):
     active = request.session.get('company_code', 'ALL')
     #หาหน้าต่างการมองเห็นบริษัททั้งหมดของ user
     try:
-        user_profile = UserProfile.objects.get(user = request.user.id)
+        user_profile = _user_profile(request)
         company_all = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
     except:
         company_all = ""
@@ -24,7 +53,7 @@ def findCompanyIn(request):
 
 def userVisibleTab(request):
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
         visible_tab = BaseVisible.objects.filter(userprofile = user_profile)
     except:
         visible_tab = None
@@ -36,7 +65,7 @@ def companyVisibleTab(request):
     global_notification_badge_count = 0
     try:
         if request.user.is_authenticated:
-            user_profile = UserProfile.objects.get(user_id = request.user.id)
+            user_profile = _user_profile(request)
             company_tab = BaseBranchCompany.objects.filter(userprofile = user_profile)
             company_code = BaseBranchCompany.objects.filter(userprofile = user_profile).values('code')
 
@@ -110,7 +139,7 @@ def approvePendingCounter(request):
 
     #ใบขอซื้อ
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
 
         permiss = BasePermission.objects.filter(codename ='CAAPR')
         isPermiss_pr = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR', branch_company__code__in = company_in).values('branch_company__code')
@@ -175,7 +204,7 @@ def approvePOCounter(request):
     po_count = 0
     #get permission with position login
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
 
         permiss = BasePermission.objects.filter(codename ='CAAPO')
         isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO', branch_company__code__in = company_in).values('branch_company__code')
@@ -264,7 +293,7 @@ def approveCPAllCounter(request):
     ''' สิทธิใบเปรียบเทียบแบบเก่าเปลี่ยนเป็นแบบ fix ชื่อ
     #ผู้ตรวจสอบ
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
         permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA'])
         isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
@@ -384,7 +413,7 @@ def approveCPAllCounter(request):
 
     #ถ้าเป็นผู้อนุมัติพิเศษ ใบเปรียบเทียบ
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
 
         permiss = BasePermission.objects.filter(codename ='CASCP')
         isPermiss_scp = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CASCP', branch_company__code__in = company_in).values('branch_company__code', 'base_permission')
@@ -720,7 +749,7 @@ def findAllApproveAlert(request, tab):
 
     #get permission with position login
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
 
         permiss = BasePermission.objects.filter(codename ='CAAPR')
         isPermiss = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPR', branch_company__code__in = tab).values('branch_company__code')
@@ -754,7 +783,7 @@ def findAllApproveAlert(request, tab):
 
 	#get permission with position login
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
 
         permiss = BasePermission.objects.filter(codename ='CAAPO')
         isPermiss_po = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CAAPO', branch_company__code__in = tab).values('branch_company__code')
@@ -797,7 +826,7 @@ def findAllApproveAlert(request, tab):
 	########################################
 	#ผู้ตรวจสอบ
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
         permiss = BasePermission.objects.filter(codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA'])
         isPermissAE = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename__in= ['CAECP1','CAECP2','CAECP3','CAECP4','CAECPD','CAECPA']).prefetch_related(Prefetch('base_permission', queryset=permiss)).values('base_permission')
     except:
@@ -909,7 +938,7 @@ def findAllApproveAlert(request, tab):
 
     #ถ้าเป็นผู้อนุมัติพิเศษ ใบเปรียบเทียบ
     try:
-        user_profile = UserProfile.objects.get(user_id = request.user.id)
+        user_profile = _user_profile(request)
 
         permiss = BasePermission.objects.filter(codename ='CASCP')
         isPermiss_scp = PositionBasePermission.objects.filter(position_id = user_profile.position_id, base_permission__codename='CASCP', branch_company__code__in = tab).values('branch_company__code', 'base_permission')

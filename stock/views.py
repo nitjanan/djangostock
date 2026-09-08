@@ -5252,8 +5252,34 @@ def viewAllDetailsReport(request):
 
 
 def _all_details_dashboard(qs):
-    item_ids = qs.values('id')
-    req_ids = qs.values('requisit_id')
+    # Ordering is meaningless inside an IN-subquery, and keeping it makes Django
+    # drag the ORDER BY column into the DISTINCT select list
+    # (SELECT DISTINCT RequisitionItem.id, Requisition.ref_no) — a wider sort
+    # plus a Requisition join, repeated in every subquery below. Strip it once.
+    lean = qs.order_by()
+    # Every aggregate below scopes on the filtered item ids. Handing them the
+    # queryset makes the database re-run (and re-materialise) that whole
+    # filtered subquery once per aggregate — 7x per page load — and with a
+    # search term that subquery is the expensive part. Pull the ids once and
+    # pass a plain list instead. Above the cap an IN-list would get unwieldy,
+    # but a result set that large only comes from a broad/unfiltered query,
+    # where the subquery is cheap anyway — so fall back to it there.
+    ID_CAP = 5000
+    pairs = list(lean.values_list('id', 'requisit_id')[:ID_CAP + 1])
+    if len(pairs) > ID_CAP:
+        item_ids = lean.values('id')
+        req_ids = lean.values('requisit_id')
+        ri_agg = lean.values('id', 'requisit_id').aggregate(
+            requisition_items=Count('id', distinct=True),
+            requisitions=Count('requisit_id', distinct=True),
+        )
+    else:
+        item_ids = [pk for pk, _ in pairs]
+        # NULL requisit_id is dropped: `x IN (.., NULL)` never matches anyway,
+        # and Count('requisit_id', distinct=True) likewise ignores NULLs.
+        req_ids = sorted({rq for _, rq in pairs if rq is not None})
+        ri_agg = {'requisition_items': len(item_ids),
+                  'requisitions': len(req_ids)}
     cancelled_cp = ComparisonPrice.objects.filter(is_cancel=True).values('id')
     cpi = (ComparisonPriceItem.objects
            .filter(item_id__in=item_ids)
@@ -5283,9 +5309,15 @@ def _all_details_dashboard(qs):
         except ValueError:
             continue
     # Money totals: PurchaseOrder header (deduped, non-cancelled) ...
+    # EXISTS rather than a reverse join + .distinct(): the join emitted one row
+    # per PO item, and .distinct() then forced Django to wrap the aggregate in a
+    # `SELECT DISTINCT <every PurchaseOrder column>` subquery just to dedupe the
+    # headers back down. EXISTS keeps one row per PO to begin with, so the sums
+    # are taken straight off the table.
+    has_scoped_item = Exists(PurchaseOrderItem.objects
+                             .filter(po=OuterRef('pk'), item_id__in=item_ids))
     po_money = (PurchaseOrder.objects
-                .filter(purchaseorderitem__item_id__in=item_ids, is_cancel=False)
-                .distinct()
+                .filter(has_scoped_item, is_cancel=False)
                 .aggregate(total_price=Sum('total_price'),
                            total_after_discount=Sum('total_after_discount'),
                            vat=Sum('vat'),
@@ -5293,14 +5325,16 @@ def _all_details_dashboard(qs):
     # ... plus the selected ComparisonPriceDistributor for comparisons that
     # stand on their own (a CP-stage row: not the source of any scoped PO).
     scoped_po_cp_ids = (PurchaseOrder.objects
-                        .filter(purchaseorderitem__item_id__in=item_ids,
+                        .filter(has_scoped_item,
                                 is_cancel=False, cp__isnull=False)
                         .values('cp'))
     cpd_money = (ComparisonPriceDistributor.objects
-                 .filter(comparisonpriceitem__item_id__in=item_ids, is_select=True)
+                 .filter(Exists(ComparisonPriceItem.objects
+                                .filter(bidder=OuterRef('pk'),
+                                        item_id__in=item_ids)),
+                         is_select=True)
                  .exclude(cp__is_cancel=True)
                  .exclude(cp__in=scoped_po_cp_ids)
-                 .distinct()
                  .aggregate(total_price=Sum('total_price'),
                             total_after_discount=Sum('total_after_discount'),
                             vat=Sum('vat'),
@@ -5311,15 +5345,15 @@ def _all_details_dashboard(qs):
 
     tp = _tot('total_price')
     tad = _tot('total_after_discount')
-    ri_agg = qs.aggregate(
-        requisition_items=Count('id', distinct=True),
-        requisitions=Count('requisit_id', distinct=True),
-    )
     return {
         'requisitions': ri_agg['requisitions'],
         'requisition_items': ri_agg['requisition_items'],
+        # .values('id') keeps the DISTINCT on the PK instead of on every column
+        # of the table (the filter is on a local column, so no row can be
+        # duplicated and the two forms count the same set).
         'purchase_reqs': (PurchaseRequisition.objects
-                          .filter(requisition_id__in=req_ids).distinct().count()),
+                          .filter(requisition_id__in=req_ids)
+                          .values('id').distinct().count()),
         'comparison_prices': cp_agg['comparison_prices'],
         'comparison_items': cp_agg['comparison_items'],
         'distributors': cp_agg['distributors'],
