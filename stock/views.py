@@ -41,7 +41,7 @@ from django.db.models import Count, Avg
 import xlwt
 from django.db.models import F, Func, Value, CharField,When, Q, Case, ExpressionWrapper
 from django.views.decorators.cache import cache_control
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import pandas as pd
 from django_pandas.io import read_frame
 from django.db.models.functions import Round, Concat, Coalesce, TruncMonth
@@ -5251,6 +5251,58 @@ def viewAllDetailsReport(request):
     return render(request, "report/viewAllDetails.html", context)
 
 
+def _decimal_or_none(raw):
+    """Parse a free-text money/percent entry into a finite Decimal.
+
+    Returns None for anything that is not a usable number. Both Decimal() and
+    float() accept the IEEE literals ('NaN', 'nan', 'inf', 'Infinity',
+    '-Infinity', ...), which a free-text CharField can perfectly well hold, so
+    the finite check is what keeps them out -- without it a single such row
+    poisons any running total for good, since nan + anything is nan.
+    """
+    if raw is None:
+        return None
+    text = str(raw).strip().replace(',', '')
+    if not text:
+        return None
+    try:
+        value = Decimal(text)
+    except (InvalidOperation, ValueError):
+        return None
+    return value if value.is_finite() else None
+
+
+def _item_discount_amount(raw, quantity, unit_price):
+    """Monetary discount for one PO/CP item line.
+
+    Mirrors calculateUnitDiscount(discount, quantity * unitPrice) -- the same
+    function is defined in every PO and CP item template -- so a "%" entry is
+    taken off that line's own base amount and anything else is already a plain
+    amount. Unusable entries contribute nothing.
+    """
+    text = '' if raw is None else str(raw).strip()
+    if '%' not in text:
+        return _decimal_or_none(text) or Decimal('0')
+    percent = _decimal_or_none(text.replace('%', ''))
+    if percent is None:
+        return Decimal('0')
+    qty = _decimal_or_none(quantity)
+    price = _decimal_or_none(unit_price)
+    if qty is None or price is None:
+        return Decimal('0')
+    return qty * price * percent / Decimal('100')
+
+
+def _sum_item_discounts(rows):
+    """Total the per-line discounts of (discount, quantity, unit_price) rows."""
+    total = Decimal('0')
+    for raw, quantity, unit_price in rows:
+        total += _item_discount_amount(raw, quantity, unit_price)
+    # A percentage of a 4-decimal quantity carries a long tail; round to the
+    # 2 decimals every money column on these models already uses.
+    return total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
 def _all_details_dashboard(qs):
     # Ordering is meaningless inside an IN-subquery, and keeping it makes Django
     # drag the ORDER BY column into the DISTINCT select list
@@ -5293,21 +5345,10 @@ def _all_details_dashboard(qs):
               .filter(item_id__in=item_ids, po__is_cancel=False)
               .aggregate(po_items=Count('id'),
                          purchase_orders=Count('po', distinct=True)))
-    # PurchaseOrderItem.discount is a free-text CharField holding either a
-    # decimal amount or a "%" value; sum only the plain decimal entries.
-    po_item_discount = 0
-    for raw in (PurchaseOrderItem.objects
-                .filter(item_id__in=item_ids, po__is_cancel=False)
-                .values_list('discount', flat=True)):
-        if not raw:
-            continue
-        s = str(raw).strip()
-        if s.endswith('%'):
-            continue
-        try:
-            po_item_discount += float(s.replace(',', ''))
-        except ValueError:
-            continue
+    po_item_discount = _sum_item_discounts(
+        PurchaseOrderItem.objects
+        .filter(item_id__in=item_ids, po__is_cancel=False)
+        .values_list('discount', 'quantity', 'unit_price'))
     # Money totals: PurchaseOrder header (deduped, non-cancelled) ...
     # EXISTS rather than a reverse join + .distinct(): the join emitted one row
     # per PO item, and .distinct() then forced Django to wrap the aggregate in a
