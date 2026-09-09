@@ -11,7 +11,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
 from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
-from .resources import ReceiveItemResource, DistributorResource
+from .resources import ReceiveItemResource, DistributorResource, UserProfileResource
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html, format_html_join
 from related_admin import RelatedFieldAdmin
@@ -251,6 +251,8 @@ class BaseVatTypeAdmin(ImportExportModelAdmin):
     list_editable = ['name']
 
 class UserProfileAdmin(ImportExportModelAdmin):
+    resource_class = UserProfileResource
+
     formfield_overrides = {
         models.ManyToManyField: {'widget': CheckboxSelectMultiple},
     }
