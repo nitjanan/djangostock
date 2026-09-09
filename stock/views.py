@@ -825,6 +825,9 @@ def index(request, category_slug = None):
         return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav", "isMobile": isMobile})
     elif isMobileMenu:
         return render(request, "mobileApp/menu.html", {"disableTab":"disableTab","colorNav":"disableNav", "user_in_comp": user_in_comp, "isApproveMA": isApproveMA, "isMobileMenu": isMobileMenu})
+    else:
+        #ผู้ใช้ที่ยังไม่ได้กำหนดสิทธิ ให้แสดงหน้าแรกแบบว่าง แทนการ return None
+        return render(request,'firstPage.html', {'prs':new_pr,'pos':new_po,'cms':new_cm, active :"active show", "colorNav":"enableNav", "isMobile": isMobile})
 
 
 def productPage(request, category_slug, product_slug):
