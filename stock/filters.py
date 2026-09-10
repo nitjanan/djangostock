@@ -1,10 +1,12 @@
 from django.db.models import fields, Q, Min, Max, Exists, OuterRef
 from django.db.models.fields import DateField
 from django.forms.widgets import DateInput, TextInput
+from django.http import QueryDict
 import django_filters
 from django_filters import DateFilter
 from .models import *
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 from django.utils.timezone import make_aware
 from datetime import datetime, time
 from .models import Maintenance
@@ -504,8 +506,36 @@ CarLogbookFilter.base_filters['car'].label = 'ทะเบียนรถ'
 CarLogbookFilter.base_filters['name'].label = 'ชื่อผู้ใช้รถ'
 
 
+ALL_DETAILS_YEAR_SCOPE_DEFAULT = 'last_3_years'
+ALL_DETAILS_YEAR_SCOPE_ALL = 'all'
+ALL_DETAILS_YEAR_SCOPE_SPAN = 3       # 'last_3_years' = this year + 2 previous
+ALL_DETAILS_YEAR_SCOPE_MAX_YEARS = 10  # cap on the per-year options offered
+
+
+def all_details_year_scope_choices():
+    """Year-scope options for the all-details report.
+
+    The per-year options run from the current year back to the earliest
+    requisition on record (one cheap Min() query), capped at
+    ALL_DETAILS_YEAR_SCOPE_MAX_YEARS so an old/dirty row cannot produce a
+    hundred-entry dropdown."""
+    current_year = timezone.now().year
+    earliest = Requisition.objects.aggregate(first=Min('created'))['first']
+    earliest_year = earliest.year if earliest else current_year
+    earliest_year = max(
+        min(earliest_year, current_year),
+        current_year - ALL_DETAILS_YEAR_SCOPE_MAX_YEARS + 1,
+    )
+    choices = [(ALL_DETAILS_YEAR_SCOPE_DEFAULT, '3 ปีล่าสุด')]
+    choices += [(str(y), str(y)) for y in range(current_year, earliest_year - 1, -1)]
+    choices.append((ALL_DETAILS_YEAR_SCOPE_ALL, 'ทุกปี'))
+    return choices
+
+
 class AllDetailsFilter(django_filters.FilterSet):
     search = django_filters.CharFilter(method='filter_search')
+    year_scope = django_filters.ChoiceFilter(
+        method='filter_year_scope', choices=(), empty_label=None)
     stage = django_filters.ChoiceFilter(
         method='filter_stage',
         choices=(
@@ -519,6 +549,29 @@ class AllDetailsFilter(django_filters.FilterSet):
     class Meta:
         model = RequisitionItem
         fields = []
+
+    def __init__(self, data=None, *args, **kwargs):
+        # The report defaults to the latest 3 years, so the filterset is always
+        # bound: an absent -- or unusable -- year_scope falls back to the
+        # default instead of erroring out or silently dropping the scope.
+        data = data.copy() if data is not None else QueryDict(mutable=True)
+        choices = all_details_year_scope_choices()
+        if data.get('year_scope') not in {value for value, _ in choices}:
+            data['year_scope'] = ALL_DETAILS_YEAR_SCOPE_DEFAULT
+        super().__init__(data, *args, **kwargs)
+        self.filters['year_scope'].extra['choices'] = choices
+
+    def filter_year_scope(self, queryset, name, value):
+        """Restrict to the requisition's creation year, at the database level."""
+        if value == ALL_DETAILS_YEAR_SCOPE_ALL:
+            return queryset
+        if value == ALL_DETAILS_YEAR_SCOPE_DEFAULT:
+            current_year = timezone.now().year
+            return queryset.filter(
+                requisit__created__year__gte=current_year - (ALL_DETAILS_YEAR_SCOPE_SPAN - 1),
+                requisit__created__year__lte=current_year,
+            )
+        return queryset.filter(requisit__created__year=int(value))
 
     def filter_search(self, queryset, name, value):
         if not value:
@@ -586,3 +639,4 @@ class AllDetailsFilter(django_filters.FilterSet):
 
 AllDetailsFilter.base_filters['search'].label = 'ค้นหา (ใบขอเบิก/ขอซื้อ/เปรียบเทียบ/สั่งซื้อ/สินค้า/ร้านค้า)'
 AllDetailsFilter.base_filters['stage'].label = 'ขั้นตอนล่าสุด'
+AllDetailsFilter.base_filters['year_scope'].label = 'ช่วงปีที่ขอเบิก'

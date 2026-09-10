@@ -176,10 +176,12 @@ class AllDetailsReportTests(_AllDetailsBase):
         self.assertEqual(resp.status_code, 200)
         self.assertIsInstance(resp.context["filter"], AllDetailsFilter)
 
-    def test_filter_has_only_search_and_stage_fields(self):
-        """The filter form must expose exactly two fields: search (id_search) and stage."""
+    def test_filter_has_only_search_year_scope_and_stage_fields(self):
+        """The filter form must expose exactly three fields: search (id_search),
+        year_scope and stage."""
         resp = self.client.get(reverse(URL_NAME))
-        self.assertEqual(list(resp.context["filter"].form.fields.keys()), ["search", "stage"])
+        self.assertEqual(list(resp.context["filter"].form.fields.keys()),
+                         ["search", "year_scope", "stage"])
         self.assertContains(resp, 'name="search"')
         self.assertContains(resp, 'id="id_search"')
         self.assertContains(resp, 'name="stage"')
@@ -305,8 +307,10 @@ class AllDetailsReportTests(_AllDetailsBase):
         PurchaseRequisition.objects.filter(id=pr_c["pr"].id).update(created=_dt.date(2022, 2, 2))
         _CP.objects.filter(id=cp_c["cp"].id).update(created=_dt.date(2023, 3, 3))
         PurchaseOrder.objects.filter(id=po_c["po"].id).update(created=_dt.date(2024, 4, 4))
+        # backdated rows: the report defaults to the latest 3 years
         rows = {r["requisition"].ref_no: r for r in
-                self.client.get(reverse(URL_NAME)).context["rows"]}
+                self.client.get(reverse(URL_NAME),
+                                {"year_scope": "all"}).context["rows"]}
         self.assertEqual(rows["REQ-D0"]["stage_date"], _dt.date(2021, 1, 1))
         self.assertEqual(rows["REQ-D1"]["stage_date"], _dt.date(2022, 2, 2))
         self.assertEqual(rows["REQ-D2"]["stage_date"], _dt.date(2023, 3, 3))
