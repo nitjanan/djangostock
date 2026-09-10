@@ -5928,7 +5928,8 @@ def cal_days_between_nagative(day1, day2):
 def normalize_datetime(value):
     if value is None:
         return None
-    if is_aware(value):
+    #date ธรรมดาไม่มี utcoffset() จึงต้องเช็ค datetime ก่อนเรียก is_aware
+    if hasattr(value, 'utcoffset') and is_aware(value):
         value = make_naive(value)  #Convert to naive datetime
     return value.strftime('%Y-%m-%d')  #Format as string
 
@@ -5984,7 +5985,7 @@ def exportExcelPOToExpress(request):
 
     data1 = {
         'เลขที่': [r['po__ref_no'] for r in rows],
-        'วันที่': [r['po__created'] for r in rows],
+        'วันที่': [normalize_datetime(r['po__created']) for r in rows],
         'รหัสบริษัท': [r['po__branch_company__code'] for r in rows],
         'บริษัท': [r['po__branch_company__name'] for r in rows],
         'รหัสผู้จำหน่าย': [r['po__distributor'] for r in rows],
@@ -6060,13 +6061,12 @@ def exportExcelPOToExpress(request):
 
     result = pd.concat([df1, df2, df3, df4, df5])
 
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xlsx'
+    #ส่งออกเป็นไฟล์ Excel 97-2003 Workbook (.xls) ชีทชื่อ EXPRESS
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xls'
 
-    with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
-        result.to_excel(writer, index=False)
+    with pd.ExcelWriter(response, engine='xlwt') as writer:
+        result.to_excel(writer, index=False, sheet_name='EXPRESS')
 
     return response
 

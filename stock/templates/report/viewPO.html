@@ -281,7 +281,7 @@
 
     const queryString = "{{ request.GET.urlencode|escapejs }}";
     const py_url = "{% url 'exportExcelPOToExpress' %}" + (queryString ? "?" + queryString : "");
-    const file_name = "PO_to_Express_Report_("+'{{ request.session.company_code }}'+").xlsx";
+    const file_name = "PO_to_Express_Report_("+'{{ request.session.company_code }}'+").xls";
 
 	  const delay_time = 50;
     progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time)
