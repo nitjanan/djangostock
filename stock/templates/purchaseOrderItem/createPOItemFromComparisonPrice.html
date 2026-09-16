@@ -4,6 +4,12 @@
 
 {% block css %}
 <style>
+  /* ล็อกช่องรายการสินค้าและราคา ให้ใช้ค่าที่ตัดมาจากใบเปรียบเทียบราคา */
+  .lock-po-item {
+    background-color: #e9ecef;
+    pointer-events: none;
+  }
+
   @media print {
     .hidden-print {
       display: none;
@@ -122,7 +128,7 @@
                     <div class="input-group">
                           {{form.item}}
                           <input id="id_form-{{forloop.counter0}}-oldquantity" name="form-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
-                          <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
+                          <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control lock-po-item" Placeholder="ค้นหารหัส express..." autocomplete="off" readonly="readonly">
                           <!--datalist id="idExpressList">
                             {% for results in itemList %}
                               <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>

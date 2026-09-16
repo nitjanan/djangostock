@@ -31,6 +31,36 @@ def address_company_queryset(branch_company_code):
     return BaseAddress.objects.filter(id__in=address_ids)
 
 
+def po_approver_user_queryset(branch_company_code, include_user=None):
+    """User choices for the PO approver dropdown of a single branch company.
+
+    สิทธิการอนุมัติใบสั่งซื้อยึดจาก ``PositionBasePermission`` ที่มี
+    ``base_permission`` เป็น CAAPO (id 4) และผูกกับบริษัทนั้น ไม่ได้ยึดจากกลุ่ม
+    ``ผู้อนุมัติ`` อีกต่อไป ถ้าไม่มีรหัสบริษัทที่ใช้ได้ queryset จะว่างโดยตั้งใจ
+    เพื่อไม่ให้ dropdown หลุดไปแสดงผู้ใช้ของบริษัทอื่น
+
+    ``include_user`` คือผู้อนุมัติที่ถูกกำหนดมาแล้วของใบสั่งซื้อนั้น (เช่นผู้อนุมัติ
+    ที่ดึงมาจากใบเปรียบเทียบราคา หรือผู้อนุมัติเดิมของใบที่กำลังแก้ไข) ต้องคงไว้
+    ใน queryset เสมอ ไม่งั้นค่าที่มีอยู่จะตกหล่นกลายเป็นว่าง ตอน validate/แสดงผล
+    รับได้ทั้ง ``User`` และ pk
+    """
+    code = str(branch_company_code) if branch_company_code else None
+    if code:
+        position_ids = PositionBasePermission.objects.filter(
+            base_permission__codename='CAAPO',
+            branch_company__code=code,
+        ).values_list('position_id', flat=True)
+        permitted = Q(userprofile__position__in=position_ids, userprofile__branch_company__code=code)
+    else:
+        permitted = Q(pk__in=[])
+
+    include_user_id = getattr(include_user, 'pk', include_user)
+    if include_user_id:
+        permitted = permitted | Q(pk=include_user_id)
+
+    return User.objects.filter(permitted).distinct()
+
+
 class MyClearableFileInput(ClearableFileInput):
     initial_text = 'ไฟล์ปัจจุบัน'
     input_text = 'เปลี่ยนไฟล์'
@@ -177,7 +207,7 @@ class PurchaseOrderForm(forms.ModelForm):
        super().__init__(*args, **kwargs)
        self.fields['address_company'].queryset = address_company_queryset(self.instance.branch_company)
        if self.instance.branch_company is not None:
-           self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = self.instance.branch_company) , required=False)
+           self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= po_approver_user_queryset(self.instance.branch_company, self.instance.approver_user_id), required=False)
 
     class Meta:
        model = PurchaseOrder
@@ -223,7 +253,9 @@ class PurchaseOrderFromComparisonPriceForm(forms.ModelForm):
     def __init__(self,request,*args,**kwargs):
         super (PurchaseOrderFromComparisonPriceForm,self).__init__(*args,**kwargs)
         self.fields['address_company'].queryset = address_company_queryset(request.session.get('company_code', 'ALL'))
-        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= User.objects.filter(groups__name='ผู้อนุมัติ', userprofile__branch_company__code = request.session.get('company_code', 'ALL')), required=False)
+        #ผู้อนุมัติของใบที่ออกจาก CP ถูกดึงมาจากใบ CP จึงต้องคงไว้ใน queryset แม้ไม่มีสิทธิ CAAPO
+        cp_approver_user = self.initial.get('approver_user') or self.instance.approver_user_id
+        self.fields['approver_user'] = forms.ModelChoiceField(label='ผู้อนุมัติใบสั่งซื้อ', queryset= po_approver_user_queryset(request.session.get('company_code', 'ALL'), cp_approver_user), required=False)
         #self.fields['cp'] = forms.ModelChoiceField(label='เลขที่ใบเปรียบเทียบราคา', queryset=ComparisonPrice.objects.filter(select_bidder__isnull=False, po_ref_no = "", branch_company__code = request.session.get('company_code', 'ALL')))
 
     class Meta:

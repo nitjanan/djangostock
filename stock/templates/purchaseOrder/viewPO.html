@@ -68,6 +68,7 @@
                   <th scope="col">ผู้สั่งสินค้า</th>
                   <th scope="col">วันที่สั่งซื้อ</th>
                   <th scope="col">ราคา</th>
+                  <th scope="col">ผู้อนุมัติ</th>
                   <th scope="col" style="width:150px;">รายการสั่งซื้อ</th>
                   <th scope="col">รับสินค้า</th>
                   <th scope="col">ใบเสนอราคา</th>
@@ -94,6 +95,9 @@
                   <td>{{po.stockman_user}}</td>
                   <td>{{po.created |date:"d/m/Y"}}</td>
                   <td>{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
+                  <td>
+                    {{po.approver_user}}
+                  </td>
                   <td>
                     {% if po.approver_status_id == 1 and request.user == po.stockman_user %}
                       <div style="display: flex;">

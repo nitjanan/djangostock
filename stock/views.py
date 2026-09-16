@@ -1996,6 +1996,18 @@ def is_edit_po_id(user):
 def is_edit_approver_user_po(user):
     return user.groups.filter(name='แก้ไขผู้อนุมัติใบสั่งซื้อ').exists()
 
+def can_edit_approver_user_po(user, is_from_cp):
+    """ใครเลือก/แก้ผู้อนุมัติใบสั่งซื้อได้บ้าง
+
+    - ใบสั่งซื้อที่ออกจากใบเปรียบเทียบราคา (CP) ปิดตายทุกคน เพราะ flow ดึง
+      approver_user จากใบ CP มาใส่ให้อัตโนมัติอยู่แล้ว
+    - ใบสั่งซื้อที่ออกจากใบขอซื้อ (PR) เปิดให้กลุ่ม 'จัดซื้อ' และกลุ่ม
+      'แก้ไขผู้อนุมัติใบสั่งซื้อ' เลือกผู้อนุมัติเองได้
+    """
+    if is_from_cp:
+        return False
+    return is_edit_approver_user_po(user) or is_purchasing(user)
+
 #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด
 def is_view_report_all(user):
     return user.groups.filter(name='ดูรายงานของบริษัททั้งหมด').exists()
@@ -2854,6 +2866,8 @@ def createPO(request):
 
     context = {
         'form':form,
+        #ใบสั่งซื้อที่สร้างตรงนี้ออกจากใบขอซื้อ (PR) จัดซื้อจึงเลือกผู้อนุมัติได้
+        'isEditApproverUserPO': can_edit_approver_user_po(request.user, False),
         'po_page': "tab-active",
         'po_show': "show",
     }
@@ -2871,6 +2885,7 @@ def editPO(request, po_id):
 
     context = {
         'form':form,
+        'isEditApproverUserPO': can_edit_approver_user_po(request.user, po.cp_id is not None),
         'po_page': "tab-active",
         'po_show': "show",
     }
@@ -2883,10 +2898,11 @@ def editPOFromPR(request, po_id):
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
-    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
-    isEditApproverUserPO = is_edit_approver_user_po(request.user)
-
     po = PurchaseOrder.objects.get(id=po_id)
+
+    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
+    isEditApproverUserPO = can_edit_approver_user_po(request.user, po.cp_id is not None)
+
     form = PurchaseOrderForm(instance=po)
     form_rate = RateDistributorForm()
 
@@ -3169,8 +3185,11 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
     isEditPO = is_edit_po_id(request.user)
 
-    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
-    isEditApproverUserPO = is_edit_approver_user_po(request.user)
+    #ผู้อนุมัติแก้ได้เฉพาะใบที่ออกจากใบขอซื้อ (PR) ใบที่ออกจาก CP ให้ readonly
+    isEditApproverUserPO = can_edit_approver_user_po(
+        request.user,
+        PurchaseOrder.objects.filter(id = po_id, cp__isnull = False).exists(),
+    )
 
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
@@ -3184,6 +3203,15 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
 
     po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
+
+    #ใบสั่งซื้อที่สร้างจากใบเปรียบเทียบราคา ล็อกไม่ให้แก้ไขรายการสินค้าและราคา
+    #ยกเว้นกรณีขอเปลี่ยนแปลงรายละเอียดรายการ (re approve) ให้แก้ไขได้
+    isLockPOItem = po_data.cp_id is not None and not get_bool(isReApprove)
+    locked_price_value = {}
+    if isLockPOItem:
+        for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
+            locked_price_value[field] = getattr(po_data, field)
+
     try:
         rate_dist = RateDistributor.objects.get(po = po_id)
     except RateDistributor.DoesNotExist:
@@ -3198,6 +3226,9 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         if formset.is_valid() and price_form.is_valid() and form.is_valid() and form_rate.is_valid():
             # save ราคาใบ po
             price = price_form.save(commit=False)
+            #คงราคาเดิมไว้ ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
+            for field, value in locked_price_value.items():
+                setattr(price, field, value)
             if not price.discount:
                 price.discount = 0.00
             if not price.freight:
@@ -3232,6 +3263,10 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 pass
 
             # save po item
+            #ไม่บันทึกการแก้ไขรายการสินค้า ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
+            if isLockPOItem:
+                return redirect('viewPO')
+
             instances = formset.save(commit=False)
             for instance in instances:
                 instance.save()
@@ -3289,6 +3324,10 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         form = PurchaseOrderForm(instance=po_data)
         form_rate = RateDistributorForm(instance=rate_dist)
 
+    #ตั้งค่า readonly ให้ช่องรายการสินค้าและราคา ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
+    if isLockPOItem:
+        set_readonly_po_item_and_price(formset, price_form)
+
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po_id)
 
@@ -3317,6 +3356,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'form': form,
         'form_rate': form_rate,
         'isFromPR':isFromPR,
+        'isLockPOItem':isLockPOItem,
         'itemList':itemList,
         'new_pr':new_pr,
         'isEditPO':isEditPO,
@@ -4141,6 +4181,27 @@ def showComparePricePO(request, cp_id, mode):
     }
     return render(request, 'comparePricePO/showComparePricePO.html',context)
 
+def set_readonly_po_item_and_price(formset, price_form):
+    """ตั้งค่า readonly ให้ช่องรายการสินค้าและช่องราคาของใบสั่งซื้อ (ที่ตัดมาจากใบเปรียบเทียบราคา)"""
+    lock_widgets = []
+    for field_name in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
+        if field_name in price_form.fields:
+            lock_widgets.append(price_form.fields[field_name].widget)
+    for item_form in formset.forms:
+        lock_widgets += [field.widget for field in item_form.fields.values()]
+    for widget in lock_widgets:
+        widget.attrs['readonly'] = 'readonly'
+        widget.attrs['class'] = (widget.attrs.get('class', '') + ' lock-po-item').strip()
+
+def auto_approve_po_from_cp(po, cp):
+    """อนุมัติใบสั่งซื้ออัตโนมัติ ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และใบสั่งซื้อมียอดเงินมากกว่า 0"""
+    cp_approver_status_id = cp.special_approver_status_id if cp.is_special_approve_cm else cp.approver_status_id
+    if cp_approver_status_id == 2 and po.amount and po.amount > 0:
+        po.approver_status_id = 2
+        po.approver_update = timezone.now()
+        return True
+    return False
+
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createPOFromComparisonPrice(request, cp_id):
     active = request.session.get('company_code', 'ALL')
@@ -4150,8 +4211,8 @@ def createPOFromComparisonPrice(request, cp_id):
     #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
     isEditPO = is_edit_po_id(request.user)
 
-    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
-    isEditApproverUserPO = is_edit_approver_user_po(request.user)
+    #ใบสั่งซื้อออกจากใบเปรียบเทียบราคา ผู้อนุมัติถูกกำหนดมาจากใบ CP จึง readonly สำหรับจัดซื้อ
+    isEditApproverUserPO = can_edit_approver_user_po(request.user, True)
 
     bc = ComparisonPrice.objects.get(id = cp_id)
 
@@ -4179,8 +4240,11 @@ def createPOFromComparisonPrice(request, cp_id):
             new_contact.stockman_user = cp.organizer
             new_contact.vat_type = cpd.vat_type
             new_contact.quotation_pdf = cpd.quotation_pdf
+            #ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และมียอดเงิน ให้อนุมัติใบสั่งซื้ออัตโนมัติ
             new_contact.approver_status_id = 1
-            #new_contact.approver_user = cp.approver_user
+            auto_approve_po_from_cp(new_contact, cp)
+            #ผู้อนุมัติดึงมาจากใบเปรียบเทียบราคาเสมอ ไม่ได้มาจากช่องในฟอร์ม (readonly)
+            new_contact.approver_user = cp.special_approver_user if cp.is_special_approve_cm else cp.approver_user
             new_contact.branch_company = company
             new_contact.created = cp.select_bidder_update if cp.select_bidder_update else cp.created
 
@@ -4248,6 +4312,10 @@ def createPOItemFromComparisonPrice(request, po_id):
 
             # save ราคาใบ po
             price_form.save()
+
+            #รู้ยอดเงินแล้ว เช็คอนุมัติใบสั่งซื้ออัตโนมัติอีกครั้ง
+            if auto_approve_po_from_cp(po_data, cp):
+                po_data.save()
             # save po item
             for form in formset:
                 # only save if name is present
@@ -4257,6 +4325,9 @@ def createPOItemFromComparisonPrice(request, po_id):
                     obj.save()
             #redirect นอก loop
             return redirect('viewPO')
+
+    #ล็อกช่องรายการสินค้าและราคา ให้ใช้ค่าที่ตัดมาจากใบเปรียบเทียบราคาเท่านั้น
+    set_readonly_po_item_and_price(formset, price_form)
 
     po = PurchaseOrder.objects.get(id = po_id)
     items = PurchaseOrderItem.objects.filter(po = po_id)

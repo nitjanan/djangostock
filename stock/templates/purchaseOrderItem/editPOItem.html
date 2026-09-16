@@ -13,6 +13,12 @@
 .select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
 .input-group > .select2-container{flex:1 1 auto;width:1% !important;}
 
+  /* ล็อกรายการสินค้าและราคาของใบสั่งซื้อที่สร้างจากใบเปรียบเทียบราคา */
+  .lock-po-item {
+    background-color: #e9ecef;
+    pointer-events: none;
+  }
+
   @media print {
     .hidden-print {
       display: none;
@@ -176,7 +182,7 @@
                         {{form.id}} 
                         {{form.item}}
                         <input id="id_purchaseorderitem_set-{{forloop.counter0}}-oldquantity" name="comparisonpriceitem_set-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
-                        <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหารหัส express..." class="form-control" autocomplete="off">
+                        <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control{% if isLockPOItem %} lock-po-item{% endif %}" Placeholder="ค้นหารหัส express..." autocomplete="off"{% if isLockPOItem %} readonly="readonly"{% endif %}>
                         <!--datalist id="idExpressList">
                           {% for results in itemList %}
                             <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
@@ -1160,5 +1166,15 @@ function setDateTimePrint(){
       $('input[name="rate-safety"][value="0"]').prop('checked', true).trigger('change');
       $('#id_counsel').val('{{rate_dist.counsel}}');
     }
+
+    {% if isLockPOItem %}
+    //ใบสั่งซื้อที่สร้างจากใบเปรียบเทียบราคา: ล็อกรายการสินค้าและราคา ไม่ให้แก้ไข
+    $(function() {
+      $(".form-row.spacer").find("input, select, textarea").prop("readonly", true).addClass("lock-po-item");
+      $(".form-row.spacer").find(".add-form-row, .input-group-append .btn-danger, .del").hide();
+      $("#id_total_price, #id_discount, #id_total_after_discount, #id_freight, #id_vat, #id_amount")
+        .prop("readonly", true).addClass("lock-po-item");
+    });
+    {% endif %}
 </script>
 {% endblock%}
