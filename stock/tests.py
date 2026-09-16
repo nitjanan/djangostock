@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from decimal import Decimal
 import datetime
-from stock.models import BaseBranchCompany, BaseVatType, BaseAddress, PurchaseOrder, RequisitionItem, PurchaseOrderItem, BaseUnit, ComparisonPrice, ComparisonPriceDistributor, Distributor, BaseCredit, BaseApproveStatus, BasePOType, BranchCompanyBaseAdress, RateDistributor, CarLogbook, BaseCar
+from stock.models import BaseBranchCompany, BaseVatType, BaseAddress, PurchaseOrder, RequisitionItem, PurchaseOrderItem, BaseUnit, ComparisonPrice, ComparisonPriceDistributor, Distributor, BaseCredit, BaseApproveStatus, BasePOType, BranchCompanyBaseAdress, RateDistributor, CarLogbook, BaseCar, Position, BasePermission, PositionBasePermission
 
 class PurchaseOrderItemDoubleSubmitTestCase(TestCase):
     def setUp(self):
@@ -161,7 +161,18 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
             name="Pending"
         )
         # Create UserProfile for user
-        self.profile = UserProfile.objects.create(user=self.user)
+        # สิทธิอนุมัติใบสั่งซื้อยึดจาก PositionBasePermission codename CAAPO
+        self.position = Position.objects.create(name='ผู้อนุมัติใบสั่งซื้อ')
+        self.permission_caapo = BasePermission.objects.create(
+            name='can approve approver PO',
+            codename='CAAPO',
+            codename_th='อนุมัติใบสั่งซื้อ',
+        )
+        position_permission = PositionBasePermission.objects.create(position=self.position)
+        position_permission.base_permission.add(self.permission_caapo)
+        position_permission.branch_company.add(self.branch)
+
+        self.profile = UserProfile.objects.create(user=self.user, position=self.position)
         self.profile.branch_company.add(self.branch)
 
         # Create ComparisonPrice
