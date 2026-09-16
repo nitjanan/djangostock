@@ -2593,7 +2593,18 @@ def showPR(request, pr_id, mode):
         isRePr = True    
     '''
 
-    isRePr = is_re_pr(request.user)
+    #ตรวจว่ายังมี item ที่เหลือจำนวนให้ซื้อใหม่ได้อยู่หรือไม่
+    isHasRemainItem = False
+    for i in items:
+        if i.quantity_pr - calculateSumQuantityCPAndPOItem(i) > 0:
+            isHasRemainItem = True
+            break
+
+    #ต้องเป็นใบที่เกิดจากการ CLOSE เท่านั้น (มี stamp C# นำหน้า note)
+    isFromClose = bool(pr.note) and pr.note[:2] == 'C#'
+
+    #ต้องมีสิทธิ rePR, เป็น staff (จัดซื้อ/พัสดุ), มาจากการ CLOSE และยังมีรายการคงเหลือ
+    isRePr = is_re_pr(request.user) and is_staff and isFromClose and isHasRemainItem
 
     #ที่อยู่และหัวบริษัท
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
@@ -4638,8 +4649,13 @@ def reBuyPR(request, pr_id):
     try:
         pr_item = RequisitionItem.objects.filter(requisit = pr.requisition)
         for item in pr_item:
-            item.is_used = False
-            item.save()
+            #คำนวนจำนวนคงเหลือแบบเดียวกับ createCMorPO
+            sum_po_cp = calculateSumQuantityCPAndPOItem(item)
+            q_remain = item.quantity_pr - sum_po_cp
+            #เปิดให้ซื้อใหม่เฉพาะรายการที่ยังมีจำนวนคงเหลือ
+            if q_remain > 0:
+                item.is_used = False
+                item.save()
 
         pr.is_complete = False
         pr.note = pr.note[2:]
