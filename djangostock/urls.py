@@ -14,7 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
+from django.views.static import serve as static_serve
+from django.views.generic import TemplateView
 from stock import views
 from django.conf.urls.static import static
 from django.conf import settings
@@ -29,6 +31,10 @@ from rest_framework_simplejwt.views import(
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # service worker ต้องเสิร์ฟจาก root เพื่อให้ scope ครอบทั้งเว็บ (เงื่อนไขของ PWA/App Badge)
+    path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='service_worker'),
+    # หน้าตรวจสอบเงื่อนไข App Badge บนเครื่องจริง (เปิดจากไอคอนบนหน้าจอโฮม)
+    path('badge-debug/', TemplateView.as_view(template_name='badgeDebug.html'), name='badge_debug'),
     path('',views.index,name="home"),
     path('category/<slug:category_slug>',views.index,name="product_by_category"), # category/fashion ส่งค่า slug ไปด้วยเพื่อกำหมวดหมู่สินค้า และตั้งชื่อเราท์ name = xxx
     path('product/<slug:category_slug>/<slug:product_slug>',views.productPage,name="productDetail"), # product/fashion/shoes
@@ -258,6 +264,11 @@ urlpatterns = [
 
     path("mobileMenu/", views.mobileMenu, name="mobileMenu"),
 
+    # ให้หน้าเว็บ poll ตัวเลขแจ้งเตือนล่าสุดโดยไม่ต้องรีโหลดหน้า
+    path('api/notification-badge/', views.notificationBadgeCount, name='notificationBadgeCount'),
+    path('api/push/subscribe/', views.pushSubscribe, name='pushSubscribe'),
+    path('api/push/unsubscribe/', views.pushUnsubscribe, name='pushUnsubscribe'),
+
     path('car/api/',views.apiOverviewCar,name="apiOverviewCar"),
     path('car/api/all/',views.allCar,name="allCar"),
 
@@ -292,8 +303,14 @@ urlpatterns = [
     path('all/car/department/api/between/<str:start_date>/<str:end_date>/',views.getapiCarByDepartmentAll,name="getapiCarByDepartmentAll"),
 ]
 
+# /media/ ต้องเสิร์ฟได้เสมอ ไม่ใช่เฉพาะตอน DEBUG
+# เพราะ site.webmanifest และไอคอน PWA อยู่ใต้ /media/ ถ้า 404 จะติดตั้ง PWA ไม่ได้
+# และ App Badge ก็ใช้ไม่ได้ตามไปด้วย
+# ใน production ที่มี Caddy อยู่หน้า Caddy จะรับ /media/ ไปก่อน เส้นทางนี้เป็นตัวสำรอง
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', static_serve, {'document_root': settings.MEDIA_ROOT}),
+]
+
 if settings.DEBUG :
-    #/media/product
-    urlpatterns+=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
     #/static/
     urlpatterns+=static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)

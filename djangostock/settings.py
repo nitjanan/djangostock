@@ -29,10 +29,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-t#e@_!hkf3c=m!y3js1(1sj6qu^)qdda9-iwiwla%e5=+*_k$p'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# ปิดได้โดยไม่ต้องแก้ไฟล์ ด้วยการตั้ง env var DJANGO_DEBUG=False
+# สำคัญตอนเปิดเว็บสู่อินเทอร์เน็ต เพราะหน้า traceback ตอน DEBUG=True
+# แสดง SECRET_KEY และรหัสผ่าน DB ให้คนที่เปิด URL เห็น
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() != 'false'
 
-ALLOWED_HOSTS = []
-#ALLOWED_HOSTS = ['https://stormy-retreat-20167.herokuapp.com/']
+#ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '.trycloudflare.com',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.trycloudflare.com',
+]
 
 
 STATIC_URL = '/static/'
@@ -106,6 +117,7 @@ TEMPLATES = [
                 'stock.context_processors.addPOAll',
                 'stock.context_processors.receiveCounter',
                 'stock.context_processors.companyVisibleTab',
+                'stock.context_processors.pushSettings',
                 'stock.context_processors.document',
                 'stock.context_processors.MAAll',
                 'stock.context_processors.MAAPAll'
@@ -233,6 +245,31 @@ EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
+
+# ---------------------------------------------------------------
+# Web Push (แจ้งเตือน + อัปเดต badge ตอนปิดแอปอยู่)
+#
+# VAPID key คือกุญแจที่ใช้พิสูจน์กับ push service ว่าเซิร์ฟเวอร์เราเป็นคนส่งจริง
+# สร้างครั้งเดียวด้วย: python manage.py generate_vapid_keys
+# แล้วตั้งเป็น environment variable -- ห้าม commit private key ลง git
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+# push service บางเจ้าต้องการช่องทางติดต่อกลับเวลามีปัญหา
+VAPID_ADMIN_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'admin@southerngroup.co.th')
+
+# คุมความถี่ไม่ให้ผู้ใช้โดนแบนเนอร์เด้งรัว
+# push ครั้งถัดไปของคนเดิมต้องห่างจากครั้งก่อนอย่างน้อยเท่านี้ (นาที)
+PUSH_MIN_INTERVAL_MINUTES = int(os.environ.get('PUSH_MIN_INTERVAL_MINUTES', 30))
+# ส่งเฉพาะในช่วงเวลาทำงาน (ชั่วโมงเริ่ม, ชั่วโมงสิ้นสุด) ตามเวลาไทย
+# นอกช่วงนี้จะข้ามไป ไม่กวนตอนกลางคืน
+PUSH_ACTIVE_HOUR_START = int(os.environ.get('PUSH_ACTIVE_HOUR_START', 8))
+PUSH_ACTIVE_HOUR_END = int(os.environ.get('PUSH_ACTIVE_HOUR_END', 18))
+
+# หน้า login จริงของโปรเจกต์คือ /account/login (ไม่มี s)
+# ถ้าไม่ตั้งค่านี้ Django จะใช้ค่า default '/accounts/login/' ซึ่งไม่มีใน urls.py
+# ทำให้ผู้ใช้ที่ยังไม่ล็อกอินแล้วโดน @login_required เด้ง ไปเจอ 404 แทนหน้า login
+# ใส่เป็นชื่อ url pattern เพื่อให้ตามการเปลี่ยน path ใน urls.py ได้เอง
+LOGIN_URL = 'signIn'
 
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")

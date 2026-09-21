@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Badge Diagnostic</title>
+    <link rel="manifest" href="/media/company/site.webmanifest">
+    <link rel="apple-touch-icon" sizes="180x180" href="/media/company/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#7386D5">
+    <style>
+        body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px;
+               background: #12141a; color: #e8eaf0; font-size: 15px; line-height: 1.5; }
+        h1 { font-size: 18px; margin: 0 0 4px; }
+        p.sub { margin: 0 0 20px; color: #9aa1b0; font-size: 13px; }
+        .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+               padding: 10px 0; border-bottom: 1px solid #262a35; }
+        .k { color: #9aa1b0; font-size: 13px; flex: 0 0 auto; }
+        .v { font-weight: 600; text-align: right; word-break: break-word; font-family: ui-monospace, monospace; font-size: 13px; }
+        .ok { color: #4ade80; } .bad { color: #f87171; } .warn { color: #fbbf24; }
+        button { width: 100%; padding: 14px; margin-top: 18px; font-size: 16px; font-weight: 600;
+                 border: 0; border-radius: 10px; background: #7386D5; color: #fff; }
+        button.alt { background: #2b303d; color: #e8eaf0; }
+        #log { margin-top: 18px; padding: 12px; background: #0b0d12; border-radius: 10px;
+               font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; min-height: 40px; }
+    </style>
+</head>
+<body>
+    <h1>App Badge Diagnostic</h1>
+    <p class="sub">เปิดหน้านี้ "จากไอคอนบนหน้าจอโฮม" แล้วอ่านค่าทีละบรรทัด</p>
+
+    <div id="report"></div>
+
+    <button id="btnTest">ตั้ง Badge = 7 (ขอสิทธิ์ถ้าจำเป็น)</button>
+    <button id="btnClear" class="alt">ล้าง Badge</button>
+
+    <div id="log">พร้อมทดสอบ</div>
+
+<script>
+(function () {
+    const report = document.getElementById('report');
+    const log = document.getElementById('log');
+
+    function say(msg) {
+        log.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+    }
+
+    function add(key, value, state) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = '<span class="k"></span><span class="v"></span>';
+        row.children[0].textContent = key;
+        row.children[1].textContent = value;
+        if (state) row.children[1].classList.add(state);
+        report.appendChild(row);
+    }
+
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true;
+    const hasApi = 'setAppBadge' in navigator;
+    const hasNotif = 'Notification' in window;
+    const perm = hasNotif ? Notification.permission : 'n/a';
+
+    add('เปิดจากไอคอนโฮม (standalone)', standalone ? 'ใช่' : 'ไม่ใช่ (เปิดในเบราว์เซอร์)', standalone ? 'ok' : 'bad');
+    add('รองรับ setAppBadge', hasApi ? 'ใช่' : 'ไม่ (เบราว์เซอร์ไม่รองรับ)', hasApi ? 'ok' : 'bad');
+    add('สิทธิ์ Notification', perm, perm === 'granted' ? 'ok' : (perm === 'denied' ? 'bad' : 'warn'));
+    // Secure context คือเงื่อนไขชี้ขาด: ถ้า false เบราว์เซอร์จะไม่มี
+    // navigator.serviceWorker และ navigator.setAppBadge ให้เรียกเลย
+    add('Secure context (ชี้ขาด)', window.isSecureContext ? 'ใช่' : 'ไม่ใช่ -- ต้องใช้ HTTPS',
+        window.isSecureContext ? 'ok' : 'bad');
+    add('โปรโตคอล', location.protocol, location.protocol === 'https:' ? 'ok' : 'bad');
+    add('ค่า count จากเซิร์ฟเวอร์', '{{ global_notification_badge_count|default:0 }}');
+    add('User agent', navigator.userAgent);
+
+    if ('serviceWorker' in navigator) {
+        // ลงทะเบียนเองด้วย เพื่อให้หน้านี้ตรวจได้ครบโดยไม่ต้องพึ่งหน้าอื่น
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .catch(function (e) { say('SW register failed: ' + e.message); })
+            .then(function () { return navigator.serviceWorker.getRegistration('/'); })
+            .then(function (reg) {
+                add('Service worker', reg ? 'ลงทะเบียนแล้ว (scope ' + reg.scope + ')' : 'ยังไม่ลงทะเบียน',
+                    reg ? 'ok' : 'bad');
+            });
+    } else {
+        add('Service worker', 'เบราว์เซอร์ไม่รองรับ', 'bad');
+    }
+
+    function applyAndReport(count) {
+        if (!hasApi) { say('ERROR: เบราว์เซอร์นี้ไม่มี setAppBadge'); return; }
+        const p = count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge();
+        Promise.resolve(p).then(
+            () => say('OK: เรียก ' + (count > 0 ? 'setAppBadge(' + count + ')' : 'clearAppBadge()') +
+                      ' สำเร็จ ไม่มี error\n(ถ้าไอคอนยังไม่ขึ้นเลข = ข้อจำกัดของ launcher/OS)'),
+            e => say('REJECTED: ' + e.name + ' — ' + e.message)
+        );
+    }
+
+    document.getElementById('btnTest').addEventListener('click', function () {
+        // ขอสิทธิ์ภายใน user gesture -- Safari บังคับ
+        if (hasNotif && Notification.permission === 'default') {
+            say('กำลังขอสิทธิ์ Notification...');
+            let r;
+            try { r = Notification.requestPermission(function (res) { say('permission = ' + res); applyAndReport(7); }); }
+            catch (e) { say('requestPermission ล้มเหลว: ' + e.message); }
+            if (r && r.then) r.then(function (res) { say('permission = ' + res); applyAndReport(7); });
+            return;
+        }
+        applyAndReport(7);
+    });
+
+    document.getElementById('btnClear').addEventListener('click', function () { applyAndReport(0); });
+})();
+</script>
+</body>
+</html>

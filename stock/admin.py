@@ -10,7 +10,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType, PushSubscription
 from .resources import ReceiveItemResource, DistributorResource, UserProfileResource
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html, format_html_join
@@ -472,6 +472,41 @@ class PmRoundItemAdmin(ImportExportModelAdmin):
     list_display = ['id','car', 'created', 'num_pm', 'ma_id', 'ma_ref_no'] #แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['car__name', 'car__code', 'num_pm', 'ma_id', 'ma_ref_no']
 
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    """ดูว่าใครเปิดรับแจ้งเตือนไว้บ้าง และ push ไปครั้งล่าสุดเมื่อไหร่
+
+    ค่าทุกช่องที่เบราว์เซอร์เป็นคนออกให้ (endpoint, key) ตั้งเป็น readonly
+    เพราะแก้ด้วยมือแล้ว push จะส่งไม่ออก และไม่มีทางกรอกเองให้ถูกอยู่แล้ว
+    ใช้หน้านี้เพื่อดูสถานะกับลบ subscription ที่ไม่ต้องการเท่านั้น
+    """
+
+    list_display = ['id', 'user', 'short_endpoint', 'last_pushed_count',
+                    'last_pushed_at', 'short_user_agent', 'created']
+    list_filter = ['created', 'last_pushed_at']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name', 'endpoint']
+    autocomplete_fields = ['user']
+    readonly_fields = ['endpoint', 'p256dh', 'auth', 'user_agent',
+                       'last_pushed_count', 'last_pushed_at', 'created', 'update']
+    ordering = ('-id',)
+
+    def short_endpoint(self, obj):
+        # endpoint ยาวมากจนตารางอ่านไม่รู้เรื่อง แสดงแค่โดเมนของ push service
+        # ซึ่งพอบอกได้ว่าเป็นเครื่อง Android (fcm) หรือ iOS (apple)
+        try:
+            return obj.endpoint.split('/')[2]
+        except IndexError:
+            return obj.endpoint[:40]
+    short_endpoint.short_description = 'push service'
+
+    def short_user_agent(self, obj):
+        return (obj.user_agent or '')[:60]
+    short_user_agent.short_description = 'user agent'
+
+    def has_add_permission(self, request):
+        # subscription เกิดจากผู้ใช้กดอนุญาตบนเครื่องตัวเองเท่านั้น สร้างจาก admin ไม่ได้
+        return False
+
+
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
 #admin.site.register(CartItem)
@@ -533,6 +568,7 @@ admin.site.register(BaseOrigSta, BaseOrigStaAdmin)
 admin.site.register(UserCarDepartment, UserCarDepartmentAdmin)
 admin.site.register(ApproveCarDepartment, ApproveCarDepartmentAdmin)
 admin.site.register(PmRoundItem, PmRoundItemAdmin)
+admin.site.register(PushSubscription, PushSubscriptionAdmin)
 
 
 class UserResource(resources.ModelResource):

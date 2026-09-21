@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType, PushSubscription
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -12573,3 +12573,90 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
         })
 
     return Response(result)
+
+
+@login_required
+def notificationBadgeCount(request):
+    """คืนจำนวนแจ้งเตือนล่าสุดเป็น JSON ให้หน้าเว็บ poll ระหว่างเปิดค้างไว้
+
+    เดิม badge อ่านค่าจาก context processor ตอน render หน้าเท่านั้น ผู้ใช้จึงต้อง
+    รีโหลดหน้าก่อน ตัวเลขถึงจะขยับ endpoint นี้ให้ดึงค่าล่าสุดได้โดยไม่ต้องรีโหลด
+
+    ใช้ companyVisibleTab ตัวเดียวกับที่ context processor ใช้ เพื่อไม่ให้ตรรกะ
+    การเลือก session key (เคส ALL / บริษัทเดียว / L1 -> NUM_I1) แตกออกเป็นสองชุด
+    ที่ต้องตามแก้คู่กัน
+
+    import ในฟังก์ชันเพราะ stock.context_processors import จาก stock.views
+    ไว้ตั้งแต่บนหัวไฟล์ ถ้า import ระดับโมดูลจะวนกลับมาเป็น circular import
+    """
+    from stock.context_processors import companyVisibleTab
+
+    try:
+        count = companyVisibleTab(request).get('global_notification_badge_count', 0)
+    except Exception:
+        count = 0
+
+    response = JsonResponse({'count': count})
+    # ห้าม cache -- ถ้าเบราว์เซอร์หรือ proxy เก็บไว้ ตัวเลขจะค้างเหมือนเดิม
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response
+
+
+@login_required
+@require_http_methods(['POST'])
+def pushSubscribe(request):
+    """บันทึก Web Push subscription ของอุปกรณ์ที่ผู้ใช้กดอนุญาตแจ้งเตือน
+
+    เบราว์เซอร์เป็นคนสร้าง endpoint กับ key ให้ เราแค่เก็บไว้เพื่อส่ง push กลับไป
+    ตอนแอปปิดอยู่
+
+    ตั้ง last_pushed_count เป็นค่าปัจจุบันตั้งแต่ตอนสมัคร เพื่อไม่ให้รอบแรกของ
+    งานตามเวลามองว่า "ตัวเลขเพิ่มขึ้นจาก 0" แล้วเด้งแจ้งเตือนใส่ผู้ใช้ทันที
+    ทั้งที่ยังไม่มีอะไรใหม่เกิดขึ้นเลย
+    """
+    from stock.context_processors import companyVisibleTab
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        endpoint = data['endpoint']
+        keys = data['keys']
+        p256dh = keys['p256dh']
+        auth = keys['auth']
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return JsonResponse({'ok': False, 'error': 'invalid payload'}, status=400)
+
+    if not endpoint or len(endpoint) > 500:
+        return JsonResponse({'ok': False, 'error': 'invalid endpoint'}, status=400)
+
+    try:
+        current_count = companyVisibleTab(request).get('global_notification_badge_count', 0)
+    except Exception:
+        current_count = 0
+
+    # ผูก endpoint กับ user ปัจจุบันเสมอ -- ถ้าเครื่องเดียวถูกใช้ร่วมกันหลายคน
+    # คนที่ล็อกอินล่าสุดคือคนที่ควรได้รับแจ้งเตือนของเครื่องนั้น
+    PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={
+            'user': request.user,
+            'p256dh': p256dh,
+            'auth': auth,
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')[:500],
+            'last_pushed_count': current_count,
+        },
+    )
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_http_methods(['POST'])
+def pushUnsubscribe(request):
+    """ลบ subscription ออกเมื่อผู้ใช้ปิดแจ้งเตือนหรือ logout"""
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        endpoint = data['endpoint']
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return JsonResponse({'ok': False, 'error': 'invalid payload'}, status=400)
+
+    PushSubscription.objects.filter(endpoint=endpoint, user=request.user).delete()
+    return JsonResponse({'ok': True})

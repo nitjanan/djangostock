@@ -15,7 +15,14 @@
     <link rel="manifest" href="/media/company/site.webmanifest">
     <link rel="mask-icon" href="/media/company/safari-pinned-tab.svg" color="#5bbad5">
     <meta name="msapplication-TileColor" content="#2b5797">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#7386D5">
+
+    <!-- iOS: ต้องมี meta ชุดนี้ เว็บที่ Add to Home Screen ถึงจะรันแบบ standalone
+         ซึ่งเป็นเงื่อนไขบังคับของ App Badging API บน iOS 16.4+ -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="STG Stock">
 
     <!-- Bootstrap CSS CDN -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
@@ -204,15 +211,124 @@
         // ---------------------------------------------------
         // PREMIUM IOS/GMAIL STYLE NOTIFICATION BADGE FOR FAVICON & APP BADGING API
         // ---------------------------------------------------
-        function setBrowserNotificationBadge(count) {
-            // 1. Taskbar/Desktop Shortcut Badge (App Badging API)
-            if ('setAppBadge' in navigator) {
-                if (count > 0) {
-                    navigator.setAppBadge(count).catch(err => console.error(err));
-                } else {
-                    navigator.clearAppBadge();
-                }
+        // ลงทะเบียน service worker (scope '/') -- Chrome/Android บังคับว่าเว็บต้อง
+        // ติดตั้งเป็น PWA ได้ก่อน App Badging API ถึงจะทำงาน
+        // ลงทะเบียนทันที ห้ามรอ event 'load' -- หน้านี้รอ CDN (bootstrap/font-awesome)
+        // ถ้า CDN ช้าหรือถูกบล็อก 'load' จะยิงช้ามากหรือไม่ยิงเลย ทำให้ SW ไม่เคยลงทะเบียน
+        // และ App Badge บน Android ก็จะไม่ทำงานตามไปด้วย
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .catch(err => console.warn('SW register failed:', err));
+        }
+
+        // เว็บถูกเปิดจากไอคอนบนหน้าจอโฮม (ติดตั้งแล้ว) หรือไม่
+        // App Badging API ทำงานเฉพาะโหมดนี้บน iOS และ Android
+        function isInstalledApp() {
+            return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                || window.navigator.standalone === true;
+        }
+
+        function applyAppBadge(count) {
+            if (!('setAppBadge' in navigator)) return;
+            const done = count > 0
+                ? navigator.setAppBadge(count)
+                : navigator.clearAppBadge();
+            if (done && done.catch) {
+                done.catch(err => console.warn('App badge not applied:', err));
             }
+        }
+
+        // iOS 16.4+ จะ reject setAppBadge ถ้ายังไม่ได้สิทธิ์ Notification
+        // และ Safari ยอมให้เรียก requestPermission() จาก user gesture เท่านั้น
+        // จึงผูกไว้กับการแตะครั้งแรก และทำเฉพาะตอนเปิดจากไอคอนที่ติดตั้งแล้ว
+        // เพื่อไม่ให้ผู้ใช้บนเบราว์เซอร์ปกติโดน prompt โดยไม่จำเป็น
+        let badgePermissionHookInstalled = false;
+        function requestBadgePermissionOnFirstGesture(count) {
+            if (!('Notification' in window) || Notification.permission !== 'default') return;
+            if (!isInstalledApp()) return;
+            // polling เรียกฟังก์ชันนี้ซ้ำทุกรอบ ถ้าไม่กันไว้ listener จะซ้อนกันเรื่อย ๆ
+            if (badgePermissionHookInstalled) return;
+            badgePermissionHookInstalled = true;
+
+            const handler = function () {
+                document.removeEventListener('click', handler);
+                document.removeEventListener('touchend', handler);
+                try {
+                    const after = function () { applyAppBadge(count); ensurePushSubscription(); };
+                    const res = Notification.requestPermission(after);
+                    if (res && res.then) res.then(after);
+                } catch (e) {
+                    console.warn('Notification permission request failed:', e);
+                }
+            };
+            document.addEventListener('click', handler, { once: true });
+            document.addEventListener('touchend', handler, { once: true });
+        }
+
+        // ---------------------------------------------------
+        // Web Push -- ให้ badge อัปเดตได้แม้ผู้ใช้ปิดแอปอยู่
+        //
+        // polling ด้านล่างทำงานเฉพาะตอนแอปเปิด ส่วนตอนแอปปิดไม่มี JS รันเลย
+        // เซิร์ฟเวอร์จึงต้องเป็นฝ่ายผลักข้อมูลเข้ามา ซึ่งทำได้ทางเดียวคือ Web Push
+        // ---------------------------------------------------
+        const VAPID_PUBLIC_KEY = '{{ vapid_public_key }}';
+
+        function urlBase64ToUint8Array(base64String) {
+            // VAPID key เป็น urlsafe base64 แบบไม่มี padding
+            // แต่ atob ต้องการ base64 มาตรฐานที่มี padding ครบ
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = window.atob(base64);
+            const output = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
+            return output;
+        }
+
+        function postJson(url, payload) {
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        function ensurePushSubscription() {
+            if (!VAPID_PUBLIC_KEY) return;                      // ยังไม่ได้ตั้ง VAPID key บนเซิร์ฟเวอร์
+            if (!('serviceWorker' in navigator)) return;        // http:// จะไม่มีของพวกนี้เลย
+            if (!('PushManager' in window)) return;
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+            navigator.serviceWorker.ready.then(function (reg) {
+                return reg.pushManager.getSubscription().then(function (existing) {
+                    if (existing) return existing;
+                    return reg.pushManager.subscribe({
+                        // ทั้ง iOS และ Chrome บังคับค่านี้เป็น true
+                        // แปลว่า push ทุกครั้งต้องมีแจ้งเตือนให้ผู้ใช้เห็น ซ่อนไม่ได้
+                        // ความถี่จึงต้องคุมจากฝั่งเซิร์ฟเวอร์แทน
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                    });
+                });
+            }).then(function (sub) {
+                if (!sub) return;
+                const json = sub.toJSON();
+                return postJson('{% url "pushSubscribe" %}', {
+                    endpoint: json.endpoint,
+                    keys: json.keys
+                });
+            }).catch(function (e) {
+                console.warn('Push subscribe failed:', e);
+            });
+        }
+
+        function setBrowserNotificationBadge(count) {
+            // 1. Taskbar / Home-screen icon badge (App Badging API)
+            applyAppBadge(count);
+            requestBadgePermissionOnFirstGesture(count);
 
             // 2. Browser Tab Icon Badge (Favicon Canvas Drawing)
             const favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
@@ -260,6 +376,72 @@
                 favicon.href = canvas.toDataURL('image/png');
             };
         }
+
+        // ---------------------------------------------------
+        // ดึงตัวเลขแจ้งเตือนล่าสุดโดยไม่ต้องรีโหลดหน้า
+        //
+        // เดิมค่ามาจาก context processor ตอน render เท่านั้น ผู้ใช้จึงต้องรีโหลด
+        // หน้าก่อน badge ถึงจะขยับ ตรงนี้ poll ค่าล่าสุดมาอัปเดตให้ระหว่างเปิดค้างไว้
+        //
+        // การคำนวณตัวเลขฝั่งเซิร์ฟเวอร์กิน query เยอะ (หลายสิบ query ต่อครั้ง)
+        // จึง poll เฉพาะตอนหน้าถูกมองเห็นอยู่ และหยุดเมื่อผู้ใช้สลับไปแท็บ/แอปอื่น
+        // เพื่อไม่ให้ยิง DB ทิ้งเปล่า
+        // ---------------------------------------------------
+        (function () {
+            const ENDPOINT = '{% url "notificationBadgeCount" %}';
+            const INTERVAL_MS = 60000;
+            let timer = null;
+            let inFlight = false;
+            let lastCount = parseInt("{{ global_notification_badge_count|default:0 }}") || 0;
+
+            function refresh() {
+                if (inFlight || document.hidden) return;
+                inFlight = true;
+                fetch(ENDPOINT, {
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(function (r) {
+                        // session หมดอายุจะโดน redirect ไปหน้า login ซึ่งเป็น HTML
+                        // ไม่ใช่ JSON -- หยุด poll ไปเลย ไม่ต้องยิงซ้ำให้เปลือง
+                        if (!r.ok || r.redirected) { stop(); return null; }
+                        return r.json();
+                    })
+                    .then(function (data) {
+                        if (!data || typeof data.count !== 'number') return;
+                        if (data.count !== lastCount) {
+                            lastCount = data.count;
+                            setBrowserNotificationBadge(data.count);
+                        }
+                    })
+                    .catch(function () { /* เน็ตหลุดชั่วคราว รอบหน้าค่อยลองใหม่ */ })
+                    .then(function () { inFlight = false; });
+            }
+
+            function start() {
+                if (timer === null) timer = setInterval(refresh, INTERVAL_MS);
+            }
+
+            function stop() {
+                if (timer !== null) { clearInterval(timer); timer = null; }
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    stop();
+                } else {
+                    // กลับมาที่แอป -- ดึงค่าล่าสุดทันที ไม่ต้องรอครบรอบ
+                    start();
+                    refresh();
+                }
+            });
+
+            if (!document.hidden) start();
+        })();
+
+        // ผู้ใช้ที่เคยอนุญาตไว้แล้ว -- ต่อ subscription ให้อัตโนมัติ
+        // เผื่อกรณี subscription หมดอายุหรือเบราว์เซอร์ล้างทิ้ง
+        ensurePushSubscription();
 
         $(document).ready(function() {
             const totalAlertCount = parseInt("{{ global_notification_badge_count|default:0 }}") || 0;

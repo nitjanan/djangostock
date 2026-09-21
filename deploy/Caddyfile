@@ -1,0 +1,42 @@
+# ---------------------------------------------------------------
+# Caddy reverse proxy -- ทำหน้าที่จบ TLS แล้วส่งต่อให้ Django (waitress)
+#
+# ทำไมต้องมีไฟล์นี้: App Badging API (navigator.setAppBadge) และ service worker
+# เป็น secure-context-only API เบราว์เซอร์จะไม่สร้าง property พวกนี้ขึ้นมาเลย
+# ถ้า origin เป็น http:// (ยกเว้น localhost) -- badge บนมือถือจึงต้องใช้ HTTPS เท่านั้น
+#
+# Caddy ขอและต่ออายุใบรับรอง Let's Encrypt ให้อัตโนมัติ ไม่ต้องตั้ง cron
+#
+# วิธีรัน (Windows, ใน PowerShell สิทธิ์ Administrator):
+#   caddy run --config deploy\Caddyfile
+# ติดตั้งเป็น service ให้รันเองตอนเปิดเครื่อง:
+#   caddy add-package github.com/caddyserver/caddy/v2
+#   sc.exe create caddy start= auto binPath= "C:\caddy\caddy.exe run --config C:\...\deploy\Caddyfile"
+# ---------------------------------------------------------------
+
+# TODO: เปลี่ยนเป็นโฮสต์เนมจริงของคุณ (ดู deploy/README.md หัวข้อ "หาโฮสต์เนม")
+stgstock.duckdns.org {
+
+    encode gzip zstd
+
+    # ไฟล์ media (โลโก้, ไอคอน PWA, site.webmanifest) -- ให้ Caddy เสิร์ฟตรง
+    # สำคัญ: พอตั้ง DEBUG=False ตัว Django จะไม่เสิร์ฟ /media/ ให้อีกต่อไป
+    # (urls.py เสิร์ฟให้เฉพาะตอน DEBUG) ถ้าไม่มีบล็อกนี้ manifest กับไอคอนจะ 404
+    # แล้ว PWA จะติดตั้งไม่ได้ -- badge ก็พังอีกรอบ
+    handle_path /media/* {
+        root * ../static/media
+        file_server
+    }
+
+    # static ปล่อยให้ whitenoise ใน Django จัดการ (ตั้งค่าไว้แล้วใน settings.py)
+    reverse_proxy 127.0.0.1:8000 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-For {remote_host}
+        header_up Host {host}
+    }
+
+    # ไฟล์แนบ/ใบสั่งซื้อบางรายการอัปโหลดใหญ่ ปลดเพดานให้พอ
+    request_body {
+        max_size 50MB
+    }
+}

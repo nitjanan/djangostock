@@ -82,3 +82,5 @@ pytz-deprecation-shim==0.1.0.post0  # tzlocal
 importlib-metadata==6.8.0         # APScheduler (py<3.10)
 zipp==3.17.0                      # importlib-metadata
 colorama==0.4.4                   # click/console output on Windows
+waitress==3.0.2                   # WSGI server สำหรับ Windows (แทน gunicorn)
+pywebpush==2.1.2                  # Web Push (badge ตอนปิดแอป)

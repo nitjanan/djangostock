@@ -986,3 +986,12 @@ def document(request):
         document = None
 
     return dict(document = document)
+
+def pushSettings(request):
+    """ส่ง VAPID public key ให้ template ใช้สมัคร Web Push
+
+    public key เปิดเผยได้ ไม่ใช่ความลับ -- ตัวที่ต้องเก็บคือ private key
+    ซึ่งอยู่ใน environment variable บนเครื่อง server เท่านั้น
+    """
+    from django.conf import settings as django_settings
+    return dict(vapid_public_key=getattr(django_settings, 'VAPID_PUBLIC_KEY', ''))

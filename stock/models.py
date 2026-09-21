@@ -2052,3 +2052,32 @@ class PmRoundItem(models.Model):
         ordering=('id',)
         verbose_name = 'การทำ PM ล่าสุด'
         verbose_name_plural = 'ข้อมูลการทำ PM ล่าสุด'
+
+#เก็บ Web Push subscription ของแต่ละอุปกรณ์ ใช้ส่ง badge/แจ้งเตือนตอนปิดแอปอยู่
+class PushSubscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='push_subscriptions', verbose_name="ผู้ใช้")
+    # endpoint เป็น URL ยาวที่ push service ออกให้ ไม่ซ้ำกันต่ออุปกรณ์
+    # ใช้เป็นตัวระบุอุปกรณ์แทนการเก็บ device id เอง
+    # ใช้ CharField ไม่ใช่ TextField เพราะ MySQL สร้าง unique index บน TEXT ไม่ได้
+    # ถ้าไม่ระบุ key length -- 500 ตัวอักษรพอสำหรับ endpoint ของ FCM/Apple/Mozilla
+    endpoint = models.CharField(max_length=500, unique=True, verbose_name="endpoint ของ push service")
+    p256dh = models.CharField(max_length=255, verbose_name="public key ของอุปกรณ์")
+    auth = models.CharField(max_length=255, verbose_name="auth secret ของอุปกรณ์")
+    user_agent = models.CharField(max_length=500, blank=True, null=True, verbose_name="user agent ตอนสมัคร")
+
+    # ค่า badge ครั้งล่าสุดที่ push ออกไปสำเร็จ ใช้เทียบว่าตัวเลข "เพิ่มขึ้น" หรือไม่
+    # จะได้ไม่ push ซ้ำเวลาตัวเลขเท่าเดิม และไม่ push ตอนตัวเลขลดลง
+    last_pushed_count = models.IntegerField(default=0, verbose_name="จำนวนที่ push ไปครั้งล่าสุด")
+    last_pushed_at = models.DateTimeField(blank=True, null=True, verbose_name="เวลาที่ push ครั้งล่าสุด")
+
+    created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สมัคร")
+    update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PushSubscription'
+        ordering = ('id',)
+        verbose_name = 'การสมัครรับแจ้งเตือน Web Push'
+        verbose_name_plural = 'ข้อมูลการสมัครรับแจ้งเตือน Web Push'
+
+    def __str__(self):
+        return '%s (%s)' % (self.user.username, (self.user_agent or '')[:40])
