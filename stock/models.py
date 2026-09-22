@@ -2070,6 +2070,11 @@ class PushSubscription(models.Model):
     last_pushed_count = models.IntegerField(default=0, verbose_name="จำนวนที่ push ไปครั้งล่าสุด")
     last_pushed_at = models.DateTimeField(blank=True, null=True, verbose_name="เวลาที่ push ครั้งล่าสุด")
 
+    # เวลาที่แสดง "แบนเนอร์" ให้ผู้ใช้เห็นจริงครั้งล่าสุด
+    # แยกจาก last_pushed_at เพราะ push เกิดบ่อย (ทุกครั้งที่ตัวเลขเปลี่ยน เพื่อให้
+    # badge ตรงเสมอ) แต่แบนเนอร์ต้องโผล่นาน ๆ ครั้งตาม PUSH_BANNER_INTERVAL_HOURS
+    last_banner_at = models.DateTimeField(blank=True, null=True, verbose_name="เวลาที่แสดงแบนเนอร์ครั้งล่าสุด")
+
     created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สมัคร")
     update = models.DateTimeField(auto_now=True)
 

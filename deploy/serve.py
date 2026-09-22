@@ -32,7 +32,7 @@ if __name__ == '__main__':
     serve(
         application,
         host='127.0.0.1',
-        port=8020,
+        port=8000,
         threads=8,
         # Caddy เป็นคนคุย TLS กับ client แล้วส่ง X-Forwarded-Proto มาให้
         # ตั้ง url_scheme ให้ Django มองว่า request เป็น https

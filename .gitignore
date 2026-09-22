@@ -45,3 +45,6 @@ htmlcov/
 # Misc
 *.bak
 *.tmp
+
+# VAPID private key -- ห้าม commit
+deploy/.vapid.json

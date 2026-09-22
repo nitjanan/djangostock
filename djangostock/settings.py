@@ -38,7 +38,8 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() != 'false'
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
-    '.trycloudflare.com',
+    '192.168.0.104',      # IP วงแลนของเครื่อง server -- ผู้ใช้ในออฟฟิศเข้าทางนี้
+    '.trycloudflare.com',  # tunnel ชั่วคราวสำหรับทดสอบ HTTPS
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -252,18 +253,60 @@ EMAIL_USE_SSL = False
 # VAPID key คือกุญแจที่ใช้พิสูจน์กับ push service ว่าเซิร์ฟเวอร์เราเป็นคนส่งจริง
 # สร้างครั้งเดียวด้วย: python manage.py generate_vapid_keys
 # แล้วตั้งเป็น environment variable -- ห้าม commit private key ลง git
-VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
-VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+#
+# อ่านจาก env var ก่อน ถ้าไม่มีค่อยอ่านจากไฟล์ deploy/.vapid.json
+# เหตุผลที่ต้องมี fallback เป็นไฟล์: โปรเซสอ่าน env var ตอนเริ่มทำงานครั้งเดียว
+# เซิร์ฟเวอร์ที่รันค้างไว้ก่อนตั้ง env var จะมองไม่เห็นค่าเลย ทำให้ push เงียบ
+# โดยไม่มี error อะไรให้เห็น -- ไฟล์ทำให้แค่รีสตาร์ทก็ใช้ได้ ไม่ต้องจัดการ env
+# ไฟล์นี้อยู่ใน .gitignore ห้าม commit
+def _read_vapid_keys():
+    env_pub = os.environ.get('VAPID_PUBLIC_KEY', '')
+    env_priv = os.environ.get('VAPID_PRIVATE_KEY', '')
+    if env_pub and env_priv:
+        return env_pub, env_priv
+    try:
+        import json as _json
+        with open(os.path.join(BASE_DIR, 'deploy', '.vapid.json'), encoding='utf-8') as fh:
+            data = _json.load(fh)
+        return data.get('public', ''), data.get('private', '')
+    except Exception:
+        return env_pub, env_priv
+
+
+VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY = _read_vapid_keys()
 # push service บางเจ้าต้องการช่องทางติดต่อกลับเวลามีปัญหา
 VAPID_ADMIN_EMAIL = os.environ.get('VAPID_ADMIN_EMAIL', 'admin@southerngroup.co.th')
 
-# คุมความถี่ไม่ให้ผู้ใช้โดนแบนเนอร์เด้งรัว
-# push ครั้งถัดไปของคนเดิมต้องห่างจากครั้งก่อนอย่างน้อยเท่านี้ (นาที)
-PUSH_MIN_INTERVAL_MINUTES = int(os.environ.get('PUSH_MIN_INTERVAL_MINUTES', 30))
+# push จะถูกส่งทุกครั้งที่ตัวเลขเปลี่ยน เพื่อให้ badge บนไอคอนตรงกับข้อมูลเสมอ
+# แต่ "แบนเนอร์" ที่ผู้ใช้เห็นจะโผล่อย่างมากทุก ๆ กี่ชั่วโมงตามค่านี้
+# รอบที่ยังไม่ถึงเวลา service worker จะแสดงแล้วปิดทิ้งทันที
+# (แสดงอย่างน้อยหนึ่งครั้งเป็นข้อบังคับของ userVisibleOnly เลี่ยงไม่ได้)
+PUSH_BANNER_INTERVAL_HOURS = int(os.environ.get('PUSH_BANNER_INTERVAL_HOURS', 4))
+
+# พฤติกรรมของ push "รอบเงียบ" (รอบที่ส่งเพื่ออัปเดต badge อย่างเดียว)
+#
+#   'show-close' = แสดง notification แล้วปิดทันที  <-- ค่าเริ่มต้น
+#                  ทำตามกติกา userVisibleOnly ครบถ้วน จึงไม่มีความเสี่ยงที่
+#                  Safari จะเพิกถอนสิทธิ์ push
+#                  ข้อเสีย: บน iOS แบนเนอร์ยังโผล่ทุกครั้ง (ทดสอบแล้ว)
+#                  วิธีซ่อนแบนเนอร์คือให้ผู้ใช้ปิดเองที่
+#                  ตั้งค่า > การแจ้งเตือน > เลือกแอป > ปิดแบนเนอร์ แต่เปิด "ป้าย"
+#
+#   'none'       = ไม่เรียก showNotification เลย
+#                  ละเมิด userVisibleOnly -- เบราว์เซอร์อาจขึ้นข้อความของตัวเอง
+#                  หรือเพิกถอนสิทธิ์ push ของเว็บนี้ ใช้เฉพาะตอนทดลองเท่านั้น
+#
+# สลับได้โดยไม่ต้องแก้โค้ด เพราะค่านี้ถูกส่งไปใน payload ของ push
+PUSH_SILENT_MODE = os.environ.get('PUSH_SILENT_MODE', 'show-close')
 # ส่งเฉพาะในช่วงเวลาทำงาน (ชั่วโมงเริ่ม, ชั่วโมงสิ้นสุด) ตามเวลาไทย
 # นอกช่วงนี้จะข้ามไป ไม่กวนตอนกลางคืน
 PUSH_ACTIVE_HOUR_START = int(os.environ.get('PUSH_ACTIVE_HOUR_START', 8))
 PUSH_ACTIVE_HOUR_END = int(os.environ.get('PUSH_ACTIVE_HOUR_END', 18))
+
+# ส่ง push เองจากเธรดในตัวเซิร์ฟเวอร์ ไม่ต้องพึ่ง Task Scheduler ภายนอก
+# ตั้ง PUSH_AUTO_SEND=False ถ้าจะไปใช้ Task Scheduler แทน
+PUSH_AUTO_SEND = os.environ.get('PUSH_AUTO_SEND', 'True').lower() != 'false'
+PUSH_AUTO_INTERVAL_MINUTES = int(os.environ.get('PUSH_AUTO_INTERVAL_MINUTES', 1))
 
 # หน้า login จริงของโปรเจกต์คือ /account/login (ไม่มี s)
 # ถ้าไม่ตั้งค่านี้ Django จะใช้ค่า default '/accounts/login/' ซึ่งไม่มีใน urls.py
