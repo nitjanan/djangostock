@@ -6154,7 +6154,7 @@ def exportExcelPOToExpress(request):
     response['Content-Disposition'] = f'attachment; filename=PO_to_Express_Report_({active}).xlsx'
 
     with pd.ExcelWriter(response, engine='xlsxwriter', engine_kwargs={'options': {'strings_to_numbers': True}}) as writer:
-        result.to_excel(writer, index=False)
+        result.to_excel(writer, index=False, sheet_name='EXPRESS')
 
     return response
 
