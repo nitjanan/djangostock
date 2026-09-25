@@ -176,6 +176,9 @@ urlpatterns = [
     path('report/carLogBook/',views.viewCLReport,name="viewCLReport"),
     path('report/purchaseOrder/approve/export/excel', views.exportExcelApprovePO, name='exportExcelApprovePO'),
 
+    path('report/vendor/', views.venderReport, name="viewVendorReport"),
+    path('report/vendor/<int:pages>', views.venderReport , name="viewVendorReport_pages"),
+
     path('report/purchaseOrderToExpress/export/excel', views.exportExcelPOToExpress, name='exportExcelPOToExpress'),
     path('report/invoiceToExpress/export/excel', views.exportExcelIVToExpress, name='exportExcelIVToExpress'),
 
@@ -290,6 +293,8 @@ urlpatterns = [
 
     path('car/department/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiCarByDepartment,name="apiCarByDepartment"),
     path('all/car/department/api/between/<str:start_date>/<str:end_date>/',views.getapiCarByDepartmentAll,name="getapiCarByDepartmentAll"),
+    path('test/google/view/<str:lat>/<str:lng>/' , views.test_google_view ,name="google_view"),
+    path('test/osm/view/<str:lat>/<str:lng>/' , views.test_osm_view ,name="osm_view"),
 ]
 
 if settings.DEBUG :

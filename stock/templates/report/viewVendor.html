@@ -1,0 +1,278 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
+
+{% block css %}
+<style>
+  /* สไตล์เฉพาะหน้านี้ */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">รายงานผู้จัดจำหน่าย</h3>
+  <!-- การ์ดฟอร์มกรอง -->
+  <div class="card my-3 bg-light div-shadow">
+    <div class="card-body">
+      <form method="get" action="{% url 'viewVendorReport' %}">
+        {% csrf_token %}
+        {% if lat and lng %}
+          <input type="hidden" name="lat" value="{{lat}}">
+          <input type="hidden" name="lng" value="{{lng}}">
+          <input type="hidden" name="radius" value="{{radius_km}}">
+          {% if keyword %}<input type="hidden" name="keyword" value="{{keyword}}">{% endif %}
+        {% endif %}
+        <div class="form-row">
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor_id_from|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor|as_crispy_field}}
+          </div> 
+          <div class="form-group col-md-1 mb-0">
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- การ์ดตาราง -->
+  <div class="card div-shadow container my-3">
+    <div class="card-body"> 
+      <h5>รายงานผู้จัดจำหน่ายในระบบ</h5>
+      <button class="btn btn-success">ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+      <div class="table-responsive">
+        <table class="table table-striped my-3">
+          <thead class="thead-dark g-4">
+            <tr>
+              <th scope="col">รหัส</th>
+              <th scope="col">ชื่อผู้จัดจำหน่าย</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for v in vender %}
+            <tr>
+              <th scope="row">{{v.id}}</th>
+              <td>{{v.name}}</td>
+              <td class="px-1 text-nowrap align-middle" style="width:100px;">
+                <div class="d-flex justify-content-between">
+                  <button class="btn btn-primary">แก้ไข</button>
+                  <button class="btn btn-danger">ลบ</button>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="text-center text-muted">ไม่พบข้อมูลผู้จัดจำหน่ายในระบบ</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if vender.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าผู้จัดจำหน่ายในระบบ">
+        <p class="text-muted small mb-2">
+          แสดงรายการที่ {{vender.start_index|intcomma}}–{{vender.end_index|intcomma}}
+          จาก {{vendor_total|intcomma}} (หน้า {{vender.number}} / {{vender.paginator.num_pages|intcomma}})
+        </p>
+        <ul class="pagination flex-wrap">
+          {% if vender.has_previous %}
+            <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' vender.previous_page_number %}?{{vendor_query}}">&laquo; ก่อนหน้า</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; ก่อนหน้า</span></li>
+          {% endif %}
+
+          {% for p in vendor_page_range %}
+            {% if p == vender.paginator.ELLIPSIS %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% elif p == vender.number %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{p}}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' p %}?{{vendor_query}}">{{p}}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if vender.has_next %}
+            <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' vender.next_page_number %}?{{vendor_query}}">ถัดไป &raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">ถัดไป &raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+
+
+
+  <div class="card div-shadow container my-3">
+    <div class="card-body">
+      <h5>รายงานผู้จัดจำหน่ายอื่นๆ</h5>
+      <form id="geo-form" class="form-row align-items-end mb-2">
+        <div class="form-group col-md-2 mb-2">
+          <label for="geo-lat">Latitude</label>
+          <input type="number" step="any" min="-90" max="90" class="form-control" id="geo-lat" name="lat" value="{{lat|default:''}}" placeholder="เช่น 13.7563" required>
+        </div>
+        <div class="form-group col-md-2 mb-2">
+          <label for="geo-lng">Longitude</label>
+          <input type="number" step="any" min="-180" max="180" class="form-control" id="geo-lng" name="lng" value="{{lng|default:''}}" placeholder="เช่น 100.5018" required>
+        </div>
+        <div class="form-group col-md-2 mb-2">
+          <label for="geo-radius">รัศมี (กม.)</label>
+          <input type="number" min="1" max="50" step="1" class="form-control" id="geo-radius" name="radius" value="{{radius_km}}" required>
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-keyword">คำค้นหา</label>
+          <input type="text" class="form-control" id="geo-keyword" name="keyword" value="{{keyword|default:''}}" placeholder="เช่น hardware store">
+        </div>
+        <div class="form-group col-md-3 mb-2 d-flex">
+          <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
+          <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
+        </div>
+      </form>
+      <p id="geo-status" class="text-muted mb-2">
+        {% if lat and lng %}
+          ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
+          (<a href="https://www.openstreetmap.org/?mlat={{lat}}&mlon={{lng}}#map=14/{{lat}}/{{lng}}" target="_blank" rel="noopener">ดูบนแผนที่</a>)
+          — พบ {{external_total|intcomma}} ร้าน
+        {% else %}
+          กรอก Latitude / Longitude หรือกดปุ่ม "ตำแหน่งปัจจุบัน"
+        {% endif %}
+      </p>
+      <button class="btn btn-success">ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+      <div class="table-responsive">
+        <table class="table table-striped my-3">
+          <thead class="thead-dark g-4">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">ชื่อผู้จัดจำหน่าย</th>
+              <th scope="col">ที่อยู่</th>
+              <th scope="col">ประเภทร้าน</th>
+              <th scope="col">เบอร์โทร</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for ev in external_vendors %}
+            <tr>
+              <th scope="row">{{external_vendors.start_index|add:forloop.counter0}}</th>
+              <td>{{ev.name}}</td>
+              <td>{{ev.address|default:"-"}}</td>
+              <td>{{ev.shop_type|default:"-"}}</td>
+              <td>{{ev.phone|default:"-"}}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted">
+                {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก OpenStreetMap{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if external_vendors.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าผู้จัดจำหน่ายอื่นๆ">
+        <p class="text-muted small mb-2">
+          แสดงรายการที่ {{external_vendors.start_index|intcomma}}–{{external_vendors.end_index|intcomma}}
+          จาก {{external_total|intcomma}} (หน้า {{external_vendors.number}} / {{external_vendors.paginator.num_pages|intcomma}})
+        </p>
+        <ul class="pagination flex-wrap">
+          {% if external_vendors.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ext_query}}&ext_page={{external_vendors.previous_page_number}}">&laquo; ก่อนหน้า</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; ก่อนหน้า</span></li>
+          {% endif %}
+
+          {% for p in external_page_range %}
+            {% if p == external_vendors.paginator.ELLIPSIS %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% elif p == external_vendors.number %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{p}}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="?{{ext_query}}&ext_page={{p}}">{{p}}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if external_vendors.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ext_query}}&ext_page={{external_vendors.next_page_number}}">ถัดไป &raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">ถัดไป &raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script>
+  (function () {
+    const form = document.getElementById('geo-form');
+    const status = document.getElementById('geo-status');
+    const params = new URLSearchParams(window.location.search);
+
+    // โหลดหน้าใหม่พร้อม lat/lng/keyword โดยเก็บ query เดิม (เช่นค่าฟิลเตอร์ด้านบน) ไว้ด้วย
+    function search(lat, lng, keyword) {
+      params.set('lat', lat);
+      params.set('lng', lng);
+      params.set('radius', form.radius.value.trim() || '10');
+      params.delete('ext_page');
+      if (keyword) {
+        params.set('keyword', keyword);
+      } else {
+        params.delete('keyword');
+      }
+      window.location.search = params.toString();
+    }
+
+    function useCurrentLocation() {
+      if (!navigator.geolocation) {
+        status.textContent = 'เบราว์เซอร์นี้ไม่รองรับการขอตำแหน่ง กรุณากรอก Latitude / Longitude เอง';
+        return;
+      }
+      status.textContent = 'กำลังขอตำแหน่งจากเครื่องของคุณ...';
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          search(
+            pos.coords.latitude.toFixed(6),
+            pos.coords.longitude.toFixed(6),
+            form.keyword.value.trim()
+          );
+        },
+        function (err) {
+          const messages = {
+            1: 'คุณไม่อนุญาตให้เข้าถึงตำแหน่ง กรุณาอนุญาต Location ในเบราว์เซอร์ หรือกรอก Latitude / Longitude เอง',
+            2: 'ไม่สามารถระบุตำแหน่งของเครื่องได้ กรุณากรอก Latitude / Longitude เอง',
+            3: 'ขอตำแหน่งนานเกินไป กรุณาลองใหม่ หรือกรอก Latitude / Longitude เอง',
+          };
+          status.textContent = messages[err.code] || 'ขอตำแหน่งไม่สำเร็จ';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+    });
+
+    document.getElementById('geo-current').addEventListener('click', useCurrentLocation);
+
+    // เปิดหน้าครั้งแรกยังไม่มีพิกัด -> ลองขอจาก GPS อัตโนมัติ
+    if (!params.get('lat') || !params.get('lng')) {
+      useCurrentLocation();
+    }
+  })();
+</script>
+{% endblock javascript %}
