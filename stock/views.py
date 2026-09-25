@@ -12617,8 +12617,29 @@ def venderReport(request, pages=None):
     if lat and lng:
         external_vendors = fetch_vendors_from_openstreetmap(lat_f, lng_f, radius=radius_km * 1000, keyword=keyword)
 
-    # ตัวเลือกประเภทร้าน นับจากผลก่อนกรองประเภท จะได้สลับประเภทได้ตลอด
     from collections import Counter
+    for ev in external_vendors:
+        ev["category"] = purchasing_category(ev["shop_type"])
+        ev["category_label"] = PURCHASING_CATEGORY_LABELS[ev["category"]]
+
+    # หมวดฝ่ายซื้อ: นับจากผลทั้งหมด / "purchasing" = รวมทั้ง 3 หมวด
+    category_counts = Counter(ev["category"] for ev in external_vendors)
+    category_options = [
+        {"value": "purchasing", "label": "ทั้ง 3 หมวดของฝ่ายซื้อ", "count": sum(category_counts[k] for k, _, _ in PURCHASING_CATEGORIES)},
+    ] + [
+        {"value": key, "label": PURCHASING_CATEGORY_LABELS[key], "count": category_counts[key]}
+        for key in [k for k, _, _ in PURCHASING_CATEGORIES] + ["other"]
+    ]
+
+    category = request.GET.get("category")
+    if category == "purchasing":
+        external_vendors = [ev for ev in external_vendors if ev["category"] != "other"]
+    elif category in PURCHASING_CATEGORY_LABELS:
+        external_vendors = [ev for ev in external_vendors if ev["category"] == category]
+    else:
+        category = None
+
+    # ตัวเลือกประเภทร้าน นับจากผลหลังกรองหมวด แต่ก่อนกรองประเภท จะได้สลับประเภทได้ตลอด
     shop_type_counts = Counter(ev["shop_type"] or "" for ev in external_vendors)
     shop_type_options = [
         {"value": t, "label": osm_shop_type_label(t), "count": c}
@@ -12658,6 +12679,8 @@ def venderReport(request, pages=None):
         "external_total": external_total,
         "shop_type": shop_type,
         "shop_type_options": shop_type_options,
+        "category": category,
+        "category_options": category_options,
     }
     print(content)
     # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
@@ -12756,7 +12779,43 @@ OSM_SHOP_TYPE_LABELS = {
     "convenience": "ร้านสะดวกซื้อ",
     "supermarket": "ซูเปอร์มาร์เก็ต",
     "clothes": "เสื้อผ้า",
+    "construction": "รับเหมา / วัสดุก่อสร้าง",
+    "lighting": "โคมไฟ / หลอดไฟ",
+    "flooring": "พื้น / กระเบื้องปูพื้น",
+    "tiles": "กระเบื้อง",
+    "bathroom_furnishing": "สุขภัณฑ์",
+    "kitchen": "ชุดครัว",
+    "glaziery": "กระจก",
+    "rope": "เชือก",
+    "printing": "โรงพิมพ์",
+    "office_supplies": "อุปกรณ์สำนักงาน",
+    "printer_ink": "หมึกพิมพ์",
+    "motorcycle_repair": "ซ่อมรถจักรยานยนต์",
+    "truck": "รถบรรทุก",
+    "truck_repair": "ซ่อมรถบรรทุก",
+    "safety_equipment": "อุปกรณ์เซฟตี้",
+    "weighing_scales": "เครื่องชั่ง",
+    "oxygen": "ออกซิเจน / แก๊สอุตสาหกรรม",
 }
+
+# หมวดของฝ่ายซื้อ (issue #44) -> ประเภทร้านของ OpenStreetMap ที่นับเข้าหมวดนั้น
+PURCHASING_CATEGORIES = [
+    ("construction", "วัสดุก่อสร้าง/ฮาร์ดแวร์", {
+        "hardware", "doityourself", "trade", "building_materials", "construction",
+        "paint", "electrical", "lighting", "flooring", "tiles",
+        "bathroom_furnishing", "kitchen", "glaziery", "rope",
+    }),
+    ("office", "อุปกรณ์สำนักงาน/เครื่องเขียน", {
+        "stationery", "copyshop", "printing", "office_supplies", "printer_ink", "computer",
+    }),
+    ("parts", "อะไหล่/เครื่องมืออุตสาหกรรม", {
+        "car_parts", "car_repair", "tyres", "motorcycle", "motorcycle_repair",
+        "truck", "truck_repair", "tools", "safety_equipment", "weighing_scales",
+        "oxygen", "gas", "agrarian",
+    }),
+]
+PURCHASING_CATEGORY_LABELS = dict((key, label) for key, label, _ in PURCHASING_CATEGORIES)
+PURCHASING_CATEGORY_LABELS["other"] = "อื่นๆ"
 
 
 def osm_shop_type_label(shop_type):
@@ -12764,6 +12823,15 @@ def osm_shop_type_label(shop_type):
         return "ไม่ระบุ"
     thai = OSM_SHOP_TYPE_LABELS.get(shop_type)
     return f"{thai} ({shop_type})" if thai else shop_type
+
+
+def purchasing_category(shop_type):
+    # OSM บางร้านใส่หลายประเภทคั่นด้วย ; เช่น "department_store;wholesale"
+    for part in (shop_type or "").split(";"):
+        for key, _, types in PURCHASING_CATEGORIES:
+            if part.strip() in types:
+                return key
+    return "other"
 
 
 def fetch_vendors_from_openstreetmap(lat, lng, radius=10000, keyword=None):
@@ -12868,3 +12936,112 @@ def test_osm_view(request, lat, lng):
     results = fetch_vendors_from_openstreetmap(lat, lng, keyword=keyword)
 
     return JsonResponse({"count": len(results), "results": results})
+
+
+def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, max_pages=3):
+    """
+    ดึงร้านค้า/ผู้จำหน่ายจาก TomTom Search API (ข้อมูล POI เชิงพาณิชย์ของ TomTom คล้าย Google)
+    ฟรี 2,500 request/วัน ไม่ต้องผูกบัตร ใช้เกินโควตาแล้ว TomTom จะบล็อก ไม่เรียกเก็บเงิน
+    - มี keyword: ใช้ categorySearch ค้นตามชื่อหมวด เช่น "hardware", "stationery", "car parts"
+    - ไม่มี keyword: ใช้ nearbySearch ได้ POI ทุกประเภทรอบจุด (รวมร้านอาหาร ปั๊ม ฯลฯ)
+    ได้หน้าละ 100 ร้าน 1 หน้า = 1 request ของโควตา จึงจำกัดไว้ที่ max_pages หน้า
+    """
+    from urllib.parse import quote
+
+    api_key = settings.TOMTOM_API_KEY
+    if not api_key:
+        print("ไม่พบ TOMTOM_API_KEY ใน environment variable")
+        return []
+
+    lat = round(float(lat), 4)
+    lng = round(float(lng), 4)
+    radius = min(int(radius), 50000)
+    keyword = (keyword or "").strip()
+
+    cache_key = f"tomtom_pois:{lat}:{lng}:{radius}:{quote(keyword.lower(), safe='')}:{max_pages}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    if keyword:
+        url = f"https://api.tomtom.com/search/2/categorySearch/{quote(keyword, safe='')}.json"
+    else:
+        url = "https://api.tomtom.com/search/2/nearbySearch/.json"
+
+    params = {
+        "key": api_key,
+        "lat": lat,
+        "lon": lng,
+        "radius": radius,
+        "limit": 100,
+        "countrySet": "TH",
+        "language": "th-TH",
+    }
+
+    results = []
+    failed = False
+    for page in range(max_pages):
+        params["ofs"] = page * 100
+        try:
+            response = requests.get(url, params=params, timeout=30)
+        except requests.RequestException as e:
+            print(f"TomTom API request failed: {e}")
+            failed = True
+            break
+
+        if response.status_code != 200:
+            print(f"TomTom API error: {response.status_code} - {response.text[:200]}")
+            failed = True
+            break
+
+        data = response.json()
+        for item in data.get("results", []):
+            poi = item.get("poi", {})
+            address = item.get("address", {})
+            position = item.get("position", {})
+            categories = poi.get("categories", [])
+            results.append({
+                "name": poi.get("name"),
+                "shop_type": categories[0] if categories else None,
+                "categories": categories,
+                "address": address.get("freeformAddress"),
+                "lat": position.get("lat"),
+                "lng": position.get("lon"),
+                "phone": poi.get("phone"),
+                "url": poi.get("url"),
+                "distance_m": round(item["dist"]) if item.get("dist") is not None else None,
+                "tomtom_id": item.get("id"),
+            })
+
+        summary = data.get("summary", {})
+        if params["ofs"] + summary.get("numResults", 0) >= summary.get("totalResults", 0):
+            break
+        time.sleep(0.3)  # TomTom จำกัด 5 request/วินาที
+
+    # error แล้วไม่เก็บ cache จะได้ลองใหม่ได้ทันทีหลังแก้ key / รอโควตา
+    if not failed:
+        cache.set(cache_key, results, 60 * 60)
+
+    print(f"พบร้านค้าจาก TomTom ทั้งหมด {len(results)} ร้าน")
+    for r in results:
+        print(r)
+
+    return results
+
+
+def test_tomtom_view(request, lat, lng):
+    """
+    view สำหรับทดสอบ fetch_vendors_from_tomtom ผ่าน browser
+    เรียกด้วย path param เช่น /test/tomtom/view/13.7563/100.5018/
+    query string: ?keyword=hardware  ?radius=5000 (เมตร)
+    """
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+        radius = int(request.GET.get("radius", 10000))
+    except ValueError:
+        return JsonResponse({"error": "lat/lng/radius ต้องเป็นตัวเลข"}, status=400, json_dumps_params={"ensure_ascii": False})
+
+    keyword = request.GET.get("keyword")
+    results = fetch_vendors_from_tomtom(lat_f, lng_f, radius=radius, keyword=keyword)
+
+    return JsonResponse({"count": len(results), "results": results}, json_dumps_params={"ensure_ascii": False})

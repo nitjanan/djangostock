@@ -23,6 +23,7 @@
           <input type="hidden" name="lng" value="{{lng}}">
           <input type="hidden" name="radius" value="{{radius_km}}">
           {% if keyword %}<input type="hidden" name="keyword" value="{{keyword}}">{% endif %}
+          {% if category is not None %}<input type="hidden" name="category" value="{{category}}">{% endif %}
           {% if shop_type is not None %}<input type="hidden" name="shop_type" value="{{shop_type}}">{% endif %}
         {% endif %}
         <div class="form-row">
@@ -135,6 +136,15 @@
           <input type="text" class="form-control" id="geo-keyword" name="keyword" value="{{keyword|default:''}}" placeholder="เช่น hardware store">
         </div>
         <div class="form-group col-md-3 mb-2">
+          <label for="geo-category">หมวดฝ่ายซื้อ</label>
+          <select class="form-control" id="geo-category" name="category" {% if not lat or not lng %}disabled{% endif %}>
+            <option value="__all__">ทุกหมวด</option>
+            {% for opt in category_options %}
+              <option value="{{opt.value}}" {% if category == opt.value %}selected{% endif %}>{{opt.label}} — {{opt.count|intcomma}} ร้าน</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-4 mb-2">
           <label for="geo-shop-type">ประเภทร้าน</label>
           <select class="form-control" id="geo-shop-type" name="shop_type" {% if not shop_type_options %}disabled{% endif %}>
             <option value="__all__">ทุกประเภท</option>
@@ -143,7 +153,7 @@
             {% endfor %}
           </select>
         </div>
-        <div class="form-group col-md-12 mb-2 d-flex">
+        <div class="form-group col-md-8 mb-2 d-flex">
           <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
           <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
         </div>
@@ -151,6 +161,7 @@
       <p id="geo-status" class="text-muted mb-2">
         {% if lat and lng %}
           ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
+          {% if category is not None %}หมวด: {% for opt in category_options %}{% if opt.value == category %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           {% if shop_type is not None %}ประเภท: {% for opt in shop_type_options %}{% if opt.value == shop_type %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           (<a href="https://www.openstreetmap.org/?mlat={{lat}}&mlon={{lng}}#map=14/{{lat}}/{{lng}}" target="_blank" rel="noopener">ดูบนแผนที่</a>)
           — พบ {{external_total|intcomma}} ร้าน
@@ -166,6 +177,7 @@
               <th scope="col">#</th>
               <th scope="col">ชื่อผู้จัดจำหน่าย</th>
               <th scope="col">ที่อยู่</th>
+              <th scope="col">หมวดฝ่ายซื้อ</th>
               <th scope="col">ประเภทร้าน</th>
               <th scope="col">เบอร์โทร</th>
               <th scope="col">ตำแหน่ง แผนที่</th>
@@ -177,6 +189,7 @@
               <th scope="row">{{external_vendors.start_index|add:forloop.counter0}}</th>
               <td>{{ev.name}}</td>
               <td>{{ev.address|default:"-"}}</td>
+              <td>{% if ev.category == "other" %}<span class="text-muted">{{ev.category_label}}</span>{% else %}<span class="badge badge-info">{{ev.category_label}}</span>{% endif %}</td>
               <td>{{ev.shop_type_label}}</td>
               <td>{{ev.phone|default:"-"}}</td>
               <td class="text-nowrap">
@@ -194,7 +207,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="6" class="text-center text-muted">
+              <td colspan="7" class="text-center text-muted">
                 {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก OpenStreetMap{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
               </td>
             </tr>
@@ -252,6 +265,11 @@
       params.set('lng', lng);
       params.set('radius', form.radius.value.trim() || '10');
       params.delete('ext_page');
+      if (form.category.disabled || form.category.value === '__all__') {
+        params.delete('category');
+      } else {
+        params.set('category', form.category.value);
+      }
       if (form.shop_type.disabled || form.shop_type.value === '__all__') {
         params.delete('shop_type');
       } else {
@@ -299,6 +317,14 @@
     document.getElementById('geo-current').addEventListener('click', useCurrentLocation);
 
     form.shop_type.addEventListener('change', function () {
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
+
+    // เปลี่ยนหมวด -> ล้างประเภทร้านที่เลือกไว้ เพราะอาจไม่อยู่ในหมวดใหม่
+    form.category.addEventListener('change', function () {
+      form.shop_type.value = '__all__';
       if (form.reportValidity()) {
         search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
       }
