@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from dis import dis
 from multiprocessing import context
 import numbers
@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -30,6 +30,8 @@ from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisiti
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
+import requests
+import time
 from django.db.models import Prefetch, Sum, Max
 from .resources import ReceiveItemResource, DistributorResource
 from tablib import Dataset
@@ -12574,3 +12576,243 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
         })
 
     return Response(result)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def venderReport(request, pages=None):
+    vender = Distributor.objects.all().order_by('id')
+
+    # เพิ่มส่วนของการฟิลเตอร์ (ต้องทำก่อนตัดแบ่งหน้า)
+    from stock.filters import DistributorFilter
+    myFilter = DistributorFilter(request.GET, queryset=vender)
+    vender = myFilter.qs
+
+    # เลขหน้ามาจาก URL /report/vendor/<pages> เกินหน้าสุดท้ายจะพาไปหน้าสุดท้าย
+    vender = Paginator(vender, 20).get_page(pages)
+    vendor_page_range = vender.paginator.get_elided_page_range(vender.number, on_each_side=2, on_ends=1)
+    vendor_total = vender.paginator.count
+
+    print(len(vender))
+    for v in vender :
+        print(v.id , v.name)
+
+    # lat/lng มาจาก GPS ของเครื่อง user หรือที่ user กรอกเอง (ส่งมาทาง query string)
+    lat = request.GET.get("lat")
+    lng = request.GET.get("lng")
+    keyword = request.GET.get("keyword")
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+        if not (-90 <= lat_f <= 90 and -180 <= lng_f <= 180):
+            raise ValueError
+    except (TypeError, ValueError):
+        lat = lng = None
+
+    try:
+        radius_km = min(max(int(request.GET.get("radius", 10)), 1), 50)
+    except ValueError:
+        radius_km = 10
+
+    external_vendors = []
+    if lat and lng:
+        external_vendors = fetch_vendors_from_openstreetmap(lat_f, lng_f, radius=radius_km * 1000, keyword=keyword)
+    external_total = len(external_vendors)
+    external_page = Paginator(external_vendors, 20).get_page(request.GET.get("ext_page"))
+    external_page_range = external_page.paginator.get_elided_page_range(external_page.number, on_each_side=2, on_ends=1)
+
+    # query string เดิมทั้งหมด (lat/lng/keyword/ฟิลเตอร์) ยกเว้น ext_page ไว้ต่อท้ายลิงก์เปลี่ยนหน้า
+    ext_query = request.GET.copy()
+    ext_query.pop("ext_page", None)
+    ext_query = ext_query.urlencode()
+
+    content = {
+        "vender":vender,
+        "filter": myFilter,
+        "vendor_page_range": vendor_page_range,
+        "vendor_total": vendor_total,
+        "vendor_query": request.GET.urlencode(),
+        "external_vendors": external_page,
+        "external_page_range": external_page_range,
+        "ext_query": ext_query,
+        "lat": lat,
+        "lng": lng,
+        "keyword": keyword,
+        "radius_km": radius_km,
+        "external_total": external_total,
+    }
+    print(content)
+    # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
+    print(content['vender'])
+    return render(request, "report/viewVendor.html" , content )
+
+
+def fetch_vendors_from_google_maps(lat, lng, radius=50000, keyword=None):
+    """
+    ดึงร้านค้า/ผู้จำหน่ายจาก Google Places API (Nearby Search) รอบตำแหน่ง lat/lng
+    หมายเหตุ: Google Places Nearby Search จำกัด radius สูงสุดที่ 50000 เมตร (50 กม.)
+    ต่อ 1 คำขอ ถ้าต้องการ 200 กม. ต้องยิงหลายจุดแล้วรวมผลเอง
+    """
+    api_key = settings.GOOGLE_MAPS_API_KEY
+    if not api_key:
+        print("ไม่พบ GOOGLE_MAPS_API_KEY ใน environment variable")
+        return []
+
+    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+    params = {
+        "location": f"{lat},{lng}",
+        "radius": min(radius, 50000),
+        "key": api_key,
+    }
+    if keyword:
+        params["keyword"] = keyword
+
+    results = []
+    while True:
+        response = requests.get(url, params=params)
+        data = response.json()
+        status = data.get("status")
+
+        if status not in ("OK", "ZERO_RESULTS"):
+            print(f"Google Maps API error: {status} - {data.get('error_message')}")
+            break
+
+        for place in data.get("results", []):
+            results.append({
+                "name": place.get("name"),
+                "address": place.get("vicinity"),
+                "lat": place.get("geometry", {}).get("location", {}).get("lat"),
+                "lng": place.get("geometry", {}).get("location", {}).get("lng"),
+                "place_id": place.get("place_id"),
+                "types": place.get("types"),
+                "rating": place.get("rating"),
+            })
+
+        next_page_token = data.get("next_page_token")
+        if not next_page_token:
+            break
+
+        time.sleep(2)  # ต้องรอสักครู่ token ถึงจะใช้ได้
+        params = {"pagetoken": next_page_token, "key": api_key}
+
+    print(f"พบร้านค้าจาก Google Maps ทั้งหมด {len(results)} ร้าน")
+    for r in results:
+        print(r)
+
+    return results
+
+
+def test_google_view(request, lat, lng):
+    """
+    view สำหรับทดสอบ fetch_vendors_from_google_maps ผ่าน browser
+    เรียกด้วย path param เช่น /test/google/view/13.7563/100.5018/
+    keyword ยังรับผ่าน query string ได้ เช่น ?keyword=hardware store
+    """
+    keyword = request.GET.get("keyword")
+
+    results = fetch_vendors_from_google_maps(lat, lng, keyword=keyword)
+
+    return JsonResponse({"count": len(results), "results": results})
+
+
+def fetch_vendors_from_openstreetmap(lat, lng, radius=10000, keyword=None):
+    """
+    ดึงร้านค้า/ผู้จำหน่ายจาก OpenStreetMap ผ่าน Overpass API
+    ฟรี ไม่ต้องมี API key / ไม่ต้องผูกบัตรเครดิต
+    radius หน่วยเมตร: รัศมีกว้างมาก (เช่น 50 กม. ในกรุงเทพฯ) server ฟรีมักตอบ 504 หมดเวลา
+    """
+    lat = round(float(lat), 4)
+    lng = round(float(lng), 4)
+    radius = int(radius)
+
+    # เก็บผลไว้ 1 ชม. เปลี่ยน keyword / เปลี่ยนหน้า ไม่ต้องยิง Overpass ใหม่
+    cache_key = f"osm_shops:{lat}:{lng}:{radius}"
+    elements = cache.get(cache_key)
+
+    if elements is None:
+        overpass_url = "https://overpass-api.de/api/interpreter"
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["shop"](around:{radius},{lat},{lng});
+          way["shop"](around:{radius},{lat},{lng});
+        );
+        out center tags;
+        """
+        headers = {"User-Agent": "djangostock-vendor-list/1.0"}
+
+        response = None
+        for attempt in range(2):
+            try:
+                response = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=60)
+            except requests.RequestException as e:
+                print(f"Overpass API request failed: {e}")
+                response = None
+            if response is not None and response.status_code not in (429, 504):
+                break
+            time.sleep(3)
+
+        if response is None or response.status_code != 200:
+            status = response.status_code if response is not None else "no response"
+            print(f"Overpass API error: {status}")
+            return []
+
+        elements = response.json().get("elements", [])
+        cache.set(cache_key, elements, 60 * 60)
+
+    results = []
+    for element in elements:
+        tags = element.get("tags", {})
+        name = tags.get("name")
+        if not name:
+            continue
+
+        if keyword:
+            haystack = f"{name} {tags.get('shop', '')}".lower()
+            if keyword.lower() not in haystack:
+                continue
+
+        if element.get("type") == "node":
+            el_lat = element.get("lat")
+            el_lng = element.get("lon")
+        else:
+            center = element.get("center", {})
+            el_lat = center.get("lat")
+            el_lng = center.get("lon")
+
+        address_parts = [
+            tags.get("addr:housenumber"),
+            tags.get("addr:street"),
+            tags.get("addr:subdistrict"),
+            tags.get("addr:district"),
+            tags.get("addr:city"),
+        ]
+        address = " ".join(p for p in address_parts if p)
+
+        results.append({
+            "name": name,
+            "shop_type": tags.get("shop"),
+            "address": address or None,
+            "lat": el_lat,
+            "lng": el_lng,
+            "phone": tags.get("phone") or tags.get("contact:phone"),
+            "osm_id": element.get("id"),
+        })
+
+    print(f"พบร้านค้าจาก OpenStreetMap ทั้งหมด {len(results)} ร้าน")
+    for r in results:
+        print(r)
+
+    return results
+
+
+def test_osm_view(request, lat, lng):
+    """
+    view สำหรับทดสอบ fetch_vendors_from_openstreetmap ผ่าน browser
+    เรียกด้วย path param เช่น /test/osm/view/13.7563/100.5018/
+    keyword ยังรับผ่าน query string ได้ เช่น ?keyword=hardware
+    """
+    keyword = request.GET.get("keyword")
+
+    results = fetch_vendors_from_openstreetmap(lat, lng, keyword=keyword)
+
+    return JsonResponse({"count": len(results), "results": results})
