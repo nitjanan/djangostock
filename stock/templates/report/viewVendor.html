@@ -23,6 +23,7 @@
           <input type="hidden" name="lng" value="{{lng}}">
           <input type="hidden" name="radius" value="{{radius_km}}">
           {% if keyword %}<input type="hidden" name="keyword" value="{{keyword}}">{% endif %}
+          {% if shop_type is not None %}<input type="hidden" name="shop_type" value="{{shop_type}}">{% endif %}
         {% endif %}
         <div class="form-row">
           <div class="form-group col-md-3 mb-0">
@@ -133,7 +134,16 @@
           <label for="geo-keyword">คำค้นหา</label>
           <input type="text" class="form-control" id="geo-keyword" name="keyword" value="{{keyword|default:''}}" placeholder="เช่น hardware store">
         </div>
-        <div class="form-group col-md-3 mb-2 d-flex">
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-shop-type">ประเภทร้าน</label>
+          <select class="form-control" id="geo-shop-type" name="shop_type" {% if not shop_type_options %}disabled{% endif %}>
+            <option value="__all__">ทุกประเภท</option>
+            {% for opt in shop_type_options %}
+              <option value="{{opt.value}}" {% if shop_type == opt.value %}selected{% endif %}>{{opt.label}} — {{opt.count|intcomma}} ร้าน</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-12 mb-2 d-flex">
           <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
           <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
         </div>
@@ -141,6 +151,7 @@
       <p id="geo-status" class="text-muted mb-2">
         {% if lat and lng %}
           ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
+          {% if shop_type is not None %}ประเภท: {% for opt in shop_type_options %}{% if opt.value == shop_type %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           (<a href="https://www.openstreetmap.org/?mlat={{lat}}&mlon={{lng}}#map=14/{{lat}}/{{lng}}" target="_blank" rel="noopener">ดูบนแผนที่</a>)
           — พบ {{external_total|intcomma}} ร้าน
         {% else %}
@@ -157,6 +168,7 @@
               <th scope="col">ที่อยู่</th>
               <th scope="col">ประเภทร้าน</th>
               <th scope="col">เบอร์โทร</th>
+              <th scope="col">ตำแหน่ง แผนที่</th>
             </tr>
           </thead>
           <tbody>
@@ -165,12 +177,24 @@
               <th scope="row">{{external_vendors.start_index|add:forloop.counter0}}</th>
               <td>{{ev.name}}</td>
               <td>{{ev.address|default:"-"}}</td>
-              <td>{{ev.shop_type|default:"-"}}</td>
+              <td>{{ev.shop_type_label}}</td>
               <td>{{ev.phone|default:"-"}}</td>
+              <td class="text-nowrap">
+                {% if ev.lat is not None and ev.lng is not None %}
+                  <small class="text-muted d-block">{{ev.lat|floatformat:6}}, {{ev.lng|floatformat:6}}</small>
+                  <a class="btn btn-sm btn-outline-primary"
+                     href="https://www.google.com/maps/search/?api=1&query={{ev.lat|floatformat:'6u'}},{{ev.lng|floatformat:'6u'}}"
+                     target="_blank" rel="noopener">
+                    Google Map <i class="fas fa-map-marker-alt"></i>
+                  </a>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="text-center text-muted">
+              <td colspan="6" class="text-center text-muted">
                 {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก OpenStreetMap{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
               </td>
             </tr>
@@ -228,6 +252,11 @@
       params.set('lng', lng);
       params.set('radius', form.radius.value.trim() || '10');
       params.delete('ext_page');
+      if (form.shop_type.disabled || form.shop_type.value === '__all__') {
+        params.delete('shop_type');
+      } else {
+        params.set('shop_type', form.shop_type.value);
+      }
       if (keyword) {
         params.set('keyword', keyword);
       } else {
@@ -268,6 +297,12 @@
     });
 
     document.getElementById('geo-current').addEventListener('click', useCurrentLocation);
+
+    form.shop_type.addEventListener('change', function () {
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
 
     // เปิดหน้าครั้งแรกยังไม่มีพิกัด -> ลองขอจาก GPS อัตโนมัติ
     if (!params.get('lat') || !params.get('lng')) {

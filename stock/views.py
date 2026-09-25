@@ -12616,6 +12616,23 @@ def venderReport(request, pages=None):
     external_vendors = []
     if lat and lng:
         external_vendors = fetch_vendors_from_openstreetmap(lat_f, lng_f, radius=radius_km * 1000, keyword=keyword)
+
+    # ตัวเลือกประเภทร้าน นับจากผลก่อนกรองประเภท จะได้สลับประเภทได้ตลอด
+    from collections import Counter
+    shop_type_counts = Counter(ev["shop_type"] or "" for ev in external_vendors)
+    shop_type_options = [
+        {"value": t, "label": osm_shop_type_label(t), "count": c}
+        for t, c in shop_type_counts.most_common()
+    ]
+
+    shop_type = request.GET.get("shop_type")
+    if shop_type is not None and shop_type in shop_type_counts:
+        external_vendors = [ev for ev in external_vendors if (ev["shop_type"] or "") == shop_type]
+    else:
+        shop_type = None
+
+    for ev in external_vendors:
+        ev["shop_type_label"] = osm_shop_type_label(ev["shop_type"])
     external_total = len(external_vendors)
     external_page = Paginator(external_vendors, 20).get_page(request.GET.get("ext_page"))
     external_page_range = external_page.paginator.get_elided_page_range(external_page.number, on_each_side=2, on_ends=1)
@@ -12639,6 +12656,8 @@ def venderReport(request, pages=None):
         "keyword": keyword,
         "radius_km": radius_km,
         "external_total": external_total,
+        "shop_type": shop_type,
+        "shop_type_options": shop_type_options,
     }
     print(content)
     # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
@@ -12712,6 +12731,39 @@ def test_google_view(request, lat, lng):
     results = fetch_vendors_from_google_maps(lat, lng, keyword=keyword)
 
     return JsonResponse({"count": len(results), "results": results})
+
+
+OSM_SHOP_TYPE_LABELS = {
+    "hardware": "ฮาร์ดแวร์",
+    "doityourself": "วัสดุก่อสร้าง / DIY",
+    "trade": "วัสดุก่อสร้าง / ค้าส่ง",
+    "building_materials": "วัสดุก่อสร้าง",
+    "paint": "สี",
+    "electrical": "อุปกรณ์ไฟฟ้า",
+    "tools": "เครื่องมือช่าง",
+    "stationery": "เครื่องเขียน",
+    "copyshop": "ถ่ายเอกสาร",
+    "car_parts": "อะไหล่รถยนต์",
+    "car_repair": "ซ่อมรถยนต์",
+    "tyres": "ยางรถยนต์",
+    "motorcycle": "รถจักรยานยนต์",
+    "computer": "คอมพิวเตอร์",
+    "electronics": "เครื่องใช้ไฟฟ้า / อิเล็กทรอนิกส์",
+    "mobile_phone": "โทรศัพท์มือถือ",
+    "furniture": "เฟอร์นิเจอร์",
+    "gas": "แก๊ส",
+    "agrarian": "การเกษตร",
+    "convenience": "ร้านสะดวกซื้อ",
+    "supermarket": "ซูเปอร์มาร์เก็ต",
+    "clothes": "เสื้อผ้า",
+}
+
+
+def osm_shop_type_label(shop_type):
+    if not shop_type:
+        return "ไม่ระบุ"
+    thai = OSM_SHOP_TYPE_LABELS.get(shop_type)
+    return f"{thai} ({shop_type})" if thai else shop_type
 
 
 def fetch_vendors_from_openstreetmap(lat, lng, radius=10000, keyword=None):
