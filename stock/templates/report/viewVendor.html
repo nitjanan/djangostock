@@ -23,6 +23,7 @@
           <input type="hidden" name="lng" value="{{lng}}">
           <input type="hidden" name="radius" value="{{radius_km}}">
           {% if keyword %}<input type="hidden" name="keyword" value="{{keyword}}">{% endif %}
+          <input type="hidden" name="source" value="{{source}}">
           {% if category is not None %}<input type="hidden" name="category" value="{{category}}">{% endif %}
           {% if shop_type is not None %}<input type="hidden" name="shop_type" value="{{shop_type}}">{% endif %}
         {% endif %}
@@ -48,7 +49,7 @@
   <div class="card div-shadow container my-3">
     <div class="card-body"> 
       <h5>รายงานผู้จัดจำหน่ายในระบบ</h5>
-      <button class="btn btn-success">ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+      <a class="btn btn-success" href="{% url 'exportExcelVendor' %}?{{vendor_query}}">ดาวโหลด excel <i class = "fas fa-file-excel"></i></a>
       <div class="table-responsive">
         <table class="table table-striped my-3">
           <thead class="thead-dark g-4">
@@ -144,6 +145,13 @@
             {% endfor %}
           </select>
         </div>
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-source">แหล่งข้อมูล</label>
+          <select class="form-control" id="geo-source" name="source">
+            <option value="tomtom" {% if source == "tomtom" %}selected{% endif %} {% if not tomtom_available %}disabled{% endif %}>TomTom{% if not tomtom_available %} (ยังไม่ได้ตั้งค่า API key){% endif %}</option>
+            <option value="osm" {% if source == "osm" %}selected{% endif %}>OpenStreetMap</option>
+          </select>
+        </div>
         <div class="form-group col-md-4 mb-2">
           <label for="geo-shop-type">ประเภทร้าน</label>
           <select class="form-control" id="geo-shop-type" name="shop_type" {% if not shop_type_options %}disabled{% endif %}>
@@ -153,13 +161,14 @@
             {% endfor %}
           </select>
         </div>
-        <div class="form-group col-md-8 mb-2 d-flex">
+        <div class="form-group col-md-5 mb-2 d-flex">
           <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
           <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
         </div>
       </form>
       <p id="geo-status" class="text-muted mb-2">
         {% if lat and lng %}
+          {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %} ·
           ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
           {% if category is not None %}หมวด: {% for opt in category_options %}{% if opt.value == category %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           {% if shop_type is not None %}ประเภท: {% for opt in shop_type_options %}{% if opt.value == shop_type %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
@@ -169,7 +178,14 @@
           กรอก Latitude / Longitude หรือกดปุ่ม "ตำแหน่งปัจจุบัน"
         {% endif %}
       </p>
-      <button class="btn btn-success">ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+      {% if source == "tomtom" %}
+        <button class="btn btn-success" disabled title="เงื่อนไขของ TomTom ห้ามเก็บข้อมูล เปลี่ยนแหล่งข้อมูลเป็น OpenStreetMap เพื่อ export">ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+        <small class="text-muted ml-2">ข้อมูลจาก TomTom export ไม่ได้ตามเงื่อนไขการใช้งาน เปลี่ยนแหล่งข้อมูลเป็น OpenStreetMap เพื่อ export</small>
+      {% elif lat and lng and external_total %}
+        <a class="btn btn-success" href="{% url 'exportExcelExternalVendor' %}?{{ext_query}}">ดาวโหลด excel <i class = "fas fa-file-excel"></i></a>
+      {% else %}
+        <button class="btn btn-success" disabled>ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+      {% endif %}
       <div class="table-responsive">
         <table class="table table-striped my-3">
           <thead class="thead-dark g-4">
@@ -208,13 +224,16 @@
           {% empty %}
             <tr>
               <td colspan="7" class="text-center text-muted">
-                {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก OpenStreetMap{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
+                {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %}{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
               </td>
             </tr>
           {% endfor %}
           </tbody>
         </table>
       </div>
+      <p class="text-muted small mb-2">
+        {% if source == "tomtom" %}ข้อมูลร้านค้า &copy; TomTom{% else %}ข้อมูลร้านค้า &copy; OpenStreetMap contributors (ODbL){% endif %}
+      </p>
 
       {% if external_vendors.paginator.num_pages > 1 %}
       <nav aria-label="หน้าผู้จัดจำหน่ายอื่นๆ">
@@ -265,6 +284,7 @@
       params.set('lng', lng);
       params.set('radius', form.radius.value.trim() || '10');
       params.delete('ext_page');
+      params.set('source', form.source.value);
       if (form.category.disabled || form.category.value === '__all__') {
         params.delete('category');
       } else {
@@ -317,6 +337,14 @@
     document.getElementById('geo-current').addEventListener('click', useCurrentLocation);
 
     form.shop_type.addEventListener('change', function () {
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
+
+    // เปลี่ยนแหล่งข้อมูล -> ล้างประเภทร้าน เพราะแต่ละแหล่งตั้งชื่อประเภทไม่เหมือนกัน
+    form.source.addEventListener('change', function () {
+      form.shop_type.value = '__all__';
       if (form.reportValidity()) {
         search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
       }

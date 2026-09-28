@@ -12597,6 +12597,46 @@ def venderReport(request, pages=None):
     for v in vender :
         print(v.id , v.name)
 
+    ext = _external_vendor_data(request)
+    external_vendors = ext["vendors"]
+    external_total = len(external_vendors)
+    external_page = Paginator(external_vendors, 20).get_page(request.GET.get("ext_page"))
+    external_page_range = external_page.paginator.get_elided_page_range(external_page.number, on_each_side=2, on_ends=1)
+
+    # query string เดิมทั้งหมด (lat/lng/keyword/ฟิลเตอร์) ยกเว้น ext_page ไว้ต่อท้ายลิงก์เปลี่ยนหน้า / export
+    ext_query = request.GET.copy()
+    ext_query.pop("ext_page", None)
+    ext_query = ext_query.urlencode()
+
+    content = {
+        "vender":vender,
+        "filter": myFilter,
+        "vendor_page_range": vendor_page_range,
+        "vendor_total": vendor_total,
+        "vendor_query": request.GET.urlencode(),
+        "external_vendors": external_page,
+        "external_page_range": external_page_range,
+        "ext_query": ext_query,
+        "lat": ext["lat"],
+        "lng": ext["lng"],
+        "keyword": ext["keyword"],
+        "radius_km": ext["radius_km"],
+        "external_total": external_total,
+        "shop_type": ext["shop_type"],
+        "shop_type_options": ext["shop_type_options"],
+        "category": ext["category"],
+        "category_options": ext["category_options"],
+        "source": ext["source"],
+        "tomtom_available": bool(settings.TOMTOM_API_KEY),
+    }
+    print(content)
+    # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
+    print(content['vender'])
+    return render(request, "report/viewVendor.html" , content )
+
+
+def _external_vendor_data(request):
+    """อ่านตัวกรองของตารางผู้จัดจำหน่ายอื่นๆ จาก query string แล้วคืนรายการร้านที่กรองแล้ว (ใช้ทั้งหน้า report และ export)"""
     # lat/lng มาจาก GPS ของเครื่อง user หรือที่ user กรอกเอง (ส่งมาทาง query string)
     lat = request.GET.get("lat")
     lng = request.GET.get("lng")
@@ -12613,14 +12653,33 @@ def venderReport(request, pages=None):
     except ValueError:
         radius_km = 10
 
+    # แหล่งข้อมูล: tomtom (ค่าเริ่มต้นเมื่อมี API key) / osm
+    source = request.GET.get("source")
+    if source not in ("tomtom", "osm"):
+        source = "tomtom" if settings.TOMTOM_API_KEY else "osm"
+
     external_vendors = []
     if lat and lng:
-        external_vendors = fetch_vendors_from_openstreetmap(lat_f, lng_f, radius=radius_km * 1000, keyword=keyword)
+        if source == "tomtom":
+            # ไม่มี keyword: ดึงเฉพาะหมวดของฝ่ายซื้อ (1 หมวด = 1 request, cache 1 ชม.)
+            external_vendors = fetch_vendors_from_tomtom(
+                lat_f, lng_f, radius=radius_km * 1000, keyword=keyword,
+                category_ids=None if keyword else list(TOMTOM_CATEGORIES),
+            )
+        else:
+            external_vendors = fetch_vendors_from_openstreetmap(lat_f, lng_f, radius=radius_km * 1000, keyword=keyword)
 
     from collections import Counter
     for ev in external_vendors:
-        ev["category"] = purchasing_category(ev["shop_type"])
+        if source == "tomtom":
+            tt_category, tt_label = TOMTOM_CATEGORIES.get(ev["category_id"], ("other", None))
+            ev["category"] = tt_category
+            ev["shop_type_label"] = tt_label or ev["shop_type"] or "ไม่ระบุ"
+        else:
+            ev["category"] = purchasing_category(ev["shop_type"])
+            ev["shop_type_label"] = osm_shop_type_label(ev["shop_type"])
         ev["category_label"] = PURCHASING_CATEGORY_LABELS[ev["category"]]
+    shop_type_labels = {ev["shop_type"] or "": ev["shop_type_label"] for ev in external_vendors}
 
     # หมวดฝ่ายซื้อ: นับจากผลทั้งหมด / "purchasing" = รวมทั้ง 3 หมวด
     category_counts = Counter(ev["category"] for ev in external_vendors)
@@ -12642,7 +12701,7 @@ def venderReport(request, pages=None):
     # ตัวเลือกประเภทร้าน นับจากผลหลังกรองหมวด แต่ก่อนกรองประเภท จะได้สลับประเภทได้ตลอด
     shop_type_counts = Counter(ev["shop_type"] or "" for ev in external_vendors)
     shop_type_options = [
-        {"value": t, "label": osm_shop_type_label(t), "count": c}
+        {"value": t, "label": shop_type_labels[t], "count": c}
         for t, c in shop_type_counts.most_common()
     ]
 
@@ -12652,91 +12711,276 @@ def venderReport(request, pages=None):
     else:
         shop_type = None
 
-    for ev in external_vendors:
-        ev["shop_type_label"] = osm_shop_type_label(ev["shop_type"])
-    external_total = len(external_vendors)
-    external_page = Paginator(external_vendors, 20).get_page(request.GET.get("ext_page"))
-    external_page_range = external_page.paginator.get_elided_page_range(external_page.number, on_each_side=2, on_ends=1)
-
-    # query string เดิมทั้งหมด (lat/lng/keyword/ฟิลเตอร์) ยกเว้น ext_page ไว้ต่อท้ายลิงก์เปลี่ยนหน้า
-    ext_query = request.GET.copy()
-    ext_query.pop("ext_page", None)
-    ext_query = ext_query.urlencode()
-
-    content = {
-        "vender":vender,
-        "filter": myFilter,
-        "vendor_page_range": vendor_page_range,
-        "vendor_total": vendor_total,
-        "vendor_query": request.GET.urlencode(),
-        "external_vendors": external_page,
-        "external_page_range": external_page_range,
-        "ext_query": ext_query,
+    return {
+        "vendors": external_vendors,
         "lat": lat,
         "lng": lng,
         "keyword": keyword,
         "radius_km": radius_km,
-        "external_total": external_total,
-        "shop_type": shop_type,
-        "shop_type_options": shop_type_options,
+        "source": source,
         "category": category,
         "category_options": category_options,
+        "shop_type": shop_type,
+        "shop_type_options": shop_type_options,
     }
-    print(content)
-    # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
-    print(content['vender'])
-    return render(request, "report/viewVendor.html" , content )
 
 
-def fetch_vendors_from_google_maps(lat, lng, radius=50000, keyword=None):
+def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link_column=None):
+    """สร้างไฟล์ .xlsx: หัวตารางตัวหนา + ตรึงแถวหัว + ปรับความกว้างคอลัมน์ / link_column = index คอลัมน์ที่เป็นลิงก์"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = title
+
+    ws.append(headers)
+    header_fill = PatternFill("solid", fgColor="343A40")
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.freeze_panes = "A2"
+
+    for row in rows:
+        ws.append(row)
+        if link_column is not None:
+            cell = ws.cell(row=ws.max_row, column=link_column + 1)
+            if cell.value:
+                cell.hyperlink = cell.value
+                cell.value = "เปิด Google Map"
+                cell.font = Font(color="0563C1", underline="single")
+
+    for line in footer_lines:
+        ws.append([])
+        ws.append([line])
+
+    for idx, header in enumerate(headers, start=1):
+        values = [str(header)] + [str(r[idx - 1]) for r in rows if idx - 1 < len(r) and r[idx - 1] is not None]
+        ws.column_dimensions[get_column_letter(idx)].width = min(max(len(v) for v in values) + 4, 60)
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f"attachment; filename={filename}"
+    wb.save(response)
+    return response
+
+
+@login_required(login_url='signIn')
+def exportExcelVendor(request):
+    """export ตารางผู้จัดจำหน่ายในระบบ ทุกแถวตามตัวกรองปัจจุบัน (ไม่ตัดหน้า)"""
+    from stock.filters import DistributorFilter
+    queryset = Distributor.objects.select_related(
+        "prefix", "type", "genre", "credit", "vat_type", "affiliated"
+    ).order_by("id")
+    vendors = DistributorFilter(request.GET, queryset=queryset).qs
+
+    headers = [
+        "รหัส", "คำนำหน้า", "ชื่อผู้จัดจำหน่าย", "ชนิด", "ประเภท", "เครดิต", "ชนิดภาษี",
+        "ที่อยู่", "เบอร์โทร", "แฟกซ์", "ผู้ติดต่อ", "เลขประจำตัวผู้เสียภาษี", "สังกัดบริษัท", "วันที่สร้าง",
+    ]
+    rows = [
+        [
+            v.id,
+            str(v.prefix) if v.prefix else None,
+            v.name,
+            str(v.type) if v.type else None,
+            str(v.genre) if v.genre else None,
+            str(v.credit) if v.credit else None,
+            str(v.vat_type) if v.vat_type else None,
+            v.address,
+            v.tel,
+            v.fax,
+            v.contact,
+            v.tex,
+            str(v.affiliated) if v.affiliated else None,
+            v.created,
+        ]
+        for v in vendors
+    ]
+    return _vendor_excel_response("ผู้จัดจำหน่ายในระบบ", headers, rows, "Vendor_Report.xlsx")
+
+
+@login_required(login_url='signIn')
+def exportExcelExternalVendor(request):
+    """export ตารางผู้จัดจำหน่ายอื่นๆ ทุกแถวตามตัวกรองปัจจุบัน (ไม่ตัดหน้า)"""
+    ext = _external_vendor_data(request)
+
+    # เงื่อนไข TomTom ข้อ 11.4 / 11.6.1: ห้ามเก็บผลลัพธ์หรือนำไปสร้างฐานข้อมูลของเรา
+    if ext["source"] == "tomtom":
+        return HttpResponse(
+            "ไม่สามารถ export ข้อมูลจาก TomTom ได้ เพราะเงื่อนไขการใช้งานของ TomTom ห้ามเก็บผลลัพธ์ไว้ "
+            "กรุณาเปลี่ยนแหล่งข้อมูลเป็น OpenStreetMap แล้ว export ใหม่",
+            status=403, content_type="text/plain; charset=utf-8",
+        )
+    if not ext["lat"] or not ext["lng"]:
+        return HttpResponse("กรุณาระบุตำแหน่ง (lat/lng) ก่อน export", status=400, content_type="text/plain; charset=utf-8")
+
+    headers = ["#", "ชื่อผู้จัดจำหน่าย", "หมวดฝ่ายซื้อ", "ประเภทร้าน", "ที่อยู่", "เบอร์โทร", "Latitude", "Longitude", "แผนที่"]
+    rows = [
+        [
+            i,
+            ev["name"],
+            ev["category_label"],
+            ev["shop_type_label"],
+            ev["address"],
+            ev["phone"],
+            ev["lat"],
+            ev["lng"],
+            f"https://www.google.com/maps/search/?api=1&query={ev['lat']},{ev['lng']}" if ev["lat"] is not None and ev["lng"] is not None else None,
+        ]
+        for i, ev in enumerate(ext["vendors"], start=1)
+    ]
+    footer = [
+        f"ตำแหน่ง {ext['lat']}, {ext['lng']} รัศมี {ext['radius_km']} กม."
+        + (f" คำค้น: {ext['keyword']}" if ext["keyword"] else ""),
+        "ข้อมูลร้านค้า © OpenStreetMap contributors (ODbL)",
+    ]
+    return _vendor_excel_response("ผู้จัดจำหน่ายอื่นๆ", headers, rows, "External_Vendor_Report.xlsx", footer, link_column=8)
+
+
+# หมวดฝ่ายซื้อ -> วิธีค้นใน Google Places API (New)
+# "types" = ค้นด้วย Nearby Search ตามประเภทของ Google (ประเภทละ 1 request ได้สูงสุด 20 ร้าน)
+# "queries" = Google ไม่มีประเภทเครื่องเขียน/อุปกรณ์สำนักงาน จึงใช้ Text Search ด้วยคำค้นแทน
+GOOGLE_PURCHASING_SEARCHES = {
+    "construction": {"types": ["hardware_store", "home_improvement_store", "building_materials_store"]},
+    "office": {"queries": ["เครื่องเขียน", "อุปกรณ์สำนักงาน", "ร้านถ่ายเอกสาร"]},
+    "parts": {"types": ["auto_parts_store", "tire_shop", "car_repair"]},
+}
+GOOGLE_TYPE_CATEGORIES = {
+    t: key for key, spec in GOOGLE_PURCHASING_SEARCHES.items() for t in spec.get("types", [])
+}
+
+# ใช้เฉพาะ field ระดับ Pro (ฟรี 5,000 ครั้ง/เดือน) ถ้าเพิ่มเบอร์โทร (nationalPhoneNumber) จะกลายเป็นระดับ Enterprise
+GOOGLE_PLACE_FIELDS = [
+    "id", "displayName", "formattedAddress", "location", "types",
+    "primaryType", "primaryTypeDisplayName", "googleMapsUri", "businessStatus",
+]
+
+
+def _google_places_post(url, body, field_mask):
+    try:
+        response = requests.post(
+            url,
+            json=body,
+            headers={
+                "X-Goog-Api-Key": settings.GOOGLE_MAPS_API_KEY,
+                "X-Goog-FieldMask": field_mask,
+            },
+            timeout=30,
+        )
+    except requests.RequestException as e:
+        print(f"Google Places API request failed: {e}")
+        return None
+    if response.status_code != 200:
+        print(f"Google Places API error: {response.status_code} - {response.text[:300]}")
+        return None
+    return response.json()
+
+
+def fetch_vendors_from_google_maps(lat, lng, radius=10000, keyword=None, category=None, max_text_pages=1):
     """
-    ดึงร้านค้า/ผู้จำหน่ายจาก Google Places API (Nearby Search) รอบตำแหน่ง lat/lng
-    หมายเหตุ: Google Places Nearby Search จำกัด radius สูงสุดที่ 50000 เมตร (50 กม.)
-    ต่อ 1 คำขอ ถ้าต้องการ 200 กม. ต้องยิงหลายจุดแล้วรวมผลเอง
+    ดึงร้านค้า/ผู้จำหน่ายจาก Google Places API (New)
+    ต้องผูกบัตรใน Google Cloud / ฟรีเดือนละ 5,000 request (Nearby Search Pro, Text Search Pro แยกโควตากัน)
+    - keyword: Text Search ค้นคำนั้นรอบจุด (หน้าละ 20 ร้าน สูงสุด max_text_pages หน้า)
+    - category ("construction" / "office" / "parts" / "purchasing"): ค้นตาม GOOGLE_PURCHASING_SEARCHES
+    - ไม่ส่งทั้งคู่: Nearby Search ทุกประเภท 20 ร้าน
+    เงื่อนไขของ Google: ห้าม cache ข้อมูลร้าน (เก็บได้เฉพาะ place_id) จึงไม่มี cache ในฟังก์ชันนี้
     """
-    api_key = settings.GOOGLE_MAPS_API_KEY
-    if not api_key:
+    if not settings.GOOGLE_MAPS_API_KEY:
         print("ไม่พบ GOOGLE_MAPS_API_KEY ใน environment variable")
         return []
 
-    url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-    params = {
-        "location": f"{lat},{lng}",
-        "radius": min(radius, 50000),
-        "key": api_key,
-    }
+    lat = float(lat)
+    lng = float(lng)
+    radius = float(min(int(radius), 50000))
+    circle = {"center": {"latitude": lat, "longitude": lng}, "radius": radius}
+    place_mask = ",".join(f"places.{f}" for f in GOOGLE_PLACE_FIELDS)
+
+    nearby_types = []
+    text_queries = []  # (คำค้น, หมวดฝ่ายซื้อของคำค้นนั้น)
     if keyword:
-        params["keyword"] = keyword
+        text_queries = [(keyword.strip(), None)]
+    elif category:
+        keys = list(GOOGLE_PURCHASING_SEARCHES) if category == "purchasing" else [category]
+        for key in keys:
+            spec = GOOGLE_PURCHASING_SEARCHES.get(key, {})
+            nearby_types += spec.get("types", [])
+            text_queries += [(q, key) for q in spec.get("queries", [])]
+    else:
+        nearby_types = [None]
 
+    places = []  # (place, หมวดที่มาจากคำค้น)
+    for place_type in nearby_types:
+        body = {
+            "locationRestriction": {"circle": circle},
+            "maxResultCount": 20,
+            "rankPreference": "DISTANCE",
+            "languageCode": "th",
+            "regionCode": "TH",
+        }
+        if place_type:
+            body["includedTypes"] = [place_type]
+        data = _google_places_post("https://places.googleapis.com/v1/places:searchNearby", body, place_mask)
+        if data is None:
+            break
+        places += [(p, None) for p in data.get("places", [])]
+
+    for query, query_category in text_queries:
+        # Text Search จำกัดพื้นที่แบบวงกลมไม่ได้ ใช้ locationBias (เน้นรอบจุด) แล้วกรองระยะเองด้านล่าง
+        body = {
+            "textQuery": query,
+            "pageSize": 20,
+            "locationBias": {"circle": circle},
+            "languageCode": "th",
+            "regionCode": "TH",
+        }
+        for _ in range(max_text_pages):
+            data = _google_places_post("https://places.googleapis.com/v1/places:searchText", body, place_mask + ",nextPageToken")
+            if data is None:
+                break
+            places += [(p, query_category) for p in data.get("places", [])]
+            if not data.get("nextPageToken"):
+                break
+            body["pageToken"] = data["nextPageToken"]
+
+    import math
     results = []
-    while True:
-        response = requests.get(url, params=params)
-        data = response.json()
-        status = data.get("status")
+    seen = set()
+    for place, query_category in places:
+        if place.get("id") in seen:
+            continue
+        seen.add(place.get("id"))
+        location = place.get("location", {})
+        p_lat, p_lng = location.get("latitude"), location.get("longitude")
+        distance_m = None
+        if p_lat is not None and p_lng is not None:
+            # haversine
+            dlat = math.radians(p_lat - lat)
+            dlng = math.radians(p_lng - lng)
+            a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat)) * math.cos(math.radians(p_lat)) * math.sin(dlng / 2) ** 2
+            distance_m = round(6371000 * 2 * math.asin(math.sqrt(a)))
+            if distance_m > radius:
+                continue
 
-        if status not in ("OK", "ZERO_RESULTS"):
-            print(f"Google Maps API error: {status} - {data.get('error_message')}")
-            break
+        types = place.get("types", [])
+        category_key = GOOGLE_TYPE_CATEGORIES.get(place.get("primaryType")) or next(
+            (GOOGLE_TYPE_CATEGORIES[t] for t in types if t in GOOGLE_TYPE_CATEGORIES), query_category
+        )
+        results.append({
+            "name": place.get("displayName", {}).get("text"),
+            "shop_type": place.get("primaryType"),
+            "shop_type_display": place.get("primaryTypeDisplayName", {}).get("text"),
+            "types": types,
+            "category": category_key,
+            "address": place.get("formattedAddress"),
+            "lat": p_lat,
+            "lng": p_lng,
+            "distance_m": distance_m,
+            "business_status": place.get("businessStatus"),
+            "google_maps_uri": place.get("googleMapsUri"),
+            "place_id": place.get("id"),
+        })
 
-        for place in data.get("results", []):
-            results.append({
-                "name": place.get("name"),
-                "address": place.get("vicinity"),
-                "lat": place.get("geometry", {}).get("location", {}).get("lat"),
-                "lng": place.get("geometry", {}).get("location", {}).get("lng"),
-                "place_id": place.get("place_id"),
-                "types": place.get("types"),
-                "rating": place.get("rating"),
-            })
+    results.sort(key=lambda r: r["distance_m"] if r["distance_m"] is not None else float("inf"))
 
-        next_page_token = data.get("next_page_token")
-        if not next_page_token:
-            break
-
-        time.sleep(2)  # ต้องรอสักครู่ token ถึงจะใช้ได้
-        params = {"pagetoken": next_page_token, "key": api_key}
-
-    print(f"พบร้านค้าจาก Google Maps ทั้งหมด {len(results)} ร้าน")
+    print(f"พบร้านค้าจาก Google ทั้งหมด {len(results)} ร้าน (ยิง {len(nearby_types)} nearby + {len(text_queries)} text search)")
     for r in results:
         print(r)
 
@@ -12747,13 +12991,21 @@ def test_google_view(request, lat, lng):
     """
     view สำหรับทดสอบ fetch_vendors_from_google_maps ผ่าน browser
     เรียกด้วย path param เช่น /test/google/view/13.7563/100.5018/
-    keyword ยังรับผ่าน query string ได้ เช่น ?keyword=hardware store
+    query string: ?category=construction|office|parts|purchasing  ?keyword=เครื่องเขียน  ?radius=5000 (เมตร)
     """
-    keyword = request.GET.get("keyword")
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+        radius = int(request.GET.get("radius", 10000))
+    except ValueError:
+        return JsonResponse({"error": "lat/lng/radius ต้องเป็นตัวเลข"}, status=400, json_dumps_params={"ensure_ascii": False})
 
-    results = fetch_vendors_from_google_maps(lat, lng, keyword=keyword)
+    results = fetch_vendors_from_google_maps(
+        lat_f, lng_f, radius=radius,
+        keyword=request.GET.get("keyword"),
+        category=request.GET.get("category"),
+    )
 
-    return JsonResponse({"count": len(results), "results": results})
+    return JsonResponse({"count": len(results), "results": results}, json_dumps_params={"ensure_ascii": False})
 
 
 OSM_SHOP_TYPE_LABELS = {
@@ -12938,13 +13190,39 @@ def test_osm_view(request, lat, lng):
     return JsonResponse({"count": len(results), "results": results})
 
 
-def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, max_pages=3):
+# รหัสหมวดของ TomTom (ดูทั้งหมดได้จาก /search/2/poiCategories.json) -> (หมวดฝ่ายซื้อ, ชื่อไทย)
+# TomTom ไม่มีหมวดเครื่องเขียนแยก / ร้านฮาร์ดแวร์ไทยส่วนใหญ่ถูกจัดเป็น Do-It-Yourself Centers
+TOMTOM_CATEGORIES = {
+    9361069: ("construction", "ฮาร์ดแวร์"),
+    9361030: ("construction", "ฮาร์ดแวร์ / วัสดุก่อสร้าง / DIY"),
+    9361042: ("construction", "วัสดุและอุปกรณ์ก่อสร้าง"),
+    9361035: ("construction", "สี / ตกแต่ง"),
+    9361034: ("construction", "โคมไฟ / หลอดไฟ"),
+    9361033: ("construction", "ครัว / สุขภัณฑ์"),
+    9361080: ("construction", "กระจก / หน้าต่าง"),
+    9361014: ("office", "อุปกรณ์สำนักงาน"),
+    9361012: ("office", "คอมพิวเตอร์และอุปกรณ์"),
+    9361047: ("office", "ถ่ายเอกสาร / การพิมพ์"),
+    7310006: ("parts", "อะไหล่ / อุปกรณ์แต่งรถ"),
+    7310007: ("parts", "ยางรถยนต์"),
+    7310004: ("parts", "ซ่อมรถยนต์ / อะไหล่"),
+    7310009: ("parts", "ซ่อมรถบรรทุก"),
+    7310008: ("parts", "ซ่อมรถจักรยานยนต์"),
+    9361073: ("parts", "อุปกรณ์การเกษตร"),
+}
+TOMTOM_PURCHASING_IDS = {}
+for _tt_id, (_tt_key, _) in TOMTOM_CATEGORIES.items():
+    TOMTOM_PURCHASING_IDS.setdefault(_tt_key, []).append(_tt_id)
+
+
+def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, category_ids=None, max_pages=3):
     """
     ดึงร้านค้า/ผู้จำหน่ายจาก TomTom Search API (ข้อมูล POI เชิงพาณิชย์ของ TomTom คล้าย Google)
-    ฟรี 2,500 request/วัน ไม่ต้องผูกบัตร ใช้เกินโควตาแล้ว TomTom จะบล็อก ไม่เรียกเก็บเงิน
-    - มี keyword: ใช้ categorySearch ค้นตามชื่อหมวด เช่น "hardware", "stationery", "car parts"
-    - ไม่มี keyword: ใช้ nearbySearch ได้ POI ทุกประเภทรอบจุด (รวมร้านอาหาร ปั๊ม ฯลฯ)
-    ได้หน้าละ 100 ร้าน 1 หน้า = 1 request ของโควตา จึงจำกัดไว้ที่ max_pages หน้า
+    ฟรี 20,000 request/เดือน ไม่ต้องผูกบัตร ใช้เกินโควตาแล้ว TomTom ตอบ 429 (ไม่เรียกเก็บเงิน ถ้าไม่ได้เติมเงินไว้)
+    - มี keyword: poiSearch ค้นจากชื่อร้าน/หมวด แบ่งหน้าได้ ไม่เกิน max_pages หน้า (หน้าละ 100)
+    - ไม่มี keyword แต่มี category_ids: nearbySearch แยกทีละหมวด เพราะ nearbySearch ได้สูงสุด 100 ร้านต่อครั้ง
+    - ไม่มีทั้งคู่: nearbySearch ทุกประเภทรอบจุด 100 ร้าน (ส่วนใหญ่เป็นร้านอาหาร โรงแรม)
+    ทุกครั้งที่ยิง = 1 request ของโควตา
     """
     from urllib.parse import quote
 
@@ -12957,18 +13235,15 @@ def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, max_pages=3)
     lng = round(float(lng), 4)
     radius = min(int(radius), 50000)
     keyword = (keyword or "").strip()
+    category_ids = sorted(int(i) for i in (category_ids or []))
 
-    cache_key = f"tomtom_pois:{lat}:{lng}:{radius}:{quote(keyword.lower(), safe='')}:{max_pages}"
+    ids_key = ",".join(str(i) for i in category_ids)
+    cache_key = f"tomtom_pois:{lat}:{lng}:{radius}:{quote(keyword.lower(), safe='')}:{ids_key}:{max_pages}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
 
-    if keyword:
-        url = f"https://api.tomtom.com/search/2/categorySearch/{quote(keyword, safe='')}.json"
-    else:
-        url = "https://api.tomtom.com/search/2/nearbySearch/.json"
-
-    params = {
+    base_params = {
         "key": api_key,
         "lat": lat,
         "lon": lng,
@@ -12978,45 +13253,68 @@ def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, max_pages=3)
         "language": "th-TH",
     }
 
+    # (url, params, จำนวนหน้าสูงสุด)
+    if keyword:
+        params = dict(base_params)
+        if category_ids:
+            params["categorySet"] = ids_key
+        jobs = [(f"https://api.tomtom.com/search/2/poiSearch/{quote(keyword, safe='')}.json", params, max_pages)]
+    elif category_ids:
+        jobs = [("https://api.tomtom.com/search/2/nearbySearch/.json", dict(base_params, categorySet=str(i)), 1) for i in category_ids]
+    else:
+        jobs = [("https://api.tomtom.com/search/2/nearbySearch/.json", dict(base_params), 1)]
+
     results = []
+    seen_ids = set()
     failed = False
-    for page in range(max_pages):
-        params["ofs"] = page * 100
-        try:
-            response = requests.get(url, params=params, timeout=30)
-        except requests.RequestException as e:
-            print(f"TomTom API request failed: {e}")
-            failed = True
+    for url, params, pages in jobs:
+        for page in range(pages):
+            params["ofs"] = page * 100
+            try:
+                response = requests.get(url, params=params, timeout=30)
+            except requests.RequestException as e:
+                print(f"TomTom API request failed: {e}")
+                failed = True
+                break
+
+            if response.status_code != 200:
+                print(f"TomTom API error: {response.status_code} - {response.text[:200]}")
+                failed = True
+                break
+
+            data = response.json()
+            for item in data.get("results", []):
+                if item.get("id") in seen_ids:
+                    continue
+                seen_ids.add(item.get("id"))
+                poi = item.get("poi", {})
+                address = item.get("address", {})
+                position = item.get("position", {})
+                categories = poi.get("categories", [])
+                item_ids = [c.get("id") for c in poi.get("categorySet", [])]
+                category_id = next((i for i in item_ids if i in TOMTOM_CATEGORIES), item_ids[0] if item_ids else None)
+                results.append({
+                    "name": poi.get("name"),
+                    "shop_type": categories[0] if categories else None,
+                    "categories": categories,
+                    "category_id": category_id,
+                    "address": address.get("freeformAddress"),
+                    "lat": position.get("lat"),
+                    "lng": position.get("lon"),
+                    "phone": poi.get("phone"),
+                    "url": poi.get("url"),
+                    "distance_m": round(item["dist"]) if item.get("dist") is not None else None,
+                    "tomtom_id": item.get("id"),
+                })
+
+            time.sleep(0.25)  # TomTom จำกัด 5 request/วินาที
+            summary = data.get("summary", {})
+            if params["ofs"] + summary.get("numResults", 0) >= summary.get("totalResults", 0):
+                break
+        if failed:
             break
 
-        if response.status_code != 200:
-            print(f"TomTom API error: {response.status_code} - {response.text[:200]}")
-            failed = True
-            break
-
-        data = response.json()
-        for item in data.get("results", []):
-            poi = item.get("poi", {})
-            address = item.get("address", {})
-            position = item.get("position", {})
-            categories = poi.get("categories", [])
-            results.append({
-                "name": poi.get("name"),
-                "shop_type": categories[0] if categories else None,
-                "categories": categories,
-                "address": address.get("freeformAddress"),
-                "lat": position.get("lat"),
-                "lng": position.get("lon"),
-                "phone": poi.get("phone"),
-                "url": poi.get("url"),
-                "distance_m": round(item["dist"]) if item.get("dist") is not None else None,
-                "tomtom_id": item.get("id"),
-            })
-
-        summary = data.get("summary", {})
-        if params["ofs"] + summary.get("numResults", 0) >= summary.get("totalResults", 0):
-            break
-        time.sleep(0.3)  # TomTom จำกัด 5 request/วินาที
+    results.sort(key=lambda r: r["distance_m"] if r["distance_m"] is not None else float("inf"))
 
     # error แล้วไม่เก็บ cache จะได้ลองใหม่ได้ทันทีหลังแก้ key / รอโควตา
     if not failed:
@@ -13042,6 +13340,13 @@ def test_tomtom_view(request, lat, lng):
         return JsonResponse({"error": "lat/lng/radius ต้องเป็นตัวเลข"}, status=400, json_dumps_params={"ensure_ascii": False})
 
     keyword = request.GET.get("keyword")
-    results = fetch_vendors_from_tomtom(lat_f, lng_f, radius=radius, keyword=keyword)
+    # ?category=construction / office / parts / purchasing (ทั้ง 3 หมวด)
+    category = request.GET.get("category")
+    if category == "purchasing":
+        category_ids = list(TOMTOM_CATEGORIES)
+    else:
+        category_ids = TOMTOM_PURCHASING_IDS.get(category)
+
+    results = fetch_vendors_from_tomtom(lat_f, lng_f, radius=radius, keyword=keyword, category_ids=category_ids)
 
     return JsonResponse({"count": len(results), "results": results}, json_dumps_params={"ensure_ascii": False})
