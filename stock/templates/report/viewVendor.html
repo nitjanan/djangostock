@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="container my-3">
-  <h3 align="center">รายงานผู้จัดจำหน่าย</h3>
+  <h3 align="center">รายการผู้จัดจำหน่าย</h3>
   <!-- การ์ดฟอร์มกรอง -->
   <div class="card my-3 bg-light div-shadow">
     <div class="card-body">
@@ -48,7 +48,7 @@
   <!-- การ์ดตาราง -->
   <div class="card div-shadow container my-3">
     <div class="card-body"> 
-      <h5>รายงานผู้จัดจำหน่ายในระบบ</h5>
+      <h5>รายการผู้จัดจำหน่ายในระบบ</h5>
       <a class="btn btn-success" href="{% url 'exportExcelVendor' %}?{{vendor_query}}">ดาวโหลด excel <i class = "fas fa-file-excel"></i></a>
       <div class="table-responsive">
         <table class="table table-striped my-3">
@@ -56,7 +56,9 @@
             <tr>
               <th scope="col">รหัส</th>
               <th scope="col">ชื่อผู้จัดจำหน่าย</th>
-              <th scope="col"></th>
+              <th scope="col">ที่อยู่</th>
+              <th scope="col">เบอร์โทร</th>
+              <th scope="col">ประเภท เคดิส</th>
             </tr>
           </thead>
           <tbody>
@@ -64,12 +66,16 @@
             <tr>
               <th scope="row">{{v.id}}</th>
               <td>{{v.name}}</td>
-              <td class="px-1 text-nowrap align-middle" style="width:100px;">
+              {% comment %} <td class="px-1 text-nowrap align-middle" style="width:100px;">
                 <div class="d-flex justify-content-between">
                   <button class="btn btn-primary">แก้ไข</button>
                   <button class="btn btn-danger">ลบ</button>
                 </div>
-              </td>
+              </td> {% endcomment %}
+              <td>{{v.address}}</td>
+              <td>{{v.tel}}</td>
+              <td>{{v.credit.name}}</td>
+
             </tr>
           {% empty %}
             <tr>
@@ -118,7 +124,7 @@
 
   <div class="card div-shadow container my-3">
     <div class="card-body">
-      <h5>รายงานผู้จัดจำหน่ายอื่นๆ</h5>
+      <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
       <form id="geo-form" class="form-row align-items-end mb-2">
         <div class="form-group col-md-2 mb-2">
           <label for="geo-lat">Latitude</label>
