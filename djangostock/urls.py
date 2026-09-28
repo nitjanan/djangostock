@@ -178,6 +178,8 @@ urlpatterns = [
 
     path('report/vendor/', views.venderReport, name="viewVendorReport"),
     path('report/vendor/<int:pages>', views.venderReport , name="viewVendorReport_pages"),
+    path('report/vendor/export/excel', views.exportExcelVendor, name="exportExcelVendor"),
+    path('report/vendor/external/export/excel', views.exportExcelExternalVendor, name="exportExcelExternalVendor"),
 
     path('report/purchaseOrderToExpress/export/excel', views.exportExcelPOToExpress, name='exportExcelPOToExpress'),
     path('report/invoiceToExpress/export/excel', views.exportExcelIVToExpress, name='exportExcelIVToExpress'),
@@ -295,6 +297,7 @@ urlpatterns = [
     path('all/car/department/api/between/<str:start_date>/<str:end_date>/',views.getapiCarByDepartmentAll,name="getapiCarByDepartmentAll"),
     path('test/google/view/<str:lat>/<str:lng>/' , views.test_google_view ,name="google_view"),
     path('test/osm/view/<str:lat>/<str:lng>/' , views.test_osm_view ,name="osm_view"),
+    path('test/tomtom/view/<str:lat>/<str:lng>/' , views.test_tomtom_view ,name="tomtom_view"),
 ]
 
 if settings.DEBUG :
