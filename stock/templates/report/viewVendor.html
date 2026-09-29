@@ -57,8 +57,9 @@
               <th scope="col">รหัส</th>
               <th scope="col">ชื่อผู้จัดจำหน่าย</th>
               <th scope="col">ที่อยู่</th>
+              <th scope="col">หมวดฝ่ายซื้อ</th>
+              <th scope="col">ประเภทร้าน</th>
               <th scope="col">เบอร์โทร</th>
-              <th scope="col">ประเภท เคดิส</th>
             </tr>
           </thead>
           <tbody>
@@ -73,8 +74,9 @@
                 </div>
               </td> {% endcomment %}
               <td>{{v.address}}</td>
+              <td>{{v.category}}</td>
+              <td>{{v.type}}</td>
               <td>{{v.tel}}</td>
-              <td>{{v.credit.name}}</td>
 
             </tr>
           {% empty %}
