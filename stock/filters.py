@@ -551,13 +551,13 @@ class AllDetailsFilter(django_filters.FilterSet):
         fields = []
 
     def __init__(self, data=None, *args, **kwargs):
-        # The report defaults to the latest 3 years, so the filterset is always
+        # The report defaults to the current year, so the filterset is always
         # bound: an absent -- or unusable -- year_scope falls back to the
         # default instead of erroring out or silently dropping the scope.
         data = data.copy() if data is not None else QueryDict(mutable=True)
         choices = all_details_year_scope_choices()
         if data.get('year_scope') not in {value for value, _ in choices}:
-            data['year_scope'] = ALL_DETAILS_YEAR_SCOPE_DEFAULT
+            data['year_scope'] = str(timezone.now().year)
         super().__init__(data, *args, **kwargs)
         self.filters['year_scope'].extra['choices'] = choices
 

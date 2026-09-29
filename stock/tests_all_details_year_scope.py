@@ -28,11 +28,15 @@ class AllDetailsYearScopeTests(_AllDetailsBase):
         resp = self.client.get(reverse(URL_NAME), params or {})
         return {r["requisition"].ref_no for r in resp.context["rows"]}, resp
 
-    def test_default_scope_is_latest_three_years(self):
+    def test_default_scope_is_current_year(self):
         refs, resp = self._refs()
-        self.assertEqual(refs, {f"REQ-{y}" for y in self.years[:3]})
+        self.assertEqual(refs, {f"REQ-{CURRENT_YEAR}"})
         self.assertEqual(resp.context["filter"].form["year_scope"].value(),
-                         "last_3_years")
+                         str(CURRENT_YEAR))
+
+    def test_last_three_years_option(self):
+        refs, _ = self._refs({"year_scope": "last_3_years"})
+        self.assertEqual(refs, {f"REQ-{y}" for y in self.years[:3]})
 
     def test_specific_year(self):
         year = CURRENT_YEAR - 3
@@ -57,9 +61,9 @@ class AllDetailsYearScopeTests(_AllDetailsBase):
         for bad in ("abc", "", "99999", "-1", "2026; DROP TABLE"):
             refs, resp = self._refs({"year_scope": bad})
             self.assertEqual(resp.status_code, 200, msg=bad)
-            self.assertEqual(refs, {f"REQ-{y}" for y in self.years[:3]}, msg=bad)
+            self.assertEqual(refs, {f"REQ-{CURRENT_YEAR}"}, msg=bad)
             self.assertEqual(resp.context["filter"].form["year_scope"].value(),
-                             "last_3_years", msg=bad)
+                             str(CURRENT_YEAR), msg=bad)
 
     def test_year_scope_control_rendered_and_selected(self):
         resp = self.client.get(reverse(URL_NAME), {"year_scope": "all"})
@@ -82,7 +86,7 @@ class AllDetailsYearScopeTests(_AllDetailsBase):
         request = RequestFactory().get(reverse(URL_NAME))
         request.user = self.user
         request.session = self.client.session
-        self.assertEqual(_all_details_export_queryset(request).count(), 3)
+        self.assertEqual(_all_details_export_queryset(request).count(), 1)
 
 
 class AllDetailsYearScopeQueryCountTests(_AllDetailsBase):
