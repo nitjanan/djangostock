@@ -137,3 +137,172 @@ class DistributorCandidateTestCase(TestCase):
         e = c.evaluate()
         self.assertEqual(e["missing"], [])
         self.assertNotIn("11", [row["rule"].code for row in e["rows"]])
+
+    # ----- สถานะในตารางผู้จัดจำหน่ายอื่นๆ -----
+
+    def status_of(self, shop):
+        vendors = [dict(shop)]
+        _annotate_system_status(vendors, "osm")
+        return vendors[0]
+
+    def test_status_new_draft_pending_in_system(self):
+        self.assertEqual(self.status_of(OSM_SHOP)["system_status"], "new")
+        self.propose()
+        self.assertEqual(self.status_of(OSM_SHOP)["system_status"], "draft")
+        c = DistributorCandidate.objects.get()
+        self.fill_form(c, action="submit")
+        self.assertEqual(self.status_of(OSM_SHOP)["system_status"], "pending")
+        self.approve(c, mode="new", distributor_id="V001")
+        ev = self.status_of(OSM_SHOP)
+        self.assertEqual((ev["system_status"], ev["distributor_id"]), ("in_system", "V001"))
+
+    def test_osm_way_and_node_with_same_number_are_different_places(self):
+        Distributor.objects.create(id="V001", name="x", place_source="osm", place_id="way/555")
+        self.assertEqual(self.status_of(OSM_SHOP)["system_status"], "new")
+
+    # ----- ยื่นฟอร์ม -----
+
+    def test_propose_creates_draft_and_opens_form(self):
+        response = self.propose()
+        c = DistributorCandidate.objects.get()
+        self.assertRedirects(response, reverse('distributorCandidateForm', args=[c.pk]), fetch_redirect_response=False)
+        self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
+        self.assertEqual(c.requested_by, self.user)
+        self.assertEqual(c.latitude, Decimal("13.756331"))
+        # กดซ้ำ -> กลับไปฟอร์มเดิม ไม่สร้างใบใหม่
+        self.propose()
+        self.assertEqual(DistributorCandidate.objects.count(), 1)
+
+    def test_other_user_cannot_edit_draft(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        response = self.propose(user=self.other)
+        self.assertRedirects(response, reverse('distributorCandidateDetail', args=[c.pk]), fetch_redirect_response=False)
+        self.login(self.other)
+        self.client.post(reverse('distributorCandidateForm', args=[c.pk]), {"action": "save", "name": "แก้ชื่อ"})
+        c.refresh_from_db()
+        self.assertEqual(c.name, OSM_SHOP["name"])
+
+    def test_save_draft_stores_header_and_answers(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.fill_form(c, answers={"3": "fail"}, contact="คุณสมชาย", tax_id="0105555000000", credit_days="30")
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
+        self.assertEqual((c.contact, c.tax_id, c.credit_days), ("คุณสมชาย", "0105555000000", 30))
+        self.assertEqual(c.answers.count(), len(LEAF_CODES))
+        self.assertEqual(c.answers.get(question=self.rules["3"]).ans, "fail")
+
+    def test_parent_rule_cannot_be_answered(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        self.client.post(reverse('distributorCandidateForm', args=[c.pk]), {
+            "action": "save", "name": c.name, f"ans_{self.rules['9'].pk}": "pass",
+        })
+        self.assertFalse(c.answers.filter(question=self.rules["9"]).exists())
+
+    def test_submit_requires_all_answers(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.fill_form(c, action="submit", skip=("5",))
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
+
+        self.fill_form(c, action="submit")
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.assertIsNotNone(c.submitted_at)
+
+    def test_cancel_draft_deletes_it(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        self.client.post(reverse('distributorCandidateForm', args=[c.pk]), {"action": "cancel"})
+        self.assertFalse(DistributorCandidate.objects.exists())
+
+    # ----- อนุมัติ -----
+
+    def test_approve_new_copies_form_into_distributor(self):
+        c = self.submitted_candidate(contact="คุณสมชาย", fax_line="@line", tax_id="0105555000000")
+        self.approve(c, mode="new", distributor_id="V900")
+
+        d = Distributor.objects.get(id="V900")
+        self.assertEqual((d.name, d.address, d.tel), (OSM_SHOP["name"], OSM_SHOP["address"], OSM_SHOP["phone"]))
+        self.assertEqual((d.contact, d.fax, d.tex), ("คุณสมชาย", "@line", "0105555000000"))
+        self.assertEqual((d.place_source, d.place_id), ("osm", "node/555"))
+        self.assertEqual((d.latitude, d.longitude), (Decimal("13.756331"), Decimal("100.501765")))
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_APPROVED)
+        self.assertEqual((c.distributor, c.approved_by), (d, self.approver))
+        self.assertIsNotNone(c.approved_at)
+
+    def test_approve_new_requires_vat_type(self):
+        # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL
+        c = self.submitted_candidate()
+        self.approve(c, mode="new", distributor_id="V900", vat_type="")
+        self.assertFalse(Distributor.objects.filter(id="V900").exists())
+
+        self.approve(c, mode="new", distributor_id="V900", vat_type=self.vat.pk)
+        self.assertEqual(Distributor.objects.get(id="V900").vat_type, self.vat)
+
+    def test_cannot_approve_when_mandatory_fails(self):
+        c = self.submitted_candidate(answers={"2": "fail"})
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.approve(c, mode="new", distributor_id="V900")
+        self.assertFalse(Distributor.objects.filter(id="V900").exists())
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+
+    def test_cannot_approve_draft(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.fill_form(c)
+        self.approve(c, mode="new", distributor_id="V900")
+        self.assertFalse(Distributor.objects.filter(id="V900").exists())
+
+    def test_approve_new_rejects_existing_express_id(self):
+        Distributor.objects.create(id="V900", name="ร้านอื่น")
+        c = self.submitted_candidate()
+        self.approve(c, mode="new", distributor_id="V900")
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.assertIsNone(Distributor.objects.get(id="V900").place_id)
+
+    def test_approve_link_accepts_autocomplete_value_with_dash_in_id(self):
+        Distributor.objects.create(id="D-01", name="เจริญการช่าง")
+        c = self.submitted_candidate()
+        self.approve(c, mode="link", distributor_id="D-01-เจริญการช่าง")
+        d = Distributor.objects.get(id="D-01")
+        self.assertEqual(d.place_id, "node/555")
+        self.assertEqual(d.name, "เจริญการช่าง")  # ผูกรายเดิม ไม่ทับข้อมูลเดิม
+        self.assertEqual(Distributor.objects.count(), 1)
+
+    def test_user_outside_group_cannot_approve_or_reject(self):
+        c = self.submitted_candidate()
+        self.approve(c, user=self.user, mode="new", distributor_id="V900")
+        self.login(self.user)
+        self.client.post(reverse('rejectDistributorCandidate', args=[c.pk]))
+        self.assertFalse(Distributor.objects.filter(id="V900").exists())
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+
+    def test_rejected_can_be_proposed_again_keeping_answers(self):
+        c = self.submitted_candidate(answers={"3": "fail"})
+        self.login(self.approver)
+        self.client.post(reverse('rejectDistributorCandidate', args=[c.pk]), {"reject_reason": "ราคาสูง"})
+        c.refresh_from_db()
+        self.assertEqual((c.status, c.reject_reason, c.approved_by), (DistributorCandidate.STATUS_REJECTED, "ราคาสูง", self.approver))
+
+        self.propose(user=self.other)
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
+        self.assertEqual(c.requested_by, self.other)
+        self.assertIsNone(c.approved_by)
+        self.assertIsNone(c.reject_reason)
+        self.assertEqual(c.answers.get(question=self.rules["3"]).ans, "fail")
+
+    def test_propose_redirect_ignores_external_next(self):
+        Distributor.objects.create(id="V001", name="x", place_source="osm", place_id="node/555")
+        response = self.propose(next="https://evil.example.com/")
+        self.assertEqual(response.url, reverse('viewVendorReport'))
