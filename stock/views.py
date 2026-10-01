@@ -12938,6 +12938,21 @@ def distributorCandidateForm(request, pk):
     })
 
 
+def _candidate_detail_context(request, pk):
+    candidate = get_object_or_404(
+        DistributorCandidate.objects.select_related("requested_by", "approved_by", "distributor"), pk=pk
+    )
+    return {"candidate": candidate, "evaluation": candidate.evaluate()}
+
+
+@login_required(login_url='signIn')
+def distributorCandidateDetail(request, pk):
+    """หน้าผู้ขอ: ดูใบขอเพิ่ม Supplier และสถานะ (อ่านอย่างเดียว)"""
+    context = _candidate_detail_context(request, pk)
+    context["can_edit"] = _can_edit_candidate(request.user, context["candidate"])
+    return render(request, "report/distributorCandidateDetail.html", context)
+
+
 @login_required(login_url='signIn')
 def distributorCandidateList(request):
     """หน้ารายการร้านที่รออนุมัติ + ประวัติการพิจารณา"""
