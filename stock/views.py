@@ -12631,10 +12631,53 @@ def venderReport(request, pages=None):
         "system_status": ext["system_status"],
         "system_status_options": ext["system_status_options"],
     }
+    content.update(_candidate_section(request))
+    # ปุ่มไปหน้าอนุมัติ (มุมบนของหน้า) แสดงเฉพาะกลุ่ม ApproveDistributor
+    if is_approve_distributor(request.user):
+        content["dist_ap_count"] = DistributorCandidate.objects.filter(status=DistributorCandidate.STATUS_SUBMITTED).count()
     print(content)
     # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
     print(content['vender'])
     return render(request, "report/viewVendor.html" , content )
+
+
+# แท็บของการ์ด "ใบขอเพิ่ม Supplier" ในหน้ารายงาน: (ค่า, ชื่อ, สถานะที่รวมไว้)
+CANDIDATE_TABS = [
+    ("open", "ร่าง / รออนุมัติ", ("draft", "submitted")),
+    ("submitted", "รออนุมัติ", ("submitted",)),
+    ("draft", "ร่าง", ("draft",)),
+    ("approved", "อนุมัติแล้ว", ("approved",)),
+    ("rejected", "ไม่อนุมัติ", ("rejected",)),
+]
+
+
+def _candidate_section(request):
+    """ใบขอเพิ่ม Supplier ที่เก็บไว้ใน DB แสดงในหน้ารายงานทันที ไม่ต้องค้นจากแผนที่ (API) ก่อน"""
+    tabs = {value: statuses for value, _, statuses in CANDIDATE_TABS}
+    cand_status = request.GET.get("cand_status")
+    if cand_status not in tabs:
+        cand_status = "open"
+    counts = dict(DistributorCandidate.objects.values_list("status").annotate(c=Count("id")))
+    candidates = (
+        DistributorCandidate.objects.filter(status__in=tabs[cand_status])
+        .select_related("requested_by", "approved_by", "distributor")
+        .order_by("-submitted_at", "-created")
+    )
+    page = Paginator(candidates, 10).get_page(request.GET.get("cand_page"))
+
+    # query string เดิมทั้งหมด (ตัวกรองตารางอื่น / lat lng) ยกเว้นของการ์ดนี้ ไว้ต่อท้ายลิงก์แท็บ / เปลี่ยนหน้า
+    cand_query = request.GET.copy()
+    cand_query.pop("cand_status", None)
+    cand_query.pop("cand_page", None)
+    return {
+        "candidates": page,
+        "cand_status": cand_status,
+        "cand_tabs": [
+            {"value": value, "label": label, "count": sum(counts.get(s, 0) for s in statuses)}
+            for value, label, statuses in CANDIDATE_TABS
+        ],
+        "cand_query": cand_query.urlencode(),
+    }
 
 
 def _external_vendor_data(request):

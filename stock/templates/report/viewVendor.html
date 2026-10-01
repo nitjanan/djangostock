@@ -13,6 +13,14 @@
 {% block content %}
 <div class="container my-3">
   <h3 align="center">รายการผู้จัดจำหน่าย</h3>
+  {% if dist_ap_count is not None %}
+    <div class="text-right">
+      <a class="btn btn-warning" href="{% url 'distributorApproveList' %}">
+        <i class="fas fa-file-signature"></i> อนุมัติผู้จัดจำหน่ายรายใหม่
+        <span class="badge badge-light">{{dist_ap_count|intcomma}}</span>
+      </a>
+    </div>
+  {% endif %}
   {% for message in messages %}
     <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
       {{ message }}
@@ -129,17 +137,87 @@
     </div>
   </div>
 
-
+  <!-- ใบขอเพิ่ม Supplier ที่เก็บไว้แล้ว (อ่านจาก DB ไม่ต้องค้นแผนที่ก่อน) -->
+  <div class="card div-shadow container my-3" id="candidates">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <h5>ใบขอเพิ่ม Supplier รายใหม่</h5>
+        <ul class="nav nav-pills mb-2">
+          {% for tab in cand_tabs %}
+            <li class="nav-item">
+              <a class="nav-link py-1 {% if cand_status == tab.value %}active{% endif %}" href="?{{cand_query}}&cand_status={{tab.value}}#candidates">
+                {{tab.label}} <span class="badge {% if tab.value == 'submitted' and tab.count %}badge-warning{% else %}badge-light{% endif %}">{{tab.count|intcomma}}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped my-2">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">ชื่อบริษัท/ร้านค้า</th>
+              <th scope="col">ประเภทธุรกิจ</th>
+              <th scope="col">สถานะ</th>
+              <th scope="col">ผู้คัดเลือก</th>
+              <th scope="col">ผู้อนุมัติ</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in candidates %}
+            <tr>
+              <td>{{c.name}}<small class="d-block text-muted">{{c.address|default:""}}</small></td>
+              <td>{{c.business_type|default:c.shop_type|default:"-"}}</td>
+              <td class="text-nowrap">
+                {% if c.status == "approved" %}
+                  <span class="badge badge-success">อนุมัติแล้ว</span>
+                  {% if c.distributor %}<small class="d-block">รหัส {{c.distributor.id}}</small>{% endif %}
+                {% elif c.status == "submitted" %}<span class="badge badge-warning">รออนุมัติ</span>
+                {% elif c.status == "draft" %}<span class="badge badge-info">ร่าง</span>
+                {% else %}<span class="badge badge-secondary">ไม่อนุมัติ</span>{% endif %}
+              </td>
+              <td>
+                {{c.requested_by_name|default:"-"}}
+                {% if c.submitted_at %}<small class="d-block text-muted">ส่ง {{c.submitted_at|date:"d/m/Y H:i"}}</small>{% endif %}
+              </td>
+              <td>
+                {% if c.approved_by %}{{c.approved_by_name}}<small class="d-block text-muted">{{c.approved_at|date:"d/m/Y H:i"}}</small>{% else %}-{% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if c.status == "draft" and c.requested_by_id == request.user.id %}
+                  <a class="btn btn-sm btn-primary" href="{% url 'distributorCandidateForm' c.pk %}">กรอกต่อ</a>
+                {% else %}
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'distributorCandidateDetail' c.pk %}">ดูฟอร์ม</a>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-info" href="{% url 'distributorCandidatePrint' c.pk %}" target="_blank" rel="noopener" title="พิมพ์ / PDF"><i class="fas fa-print"></i></a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="text-center text-muted">ไม่มีใบขอเพิ่มในสถานะนี้</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if candidates.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าใบขอเพิ่ม Supplier">
+        <ul class="pagination flex-wrap mb-0">
+          {% if candidates.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{cand_query}}&cand_status={{cand_status}}&cand_page={{candidates.previous_page_number}}#candidates">&laquo; ก่อนหน้า</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">หน้า {{candidates.number}} / {{candidates.paginator.num_pages}}</span></li>
+          {% if candidates.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{cand_query}}&cand_status={{cand_status}}&cand_page={{candidates.next_page_number}}#candidates">ถัดไป &raquo;</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
 
   <div class="card div-shadow container my-3">
     <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-between align-items-center">
-        <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
-        <a class="btn btn-outline-warning btn-sm mb-2" href="{% url 'distributorCandidateList' %}">
-          {% if can_approve_distributor %}อนุมัติผู้จัดจำหน่าย{% else %}รายการรออนุมัติ{% endif %}
-          <span class="badge badge-warning">{{pending_candidate_total|intcomma}}</span>
-        </a>
-      </div>
+      <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
       <form id="geo-form" class="form-row align-items-end mb-2">
         <div class="form-group col-md-2 mb-2">
           <label for="geo-lat">Latitude</label>
@@ -256,7 +334,9 @@
                   <a class="badge badge-success" href="{% url 'viewVendorReport' %}?distributor_id_from={{ev.distributor_id|urlencode}}&distributor_id_to={{ev.distributor_id|urlencode}}"
                      title="ดูในตารางผู้จัดจำหน่ายในระบบ">มีในระบบ: {{ev.distributor_id}}</a>
                 {% elif ev.system_status == "pending" %}
-                  <span class="badge badge-warning">รออนุมัติ</span>
+                  <a class="badge badge-warning" href="{% url 'distributorCandidateDetail' ev.candidate_id %}">รออนุมัติ</a>
+                {% elif ev.system_status == "draft" %}
+                  <a class="badge badge-info" href="{% url 'distributorCandidateDetail' ev.candidate_id %}">กำลังกรอกฟอร์ม</a>
                 {% elif ev.place_id %}
                   {% if ev.system_status == "rejected" %}<span class="badge badge-secondary d-block mb-1">ไม่อนุมัติ</span>{% endif %}
                   <form method="post" action="{% url 'proposeDistributorCandidate' %}" class="d-inline">
