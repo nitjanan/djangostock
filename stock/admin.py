@@ -10,7 +10,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, DistributorCandidate, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, DistributorCandidate, DistributorRuleGroup, DistributorRule, DistributorForm, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
 from .resources import ReceiveItemResource, DistributorResource, UserProfileResource
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html, format_html_join
@@ -234,11 +234,26 @@ class DistributorAdmin(ImportExportModelAdmin):
     list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
     search_fields = ('id', 'name','affiliated__name')
 
+class DistributorFormInline(admin.TabularInline):
+    model = DistributorForm
+    extra = 0
+
 class DistributorCandidateAdmin(admin.ModelAdmin):
-    list_display = ('name', 'status', 'place_source', 'place_id', 'distributor', 'requested_by', 'requested_at', 'reviewed_by', 'reviewed_at')
+    list_display = ('name', 'status', 'place_source', 'place_id', 'distributor', 'requested_by', 'submitted_at', 'approved_by', 'approved_at')
     list_filter = ('status', 'place_source')
     search_fields = ('name', 'place_id', 'distributor__id')
     raw_id_fields = ('distributor',)
+    inlines = [DistributorFormInline]
+
+class DistributorRuleGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'order')
+    list_editable = ('order',)
+
+class DistributorRuleAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name', 'parent', 'children_mode', 'mandatory_group', 'order', 'is_active')
+    list_editable = ('order', 'is_active')
+    list_filter = ('is_active', 'mandatory_group')
+    search_fields = ('code', 'name')
 
 class BaseSparesTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง
@@ -507,6 +522,8 @@ admin.site.register(BaseBranchCompany, BaseBranchCompanyAdmin)
 admin.site.register(BasePrefix, BasePrefixAdmin)
 admin.site.register(Distributor, DistributorAdmin)
 admin.site.register(DistributorCandidate, DistributorCandidateAdmin)
+admin.site.register(DistributorRuleGroup, DistributorRuleGroupAdmin)
+admin.site.register(DistributorRule, DistributorRuleAdmin)
 admin.site.register(BaseVatType, BaseVatTypeAdmin)
 admin.site.register(BaseUnit, BaseUnitAdmin)
 admin.site.register(BaseCredit, BaseCreditAdmin)
