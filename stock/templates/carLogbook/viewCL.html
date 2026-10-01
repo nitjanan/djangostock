@@ -84,6 +84,7 @@
       <table class="table table-striped my-3">
         <thead class="thead-dark">
           <tr>
+            {% if is_all_comp %}<th scope="col">บริษัท</th>{% endif %}
             <th scope="col">รหัสใบใช้รถ</th>
             <th scope="col">วันที่</th>
             <th scope="col">ชื่อผู้ใช้</th>
@@ -94,12 +95,14 @@
             <th scope="col">รายละเอียดงานที่1</th>
             <th scope="col">เวลาเริ่มงานที่ 1 / เลขไมล์เริ่มงานที่ 1</th>
             <th scope="col">เวลาสิ้นสุดงานที่ 1 / เลขไมล์สิ้นสุดงานที่ 1</th>
-            <th scope="col">รายการ</th>
+            {# แท็ป ALL ดูได้อย่างเดียว ไม่มีปุ่มแก้ไข #}
+            {% if not is_all_comp %}<th scope="col">รายการ</th>{% endif %}
           </tr>
         </thead>
         <tbody>
         {% for cl in cls %}
           <tr>
+            {% if is_all_comp %}<td>{{cl.branch_company.code}}</td>{% endif %}
             <th scope="row"><a href="">{{cl.ref_no}}</a></th>
             <td>{{cl.created |date:"d/m/Y" }}</td>
             <td>{{cl.name}}</td>
@@ -121,14 +124,16 @@
               {% if cl.end_job1 %}{{cl.end_job1}}{%endif%}
               {% if cl.mile_end_job1 %}{{cl.mile_end_job1}}{%endif%}
             </td>
+            {% if not is_all_comp %}
             <td>
-              {% if request.session.company_code != 'L1' %}
+              {% if cl.branch_company.code != 'L1' %}
                 <a style="width: 100px;" href="{%url 'editCL' cl.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
               {%else%}
                 <a style="width: 100px;" href="{%url 'editCLRoi' cl.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
               {%endif%}
               <!-- a style="width: 100px;" onclick="return confirm('คุณต้องการยกเลิกใบบันทึกใช้รถนี้หรือไม่ ?\n ใบแจ้งซ่อมจะไปอยู่ในแท็ป History')" href="{% url 'cancelCL' cl.id %}" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</!-->
             </td>
+            {% endif %}
           </tr>
         {% endfor %}
         </tbody>
