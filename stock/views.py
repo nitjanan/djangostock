@@ -11528,7 +11528,56 @@ def getapiExpRepairAll(request, start_date, end_date):
             })
 
     return Response(result)
-	
+
+
+###############################################################################
+########## ดึงใบแจ้งซ่อมทั้งหมด สำหรับคำนวณ MTBF / MTTR ใน dashboard ############
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiMaintenanceAll(request, start_date, end_date):
+
+    rows = (
+        Maintenance.objects
+        .filter(
+            is_cancel=False,
+            car__isnull=False,
+            created__date__range=(start_date, end_date),
+        )
+        .values(
+            'id',
+            'created',
+            'chief_update',
+            'mile',
+            'ma_type',
+            'car_state',
+            'is_complete',
+            'car_id',
+            'car__car_dep',
+            'branch_company',
+        )
+        .order_by('car_id', 'created')
+    )
+
+    result = []
+    for r in rows:
+        result.append({
+            "id": r['id'],
+            # วันเวลาที่แจ้งซ่อม = เวลาที่รถเสีย
+            "created": r['created'].isoformat() if r['created'] else None,
+            # วันเวลาที่หัวหน้าช่างปิดงาน = เวลาที่ซ่อมเสร็จ
+            "chief_update": r['chief_update'].isoformat() if r['chief_update'] else None,
+            "mile": r['mile'],
+            "ma_type": r['ma_type'],
+            "car_state": r['car_state'],
+            "is_complete": r['is_complete'],
+            "car_id": r['car_id'],
+            "car_dep": r['car__car_dep'],
+            "branch_company": r['branch_company'],
+        })
+
+    return Response(result)
+
 
 def query_exp_car_type(start_date, end_date, b_com):
     sql = f"""
