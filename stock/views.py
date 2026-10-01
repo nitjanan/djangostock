@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -12628,6 +12628,10 @@ def venderReport(request, pages=None):
         "category_options": ext["category_options"],
         "source": ext["source"],
         "tomtom_available": bool(settings.TOMTOM_API_KEY),
+        "system_status": ext["system_status"],
+        "system_status_options": ext["system_status_options"],
+        "can_approve_distributor": is_approve_distributor(request.user),
+        "pending_candidate_total": DistributorCandidate.objects.filter(status=DistributorCandidate.STATUS_PENDING).count(),
     }
     print(content)
     # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
@@ -12711,6 +12715,20 @@ def _external_vendor_data(request):
     else:
         shop_type = None
 
+    # สถานะในระบบ: เทียบ place_id กับ Distributor ที่อนุมัติแล้ว และร้านที่เสนอไว้ใน DistributorCandidate
+    _annotate_system_status(external_vendors, source)
+    system_status_counts = Counter(ev["system_status"] for ev in external_vendors)
+    system_status_options = [
+        {"value": key, "label": label, "count": system_status_counts[key]}
+        for key, label in SYSTEM_STATUS_LABELS.items()
+    ]
+
+    system_status = request.GET.get("system_status")
+    if system_status in SYSTEM_STATUS_LABELS:
+        external_vendors = [ev for ev in external_vendors if ev["system_status"] == system_status]
+    else:
+        system_status = None
+
     return {
         "vendors": external_vendors,
         "lat": lat,
@@ -12722,7 +12740,235 @@ def _external_vendor_data(request):
         "category_options": category_options,
         "shop_type": shop_type,
         "shop_type_options": shop_type_options,
+        "system_status": system_status,
+        "system_status_options": system_status_options,
     }
+
+
+SYSTEM_STATUS_LABELS = {
+    "new": "ยังไม่มีในระบบ",
+    "pending": "รออนุมัติ",
+    "in_system": "มีในระบบแล้ว",
+    "rejected": "ไม่อนุมัติ",
+}
+
+
+def external_place_id(ev, source):
+    """รหัสร้านจากแผนที่ที่ใช้เก็บใน Distributor.place_id / OSM ใส่ชนิดนำหน้า เพราะ node กับ way ใช้เลขซ้ำกันได้"""
+    if source == "tomtom":
+        return ev.get("tomtom_id")
+    if ev.get("osm_id") is None:
+        return None
+    return f"{ev.get('osm_type') or 'node'}/{ev['osm_id']}"
+
+
+def _annotate_system_status(external_vendors, source):
+    """เติม place_id / system_status / distributor_id ให้ร้านจากแผนที่แต่ละร้าน (query 2 ครั้งต่อหน้า)"""
+    for ev in external_vendors:
+        ev["place_source"] = source
+        ev["place_id"] = external_place_id(ev, source)
+    place_ids = [ev["place_id"] for ev in external_vendors if ev["place_id"]]
+
+    in_system = dict(
+        Distributor.objects.filter(place_source=source, place_id__in=place_ids).values_list("place_id", "id")
+    )
+    candidates = dict(
+        DistributorCandidate.objects.filter(place_source=source, place_id__in=place_ids).values_list("place_id", "status")
+    )
+    for ev in external_vendors:
+        pid = ev["place_id"]
+        ev["distributor_id"] = in_system.get(pid)
+        if ev["distributor_id"]:
+            ev["system_status"] = "in_system"
+        elif candidates.get(pid) == DistributorCandidate.STATUS_PENDING:
+            ev["system_status"] = "pending"
+        elif candidates.get(pid) == DistributorCandidate.STATUS_REJECTED:
+            ev["system_status"] = "rejected"
+        else:
+            ev["system_status"] = "new"
+        ev["system_status_label"] = SYSTEM_STATUS_LABELS[ev["system_status"]]
+
+
+def is_approve_distributor(user):
+    return user.groups.filter(name='ApproveDistributor').exists()
+
+
+def _redirect_back(request, fallback="viewVendorReport"):
+    """กลับไปหน้าเดิม (พร้อมตัวกรองเดิม) ถ้า next เป็น URL ภายในเว็บเรา"""
+    from django.utils.http import url_has_allowed_host_and_scheme
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(next_url)
+    return redirect(fallback)
+
+
+def _parse_coordinate(value, limit):
+    try:
+        d = Decimal(str(value)).quantize(Decimal("0.000001"))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return d if -limit <= d <= limit else None
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def proposeDistributorCandidate(request):
+    """ผู้ใช้กด "เสนอเพิ่ม" จากตารางผู้จัดจำหน่ายอื่นๆ -> เก็บไว้ใน DistributorCandidate รออนุมัติ"""
+    source = request.POST.get("place_source")
+    place_id = (request.POST.get("place_id") or "").strip()
+    name = (request.POST.get("name") or "").strip()
+    if source not in ("tomtom", "osm") or not place_id or not name:
+        messages.error(request, "ข้อมูลร้านไม่ครบ เสนอเพิ่มไม่สำเร็จ")
+        return _redirect_back(request)
+
+    existing = Distributor.objects.filter(place_source=source, place_id=place_id).first()
+    if existing:
+        messages.info(request, f"ร้าน {name} มีในระบบแล้ว (รหัส {existing.id})")
+        return _redirect_back(request)
+
+    fields = {
+        "name": name[:255],
+        "address": (request.POST.get("address") or "").strip() or None,
+        "tel": (request.POST.get("tel") or "").strip()[:255] or None,
+        "shop_type": (request.POST.get("shop_type") or "").strip()[:255] or None,
+        "latitude": _parse_coordinate(request.POST.get("lat"), 90),
+        "longitude": _parse_coordinate(request.POST.get("lng"), 180),
+    }
+    candidate = DistributorCandidate.objects.filter(place_source=source, place_id=place_id).first()
+    if candidate and candidate.status == DistributorCandidate.STATUS_PENDING:
+        messages.info(request, f"ร้าน {name} อยู่ระหว่างรออนุมัติแล้ว")
+        return _redirect_back(request)
+
+    if candidate is None:
+        candidate = DistributorCandidate(place_source=source, place_id=place_id)
+    # ร้านที่เคยไม่อนุมัติ เสนอใหม่ได้ -> กลับเป็นรออนุมัติ
+    for k, v in fields.items():
+        setattr(candidate, k, v)
+    candidate.status = DistributorCandidate.STATUS_PENDING
+    candidate.requested_by = request.user
+    candidate.requested_at = timezone.now()
+    candidate.reviewed_by = None
+    candidate.reviewed_at = None
+    candidate.distributor = None
+    candidate.save()
+    messages.success(request, f"เสนอเพิ่มร้าน {name} แล้ว รอผู้มีสิทธิ์อนุมัติ")
+    return _redirect_back(request)
+
+
+@login_required(login_url='signIn')
+def distributorCandidateList(request):
+    """หน้ารายการร้านที่รออนุมัติ + ประวัติการพิจารณา"""
+    can_approve = is_approve_distributor(request.user)
+    status = request.GET.get("status") or DistributorCandidate.STATUS_PENDING
+    if status not in dict(DistributorCandidate.STATUS_CHOICES):
+        status = DistributorCandidate.STATUS_PENDING
+    candidates = DistributorCandidate.objects.filter(status=status).select_related("requested_by", "reviewed_by", "distributor")
+    page = Paginator(candidates, 20).get_page(request.GET.get("page"))
+    status_counts = dict(DistributorCandidate.objects.values_list("status").annotate(c=Count("id")))
+    context = {
+        "candidates": page,
+        "status": status,
+        "status_options": [
+            {"value": key, "label": label, "count": status_counts.get(key, 0)}
+            for key, label in DistributorCandidate.STATUS_CHOICES
+        ],
+        "can_approve": can_approve,
+    }
+    return render(request, "report/distributorCandidate.html", context)
+
+
+def _distributor_id_from_autocomplete(value):
+    """autocompalteDistributor คืนค่าเป็น "รหัส-ชื่อ" และรหัสเองก็อาจมี "-" -> เลือกส่วนหน้ายาวสุดที่เป็นรหัสจริง"""
+    prefixes = [value] + [value[:i].strip() for i in range(len(value) - 1, 0, -1) if value[i] == "-"]
+    existing = set(Distributor.objects.filter(id__in=prefixes).values_list("id", flat=True))
+    return next((p for p in prefixes if p in existing), value)
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def approveDistributorCandidate(request, pk):
+    """อนุมัติ: mode=new สร้าง Distributor ด้วยรหัส Express ที่กรอก / mode=link ผูกกับ Distributor ที่มีอยู่แล้ว"""
+    from django.db import transaction, IntegrityError
+    if not is_approve_distributor(request.user):
+        messages.error(request, "คุณไม่มีสิทธิ์อนุมัติผู้จัดจำหน่าย (ต้องอยู่ในกลุ่ม ApproveDistributor)")
+        return _redirect_back(request, "distributorCandidateList")
+
+    mode = request.POST.get("mode")
+    distributor_id = (request.POST.get("distributor_id") or "").strip()
+    if mode == "link":
+        distributor_id = _distributor_id_from_autocomplete(distributor_id)
+    if mode not in ("new", "link") or not distributor_id:
+        messages.error(request, "กรุณากรอกรหัสผู้จัดจำหน่าย")
+        return _redirect_back(request, "distributorCandidateList")
+
+    try:
+        with transaction.atomic():
+            candidate = DistributorCandidate.objects.select_for_update().get(pk=pk)
+            if candidate.status != DistributorCandidate.STATUS_PENDING:
+                messages.warning(request, f"ร้าน {candidate.name} ถูกพิจารณาไปแล้ว")
+                return _redirect_back(request, "distributorCandidateList")
+
+            taken = Distributor.objects.filter(place_source=candidate.place_source, place_id=candidate.place_id).first()
+            if taken:
+                messages.error(request, f"ร้านนี้ผูกกับผู้จัดจำหน่าย {taken.id} อยู่แล้ว")
+                return _redirect_back(request, "distributorCandidateList")
+
+            if mode == "new":
+                if Distributor.objects.filter(id=distributor_id).exists():
+                    messages.error(request, f"รหัส {distributor_id} มีอยู่แล้ว ถ้าเป็นร้านเดียวกันให้เลือก \"ผูกกับรายเดิม\"")
+                    return _redirect_back(request, "distributorCandidateList")
+                distributor = Distributor(
+                    id=distributor_id,
+                    name=(request.POST.get("name") or "").strip() or candidate.name,
+                    address=(request.POST.get("address") or "").strip() or candidate.address,
+                    tel=(request.POST.get("tel") or "").strip() or candidate.tel,
+                )
+            else:
+                distributor = Distributor.objects.select_for_update().filter(id=distributor_id).first()
+                if distributor is None:
+                    messages.error(request, f"ไม่พบผู้จัดจำหน่ายรหัส {distributor_id}")
+                    return _redirect_back(request, "distributorCandidateList")
+                if distributor.place_id:
+                    messages.error(request, f"ผู้จัดจำหน่าย {distributor.id} ผูกกับร้านบนแผนที่อื่นอยู่แล้ว")
+                    return _redirect_back(request, "distributorCandidateList")
+
+            distributor.place_source = candidate.place_source
+            distributor.place_id = candidate.place_id
+            distributor.latitude = candidate.latitude
+            distributor.longitude = candidate.longitude
+            distributor.save()
+
+            candidate.status = DistributorCandidate.STATUS_APPROVED
+            candidate.reviewed_by = request.user
+            candidate.reviewed_at = timezone.now()
+            candidate.distributor = distributor
+            candidate.save()
+    except DistributorCandidate.DoesNotExist:
+        messages.error(request, "ไม่พบรายการที่ต้องการอนุมัติ")
+        return _redirect_back(request, "distributorCandidateList")
+    except IntegrityError:
+        messages.error(request, "บันทึกไม่สำเร็จ รหัสหรือร้านนี้ถูกใช้ไปแล้ว กรุณาลองใหม่")
+        return _redirect_back(request, "distributorCandidateList")
+
+    action = "เพิ่ม" if mode == "new" else "ผูก"
+    messages.success(request, f"อนุมัติแล้ว: {action}ร้าน {candidate.name} เป็นผู้จัดจำหน่าย {distributor.id}")
+    return _redirect_back(request, "distributorCandidateList")
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def rejectDistributorCandidate(request, pk):
+    if not is_approve_distributor(request.user):
+        messages.error(request, "คุณไม่มีสิทธิ์อนุมัติผู้จัดจำหน่าย (ต้องอยู่ในกลุ่ม ApproveDistributor)")
+        return _redirect_back(request, "distributorCandidateList")
+    updated = DistributorCandidate.objects.filter(pk=pk, status=DistributorCandidate.STATUS_PENDING).update(
+        status=DistributorCandidate.STATUS_REJECTED, reviewed_by=request.user, reviewed_at=timezone.now(),
+    )
+    if updated:
+        messages.success(request, "ไม่อนุมัติรายการนี้แล้ว")
+    else:
+        messages.warning(request, "รายการนี้ถูกพิจารณาไปแล้ว")
+    return _redirect_back(request, "distributorCandidateList")
 
 
 def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link_column=None):
@@ -12812,11 +13058,12 @@ def exportExcelExternalVendor(request):
     if not ext["lat"] or not ext["lng"]:
         return HttpResponse("กรุณาระบุตำแหน่ง (lat/lng) ก่อน export", status=400, content_type="text/plain; charset=utf-8")
 
-    headers = ["#", "ชื่อผู้จัดจำหน่าย", "หมวดฝ่ายซื้อ", "ประเภทร้าน", "ที่อยู่", "เบอร์โทร", "Latitude", "Longitude", "แผนที่"]
+    headers = ["#", "ชื่อผู้จัดจำหน่าย", "สถานะในระบบ", "หมวดฝ่ายซื้อ", "ประเภทร้าน", "ที่อยู่", "เบอร์โทร", "Latitude", "Longitude", "แผนที่"]
     rows = [
         [
             i,
             ev["name"],
+            ev["system_status_label"] + (f" ({ev['distributor_id']})" if ev["distributor_id"] else ""),
             ev["category_label"],
             ev["shop_type_label"],
             ev["address"],
@@ -12832,7 +13079,7 @@ def exportExcelExternalVendor(request):
         + (f" คำค้น: {ext['keyword']}" if ext["keyword"] else ""),
         "ข้อมูลร้านค้า © OpenStreetMap contributors (ODbL)",
     ]
-    return _vendor_excel_response("ผู้จัดจำหน่ายอื่นๆ", headers, rows, "External_Vendor_Report.xlsx", footer, link_column=8)
+    return _vendor_excel_response("ผู้จัดจำหน่ายอื่นๆ", headers, rows, "External_Vendor_Report.xlsx", footer, link_column=9)
 
 
 # หมวดฝ่ายซื้อ -> วิธีค้นใน Google Places API (New)
@@ -13168,6 +13415,7 @@ def fetch_vendors_from_openstreetmap(lat, lng, radius=10000, keyword=None):
             "lng": el_lng,
             "phone": tags.get("phone") or tags.get("contact:phone"),
             "osm_id": element.get("id"),
+            "osm_type": element.get("type"),
         })
 
     print(f"พบร้านค้าจาก OpenStreetMap ทั้งหมด {len(results)} ร้าน")

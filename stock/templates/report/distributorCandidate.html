@@ -1,0 +1,135 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block css %}
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">ผู้จัดจำหน่ายรออนุมัติ</h3>
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center my-3">
+    <a class="btn btn-outline-secondary mb-2" href="{% url 'viewVendorReport' %}">&laquo; กลับหน้ารายการผู้จัดจำหน่าย</a>
+    <ul class="nav nav-pills mb-2">
+      {% for opt in status_options %}
+        <li class="nav-item">
+          <a class="nav-link {% if status == opt.value %}active{% endif %}" href="?status={{opt.value}}">{{opt.label}} <span class="badge badge-light">{{opt.count|intcomma}}</span></a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {% if not can_approve %}
+    <p class="text-muted">คุณดูรายการได้อย่างเดียว การอนุมัติต้องอยู่ในกลุ่ม <code>ApproveDistributor</code></p>
+  {% endif %}
+
+  {% for c in candidates %}
+  <div class="card div-shadow my-3">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between">
+        <h5 class="mb-1">{{c.name}}</h5>
+        <span class="text-muted small">{{c.get_place_source_display}} · {{c.place_id}}</span>
+      </div>
+      <p class="mb-1">{{c.address|default:"-"}}</p>
+      <p class="mb-1">
+        เบอร์โทร: {{c.tel|default:"-"}} · ประเภท: {{c.shop_type|default:"-"}}
+        {% if c.latitude is not None and c.longitude is not None %}
+          · <a href="https://www.google.com/maps/search/?api=1&query={{c.latitude}},{{c.longitude}}" target="_blank" rel="noopener">{{c.latitude}}, {{c.longitude}} <i class="fas fa-map-marker-alt"></i></a>
+        {% endif %}
+      </p>
+      <p class="text-muted small mb-2">
+        เสนอโดย {{c.requested_by.get_full_name|default:c.requested_by.username|default:"-"}} เมื่อ {{c.requested_at|date:"d/m/Y H:i"}}
+        {% if c.reviewed_at %}· พิจารณาโดย {{c.reviewed_by.get_full_name|default:c.reviewed_by.username|default:"-"}} เมื่อ {{c.reviewed_at|date:"d/m/Y H:i"}}{% endif %}
+        {% if c.distributor %}· ผู้จัดจำหน่าย <a href="{% url 'viewVendorReport' %}?distributor_id_from={{c.distributor.id|urlencode}}&distributor_id_to={{c.distributor.id|urlencode}}">{{c.distributor.id}}</a>{% endif %}
+      </p>
+
+      {% if can_approve and c.status == "pending" %}
+      <div class="row">
+        <div class="col-md-7">
+          <form method="post" action="{% url 'approveDistributorCandidate' c.pk %}" class="border rounded p-2 mb-2">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{request.get_full_path}}">
+            <input type="hidden" name="mode" value="new">
+            <strong>สร้างผู้จัดจำหน่ายใหม่</strong>
+            <div class="form-row mt-1">
+              <div class="form-group col-md-4 mb-1">
+                <label class="small mb-0">รหัส Express <span class="text-danger">*</span></label>
+                <input type="text" name="distributor_id" class="form-control form-control-sm" maxlength="255" required>
+              </div>
+              <div class="form-group col-md-8 mb-1">
+                <label class="small mb-0">ชื่อ</label>
+                <input type="text" name="name" class="form-control form-control-sm" value="{{c.name}}" maxlength="255">
+              </div>
+              <div class="form-group col-md-8 mb-1">
+                <label class="small mb-0">ที่อยู่</label>
+                <input type="text" name="address" class="form-control form-control-sm" value="{{c.address|default:''}}">
+              </div>
+              <div class="form-group col-md-4 mb-1">
+                <label class="small mb-0">เบอร์โทร</label>
+                <input type="text" name="tel" class="form-control form-control-sm" value="{{c.tel|default:''}}" maxlength="255">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-sm btn-success">อนุมัติ + สร้างใหม่</button>
+          </form>
+        </div>
+        <div class="col-md-5">
+          <form method="post" action="{% url 'approveDistributorCandidate' c.pk %}" class="border rounded p-2 mb-2">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{request.get_full_path}}">
+            <input type="hidden" name="mode" value="link">
+            <strong>ผูกกับผู้จัดจำหน่ายที่มีอยู่แล้ว</strong>
+            <div class="form-group mb-1 mt-1">
+              <label class="small mb-0">ค้นหารหัสหรือชื่อ <span class="text-danger">*</span></label>
+              <input type="text" name="distributor_id" class="form-control form-control-sm distributor-autocomplete" required>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">อนุมัติ + ผูกรายเดิม</button>
+          </form>
+          <form method="post" action="{% url 'rejectDistributorCandidate' c.pk %}" onsubmit="return confirm('ไม่อนุมัติร้าน {{c.name|escapejs}} ?');">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{request.get_full_path}}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">ไม่อนุมัติ</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+    <p class="text-center text-muted my-5">ไม่มีรายการ</p>
+  {% endfor %}
+
+  {% if candidates.paginator.num_pages > 1 %}
+  <nav aria-label="หน้าผู้จัดจำหน่ายรออนุมัติ">
+    <ul class="pagination flex-wrap">
+      {% if candidates.has_previous %}
+        <li class="page-item"><a class="page-link" href="?status={{status}}&page={{candidates.previous_page_number}}">&laquo; ก่อนหน้า</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">หน้า {{candidates.number}} / {{candidates.paginator.num_pages}}</span></li>
+      {% if candidates.has_next %}
+        <li class="page-item"><a class="page-link" href="?status={{status}}&page={{candidates.next_page_number}}">ถัดไป &raquo;</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+<script>
+  $(function () {
+    $('.distributor-autocomplete').autocomplete({
+      source: '{% url "autocompalteDistributor" %}',
+      minLength: 1,
+    });
+  });
+</script>
+{% endblock javascript %}

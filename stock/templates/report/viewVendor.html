@@ -13,6 +13,12 @@
 {% block content %}
 <div class="container my-3">
   <h3 align="center">รายการผู้จัดจำหน่าย</h3>
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
   <!-- การ์ดฟอร์มกรอง -->
   <div class="card my-3 bg-light div-shadow">
     <div class="card-body">
@@ -26,6 +32,7 @@
           <input type="hidden" name="source" value="{{source}}">
           {% if category is not None %}<input type="hidden" name="category" value="{{category}}">{% endif %}
           {% if shop_type is not None %}<input type="hidden" name="shop_type" value="{{shop_type}}">{% endif %}
+          {% if system_status is not None %}<input type="hidden" name="system_status" value="{{system_status}}">{% endif %}
         {% endif %}
         <div class="form-row">
           <div class="form-group col-md-3 mb-0">
@@ -126,7 +133,13 @@
 
   <div class="card div-shadow container my-3">
     <div class="card-body">
-      <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
+      <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
+        <a class="btn btn-outline-warning btn-sm mb-2" href="{% url 'distributorCandidateList' %}">
+          {% if can_approve_distributor %}อนุมัติผู้จัดจำหน่าย{% else %}รายการรออนุมัติ{% endif %}
+          <span class="badge badge-warning">{{pending_candidate_total|intcomma}}</span>
+        </a>
+      </div>
       <form id="geo-form" class="form-row align-items-end mb-2">
         <div class="form-group col-md-2 mb-2">
           <label for="geo-lat">Latitude</label>
@@ -169,7 +182,16 @@
             {% endfor %}
           </select>
         </div>
-        <div class="form-group col-md-5 mb-2 d-flex">
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-system-status">สถานะในระบบ</label>
+          <select class="form-control" id="geo-system-status" name="system_status" {% if not lat or not lng %}disabled{% endif %}>
+            <option value="__all__">ทุกสถานะ</option>
+            {% for opt in system_status_options %}
+              <option value="{{opt.value}}" {% if system_status == opt.value %}selected{% endif %}>{{opt.label}} — {{opt.count|intcomma}} ร้าน</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-2 mb-2 d-flex">
           <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
           <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
         </div>
@@ -205,6 +227,7 @@
               <th scope="col">ประเภทร้าน</th>
               <th scope="col">เบอร์โทร</th>
               <th scope="col">ตำแหน่ง แผนที่</th>
+              <th scope="col">สถานะในระบบ</th>
             </tr>
           </thead>
           <tbody>
@@ -228,10 +251,37 @@
                   -
                 {% endif %}
               </td>
+              <td class="text-nowrap">
+                {% if ev.system_status == "in_system" %}
+                  <a class="badge badge-success" href="{% url 'viewVendorReport' %}?distributor_id_from={{ev.distributor_id|urlencode}}&distributor_id_to={{ev.distributor_id|urlencode}}"
+                     title="ดูในตารางผู้จัดจำหน่ายในระบบ">มีในระบบ: {{ev.distributor_id}}</a>
+                {% elif ev.system_status == "pending" %}
+                  <span class="badge badge-warning">รออนุมัติ</span>
+                {% elif ev.place_id %}
+                  {% if ev.system_status == "rejected" %}<span class="badge badge-secondary d-block mb-1">ไม่อนุมัติ</span>{% endif %}
+                  <form method="post" action="{% url 'proposeDistributorCandidate' %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{request.get_full_path}}">
+                    <input type="hidden" name="place_source" value="{{ev.place_source}}">
+                    <input type="hidden" name="place_id" value="{{ev.place_id}}">
+                    <input type="hidden" name="name" value="{{ev.name}}">
+                    <input type="hidden" name="address" value="{{ev.address|default:''}}">
+                    <input type="hidden" name="tel" value="{{ev.phone|default:''}}">
+                    <input type="hidden" name="shop_type" value="{{ev.shop_type_label|default:''}}">
+                    <input type="hidden" name="lat" value="{{ev.lat|default_if_none:''|floatformat:'6u'}}">
+                    <input type="hidden" name="lng" value="{{ev.lng|default_if_none:''|floatformat:'6u'}}">
+                    <button type="submit" class="btn btn-sm btn-outline-success">
+                      {% if ev.system_status == "rejected" %}เสนอใหม่{% else %}เสนอเพิ่ม{% endif %} <i class="fas fa-plus"></i>
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" class="text-center text-muted">
+              <td colspan="8" class="text-center text-muted">
                 {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %}{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
               </td>
             </tr>
@@ -303,6 +353,11 @@
       } else {
         params.set('shop_type', form.shop_type.value);
       }
+      if (form.system_status.disabled || form.system_status.value === '__all__') {
+        params.delete('system_status');
+      } else {
+        params.set('system_status', form.system_status.value);
+      }
       if (keyword) {
         params.set('keyword', keyword);
       } else {
@@ -343,6 +398,12 @@
     });
 
     document.getElementById('geo-current').addEventListener('click', useCurrentLocation);
+
+    form.system_status.addEventListener('change', function () {
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
 
     form.shop_type.addEventListener('change', function () {
       if (form.reportValidity()) {
