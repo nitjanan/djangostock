@@ -1,0 +1,21 @@
+{# สรุปผลเกณฑ์บังคับของใบขอเพิ่ม Supplier: ต้องส่ง evaluation = candidate.evaluate() #}
+<div class="card my-3 {% if evaluation.missing %}border-secondary{% elif evaluation.mandatory_passed %}border-success{% else %}border-danger{% endif %}">
+  <div class="card-body py-2">
+    <strong>เกณฑ์บังคับ</strong>
+    <ul class="list-unstyled mb-1">
+      {% for g in evaluation.groups %}
+        <li>
+          {% if g.passed %}<span class="text-success">&#10004;</span>{% else %}<span class="text-danger">&#10008;</span>{% endif %}
+          {{g.group.name}}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if evaluation.missing %}
+      <span class="text-muted">ยังตอบไม่ครบ: ข้อ {% for r in evaluation.missing %}{{r.code}}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+    {% elif evaluation.mandatory_passed %}
+      <span class="text-success font-weight-bold">สรุป: ผ่านเกณฑ์บังคับ</span>
+    {% else %}
+      <span class="text-danger font-weight-bold">สรุป: ไม่ผ่านเกณฑ์บังคับ (อนุมัติไม่ได้)</span>
+    {% endif %}
+  </div>
+</div>

@@ -182,6 +182,7 @@ urlpatterns = [
     path('report/vendor/external/export/excel', views.exportExcelExternalVendor, name="exportExcelExternalVendor"),
     path('report/vendor/candidate/', views.distributorCandidateList, name="distributorCandidateList"),
     path('report/vendor/candidate/propose', views.proposeDistributorCandidate, name="proposeDistributorCandidate"),
+    path('report/vendor/candidate/<int:pk>/form', views.distributorCandidateForm, name="distributorCandidateForm"),
     path('report/vendor/candidate/<int:pk>/approve', views.approveDistributorCandidate, name="approveDistributorCandidate"),
     path('report/vendor/candidate/<int:pk>/reject', views.rejectDistributorCandidate, name="rejectDistributorCandidate"),
 
