@@ -180,6 +180,10 @@ urlpatterns = [
     path('report/vendor/<int:pages>', views.venderReport , name="viewVendorReport_pages"),
     path('report/vendor/export/excel', views.exportExcelVendor, name="exportExcelVendor"),
     path('report/vendor/external/export/excel', views.exportExcelExternalVendor, name="exportExcelExternalVendor"),
+    path('report/vendor/candidate/', views.distributorCandidateList, name="distributorCandidateList"),
+    path('report/vendor/candidate/propose', views.proposeDistributorCandidate, name="proposeDistributorCandidate"),
+    path('report/vendor/candidate/<int:pk>/approve', views.approveDistributorCandidate, name="approveDistributorCandidate"),
+    path('report/vendor/candidate/<int:pk>/reject', views.rejectDistributorCandidate, name="rejectDistributorCandidate"),
 
     path('report/purchaseOrderToExpress/export/excel', views.exportExcelPOToExpress, name='exportExcelPOToExpress'),
     path('report/invoiceToExpress/export/excel', views.exportExcelIVToExpress, name='exportExcelIVToExpress'),
