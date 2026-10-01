@@ -1123,6 +1123,11 @@ class BaseVatType(models.Model):
     def __str__(self):
         return str(self.name)
 
+PLACE_SOURCE_CHOICES = [
+    ('tomtom', 'TomTom'),
+    ('osm', 'OpenStreetMap'),
+]
+
 class Distributor(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสผู้จัดจำหน่าย")#เก็บไอดีสินค้าใน express
     prefix = models.ForeignKey(BasePrefix, on_delete=models.CASCADE, blank = True, null = True, verbose_name="คำนำหน้า")
@@ -1143,12 +1148,59 @@ class Distributor(models.Model):
     fax =  models.CharField(max_length=255, blank = True, null = True, verbose_name="แฟกส์")
     registration_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/registration/distributor/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="หนังสือรับรองบริษัท")
     created = models.DateField(default = timezone.now, verbose_name="วันที่สร้าง") #เก็บวันที่สร้าง
+    # ร้านจากแผนที่ (หน้ารายงานผู้จัดจำหน่าย) ที่ผ่านการอนุมัติแล้ว ใช้เช็กว่าร้านนั้นมีในระบบหรือยัง
+    place_source = models.CharField(max_length=20, choices=PLACE_SOURCE_CHOICES, blank=True, null=True, verbose_name="แหล่งข้อมูลแผนที่")
+    place_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="รหัสร้านบนแผนที่")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Latitude")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Longitude")
 
     class Meta:
         db_table = 'Distributor'
         ordering=('id',)
         verbose_name = 'ผู้จัดจำหน่าย'
         verbose_name_plural = 'ข้อมูลผู้จัดจำหน่าย'
+        constraints = [
+            models.UniqueConstraint(fields=['place_source', 'place_id'], name='unique_distributor_place'),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class DistributorCandidate(models.Model):
+    """ร้านจากแผนที่ที่ผู้ใช้เสนอให้เพิ่มเป็นผู้จัดจำหน่าย รอกลุ่ม ApproveDistributor อนุมัติก่อนเข้า Distributor"""
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'รออนุมัติ'),
+        (STATUS_APPROVED, 'อนุมัติแล้ว'),
+        (STATUS_REJECTED, 'ไม่อนุมัติ'),
+    ]
+
+    place_source = models.CharField(max_length=20, choices=PLACE_SOURCE_CHOICES, verbose_name="แหล่งข้อมูลแผนที่")
+    place_id = models.CharField(max_length=255, verbose_name="รหัสร้านบนแผนที่")
+    name = models.CharField(max_length=255, verbose_name="ชื่อร้าน")
+    address = models.TextField(blank=True, null=True, verbose_name="ที่อยู่")
+    tel = models.CharField(max_length=255, blank=True, null=True, verbose_name="เบอร์โทร")
+    shop_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทร้าน")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Latitude")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Longitude")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING, verbose_name="สถานะ")
+    requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='distributor_candidate_requested', verbose_name="ผู้เสนอ")
+    requested_at = models.DateTimeField(default=timezone.now, verbose_name="วันที่เสนอ")
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='distributor_candidate_reviewed', verbose_name="ผู้พิจารณา")
+    reviewed_at = models.DateTimeField(blank=True, null=True, verbose_name="วันที่พิจารณา")
+    distributor = models.ForeignKey(Distributor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="ผู้จัดจำหน่ายที่สร้าง/ผูก")
+
+    class Meta:
+        db_table = 'DistributorCandidate'
+        ordering = ('-requested_at',)
+        verbose_name = 'ผู้จัดจำหน่ายรออนุมัติ'
+        verbose_name_plural = 'ข้อมูลผู้จัดจำหน่ายรออนุมัติ'
+        constraints = [
+            models.UniqueConstraint(fields=['place_source', 'place_id'], name='unique_distributor_candidate_place'),
+        ]
 
     def __str__(self):
         return self.name
