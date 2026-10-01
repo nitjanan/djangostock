@@ -9276,7 +9276,9 @@ def roi_carLogBook_appsheet(request):
 @login_required(login_url='signIn')
 def viewCL(request):
     active = request.session.get('company_code', 'ALL')
-    data = CarLogbook.objects.filter(branch_company__code = active)
+    company_in = findCompanyIn(request)
+    #แท็ป ALL จะดึงใบบันทึกการใช้รถของทุกบริษัทที่ user มีสิทธิ์มองเห็น
+    data = CarLogbook.objects.filter(branch_company__code__in = company_in).select_related('branch_company', 'car', 'name')
 
     #กรองข้อมูล
     myFilter = CarLogbookFilter(request.GET, queryset = data)
@@ -9290,6 +9292,7 @@ def viewCL(request):
     context = {
         'cls':dataPage,
         'filter':myFilter,
+        'is_all_comp': active == 'ALL',
         'cl_page': "tab-active",
         'cl_show': "show",
         active :"active show",
@@ -9360,6 +9363,29 @@ def excelDailyCL(request):
     car_all = CarLogbook.objects.filter(my_q).values_list('car', flat=True).distinct()
     cars = BaseCar.objects.filter(id__in = car_all)
 
+    #ดึงใบบันทึกการใช้รถในช่วงวันที่ครั้งเดียว แล้วจัดกลุ่มตามรถใน python (เดิม query ทุกรถ x ทุกวัน ทำให้โหลดช้า)
+    cl_sum_fields = ('oil', 'gas', 'engine', 'hydraulic', 'grease', 'coolant', 'DW_water')
+    logs_by_car = defaultdict(list)
+    for log in CarLogbook.objects.filter(
+        car__in = car_all,
+        created__range=(startDate, endDate),
+        branch_company__code__in=company_in
+    ).values(
+        'id', 'car_id', 'created', 'mile_start', 'mile_end', 'note',
+        'job1', 'job2', 'job3', 'job4', 'job5', 'job6',
+        'name__first_name', 'name__last_name', 'branch_company__name',
+        *cl_sum_fields
+    ).order_by('created', 'id'):
+        log['full_name'] = f"{log['name__first_name'] or ''} {log['name__last_name'] or ''}"
+        logs_by_car[log['car_id']].append(log)
+
+    def sum_logs(logs):
+        result = {}
+        for field in cl_sum_fields:
+            values = [log[field] for log in logs if log[field] is not None]
+            result[f'sum_{field}'] = sum(values) if values else None
+        return result
+
     workbook = openpyxl.Workbook()
 
     # Define custom date style only once
@@ -9379,49 +9405,31 @@ def excelDailyCL(request):
 
     if cars:
         for car in cars:
-            driver = (
-                CarLogbook.objects.filter(
-                    car=car,
-                    created__range=(startDate, endDate),
-                    branch_company__code__in=company_in
-                )
-                .annotate(
-                    full_name=Concat(
-                        F('name__first_name'),
-                        Value(' '),
-                        F('name__last_name'),
-                        output_field=CharField()
-                    )
-                )
-                .values('full_name')
-                .annotate(count=Count('id'))
-                .order_by('-count')
-                .first()
-            )
-            driver_name = driver['full_name'] if driver else ''
-            
-            qs = CarLogbook.objects.filter(
-                car=car, 
-                created__range=(startDate, endDate), 
-                branch_company__code__in=company_in
-            )
-            data_sum = qs.aggregate(
-                sum_oil=Sum('oil'),
-                sum_gas=Sum('gas'),
-                sum_engine=Sum('engine'),
-                sum_hydraulic=Sum('hydraulic'),
-                sum_grease=Sum('grease'),
-                sum_coolant=Sum('coolant'),
-                sum_DW_water=Sum('DW_water'),
-            )
+            car_logs = logs_by_car.get(car.id, [])  #เรียงตาม created, id แล้ว
 
-            first_row = qs.order_by('created', 'id').first()
-            last_row = qs.order_by('created', 'id').last()
+            #ผู้ขับ = ชื่อที่บันทึกบ่อยที่สุด
+            driver_count = defaultdict(int)
+            for log in car_logs:
+                driver_count[log['full_name']] += 1
+            driver_name = min(driver_count, key=lambda n: (-driver_count[n], n)) if driver_count else ''
+
+            data_sum = sum_logs(car_logs)
+
+            first_row = car_logs[0] if car_logs else None
+            last_row = car_logs[-1] if car_logs else None
+
+            #ชื่อบริษัทของใบบันทึกรถคันนี้ (แท็ป ALL อาจมีหลายบริษัท)
+            comp_names = sorted({log['branch_company__name'] for log in car_logs if log['branch_company__name']})
+            comp_name = ", ".join(comp_names) or comp.name
 
             if first_row and last_row:
-                total_mile = last_row.mile_end - first_row.mile_start
+                total_mile = last_row['mile_end'] - first_row['mile_start']
             else:
                 total_mile = 0
+
+            logs_by_date = defaultdict(list)
+            for log in car_logs:
+                logs_by_date[log['created']].append(log)
                             
             sheet = workbook.create_sheet(title=f"{car.code} {car.name}")
             sheet.cell(row=1, column=1, value='รายงานการใช้รถ').font = Font(bold=True)
@@ -9430,7 +9438,7 @@ def excelDailyCL(request):
             sheet.cell(row=4, column=1, value='ผู้ขับ')
             sheet.cell(row=6, column=1, value='วันที่ ' + str(startDate.strftime('%d/%m/%Y')) + " ถึง " + str(endDate.strftime('%d/%m/%Y'))) 
 
-            sheet.cell(row=2, column=2, value=f"{comp.name}")
+            sheet.cell(row=2, column=2, value=f"{comp_name}")
             sheet.cell(row=3, column=2, value=f"{car.name}")
             sheet.cell(row=4, column=2, value=f"{driver_name}")
             sheet.cell(row=3, column=12, value=f"{car.code}").font = Font(bold=True)
@@ -9479,51 +9487,21 @@ def excelDailyCL(request):
             row_index = 9
             for idl, ldate in enumerate(list_date):
                 row_index += 1
+                day_logs = logs_by_date.get(ldate, [])  #เรียงตาม id
+
                 # aggregate sums
-                data = CarLogbook.objects.filter(
-                    car=car, 
-                    created=ldate, 
-                    branch_company__code__in=company_in
-                ).aggregate(
-                    sum_oil=Sum('oil'),
-                    sum_gas=Sum('gas'),
-                    sum_engine=Sum('engine'),
-                    sum_hydraulic=Sum('hydraulic'),
-                    sum_grease=Sum('grease'),
-                    sum_coolant=Sum('coolant'),
-                    sum_DW_water=Sum('DW_water'),
-                )
+                data = sum_logs(day_logs)
 
                 # first and last records
-                data_first = CarLogbook.objects.filter(
-                    car=car, created=ldate,
-                    branch_company__code__in=company_in
-                ).order_by('id').first()
+                data_first = day_logs[0] if day_logs else None
+                data_last = day_logs[-1] if day_logs else None
 
-                data_last = CarLogbook.objects.filter(
-                    car=car, created=ldate,
-                    branch_company__code__in=company_in
-                ).order_by('id').last()
-
-
-                notes = CarLogbook.objects.filter(
-                    car=car,
-                    created=ldate,
-                    branch_company__code__in=company_in
-                ).annotate(
-                    full_name=Concat(
-                        F('name__first_name'),
-                        Value(' '),
-                        F('name__last_name'),
-                        output_field=CharField()
-                    )
-                ).values_list('note', 'full_name', 'job1','job2','job3','job4','job5','job6')
-
-                # clean job text
+                # clean job text (เรียง id ล่าสุดก่อน ตาม ordering ของ CarLogbook)
                 cleaned_notes = []
-                for note, full_name, *jobs in notes:
+                for log in reversed(day_logs):
+                    jobs = [log['job1'], log['job2'], log['job3'], log['job4'], log['job5'], log['job6']]
                     job_text = ", ".join([j for j in jobs if j])  # filter None/empty
-                    cleaned_notes.append((note, full_name, job_text))
+                    cleaned_notes.append((log['note'], log['full_name'], job_text))
 
                 # แยกเป็น string สำหรับเขียน Excel
                 notes_text       = ", ".join([row[0] for row in cleaned_notes if row[0]])
@@ -9550,13 +9528,13 @@ def excelDailyCL(request):
 
                 # write mile_start and mile_end
                 if data_first:
-                    sheet.cell(row=idl+9, column=9, value=data_first.mile_start)
+                    sheet.cell(row=idl+9, column=9, value=data_first['mile_start'])
                 if data_last:
-                    sheet.cell(row=idl+9, column=10, value=data_last.mile_end)
+                    sheet.cell(row=idl+9, column=10, value=data_last['mile_end'])
 
                 # write distance
                 if data_first and data_last:
-                    distance = data_last.mile_end - data_first.mile_start
+                    distance = data_last['mile_end'] - data_first['mile_start']
                     total_distance += distance
                     sheet.cell(row=idl+9, column=11, value=distance)
             
@@ -10039,7 +10017,12 @@ def excelExpensesByCarLog(request):
 
 
     #data = CarLogbook.objects.filter(my_q)
-    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'), s_coolant = Sum('coolant'), s_DW_water = Sum('DW_water'))
+    #แยกตามรถ + บริษัท เพื่อให้แท็ป ALL แสดงชื่อบริษัทและดึงค่าอะไหล่จากบริษัทของแถวนั้นๆ
+    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name', 'branch_company__code', 'branch_company__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'), s_coolant = Sum('coolant'), s_DW_water = Sum('DW_water')).order_by('branch_company__code', 'car__code')
+    data = list(data)
+    row_comps = BaseBranchCompany.objects.select_related('affiliated').in_bulk(
+        {car['branch_company__code'] for car in data}, field_name='code'
+    )
 
     qs = CarLogbook.objects.filter(
         my_q,
@@ -10053,6 +10036,70 @@ def excelExpensesByCarLog(request):
     exd_ids = {exd for row in qs for exd in row if exd}
 
     exd_all = BaseExpenseDepartment.objects.filter(id__in=exd_ids).values('id', 'name')
+
+    #ชั่วโมงทำงาน: ดึงใบบันทึกครั้งเดียวแล้วรวมใน python (เดิม query ทุกรถ x ทุกหน่วยงาน ทำให้โหลดช้า)
+    dept_hours = defaultdict(timedelta)   #(บริษัท, รถ, หน่วยงาน) -> ชั่วโมงรวม
+    total_hours = defaultdict(timedelta)  #(บริษัท, รถ) -> ชั่วโมงรวมทุกหน่วยงาน
+    for log in CarLogbook.objects.filter(my_q).values(
+        'branch_company__code', 'car_id',
+        'exd_job1', 'exd_job2', 'exd_job3', 'exd_job4',
+        'diff_time_job1', 'diff_time_job2', 'diff_time_job3', 'diff_time_job4',
+    ):
+        key = (log['branch_company__code'], log['car_id'])
+        seen_dept = set()
+        for j in range(1, 5):
+            dept_id = log[f'exd_job{j}']
+            diff = log[f'diff_time_job{j}']
+            if dept_id is None:
+                continue
+            if diff is not None:
+                total_hours[key] += diff
+            #ใบเดียวที่มีหน่วยงานซ้ำหลายงาน นับเฉพาะงานแรกที่ตรง (เหมือน Case/When เดิม)
+            if dept_id not in seen_dept:
+                seen_dept.add(dept_id)
+                if diff is not None:
+                    dept_hours[key + (dept_id,)] += diff
+
+    #ค่าอะไหล่: ดึงเอกสารจาก pg_db ครั้งเดียวต่อบริษัท แทนการ query ทุกแถว
+    def car_remark(car):
+        return f"{car['car__name']}:{car['car__code']}"
+
+    parts_cost = {}  #(บริษัท, remark) -> ค่าอะไหล่รวม
+    remarks_by_comp = defaultdict(set)
+    for car in data:
+        remarks_by_comp[car['branch_company__code']].add(car_remark(car))
+    for comp_code, remarks in remarks_by_comp.items():
+        row_comp = row_comps.get(comp_code)
+        if not (row_comp and row_comp.invoice_code and row_comp.affiliated):
+            continue
+        docs_by_remark = defaultdict(set)
+        for docnum, remark in (
+            ExOESTNH.objects.using('pg_db')
+            .filter(
+                docnum__startswith=row_comp.invoice_code,
+                comcod=row_comp.affiliated.name,
+                docdat__range=(start_created, end_created),
+                remark__in=remarks,
+            )
+            .values_list('docnum', 'remark')
+        ):
+            docs_by_remark[remark].add(docnum)
+        all_docs = set().union(*docs_by_remark.values())
+        doc_sums = {}
+        if all_docs:
+            doc_sums = dict(
+                ExOESTND.objects.using('pg_db')
+                .filter(comcod=row_comp.affiliated.name, docnum__in=all_docs)
+                .values('docnum')
+                .annotate(sum_other=Sum(Case(
+                    When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
+                    output_field=models.DecimalField()
+                )))
+                .order_by()
+                .values_list('docnum', 'sum_other')
+            )
+        for remark, docs in docs_by_remark.items():
+            parts_cost[(comp_code, remark)] = sum((doc_sums.get(d) or Decimal(0) for d in docs), Decimal(0))
 
     workbook = openpyxl.Workbook()
     sheet = workbook.active
@@ -10071,127 +10118,58 @@ def excelExpensesByCarLog(request):
     )
 
     if data:
-        sheet.cell(row=1, column=1, value=f'สรุปค่าใช้จ่ายแต่ละหน่วยงาน ตามทะเบียนรถ {comp.affiliated.name_th}').font = Font(bold=True)
+        title_comp = comp.affiliated.name_th if comp.affiliated else comp.name
+        sheet.cell(row=1, column=1, value=f'สรุปค่าใช้จ่ายแต่ละหน่วยงาน ตามทะเบียนรถ {title_comp}').font = Font(bold=True)
         sheet.cell(row=2, column=1, value='วันที่ ' + str(startDate.strftime('%d/%m/%Y')) + " ถึง " + str(endDate.strftime('%d/%m/%Y')))
         sheet.cell(row=3, column=1, value='')
 
         row = []
-        row.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
+        row.extend(['ลำดับที่', 'บริษัท', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
         row.extend(['จำนวนชั่วโมงทำงาน' for dept in exd_all])
         row.extend(['รวม'])
         sheet.append(row)
 
         row2 = []
-        row2.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'น้ำยาหม้อน้ำ', 'น้ำกลั่น', 'อะไหล่ + ค่าซ่อม'])
+        row2.extend(['ลำดับที่', 'บริษัท', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'น้ำยาหม้อน้ำ', 'น้ำกลั่น', 'อะไหล่ + ค่าซ่อม'])
         row2.extend([dept['name'] for dept in exd_all])
         row2.extend(['รวม'])
         sheet.append(row2)
 
-        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=14 + len(exd_all))
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=15 + len(exd_all))
         sheet.cell(row=1, column=1).alignment = Alignment(horizontal='center')
-        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=14 + len(exd_all))
+        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=15 + len(exd_all))
         sheet.cell(row=2, column=1).alignment = Alignment(horizontal='center')
         sheet.merge_cells(f'A4:A5')
         sheet.merge_cells(f'B4:B5')
         sheet.merge_cells(f'C4:C5')
-        sheet.merge_cells(f'D4:J4')
-        sheet.merge_cells(f'K4:K5')
+        sheet.merge_cells(f'D4:D5')
+        sheet.merge_cells(f'E4:K4')
+        sheet.merge_cells(f'L4:L5')
 
-        sheet.merge_cells(start_row=4, start_column=12, end_row=4, end_column=12 + len(exd_all))
+        sheet.merge_cells(start_row=4, start_column=13, end_row=4, end_column=13 + len(exd_all))
 
         for idx, car in enumerate(data, start=1):
+            key = (car['branch_company__code'], car['car__id'])
             row3 = []
-            row3.extend([idx, car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease'], car['s_coolant'], car['s_DW_water']])
-            
-            #ใบจ่ายสินค้าภายใน - จ่ายอะไหล่ 
-            l_iv = list(
-                ExOESTNH.objects.using('pg_db')
-                .filter(
-                    docnum__startswith=comp.invoice_code,
-                    comcod=comp.affiliated.name,
-                    docdat__range=(start_created, end_created),
-                    remark = f"{car['car__name']}:{car['car__code']}"
-                )
-                .values_list('docnum', flat=True)
-            )
-            sum_trnval = ExOESTND.objects.using('pg_db').filter(
-                comcod=comp.affiliated.name,
-                docnum__in=l_iv
-            ).aggregate(
-                sum_other=Sum(Case(
-                    When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
-                    output_field=models.DecimalField()
-                ))
-            )['sum_other'] or Decimal(0) 
+            row3.extend([idx, car['branch_company__name'], car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease'], car['s_coolant'], car['s_DW_water']])
+
+            #ใบจ่ายสินค้าภายใน - จ่ายอะไหล่ (ใช้บริษัทของแถวนั้น เพราะแท็ป ALL มีหลายบริษัท)
+            sum_trnval = parts_cost.get((car['branch_company__code'], car_remark(car)), Decimal(0))
             row3.extend([sum_trnval])
 
             for dept in exd_all:
-                total = (
-                    CarLogbook.objects.filter(
-                        my_q,
-                        Q(exd_job1=dept['id']) | Q(exd_job2=dept['id']) | Q(exd_job3=dept['id']) | Q(exd_job4=dept['id']),
-                        car=car['car__id'],
-                    )
-                    .aggregate(
-                        total_diff=Sum(
-                            Case(
-                                When(exd_job1=dept['id'], then=F('diff_time_job1')),
-                                When(exd_job2=dept['id'], then=F('diff_time_job2')),
-                                When(exd_job3=dept['id'], then=F('diff_time_job3')),
-                                When(exd_job4=dept['id'], then=F('diff_time_job4')),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                    )['total_diff'] or None
-                )
+                row3.append(format_duration(dept_hours.get(key + (dept['id'],)) or None))
 
-                row3.append(format_duration(total))
-            
-
-            total_diff = (
-                CarLogbook.objects
-                .filter(my_q, car=car['car__id'])
-                .aggregate(
-                    total=(
-                        Sum(
-                            Case(
-                                When(exd_job1__isnull=False, then=Coalesce(F('diff_time_job1'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                        + Sum(
-                            Case(
-                                When(exd_job2__isnull=False, then=Coalesce(F('diff_time_job2'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                        + Sum(
-                            Case(
-                                When(exd_job3__isnull=False, then=Coalesce(F('diff_time_job3'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                        + Sum(
-                            Case(
-                                When(exd_job4__isnull=False, then=Coalesce(F('diff_time_job4'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                    )
-                )['total'] or None 
-            )
-            row3.append(format_duration(total_diff))    
+            row3.append(format_duration(total_hours.get(key) or None))
             sheet.append(row3)
 
-        col_index = 13 + len(exd_all)
+        col_index = 14 + len(exd_all)
         row_index = 4 + len(data)
         for col in range(1, col_index):  # columns 1 to 11 (A to K)
             col_letter = get_column_letter(col)
-            if col > 10:
+            if col == 2:
+                sheet.column_dimensions[col_letter].width = 25
+            elif col > 11:
                 sheet.column_dimensions[col_letter].width = 20
             else:
                 sheet.column_dimensions[col_letter].width = 10
@@ -10246,7 +10224,9 @@ def searchPmRound(request):
 @login_required(login_url='signIn')
 def viewCLReport(request):
     active = request.session.get('company_code', 'ALL')
-    data = CarLogbook.objects.filter(branch_company__code = active)
+    company_in = findCompanyIn(request)
+    #แท็ป ALL จะดึงใบบันทึกการใช้รถของทุกบริษัทที่ user มีสิทธิ์มองเห็น
+    data = CarLogbook.objects.filter(branch_company__code__in = company_in).select_related('branch_company', 'car', 'name')
 
     #กรองข้อมูล
     myFilter = CarLogbookFilter(request.GET, queryset = data)
@@ -10260,6 +10240,7 @@ def viewCLReport(request):
     context = {
         'cls':dataPage,
         'filter':myFilter,
+        'is_all_comp': active == 'ALL',
         'rp_cl_page': "tab-active",
         'rp_cl_show': "show",
         active :"active show",
