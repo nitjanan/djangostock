@@ -184,6 +184,7 @@ urlpatterns = [
     path('report/vendor/candidate/propose', views.proposeDistributorCandidate, name="proposeDistributorCandidate"),
     path('report/vendor/candidate/<int:pk>/', views.distributorCandidateDetail, name="distributorCandidateDetail"),
     path('report/vendor/candidate/<int:pk>/form', views.distributorCandidateForm, name="distributorCandidateForm"),
+    path('report/vendor/candidate/<int:pk>/print', views.distributorCandidatePrint, name="distributorCandidatePrint"),
     path('report/vendor/candidate/<int:pk>/approve', views.approveDistributorCandidate, name="approveDistributorCandidate"),
     path('report/vendor/candidate/<int:pk>/reject', views.rejectDistributorCandidate, name="rejectDistributorCandidate"),
 

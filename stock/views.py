@@ -12954,6 +12954,18 @@ def distributorCandidateDetail(request, pk):
 
 
 @login_required(login_url='signIn')
+def distributorCandidatePrint(request, pk):
+    """หน้าพิมพ์ใบ FM-PU-005 ขนาด A4 (กดพิมพ์ -> บันทึกเป็น PDF)"""
+    candidate = get_object_or_404(
+        DistributorCandidate.objects.select_related("requested_by", "approved_by", "distributor"), pk=pk
+    )
+    return render(request, "report/distributorCandidatePrint.html", {
+        "candidate": candidate,
+        "evaluation": candidate.evaluate(),
+    })
+
+
+@login_required(login_url='signIn')
 def distributorCandidateList(request):
     """หน้ารายการร้านที่รออนุมัติ + ประวัติการพิจารณา"""
     can_approve = is_approve_distributor(request.user)
