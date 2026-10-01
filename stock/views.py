@@ -12938,6 +12938,45 @@ def distributorCandidateForm(request, pk):
     })
 
 
+def _approver_only(view):
+    """หน้าของผู้อนุมัติ: เฉพาะกลุ่ม ApproveDistributor คนอื่นกลับไปหน้ารายการผู้จัดจำหน่าย"""
+    from functools import wraps
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not is_approve_distributor(request.user):
+            messages.error(request, "หน้านี้สำหรับผู้อนุมัติผู้จัดจำหน่าย (กลุ่ม ApproveDistributor) เท่านั้น")
+            return redirect("viewVendorReport")
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@login_required(login_url='signIn')
+@_approver_only
+def distributorApproveList(request):
+    """หน้าผู้อนุมัติ: คิวใบขอเพิ่ม Supplier ที่รออนุมัติ + ประวัติที่พิจารณาแล้ว"""
+    tabs = [
+        (DistributorCandidate.STATUS_SUBMITTED, "รออนุมัติ"),
+        (DistributorCandidate.STATUS_APPROVED, "อนุมัติแล้ว"),
+        (DistributorCandidate.STATUS_REJECTED, "ไม่อนุมัติ"),
+    ]
+    status = request.GET.get("status")
+    if status not in dict(tabs):
+        status = DistributorCandidate.STATUS_SUBMITTED
+    candidates = DistributorCandidate.objects.filter(status=status).select_related("requested_by", "approved_by", "distributor")
+    # คิวรออนุมัติ: ใบที่ส่งก่อนขึ้นก่อน / ประวัติ: ล่าสุดขึ้นก่อน
+    candidates = candidates.order_by("submitted_at" if status == DistributorCandidate.STATUS_SUBMITTED else "-approved_at")
+    page = Paginator(candidates, 20).get_page(request.GET.get("page"))
+    for c in page:
+        c.evaluation = c.evaluate()
+    status_counts = dict(DistributorCandidate.objects.values_list("status").annotate(c=Count("id")))
+    return render(request, "report/distributorApprove.html", {
+        "candidates": page,
+        "status": status,
+        "status_options": [{"value": k, "label": label, "count": status_counts.get(k, 0)} for k, label in tabs],
+    })
+
+
 def _candidate_detail_context(request, pk):
     candidate = get_object_or_404(
         DistributorCandidate.objects.select_related("requested_by", "approved_by", "distributor"), pk=pk
@@ -12954,6 +12993,17 @@ def distributorCandidateDetail(request, pk):
 
 
 @login_required(login_url='signIn')
+@_approver_only
+def distributorApproveDetail(request, pk):
+    """หน้าผู้อนุมัติ: ดูใบขอเพิ่ม Supplier + อนุมัติ / ไม่อนุมัติ"""
+    context = _candidate_detail_context(request, pk)
+    context["approve_view"] = True
+    context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
+    context["vat_types"] = BaseVatType.objects.order_by("id")
+    return render(request, "report/distributorCandidateDetail.html", context)
+
+
+@login_required(login_url='signIn')
 def distributorCandidatePrint(request, pk):
     """หน้าพิมพ์ใบ FM-PU-005 ขนาด A4 (กดพิมพ์ -> บันทึกเป็น PDF)"""
     candidate = get_object_or_404(
@@ -12963,28 +13013,6 @@ def distributorCandidatePrint(request, pk):
         "candidate": candidate,
         "evaluation": candidate.evaluate(),
     })
-
-
-@login_required(login_url='signIn')
-def distributorCandidateList(request):
-    """หน้ารายการร้านที่รออนุมัติ + ประวัติการพิจารณา"""
-    can_approve = is_approve_distributor(request.user)
-    status = request.GET.get("status") or DistributorCandidate.STATUS_PENDING
-    if status not in dict(DistributorCandidate.STATUS_CHOICES):
-        status = DistributorCandidate.STATUS_PENDING
-    candidates = DistributorCandidate.objects.filter(status=status).select_related("requested_by", "reviewed_by", "distributor")
-    page = Paginator(candidates, 20).get_page(request.GET.get("page"))
-    status_counts = dict(DistributorCandidate.objects.values_list("status").annotate(c=Count("id")))
-    context = {
-        "candidates": page,
-        "status": status,
-        "status_options": [
-            {"value": key, "label": label, "count": status_counts.get(key, 0)}
-            for key, label in DistributorCandidate.STATUS_CHOICES
-        ],
-        "can_approve": can_approve,
-    }
-    return render(request, "report/distributorCandidate.html", context)
 
 
 def _distributor_id_from_autocomplete(value):
