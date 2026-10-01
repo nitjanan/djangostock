@@ -306,3 +306,109 @@ class DistributorCandidateTestCase(TestCase):
         Distributor.objects.create(id="V001", name="x", place_source="osm", place_id="node/555")
         response = self.propose(next="https://evil.example.com/")
         self.assertEqual(response.url, reverse('viewVendorReport'))
+
+    # ----- หน้าจอ -----
+
+    @patch("stock.views.fetch_vendors_from_openstreetmap")
+    def test_report_filters_by_system_status(self, fetch):
+        other = dict(OSM_SHOP, name="ร้านในระบบ", osm_id=777)
+        fetch.side_effect = lambda *a, **k: [dict(OSM_SHOP), dict(other)]
+        Distributor.objects.create(id="V777", name="ร้านในระบบ", place_source="osm", place_id="node/777")
+
+        self.login(self.user)
+        url = reverse('viewVendorReport') + "?lat=13.75&lng=100.5&source=osm"
+        response = self.client.get(url + "&system_status=new")
+        self.assertEqual([ev["name"] for ev in response.context["external_vendors"]], [OSM_SHOP["name"]])
+        self.assertContains(response, "เสนอเพิ่ม")
+
+        response = self.client.get(url + "&system_status=in_system")
+        self.assertEqual([ev["distributor_id"] for ev in response.context["external_vendors"]], ["V777"])
+        self.assertContains(response, "มีในระบบ: V777")
+
+    @patch("stock.views.fetch_vendors_from_tomtom")
+    @patch("stock.views.fetch_vendors_from_openstreetmap")
+    def test_report_lists_saved_candidates_without_map_search(self, fetch_osm, fetch_tomtom):
+        self.propose()
+        draft = DistributorCandidate.objects.get()
+        approved = DistributorCandidate.objects.create(place_source="osm", place_id="node/9", name="ร้านอนุมัติแล้ว", status="approved")
+
+        self.login(self.user)
+        response = self.client.get(reverse('viewVendorReport'))
+        fetch_osm.assert_not_called()
+        fetch_tomtom.assert_not_called()
+        self.assertEqual([c.pk for c in response.context["candidates"]], [draft.pk])
+        self.assertContains(response, reverse('distributorCandidateForm', args=[draft.pk]))
+
+        response = self.client.get(reverse('viewVendorReport') + "?cand_status=approved")
+        self.assertEqual([c.pk for c in response.context["candidates"]], [approved.pk])
+
+    def test_form_page_renders_rules(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(response, "ความถูกต้องทางกฎหมาย")
+        self.assertContains(response, f'name="ans_{self.rules["9.1"].pk}"')
+        self.assertNotContains(response, f'name="ans_{self.rules["9"].pk}"')
+
+    def test_requester_detail_page_is_read_only_even_for_approver(self):
+        c = self.submitted_candidate()
+        for user in (self.user, self.approver):
+            self.login(user)
+            response = self.client.get(reverse('distributorCandidateDetail', args=[c.pk]))
+            self.assertContains(response, OSM_SHOP["name"])
+            self.assertContains(response, "สรุป: ผ่านเกณฑ์บังคับ")
+            self.assertNotContains(response, "อนุมัติ + สร้างใหม่")
+
+    def test_approve_pages_only_for_group(self):
+        c = self.submitted_candidate(answers={"1": "fail"})
+        self.login(self.approver)
+        response = self.client.get(reverse('distributorApproveList'))
+        self.assertEqual([x.pk for x in response.context["candidates"]], [c.pk])
+        self.assertContains(response, "ไม่ผ่าน")
+        self.assertContains(response, "ข้อ 1 ความถูกต้องทางกฎหมาย")
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertContains(response, "อนุมัติ + สร้างใหม่")
+        self.assertContains(response, "ชนิดภาษี")
+
+        self.login(self.user)
+        for url in (reverse('distributorApproveList'), reverse('distributorApproveDetail', args=[c.pk])):
+            self.assertRedirects(self.client.get(url), reverse('viewVendorReport'), fetch_redirect_response=False)
+
+    def test_approve_returns_to_queue(self):
+        c = self.submitted_candidate()
+        response = self.approve(c, mode="new", distributor_id="V900")
+        self.assertRedirects(response, reverse('distributorApproveList'), fetch_redirect_response=False)
+
+    def test_report_page_shows_approve_button_only_for_approver(self):
+        self.submitted_candidate()
+        self.login(self.approver)
+        response = self.client.get(reverse('viewVendorReport'))
+        self.assertEqual(response.context["dist_ap_count"], 1)
+        self.assertContains(response, reverse('distributorApproveList'))
+
+        self.login(self.user)
+        response = self.client.get(reverse('viewVendorReport'))
+        self.assertNotIn("dist_ap_count", response.context)
+        self.assertNotContains(response, reverse('distributorApproveList'))
+
+    def test_print_page_shows_signers_and_supplier_code(self):
+        c = self.submitted_candidate()
+        self.approve(c, mode="new", distributor_id="V900")
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidatePrint', args=[c.pk]))
+        self.assertContains(response, "FM-PU-005 Rev.01")
+        self.assertContains(response, "V900")
+        self.assertContains(response, "requester")
+        self.assertContains(response, "approver")
+
+    def test_pages_render_when_users_deleted(self):
+        # ผู้ใช้ถูกลบ -> requested_by / approved_by เป็น NULL หน้าเว็บต้องไม่พัง
+        c = self.submitted_candidate()
+        self.approve(c, mode="new", distributor_id="V900")
+        DistributorCandidate.objects.filter(pk=c.pk).update(requested_by=None, approved_by=None)
+        self.login(self.approver)
+        for name in ('distributorCandidateDetail', 'distributorApproveDetail', 'distributorCandidatePrint'):
+            self.assertEqual(self.client.get(reverse(name, args=[c.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse('distributorApproveList') + "?status=approved").status_code, 200)
+        self.assertEqual(self.client.get(reverse('viewVendorReport') + "?cand_status=approved").status_code, 200)
