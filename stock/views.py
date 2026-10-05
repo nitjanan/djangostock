@@ -2615,8 +2615,11 @@ def showPR(request, pr_id, mode):
     #ต้องเป็นใบที่เกิดจากการ CLOSE เท่านั้น (มี stamp C# นำหน้า note)
     isFromClose = bool(pr.note) and pr.note[:2] == 'C#'
 
-    #ต้องมีสิทธิ rePR, เป็น staff (จัดซื้อ/พัสดุ), มาจากการ CLOSE และยังมีรายการคงเหลือ
-    isRePr = is_re_pr(request.user) and is_staff and isFromClose and isHasRemainItem
+    #ต้องเป็นผู้จัดทำ (organizer) ของใบขอซื้อนี้
+    isOrganizer = pr.organizer_id == request.user.id
+
+    #ต้องเป็นผู้จัดทำ, มาจากการ CLOSE และยังมีรายการคงเหลือ
+    isRePr = isOrganizer and isFromClose and isHasRemainItem
 
     #ที่อยู่และหัวบริษัท
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
