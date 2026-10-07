@@ -342,6 +342,23 @@ class DistributorCandidateTestCase(TestCase):
         response = self.client.get(reverse('viewVendorReport') + "?cand_status=approved")
         self.assertEqual([c.pk for c in response.context["candidates"]], [approved.pk])
 
+    @patch("stock.views.fetch_vendors_from_openstreetmap", return_value=[])
+    def test_report_region_presets(self, fetch):
+        self.login(self.user)
+        response = self.client.get(reverse('viewVendorReport'))
+        self.assertContains(response, 'data-lat="9.138200" data-lng="99.321700"')
+        self.assertIsNone(response.context["region"])
+
+        # ภาคที่เลือกค้างไว้ในหน้า + ค้นตามพิกัดของภาคนั้น
+        response = self.client.get(reverse('viewVendorReport') + "?region=south&lat=9.138200&lng=99.321700&source=osm")
+        self.assertEqual(response.context["region"], "south")
+        self.assertContains(response, '<option value="south" data-lat="9.138200" data-lng="99.321700" selected>', html=False)
+        self.assertEqual(fetch.call_args[0][:2], (9.1382, 99.3217))
+
+        # ค่าที่ไม่รู้จักถูกตัดทิ้ง
+        response = self.client.get(reverse('viewVendorReport') + "?region=mars")
+        self.assertIsNone(response.context["region"])
+
     def test_form_page_renders_rules(self):
         self.propose()
         c = DistributorCandidate.objects.get()

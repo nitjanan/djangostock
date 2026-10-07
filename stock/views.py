@@ -12578,6 +12578,15 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
     return Response(result)
 
 
+# ตัวเลือก "ภาค" ของตารางผู้จัดจำหน่ายอื่นๆ: เลือกแล้วใช้พิกัดเมืองหลักของภาคแทนตำแหน่งปัจจุบัน (ค้นตามรัศมีรอบจุดนี้)
+REGION_PRESETS = [
+    {"value": "central", "label": "ภาคกลาง", "city": "กรุงเทพมหานคร", "lat": "13.756331", "lng": "100.501765"},
+    {"value": "north", "label": "ภาคเหนือ", "city": "เชียงใหม่", "lat": "18.788344", "lng": "98.985300"},
+    {"value": "northeast", "label": "ภาคอีสาน", "city": "ขอนแก่น", "lat": "16.432200", "lng": "102.823600"},
+    {"value": "south", "label": "ภาคใต้", "city": "สุราษฎร์ธานี", "lat": "9.138200", "lng": "99.321700"},
+]
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def venderReport(request, pages=None):
@@ -12628,6 +12637,8 @@ def venderReport(request, pages=None):
         "category_options": ext["category_options"],
         "source": ext["source"],
         "tomtom_available": bool(settings.TOMTOM_API_KEY),
+        "region_presets": REGION_PRESETS,
+        "region": next((r["value"] for r in REGION_PRESETS if r["value"] == request.GET.get("region")), None),
         "system_status": ext["system_status"],
         "system_status_options": ext["system_status_options"],
     }

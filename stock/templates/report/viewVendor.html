@@ -41,6 +41,7 @@
           {% if category is not None %}<input type="hidden" name="category" value="{{category}}">{% endif %}
           {% if shop_type is not None %}<input type="hidden" name="shop_type" value="{{shop_type}}">{% endif %}
           {% if system_status is not None %}<input type="hidden" name="system_status" value="{{system_status}}">{% endif %}
+          {% if region %}<input type="hidden" name="region" value="{{region}}">{% endif %}
         {% endif %}
         <div class="form-row">
           <div class="form-group col-md-3 mb-0">
@@ -219,6 +220,15 @@
     <div class="card-body">
       <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
       <form id="geo-form" class="form-row align-items-end mb-2">
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-region">ภาค</label>
+          <select class="form-control" id="geo-region" name="region">
+            <option value="">— เลือกภาค —</option>
+            {% for r in region_presets %}
+              <option value="{{r.value}}" data-lat="{{r.lat}}" data-lng="{{r.lng}}" {% if region == r.value %}selected{% endif %}>{{r.label}} ({{r.city}})</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="form-group col-md-2 mb-2">
           <label for="geo-lat">Latitude</label>
           <input type="number" step="any" min="-90" max="90" class="form-control" id="geo-lat" name="lat" value="{{lat|default:''}}" placeholder="เช่น 13.7563" required>
@@ -277,6 +287,7 @@
       <p id="geo-status" class="text-muted mb-2">
         {% if lat and lng %}
           {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %} ·
+          {% for r in region_presets %}{% if r.value == region %}{{r.label}} (รอบ{{r.city}}) ·{% endif %}{% endfor %}
           ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
           {% if category is not None %}หมวด: {% for opt in category_options %}{% if opt.value == category %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           {% if shop_type is not None %}ประเภท: {% for opt in shop_type_options %}{% if opt.value == shop_type %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
@@ -423,6 +434,11 @@
       params.set('radius', form.radius.value.trim() || '10');
       params.delete('ext_page');
       params.set('source', form.source.value);
+      if (form.region.value) {
+        params.set('region', form.region.value);
+      } else {
+        params.delete('region');
+      }
       if (form.category.disabled || form.category.value === '__all__') {
         params.delete('category');
       } else {
@@ -477,7 +493,30 @@
       search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
     });
 
-    document.getElementById('geo-current').addEventListener('click', useCurrentLocation);
+    document.getElementById('geo-current').addEventListener('click', function () {
+      form.region.value = '';
+      useCurrentLocation();
+    });
+
+    // เลือกภาค -> ใช้พิกัดเมืองหลักของภาคนั้นแทนตำแหน่งปัจจุบัน แล้วค้นทันที
+    form.region.addEventListener('change', function () {
+      const opt = form.region.selectedOptions[0];
+      if (!opt || !opt.value) {
+        return;
+      }
+      form.lat.value = opt.dataset.lat;
+      form.lng.value = opt.dataset.lng;
+      if (form.reportValidity()) {
+        search(form.lat.value, form.lng.value, form.keyword.value.trim());
+      }
+    });
+
+    // แก้พิกัดเอง -> ไม่ใช่พิกัดของภาคที่เลือกไว้แล้ว
+    [form.lat, form.lng].forEach(function (input) {
+      input.addEventListener('input', function () {
+        form.region.value = '';
+      });
+    });
 
     form.system_status.addEventListener('change', function () {
       if (form.reportValidity()) {
