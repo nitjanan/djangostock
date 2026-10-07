@@ -8410,20 +8410,21 @@ def exportToExcelRegistrationAndRepair(request):
 
 
 
-def viewExInvoice(request):
-    active = request.session.get('company_code', 'ALL')
+def getExQueryset(request, model, code_field, date_field):
+    # ดึงเอกสาร express ของสาขาที่ user มีสิทธิ์ และมีรหัสเอกสาร (code_field) ของสาขานั้น
     company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี invoice_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(invoice_code__isnull=True).exclude(invoice_code='')
+    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(**{f'{code_field}__isnull': True}).exclude(**{code_field: ''})
     query = Q()
     for b in b_coms:
         if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.invoice_code)
+            query |= Q(comcod=b.affiliated.name, docnum__startswith=getattr(b, code_field))
     if query:
-        data = ExOESTNH.objects.using('pg_db').filter(query).order_by('-docdat', '-docnum')
-    else:
-        data = ExOESTNH.objects.using('pg_db').none()
+        return model.objects.using('pg_db').filter(query).order_by(f'-{date_field}', '-docnum', 'comcod')
+    return model.objects.using('pg_db').none()
+
+def viewExInvoice(request):
+    active = request.session.get('company_code', 'ALL')
+    data = getExQueryset(request, ExOESTNH, 'invoice_code', 'docdat')
 
     #กรองข้อมูล
     myFilter = ExOESTNHFilter(request.GET, queryset = data)
@@ -8446,18 +8447,7 @@ def viewExInvoice(request):
 
 def viewExOiInvoice(request):
     active = request.session.get('company_code', 'ALL')
-    company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี oi_invoice_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(oi_invoice_code__isnull=True).exclude(oi_invoice_code='')
-    query = Q()
-    for b in b_coms:
-        if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.oi_invoice_code)
-    if query:
-        data = ExOESTNH.objects.using('pg_db').filter(query).order_by('-docdat', '-docnum')
-    else:
-        data = ExOESTNH.objects.using('pg_db').none()
+    data = getExQueryset(request, ExOESTNH, 'oi_invoice_code', 'docdat')
 
     #กรองข้อมูล
     myFilter = ExOESTNHFilter(request.GET, queryset = data)
@@ -8480,18 +8470,7 @@ def viewExOiInvoice(request):
 
 def viewExSOC(request):
     active = request.session.get('company_code', 'ALL')
-    company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี soc_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(soc_code__isnull=True).exclude(soc_code='')
-    query = Q()
-    for b in b_coms:
-        if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.soc_code)
-    if query:
-        data = ExOEINVH.objects.using('pg_db').filter(query).order_by('-docdate', '-docnum')
-    else:
-        data = ExOEINVH.objects.using('pg_db').none()
+    data = getExQueryset(request, ExOEINVH, 'soc_code', 'docdate')
 
     #กรองข้อมูล
     myFilter = ExOEINVHFilter(request.GET, queryset = data)
@@ -8514,18 +8493,7 @@ def viewExSOC(request):
 
 def viewExOiSOC(request):
     active = request.session.get('company_code', 'ALL')
-    company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี oi_soc_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(oi_soc_code__isnull=True).exclude(oi_soc_code='')
-    query = Q()
-    for b in b_coms:
-        if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.oi_soc_code)
-    if query:
-        data = ExOEINVH.objects.using('pg_db').filter(query).order_by('-docdate', '-docnum')
-    else:
-        data = ExOEINVH.objects.using('pg_db').none()
+    data = getExQueryset(request, ExOEINVH, 'oi_soc_code', 'docdate')
 
     #กรองข้อมูล
     myFilter = ExOEINVHFilter(request.GET, queryset = data)
@@ -8545,6 +8513,156 @@ def viewExOiSOC(request):
         "colorNav":"enableNav"
     }
     return render(request, "express/viewExOiSOC.html", context)
+
+def chunked(items, size=1000):
+    items = list(items)
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+def getExOESTNHRows(queryset, with_repair):
+    # สร้างแถวของตารางใบจ่ายภายใน (ดึงรายละเอียดทีละก้อน แทน get_items/get_total_price ทีละแถว)
+    headers = list(queryset.values('docnum', 'comcod', 'docdat', 'depcod', 'remark', 'note2', 'note3'))
+    comcods = {h['comcod'] for h in headers}
+
+    stkcods = defaultdict(list)
+    totals = defaultdict(Decimal)
+    for chunk in chunked({h['docnum'] for h in headers}):
+        details = ExOESTND.objects.using('pg_db').filter(docnum__in=chunk, comcod__in=comcods).order_by('docnum', 'seqnum').values('docnum', 'comcod', 'stkcod', 'trnval')
+        for d in details:
+            key = (d['docnum'], d['comcod'])
+            stkcod = (d['stkcod'] or '').strip()  # ข้อมูล express เป็น CHAR มีช่องว่างต่อท้าย
+            if stkcod not in stkcods[key]:
+                stkcods[key].append(stkcod)
+            totals[key] += d['trnval'] or 0
+
+    products = {}
+    for chunk in chunked({c for codes in stkcods.values() for c in codes}):
+        products.update(Product.objects.filter(id__in=chunk).values_list('id', 'name'))
+    departments = dict(BaseExpenseDepartment.objects.values_list('id', 'name'))
+    repair_types = dict(BaseRepairType.objects.values_list('id', 'name'))
+
+    rows = []
+    for h in headers:
+        key = (h['docnum'], h['comcod'])
+        items = "\n".join(f"{c} : {products[c]}" for c in stkcods[key] if c in products)
+        depcod = (h['depcod'] or '').strip()
+        depnam = f"{depcod} {departments[depcod]}" if depcod in departments else ''
+        row = [h['docnum'], h['docdat'], items, h['depcod'], depnam, h['remark'], float(totals[key])]
+        if with_repair:
+            note2 = (h['note2'] or '').strip()
+            repair = f"{note2} {repair_types[note2]}" if note2 in repair_types else h['note2']
+            row += [repair, h['note3']]
+        rows.append(row)
+    return rows
+
+def getExOEINVHRows(queryset):
+    # สร้างแถวของตารางใบขายเงินเชื่อ
+    headers = list(queryset.values('docnum', 'comcod', 'docdate', 'cusnam', 'total', 'vatamt', 'netval'))
+    comcods = {h['comcod'] for h in headers}
+
+    items = defaultdict(list)
+    for chunk in chunked({h['docnum'] for h in headers}):
+        details = ExOEINVD.objects.using('pg_db').filter(docnum__in=chunk, comcod__in=comcods).order_by('docnum', 'seqnum').values('docnum', 'comcod', 'stkcod', 'stkdes')
+        for d in details:
+            items[(d['docnum'], d['comcod'])].append(f"{(d['stkcod'] or '').strip()} : {(d['stkdes'] or '').strip()}")
+
+    return [
+        [h['docnum'], h['docdate'], h['cusnam'], "\n".join(items[(h['docnum'], h['comcod'])]),
+         float(h['total'] or 0), float(h['vatamt'] or 0), float(h['netval'] or 0)]
+        for h in headers
+    ]
+
+def writeExSheet(workbook, title, columns, rows):
+    # columns = [(หัวคอลัมน์, ชนิด)] ชนิด: text, date, money, multiline
+    sheet = workbook.create_sheet(title=title)
+    thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    header_fill = PatternFill(start_color='24493D', end_color='24493D', fill_type='solid')
+
+    sheet.append([name for name, _ in columns])
+    for cell in sheet[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin_border
+    sheet.freeze_panes = 'A2'
+
+    if not rows:
+        sheet.cell(row=2, column=1, value='ไม่มีข้อมูล')
+        sheet.column_dimensions['A'].width = 20
+        return
+
+    for row in rows:
+        sheet.append([v.strip() if isinstance(v, str) else v for v in row])
+    last_row = sheet.max_row
+
+    #คำนวนรวมทั้งสิ้น
+    money_cols = [idx for idx, (_, kind) in enumerate(columns, start=1) if kind == 'money']
+    if money_cols:
+        total_row = last_row + 1
+        sheet.cell(row=total_row, column=1, value='รวมทั้งสิ้น').font = Font(bold=True)
+        for idx in money_cols:
+            letter = get_column_letter(idx)
+            cell = sheet.cell(row=total_row, column=idx, value=f'=SUM({letter}2:{letter}{last_row})')
+            cell.font = Font(bold=True)
+            cell.number_format = '#,##0.00'
+        for idx in range(1, len(columns) + 1):
+            sheet.cell(row=total_row, column=idx).border = thin_border
+
+    # Set number format, กรอบ และความกว้างคอลัมน์
+    for idx, (name, kind) in enumerate(columns, start=1):
+        max_length = len(name)
+        for r in range(2, last_row + 1):
+            cell = sheet.cell(row=r, column=idx)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical='top', wrap_text=(kind == 'multiline'))
+            if kind == 'date':
+                cell.number_format = 'DD/MM/YYYY'
+                length = 10
+            elif kind == 'money':
+                cell.number_format = '#,##0.00'
+                length = len(f'{cell.value or 0:,.2f}')
+            else:
+                length = max((len(line) for line in str(cell.value or '').split('\n')), default=0)
+            max_length = max(max_length, length)
+        sheet.column_dimensions[get_column_letter(idx)].width = min(max_length + 2, 60)
+
+def exportExcelExAll(request):
+    active = request.session.get('company_code', 'ALL')
+
+    # ถ้าไม่ได้เลือกวันที่ ให้ใช้เดือนปัจจุบัน (ข้อมูลทุกปีมีหลายแสนแถว export ไม่ไหว)
+    start_date, end_date = get_month_start_end()
+    params = request.GET.copy()
+    params['start_created'] = request.GET.get('start_created') or start_date.isoformat()
+    params['end_created'] = request.GET.get('end_created') or end_date.isoformat()
+
+    # sheet ใบจ่ายภายใน-อะไหล่ ใช้ตัวกรองทั้งหมดของหน้า /ex/invoice/ ส่วน sheet อื่นใช้แค่ช่วงวันที่
+    date_params = {k: params[k] for k in ('start_created', 'end_created')}
+
+    iv = ExOESTNHFilter(params, queryset=getExQueryset(request, ExOESTNH, 'invoice_code', 'docdat')).qs
+    oi_iv = ExOESTNHFilter(date_params, queryset=getExQueryset(request, ExOESTNH, 'oi_invoice_code', 'docdat')).qs
+    soc = ExOEINVHFilter(date_params, queryset=getExQueryset(request, ExOEINVH, 'soc_code', 'docdate')).qs
+    oi_soc = ExOEINVHFilter(date_params, queryset=getExQueryset(request, ExOEINVH, 'oi_soc_code', 'docdate')).qs
+
+    iv_columns = [
+        ('เลขที่เอกสาร', 'text'), ('วันที่จ่าย', 'date'), ('สินค้า', 'multiline'), ('exp คชจ.', 'text'),
+        ('แผนกคชจ.', 'text'), ('หมายเหตุ', 'text'), ('จำนวนเงิน', 'money'),
+    ]
+    soc_columns = [
+        ('เลขที่เอกสาร', 'text'), ('วันที่ขาย', 'date'), ('ลูกค้า', 'text'), ('สินค้า', 'multiline'),
+        ('รวมเงิน', 'money'), ('vat', 'money'), ('จำนวนเงินทั้งสิ้น', 'money'),
+    ]
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    writeExSheet(workbook, 'ใบจ่ายสินค้าภายใน-อะไหล่', iv_columns + [('ประเภทการซ่อม', 'text'), ('เลขที่ใบแจ้งซ่อม', 'text')], getExOESTNHRows(iv, with_repair=True))
+    writeExSheet(workbook, 'ใบจ่ายสินค้าภายใน-น้ำมัน', iv_columns, getExOESTNHRows(oi_iv, with_repair=False))
+    writeExSheet(workbook, 'ใบขายเงินเชื่อ-อะไหล่', soc_columns, getExOEINVHRows(soc))
+    writeExSheet(workbook, 'ใบขายเงินเชื่อ-น้ำมัน', soc_columns, getExOEINVHRows(oi_soc))
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Express All({active}).xlsx'
+    workbook.save(response)
+    return response
 
 def sanitize_sheet_title(title):
     # Remove invalid characters and truncate to 30 characters

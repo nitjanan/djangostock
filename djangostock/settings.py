@@ -129,7 +129,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
-        'PORT': '',
+        'PORT': '13307',
     },
     'pg_db': {  # Remote PostgreSQL Server
         'ENGINE': 'django.db.backends.postgresql',
@@ -237,6 +237,9 @@ EMAIL_USE_SSL = False
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+TOMTOM_API_KEY = os.environ.get("TOMTOM_API_KEY")
 
 ''' ยังไม่เปิดใช้
 # จำ login 30 วัน

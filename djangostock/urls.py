@@ -204,6 +204,7 @@ urlpatterns = [
     path('ex/oil/invoice',views.viewExOiInvoice,name="viewExOiInvoice"),
     path('ex/soc/',views.viewExSOC,name="viewExSOC"),
     path('ex/oil/soc/',views.viewExOiSOC,name="viewExOiSOC"),
+    path('ex/export/excel/all',views.exportExcelExAll,name="exportExcelExAll"),
 
     path('car-search/', views.car_search, name='car_search'),
 
