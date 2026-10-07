@@ -115,12 +115,15 @@ def default_scope(queryset, has_date):
     return queryset
 
 
-def detect_carlog_anomalies(queryset):
+def detect_carlog_anomalies(queryset, visible=None):
     """คืน list เฉพาะใบที่มีความผิดปกติ แต่ละรายการเป็น
     {'cl', 'issues': [{'text', 'prev'}], 'bad_fields', 'jobs', 'prev', 'prev_bad_fields', 'prev_jobs'}
-    โดย bad_fields คือชื่อ field ที่ผิด ใช้ไฮไลต์ใน chain-panel"""
+    โดย bad_fields คือชื่อ field ที่ผิด ใช้ไฮไลต์ใน chain-panel
+    visible คือ queryset ใบที่ user มีสิทธิ์เห็น ใช้จำกัดการหาใบก่อนหน้า (รถคันเดียวกันอาจอยู่หลายบริษัท)"""
+    if visible is None:
+        visible = CarLogbook.objects.all()
     # ใบก่อนหน้าของรถคันเดียวกัน (ไม่นับใบยกเลิก) เรียงตามวันที่แล้วตาม id
-    prev = CarLogbook.objects.filter(
+    prev = visible.filter(
         car=OuterRef("car"), is_cancel=False, mile_end__isnull=False,
     ).filter(
         Q(created__lt=OuterRef("created")) | Q(created=OuterRef("created"), id__lt=OuterRef("id"))
@@ -128,7 +131,7 @@ def detect_carlog_anomalies(queryset):
 
     cls = list(queryset.annotate(prev_cl_id=Subquery(prev.values("id")[:1])))
     prev_ids = {cl.prev_cl_id for cl in cls if cl.car_id and cl.prev_cl_id}
-    prevs = CarLogbook.objects.select_related("branch_company", "name").in_bulk(prev_ids)
+    prevs = visible.select_related("branch_company", "name").in_bulk(prev_ids)
 
     result = []
     for cl in cls:

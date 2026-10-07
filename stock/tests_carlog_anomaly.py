@@ -107,6 +107,20 @@ class CarLogAnomalyTestCase(TestCase):
         cl = self._cl(day=3, mile_start=200, mile_end=300)
         self.assertEqual(self._issues(cl), [])
 
+    def test_previous_record_limited_to_visible_companies(self):
+        other = BaseBranchCompany.objects.create(id="2", code="OT", name="Other")
+        address = BaseAddress.objects.create(name_th="Other Co", address="2 Test Rd")
+        BranchCompanyBaseAdress.objects.create(branch_company=other, address=address)
+        hidden = CarLogbook.objects.create(branch_company=other, car=self.car,
+                                           created=datetime.date(2026, 9, 1), mile_start=100, mile_end=900)
+        cl = self._cl(day=2, mile_start=100, mile_end=200)
+        visible = CarLogbook.objects.filter(branch_company=self.ho)
+        result = detect_carlog_anomalies(CarLogbook.objects.filter(id=cl.id), visible)
+        self.assertEqual(result, [])
+        # ถ้าไม่จำกัด จะเจอใบของบริษัทอื่น
+        entry = detect_carlog_anomalies(CarLogbook.objects.filter(id=cl.id))[0]
+        self.assertEqual(entry["prev"].id, hidden.id)
+
     def test_previous_record_same_day_uses_id_order(self):
         self._cl(day=1, mile_start=100, mile_end=200)
         cl = self._cl(day=1, mile_start=200, mile_end=300)
