@@ -1,0 +1,45 @@
+{% comment %}
+chain-panel ของใบบันทึกการใช้รถ 1 ใบ ในแผงตรวจจับความผิดปกติ
+ตัวแปร: c = CarLogbook, bad = set ของ field ที่ผิด, jobs = job_rows(), label, mod (prev|cur), is_all_comp
+{% endcomment %}
+<div class="chain-panel chain-panel--{{ mod }}">
+  <div class="chain-panel__head">
+    <span class="badge {% if mod == 'cur' %}badge-warning{% else %}badge-secondary{% endif %}">{{ label }}</span>
+    <span class="chain-panel__ref">
+      {% if is_all_comp %}
+        {{ c.ref_no }}
+      {% elif c.branch_company.code != 'L1' %}
+        <a target="_blank" href="{% url 'editCL' c.id %}">{{ c.ref_no }}</a>
+      {% else %}
+        <a target="_blank" href="{% url 'editCLRoi' c.id %}">{{ c.ref_no }}</a>
+      {% endif %}
+    </span>
+    <span class="chain-panel__date">{{ c.created|date:"d/m/Y" }}</span>
+  </div>
+  <dl class="chain-panel__body">
+    <div><dt>ผู้ใช้รถ</dt><dd>{{ c.name|default:"-" }}</dd></div>
+    <div class="{% if 'mile_start' in bad %}chain-bad{% endif %}"><dt>ไมล์เริ่ม</dt><dd>{{ c.mile_start|default_if_none:"-" }}</dd></div>
+    <div class="{% if 'mile_end' in bad %}chain-bad{% endif %}"><dt>ไมล์สิ้นสุด</dt><dd>{{ c.mile_end|default_if_none:"-" }}</dd></div>
+    <div><dt>ระยะทาง</dt><dd>{{ c.diff_mile|default_if_none:"-" }}</dd></div>
+  </dl>
+  {% if jobs %}
+  <table class="chain-jobs">
+    <thead><tr><th>งาน</th><th>ไมล์เริ่ม → สิ้นสุด</th><th>เวลา</th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+      <tr>
+        <td title="{{ j.job|default:'' }}">{{ j.n }}{% if j.job %} <span class="chain-jobs__name">{{ j.job }}</span>{% endif %}</td>
+        <td class="text-nowrap">
+          <span class="{% if j.bad_mile_start %}chain-bad{% endif %}">{{ j.mile_start|default_if_none:"-" }}</span>
+          →
+          <span class="{% if j.bad_mile_end %}chain-bad{% endif %}">{{ j.mile_end|default_if_none:"-" }}</span>
+        </td>
+        <td class="text-nowrap {% if j.bad_time %}chain-bad{% endif %}">
+          {% if j.start or j.end %}{{ j.start|time:"H:i"|default:"-" }}-{{ j.end|time:"H:i"|default:"-" }}{% else %}-{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>

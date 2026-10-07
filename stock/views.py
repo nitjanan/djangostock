@@ -32,6 +32,7 @@ from django.forms import inlineformset_factory
 import stripe, logging, datetime
 from django.db.models import Prefetch, Sum, Max
 from .resources import ReceiveItemResource, DistributorResource
+from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
@@ -9287,6 +9288,10 @@ def viewCL(request):
     myFilter = CarLogbookFilter(request.GET, queryset = data)
     data = myFilter.qs
 
+    #ตรวจจับการคีย์ใบบันทึกการใช้รถที่ผิดปกติ ตามตัวกรองเดียวกัน
+    has_date = request.GET.get('start_created') or request.GET.get('end_created')
+    anomalies = detect_carlog_anomalies(anomaly_default_scope(data, has_date))
+
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
@@ -9295,6 +9300,8 @@ def viewCL(request):
     context = {
         'cls':dataPage,
         'filter':myFilter,
+        'anomalies': anomalies,
+        'anomaly_default_days': None if has_date else ANOMALY_DEFAULT_DAYS,
         'is_all_comp': active == 'ALL',
         'cl_page': "tab-active",
         'cl_show': "show",

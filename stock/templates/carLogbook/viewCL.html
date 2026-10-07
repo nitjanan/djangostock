@@ -15,6 +15,109 @@
 .cl:hover {
   box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
 }
+
+/* ===== chain-panel ของแผงตรวจจับความผิดปกติ (สไตล์เดียวกับหน้า All Details) ===== */
+.chain-detail > td {
+  background: #f7f9fc;
+  padding: 0.85rem 1rem;
+}
+.chain-panel {
+  border: 1px solid #e3e7ef;
+  border-top: 3px solid var(--stage, #6c757d);
+  border-radius: 10px;
+  background: #fff;
+  height: 100%;
+  overflow: hidden;
+}
+.chain-panel--prev { --stage: #6c757d; }
+.chain-panel--cur { --stage: #ffc107; }
+.chain-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid #eef1f6;
+}
+.chain-panel__ref {
+  flex: 1 1 auto;
+  font-weight: 700;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+.chain-panel__date {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+.chain-panel__body {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8rem;
+}
+.chain-panel__body > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.12rem 0.3rem;
+  border-radius: 4px;
+}
+.chain-panel__body dt {
+  color: #8a929e;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.chain-panel__body dd {
+  margin: 0;
+  text-align: right;
+  color: #2b333d;
+  font-variant-numeric: tabular-nums;
+}
+.chain-panel__empty {
+  padding: 0.7rem;
+  font-size: 0.8rem;
+  color: #a0a6b0;
+  font-style: italic;
+}
+.chain-jobs {
+  width: 100%;
+  font-size: 0.78rem;
+  border-top: 1px dashed #e6e9f0;
+  font-variant-numeric: tabular-nums;
+}
+.chain-jobs th {
+  color: #8a929e;
+  font-weight: 500;
+  padding: 0.3rem 0.7rem 0.1rem;
+}
+.chain-jobs td {
+  padding: 0.12rem 0.7rem;
+  vertical-align: top;
+}
+.chain-jobs__name {
+  color: #6b7280;
+}
+/* ช่องที่ทำให้เกิดความผิดปกติ */
+.chain-bad,
+.chain-panel__body > div.chain-bad dd {
+  color: #c0392b;
+  font-weight: 700;
+}
+.chain-panel__body > div.chain-bad,
+span.chain-bad,
+td.chain-bad {
+  background: #fdecea;
+  border-radius: 4px;
+}
+span.chain-bad {
+  padding: 0 0.25rem;
+}
+.chain-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a0a6b0;
+  font-size: 1.2rem;
+}
 </style>
 {% endblock %}
 {% block content %}
@@ -77,6 +180,100 @@
         </div>
     </div>
   </div>
+</div>
+{# แผงตรวจจับการคีย์ใบบันทึกการใช้รถที่ผิดปกติ (stock/carlog_anomaly.py) #}
+<div class="card my-3 div-shadow {% if anomalies %}border-warning{% else %}border-success{% endif %}">
+  <div class="card-header {% if anomalies %}bg-warning{% else %}bg-light text-success{% endif %}"
+       {% if anomalies %}data-toggle="collapse" data-target="#anomaly-panel" style="cursor: pointer;"{% endif %}>
+    {% if anomalies %}
+      <i class="fas fa-exclamation-triangle"></i> รายการที่อาจคีย์ผิดปกติ ({{ anomalies|length }} รายการ)
+      <i class="fas fa-chevron-down float-right mt-1"></i>
+    {% else %}
+      <i class="fas fa-check-circle"></i> ไม่พบรายการผิดปกติ
+    {% endif %}
+    <small class="ml-2">{% if anomaly_default_days %}(ตรวจ {{ anomaly_default_days }} วันล่าสุด){% else %}(ตามช่วงวันที่ที่เลือก){% endif %}</small>
+  </div>
+  {% if anomalies %}
+  <div id="anomaly-panel" class="collapse show">
+    <div class="card-body p-0">
+      <div class="table-responsive" style="max-height: 75vh; overflow-y: auto;">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="thead-light">
+            <tr>
+              {% if is_all_comp %}<th scope="col">บริษัท</th>{% endif %}
+              <th scope="col">รหัสใบใช้รถ</th>
+              <th scope="col">วันที่</th>
+              <th scope="col">ทะเบียนรถ</th>
+              <th scope="col">ชื่อผู้ใช้</th>
+              <th scope="col">ความผิดปกติ</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for a in anomalies %}
+            <tr>
+              {% if is_all_comp %}<td>{{ a.cl.branch_company.code }}</td>{% endif %}
+              <th scope="row">
+                {% if is_all_comp %}
+                  {{ a.cl.ref_no }}
+                {% elif a.cl.branch_company.code != 'L1' %}
+                  <a href="{% url 'editCL' a.cl.id %}">{{ a.cl.ref_no }}</a>
+                {% else %}
+                  <a href="{% url 'editCLRoi' a.cl.id %}">{{ a.cl.ref_no }}</a>
+                {% endif %}
+              </th>
+              <td>{{ a.cl.created|date:"d/m/Y" }}</td>
+              <td>{{ a.cl.car }}</td>
+              <td>{{ a.cl.name }}</td>
+              <td>
+                {% for issue in a.issues %}
+                  <span class="badge badge-danger text-wrap text-left mb-1" style="white-space: normal;">{{ issue.text }}</span>
+                  {% if issue.prev %}
+                    <small class="text-nowrap">ใบก่อนหน้า:
+                      {% if is_all_comp %}
+                        <b>{{ issue.prev.ref_no }}</b>
+                      {% elif issue.prev.branch_company.code != 'L1' %}
+                        <a target="_blank" href="{% url 'editCL' issue.prev.id %}"><b>{{ issue.prev.ref_no }}</b></a>
+                      {% else %}
+                        <a target="_blank" href="{% url 'editCLRoi' issue.prev.id %}"><b>{{ issue.prev.ref_no }}</b></a>
+                      {% endif %}
+                      วันที่ {{ issue.prev.created|date:"d/m/Y" }}
+                    </small>
+                  {% endif %}
+                  <br/>
+                {% endfor %}
+              </td>
+              <td><button type="button" class="btn btn-sm btn-outline-info chain-toggle text-nowrap">รายละเอียด</button></td>
+            </tr>
+            <tr class="chain-detail" hidden>
+              <td colspan="{% if is_all_comp %}7{% else %}6{% endif %}">
+                <div class="row">
+                  {# ---- ใบก่อนหน้าของรถคันเดียวกัน ---- #}
+                  <div class="col-12 col-md mb-2">
+                    {% if a.prev %}
+                      {% include "carLogbook/_anomaly_chain_panel.html" with c=a.prev bad=a.prev_bad_fields jobs=a.prev_jobs label="ใบก่อนหน้า" mod="prev" %}
+                    {% else %}
+                      <div class="chain-panel chain-panel--prev">
+                        <div class="chain-panel__head"><span class="badge badge-secondary">ใบก่อนหน้า</span></div>
+                        <div class="chain-panel__empty">ไม่มีใบก่อนหน้าของรถคันนี้</div>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-auto chain-arrow d-none d-md-flex"><i class="fas fa-arrow-right"></i></div>
+                  {# ---- ใบที่ตรวจพบความผิดปกติ ---- #}
+                  <div class="col-12 col-md mb-2">
+                    {% include "carLogbook/_anomaly_chain_panel.html" with c=a.cl bad=a.bad_fields jobs=a.jobs label="ใบนี้" mod="cur" %}
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
 <div class="card div-shadow">
   <div class="card-body">
@@ -192,6 +389,18 @@
 {% endblock%}
 {% block javascript %}
 <script>
+  document.querySelectorAll('.chain-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var detail = btn.closest('tr').nextElementSibling;
+      if (detail && detail.classList.contains('chain-detail')) {
+        detail.hidden = !detail.hidden;
+        if (!detail.hidden) {
+          detail.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    });
+  });
+
   function progress_bar(btn, btnText, btnProgress, btnPercent, py_url, file_name, delay_time){
     btn.disabled = true;
     btnText.style.visibility = "hidden";
