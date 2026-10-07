@@ -15,7 +15,8 @@ from django.utils.safestring import mark_safe
 from django.template.defaultfilters import truncatechars
 import pytz
 import os
-from stock.formatChecker import ContentTypeRestrictedFileField
+from stock.formatChecker import ContentTypeRestrictedFileField, validate_image_upload_size
+from stock.image_utils import compress_uploaded_images
 import qrcode
 from io import BytesIO
 from django.core.files import File
@@ -1736,10 +1737,10 @@ class Maintenance(models.Model):
     )
     broke_reason = models.CharField(max_length=255, blank=True, null = True, verbose_name="อาการเสีย")
     car_state = models.CharField(max_length=255, blank=True, null = True, verbose_name="สภาพรถ")#สามารถเคลื่อนที่ได้และไม่สามารถเคลื่อนที่ได้
-    image1 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 1")
-    image2 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 2")
-    image3 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 3")
-    image4 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d",verbose_name="รูปภาพที่ 4")
+    image1 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d", validators=[validate_image_upload_size],verbose_name="รูปภาพที่ 1")
+    image2 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d", validators=[validate_image_upload_size],verbose_name="รูปภาพที่ 2")
+    image3 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d", validators=[validate_image_upload_size],verbose_name="รูปภาพที่ 3")
+    image4 = models.ImageField(null=True, blank=True, upload_to = "maintenance/%Y/%m/%d", validators=[validate_image_upload_size],verbose_name="รูปภาพที่ 4")
     branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.CASCADE, blank=True, null=True)
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
@@ -1817,6 +1818,7 @@ class Maintenance(models.Model):
             self.address_company = company.address
         if self.ref_no is None:
             self.ref_no = maintenance_ref_number(self.branch_company)
+        compress_uploaded_images(self, ("image1", "image2", "image3", "image4"))
         super(Maintenance, self).save(*args, **kwargs)
 
     class Meta:
@@ -1936,7 +1938,7 @@ class CarLogbook(models.Model):
 
     note = models.TextField(blank=True, null = True, verbose_name="หมายเหตุ")#หมายเหตุ
     err_log = models.TextField(blank=True, null = True, verbose_name="error log")
-    image_mile = models.ImageField(null=True, blank=True, upload_to = "car_log_book/%Y/%m/%d",verbose_name="รูปภาพเลขไมล์เริ่มต้น")
+    image_mile = models.ImageField(null=True, blank=True, upload_to = "car_log_book/%Y/%m/%d", validators=[validate_image_upload_size],verbose_name="รูปภาพเลขไมล์เริ่มต้น")
 
     is_cancel = models.BooleanField(default=False)
     
@@ -1995,7 +1997,8 @@ class CarLogbook(models.Model):
 
         if self.mile_start is not None and self.mile_end is not None:
             self.diff_mile = self.mile_end - self.mile_start
-        
+
+        compress_uploaded_images(self, ("image_mile",))
         super(CarLogbook, self).save(*args, **kwargs)
 
     class Meta:
