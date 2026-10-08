@@ -300,7 +300,7 @@ span.chain-bad {
         {% for cl in cls %}
           <tr>
             {% if is_all_comp %}<td>{{cl.branch_company.code}}</td>{% endif %}
-            <th scope="row"><a href="">{{cl.ref_no}}</a></th>
+            <th scope="row"><a href="{% if cl.branch_company.code != 'L1' %}{% url 'editCL' cl.id %}{% else %}{% url 'editCLRoi' cl.id %}{% endif %}">{{cl.ref_no}}</a></th>
             <td>{{cl.created |date:"d/m/Y" }}</td>
             <td>{{cl.name}}</td>
             <td>{{cl.car}}</td>
