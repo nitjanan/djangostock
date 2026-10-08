@@ -9805,6 +9805,14 @@ def createCL(request):
     
     try:
         form = CarLogbookForm(request.POST or None, initial={'branch_company': company, 'name': request.user,})
+        #ให้ user เลือกบริษัทที่ไปทำงานได้ (default เป็นบริษัทที่สังกัด)
+        bc_field = form.fields['branch_company']
+        bc_field.required = True
+        bc_field.empty_label = None
+        bc_field.label = 'บริษัทที่ไปทำงาน'
+        bc_field.queryset = BaseBranchCompany.objects.exclude(code='ALL')
+        bc_field.label_from_instance = lambda obj: f"{obj.code} : {obj.name}" if obj.name else obj.code
+        bc_field.widget = forms.Select(choices=bc_field.choices, attrs={'class': 'form-control'})
         if form.is_valid():
             form = CarLogbookForm(request.POST or None, request.FILES)
             new_contact = form.save(commit=False)
@@ -10025,7 +10033,7 @@ def viewMAApprove(request):
         approve_status='ขออนุมัติซ่อมบำรุง',
         branch_company__in=branch_companies,
         car__in=ucd
-    )
+    ).select_related('car', 'name', 'ma_type', 'branch_company')
 
     '''
     #กรองข้อมูล
@@ -10070,6 +10078,7 @@ def editMAApprove(request, ma_id, mode):
             obj.approve_status = 'อนุมัติซ่อมบำรุง'
             obj.approve_name_id = request.user.id
             obj.approve_update = datetime.datetime.now()
+            obj.approve_note = (request.POST.get('approve_note') or '').strip() or None
             obj.save()
             messages.success(request, "อนุมัติแจ้งซ่อม " + str(obj.ref_no) + " เรียบร้อยแล้ว")
         return redirect('viewMAApprove')

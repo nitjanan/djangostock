@@ -15,6 +15,19 @@
 .ma:hover {
   box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
 }
+
+.approve-note {
+  background: #fff8e1;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #4a3500;
+  font-weight: 600;
+}
+
+.approve-note i {
+  color: #c79100;
+}
 </style>
 {% endblock %}
 {% block content %}
@@ -78,6 +91,7 @@
             <th scope="col">สภาพรถ</th>
             <th scope="col">ไฟล์แนบ</th>
             <th scope="col" style="width: 15px;">รูปภาพ</th>
+            <th scope="col" style="min-width: 160px;">ความคิดเห็นผู้อนุมัติซ่อม</th>
             <th scope="col" style="width: 100px;">สถานะอนุมัติ</th>
           </tr>
         </thead>
@@ -115,6 +129,11 @@
                     <img class="ma" src="{{ ma.image4.url }}" style="width:60px;height: 60px;">
                 </a>
                 {% endif %}
+            </td>
+            <td>
+              {% if ma.approve_note %}
+                <div class="approve-note"><i class="fas fa-comment-dots"></i> {{ ma.approve_note|linebreaksbr }}</div>
+              {% endif %}
             </td>
             <td>
               {% if ma.approve_status == 'อนุมัติซ่อมบำรุง' %}

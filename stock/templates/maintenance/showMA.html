@@ -7,7 +7,21 @@
 
 {% block css %}
 <style>
+  /* พิมพ์ลง A4 แผ่นเดียว ถ้ายาวเกินจะย่อให้พอดีใน fitPrintA4 */
+  @page {
+    size: A4 portrait;
+    margin: 10mm; /* ต้องตรงกับ PRINT_PAGE_MARGIN_MM */
+  }
   @media print {
+    #content {
+      padding: 0 !important;
+    }
+    .container.bd-line {
+      width: 992px !important; /* ความกว้างที่ bootstrap ใช้ตอนพิมพ์ ต้องตรงกับ PRINT_FORM_WIDTH */
+      max-width: none !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
     .hidden-print {
       display: none;
     }
@@ -56,6 +70,31 @@
 
   .ma:hover {
     box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
+  }
+
+  .approve-note-box {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #fff8e1;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    color: #4a3500;
+    font-size: 15px;
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1.5;
+    /* ให้พิมพ์สีพื้นออกมาด้วย */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .approve-note-box strong {
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .approve-note-box i {
+    color: #c79100;
   }
 
 </style>
@@ -231,7 +270,7 @@
                      </div>
                     </div>
                 </div>
-                <div class="row border-top border-secondary" style="height: 80px;">
+                <div class="row border-top border-secondary" style="min-height: 80px;">
                   <div class="col border-right border-secondary" style="display: flex; align-items: center;">
                     <h1 style="font-size:16px" class="pl-1">
                       <strong>ผู้แจ้ง (ผู้ขับ/ ผู้ใช้งาน/ ผู้พบเห็น)</strong><br>
@@ -250,6 +289,12 @@
                           ........................................ วันที่ ............./............./.............
                         {% endif %}
                       </address>
+                      {% if ma.approve_note %}
+                        <div class="approve-note-box">
+                          <strong><i class="fas fa-comment-dots"></i> ความคิดเห็นผู้อนุมัติซ่อม</strong>
+                          {{ ma.approve_note|linebreaksbr }}
+                        </div>
+                      {% endif %}
                     </h1>
                   </div>
                 </div>
@@ -489,5 +534,47 @@ function setDateTimePrint(){
 	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
 	$("#dt_print").text(datetime);
 }
+
+//ใบแจ้งซ่อมต้องพิมพ์ได้ A4 แผ่นเดียว ถ้ายาวเกิน (เช่น มีความคิดเห็นผู้อนุมัติ) จะย่อลงให้พอดี
+//ตอนพิมพ์ browser ย่อหน้ากว้าง 992px (min-width ของ bootstrap) ให้พอดีความกว้างกระดาษอยู่แล้ว
+const PRINT_FORM_WIDTH = 992;
+const PRINT_PAGE_MARGIN_MM = 10; //ต้องตรงกับ @page margin
+const PRINT_EXTRA_HEIGHT_PX = 30; //ตอนพิมพ์จริงสูงกว่าที่วัดบนจอเล็กน้อย
+function fitPrintA4(){
+  const form = document.querySelector('.container.bd-line');
+  if (!form) return;
+  form.style.zoom = '';
+
+  //วัดความสูงแบบเดียวกับตอนพิมพ์: กว้าง 992px และซ่อนส่วนที่ไม่พิมพ์
+  const notPrinted = [...form.querySelectorAll('.d-print-none, .hidden-print')];
+  const oldDisplay = notPrinted.map(e => e.style.display);
+  notPrinted.forEach(e => { e.style.display = 'none'; });
+  form.style.width = PRINT_FORM_WIDTH + 'px';
+  form.style.maxWidth = 'none';
+  const formHeight = form.getBoundingClientRect().height + PRINT_EXTRA_HEIGHT_PX;
+  form.style.width = '';
+  form.style.maxWidth = '';
+  notPrinted.forEach((e, i) => { e.style.display = oldDisplay[i]; });
+
+  //พื้นที่พิมพ์ได้ของ A4 (210x297mm) หลังหักขอบกระดาษ
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;visibility:hidden;'
+    + 'width:' + (210 - 2 * PRINT_PAGE_MARGIN_MM) + 'mm;height:' + (297 - 2 * PRINT_PAGE_MARGIN_MM) + 'mm;';
+  document.body.appendChild(probe);
+  const pageWidth = probe.offsetWidth;
+  const pageHeight = probe.offsetHeight * 0.985; //เผื่อกันล้นไปหน้า 2
+  probe.remove();
+
+  //ความสูงหลัง browser ย่อให้พอดีความกว้างกระดาษ ถ้าไม่เกินหน้าก็ไม่ต้องย่อเพิ่ม
+  const printedHeight = formHeight * (pageWidth / PRINT_FORM_WIDTH);
+  if (printedHeight > pageHeight) {
+    form.style.zoom = pageHeight / printedHeight;
+  }
+}
+window.addEventListener('beforeprint', fitPrintA4);
+window.addEventListener('afterprint', function () {
+  const form = document.querySelector('.container.bd-line');
+  if (form) form.style.zoom = '';
+});
 </script>
 {% endblock %}

@@ -1,0 +1,389 @@
+{# style ร่วมของฟอร์มบันทึกการใช้รถบน mobile (createCL, createCLRoi) #}
+<style>
+    :root {
+        --cl-purple: #6f42c1;
+        --cl-purple-dark: #4b2a8a;
+        --cl-ink: #1f2937;
+        --cl-muted: #6b7280;
+        --cl-line: #d9dce3;
+        --cl-bg: #f1f2f6;
+    }
+
+    .cl-page {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 12px 12px 96px; /* เว้นที่ให้แถบปุ่มด้านล่าง */
+        color: var(--cl-ink);
+    }
+
+    .cl-title {
+        font-size: 1.4rem;
+        font-weight: bold;
+        text-align: center;
+        margin: 4px 0 14px;
+    }
+
+    /* ---------- กล่องบริษัท (จุดเด่นของหน้า) ---------- */
+    .branch-company-box {
+        background: linear-gradient(135deg, #ffc107 0%, #ffdb4d 100%);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(214, 160, 0, 0.35);
+        padding: 12px 14px;
+        margin-bottom: 14px;
+    }
+
+    .branch-company-box label {
+        display: block;
+        margin-bottom: 8px;
+        color: #4a3500;
+        font-weight: bold;
+    }
+
+    .cl-page .branch-company-box select {
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        color: #4a3500;
+        background-color: #fff;
+    }
+
+    .cl-page .branch-company-box select:focus {
+        box-shadow: 0 0 0 0.2rem rgba(74, 53, 0, 0.35);
+    }
+
+    /* ---------- section ---------- */
+    .cl-section {
+        background: #fff;
+        border: 1px solid var(--cl-line);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 14px;
+    }
+
+    .cl-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.05rem;
+        font-weight: bold;
+        margin: 0 0 12px;
+    }
+
+    .cl-section-title i {
+        color: var(--cl-purple);
+        font-size: 1.15rem;
+    }
+
+    .cl-section-title .cl-optional {
+        margin-left: auto;
+        font-size: .8rem;
+        font-weight: normal;
+        color: var(--cl-muted);
+    }
+
+    .cl-field {
+        margin-bottom: 12px;
+    }
+
+    .cl-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .cl-page label {
+        font-size: .9rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .cl-req {
+        color: #dc3545;
+    }
+
+    .cl-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    /* ---------- inputs: ใหญ่พอสำหรับนิ้ว และ 16px กัน iOS zoom ---------- */
+    .cl-page input[type="text"],
+    .cl-page input[type="number"],
+    .cl-page input[type="date"],
+    .cl-page input[type="time"],
+    .cl-page select,
+    .cl-page textarea {
+        display: block;
+        width: 100%;
+        min-height: 48px;
+        padding: 10px 12px;
+        font-size: 16px;
+        color: var(--cl-ink);
+        background-color: #fff;
+        border: 1px solid #c4c8d0;
+        border-radius: 8px;
+    }
+
+    .cl-page textarea {
+        min-height: 80px;
+    }
+
+    .cl-page input:focus,
+    .cl-page select:focus,
+    .cl-page textarea:focus {
+        outline: none;
+        border-color: var(--cl-purple);
+        box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+    }
+
+    .cl-page .input-group {
+        flex-wrap: nowrap;
+    }
+
+    .cl-page .input-group .form-control,
+    .cl-page .input-group input {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        min-width: 0;
+    }
+
+    .cl-page .input-group-text {
+        border-radius: 8px 0 0 8px;
+        background: var(--cl-bg);
+        color: var(--cl-muted);
+    }
+
+    /* ---------- select2 ---------- */
+    .cl-page .select2-container {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .cl-page .select2-container > .selection,
+    .cl-page .select2-container .select2-selection {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .cl-page .input-group > .select2-container {
+        flex: 1 1 auto;
+        width: 1% !important;
+    }
+
+    .cl-page .select2-container .select2-selection--single {
+        height: 48px;
+        border: 1px solid #c4c8d0;
+        border-radius: 8px;
+    }
+
+    .cl-page .select2-container .select2-selection--single .select2-selection__rendered {
+        line-height: 46px;
+        padding-left: 12px;
+        font-size: 16px;
+    }
+
+    .cl-page .select2-container .select2-selection--single .select2-selection__arrow {
+        height: 46px;
+    }
+
+    /* ---------- รูปเลขไมล์ ---------- */
+    .upload-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 56px;
+        margin: 0;
+        border: 2px dashed var(--cl-purple);
+        border-radius: 10px;
+        background: #f6f2fd;
+        color: var(--cl-purple-dark);
+        font-size: 1rem;
+        cursor: pointer;
+    }
+
+    #preview-image_mile {
+        display: none;
+        max-width: 100%;
+        max-height: 220px;
+        margin-top: 10px;
+        border: 1px solid var(--cl-line);
+        border-radius: 8px;
+    }
+
+    /* ---------- งาน ---------- */
+    .cl-job + .cl-job {
+        border-top: 1px dashed var(--cl-line);
+        margin-top: 14px;
+        padding-top: 14px;
+    }
+
+    .cl-job-no {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--cl-purple);
+        color: #fff;
+        font-size: .85rem;
+    }
+
+    details.cl-job > summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        font-weight: bold;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    details.cl-job > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details.cl-job > summary::after {
+        content: "\F282"; /* bi-chevron-down */
+        font-family: "bootstrap-icons";
+        margin-left: auto;
+        color: var(--cl-muted);
+        transition: transform .2s;
+    }
+
+    details.cl-job[open] > summary::after {
+        transform: rotate(180deg);
+    }
+
+    details.cl-job[open] > summary {
+        margin-bottom: 10px;
+    }
+
+    .cl-job-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    /* ---------- ตัวเลือกแบบปุ่มกด (radio) ---------- */
+    .cl-choice {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .cl-choice-title {
+        grid-column: 1 / -1;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .cl-choice input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .cl-page .cl-choice label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 48px;
+        margin: 0;
+        padding: 8px 10px;
+        text-align: center;
+        font-weight: 600;
+        line-height: 1.25;
+        color: var(--cl-ink);
+        background: #fff;
+        border: 1px solid #c4c8d0;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .cl-choice input:checked + label {
+        color: #fff;
+        background: var(--cl-purple);
+        border-color: var(--cl-purple);
+    }
+
+    .cl-choice input:focus-visible + label {
+        box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.35);
+    }
+
+    /* ---------- แถบปุ่มด้านล่าง ---------- */
+    .cl-actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1030;
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 10px;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        background: #fff;
+        border-top: 1px solid var(--cl-line);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .cl-actions .btn {
+        min-height: 50px;
+        font-size: 1.05rem;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .cl-actions .btn-save {
+        background: #1e8e3e;
+        border-color: #1e8e3e;
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .cl-actions .btn-save:hover,
+    .cl-actions .btn-save:active {
+        background: #176f30;
+        border-color: #176f30;
+        color: #fff;
+    }
+
+    .cl-actions .btn-save:focus {
+        box-shadow: 0 0 0 0.2rem rgba(30, 142, 62, 0.4);
+    }
+
+    .cl-actions .btn-save:disabled {
+        opacity: .6;
+    }
+
+    @media (min-width: 768px) {
+        .cl-actions {
+            position: static;
+            padding: 0;
+            background: none;
+            border: none;
+            box-shadow: none;
+        }
+
+        .cl-page {
+            padding-bottom: 24px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        details.cl-job > summary::after {
+            transition: none;
+        }
+    }
+</style>
