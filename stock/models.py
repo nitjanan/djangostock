@@ -1751,6 +1751,7 @@ class Maintenance(models.Model):
     )
     approve_update = models.DateTimeField(null=True, blank=True)
     approve_status = models.CharField(blank=True, null=True, max_length=255, verbose_name="สถานะอนุมัติซ่อม")
+    approve_note = models.TextField(blank=True, null=True, verbose_name="ความคิดเห็นผู้อนุมัติซ่อม")
     ma_type = models.ForeignKey(BaseMAType, on_delete=models.CASCADE, blank=True, null=True)#ประเภทใบแจ้งซ่อม
     location = models.CharField(blank=True, null=True, max_length=255, verbose_name="สถานที่ซ่อม")
     start_rp = models.DateTimeField(blank=True, null = True, verbose_name="วันที่เริ่มดำเนินการ")

@@ -4,100 +4,293 @@
 {% load templatehelpers %}
 
 {% block css %}
+<!-- Boostrap 4 icon -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+{% include 'carLogbook/_cl_form_style.html' %}
 <style>
-body {
-  --table-width: 100%; /* Or any value, this will change dinamically */
-}
-tbody {
-  display:block;
-  max-height:500px;
-  overflow-y:auto;
-}
-thead, tbody tr {
-  display:table;
-  width: var(--table-width);
-  table-layout:fixed;
-}
-.ma{
-  border: 1px solid #ddd;
-  border-radius: 2px;
-  padding: 2px;
-  width: 60px;
-}
+    .ma-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 8px;
+        margin-left: 6px;
+        border-radius: 14px;
+        background: #ffc107;
+        color: #4a3500;
+        font-size: 1rem;
+        vertical-align: middle;
+    }
 
-.ma:hover {
-  box-shadow: 0 0 1px 1px rgba(0, 140, 186, 0.5);
-}
+    .ma-card {
+        background: #fff;
+        border: 1px solid var(--cl-line);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
 
-.container {
-  position: relative;
-  min-height: 80vh;  /* ให้ container สูงเท่ากับความสูงหน้าจอ */
-}
+    .ma-photos {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-top: 10px;
+    }
 
-.floating-btn {
-  position: absolute;
-  bottom: 5px;   /* อยู่ก้น container + เว้น 20px */
-  left: 20px;
-  z-index: 1000;
-  border-radius: 50px;
-  padding: 12px 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
+    .ma-photos img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 8px;
+        background: var(--cl-bg);
+        /* ถ้าโหลดรูปไม่ได้ ไม่ต้องโชว์ข้อความ alt ล้นกรอบ */
+        font-size: 0;
+        color: transparent;
+        overflow: hidden;
+    }
 
+    .ma-note {
+        grid-column: 1 / -1;
+        background: #fff8e1;
+        border: 2px solid #ffc107;
+        border-radius: 10px;
+        padding: 10px 12px;
+    }
+
+    .cl-page .ma-note label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #4a3500;
+    }
+
+    .ma-note label i {
+        font-size: 1.15rem;
+        color: #c79100;
+    }
+
+    .ma-note .ma-label {
+        font-weight: normal;
+        color: #8a6d00;
+    }
+
+    .cl-page .ma-note textarea {
+        min-height: 72px;
+        border: 1px solid #e0b000;
+        background: #fff;
+    }
+
+    .cl-page .ma-note textarea:focus {
+        border-color: #c79100;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.4);
+    }
+
+    .ma-label {
+        color: var(--cl-muted);
+        font-size: .85rem;
+    }
+
+    .ma-state {
+        margin-bottom: 4px;
+        font-size: .9rem;
+        font-weight: 600;
+    }
+
+    .ma-state-ok {
+        color: #1e8e3e;
+    }
+
+    .ma-state-bad {
+        color: #b02a37;
+    }
+
+    .ma-car {
+        font-size: 1.05rem;
+        font-weight: bold;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .ma-reason {
+        margin: 4px 0;
+        overflow-wrap: anywhere;
+    }
+
+    .ma-meta {
+        font-size: .85rem;
+        color: var(--cl-muted);
+    }
+
+    .ma-meta i {
+        display: inline-block;
+        width: 1.1em;
+        margin-right: 4px;
+    }
+
+    .ma-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .ma-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: .8rem;
+        font-weight: 600;
+        background: var(--cl-bg);
+        color: var(--cl-ink);
+    }
+
+    .ma-tag-pm {
+        background: #e7f1ff;
+        color: #0b4fa3;
+    }
+
+    .ma-tag-stuck {
+        background: #fde8ea;
+        color: #b02a37;
+    }
+
+    .ma-card-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .ma-card-actions .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 44px;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+
+    .ma-card-actions .btn-approve {
+        background: #1e8e3e;
+        border-color: #1e8e3e;
+        color: #fff;
+    }
+
+    .ma-card-actions .btn-approve:hover,
+    .ma-card-actions .btn-approve:active {
+        background: #176f30;
+        border-color: #176f30;
+        color: #fff;
+    }
+
+    .ma-empty {
+        text-align: center;
+        padding: 32px 16px;
+        color: var(--cl-muted);
+    }
+
+    .ma-empty i {
+        display: block;
+        font-size: 2.5rem;
+        color: #1e8e3e;
+        margin-bottom: 8px;
+    }
+
+    .cl-actions.ma-back {
+        grid-template-columns: 1fr;
+    }
 </style>
 {% endblock %}
 {% block content %}
-<div class="container my-3">
-{% if messages %}
-    {% for message in messages %}
-        <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
-          <i class="fas fa-check-circle"></i>
-          {{ message }}
-        </div>
-    {% endfor %}
-{% endif %}
-<h3 align="center">อนุมัติใบแจ้งซ่อม 
-  {% if ma_ap_all > 0%}
-    <span class="badge badge-pill badge-warning notification">{{ma_ap_all}}</span>
-  {% endif %}
-</h3>
-<div class="card">
-  <div class="card-body">
-    <div class="table-responsive">
-        <table class="table table-sm table-striped table-bordered" style="margin-bottom: 0">
-        <thead>
-          <tr>
-            <th scope="col">รหัส/ วันที่</th>
-            <th scope="col" style="width: 40%;">ทำรายการ</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for ma in mas %}
-          <tr>
-            <th scope="row"><a href="{%url 'showMA' ma.id 1 %}">{{ma.created |date:"d/m/Y" }}<br>{{ma.ref_no}}</a></th>
-            <td style="width: 40%;">
-                <a href="{%url 'editMAApprove' ma.id 1 %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
-            </td>
-          </tr>
+<div class="cl-page">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
+              <i class="fas fa-check-circle"></i>
+              {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
 
-          {% empty %}
-            <tr>
-                <th scope="row" colspan="2" class="text-center">
-                    <div class="alert alert-warning" role="alert">
-                    ไม่มีรายการที่ต้องอนุมัติ
-                    </div>
-                </th>
-            </tr>
-           {% endfor %}
-        </tbody>
-      </table>
+    <h2 class="cl-title">
+        อนุมัติใบแจ้งซ่อม
+        {% if ma_ap_all > 0 %}<span class="ma-count">{{ ma_ap_all }}</span>{% endif %}
+    </h2>
+
+    {% for ma in mas %}
+    <div class="ma-card">
+        <div class="ma-tags">
+            {% if ma.ma_type.id == '04' %}
+                <span class="ma-tag ma-tag-pm"><i class="bi bi-calendar-check"></i> PM</span>
+            {% else %}
+                <span class="ma-tag"><i class="bi bi-tools"></i> แจ้งซ่อม</span>
+            {% endif %}
+            {% if ma.car_state and 'ไม่สามารถ' in ma.car_state %}
+                <span class="ma-tag ma-tag-stuck"><i class="bi bi-exclamation-triangle"></i> เคลื่อนย้ายไม่ได้</span>
+            {% endif %}
+        </div>
+        <div class="ma-car">{% if ma.car %}{{ ma.car.code }} : {{ ma.car.name }}{% else %}-{% endif %}</div>
+        {% if ma.broke_reason %}<div class="ma-reason"><span class="ma-label">อาการเสีย</span> {{ ma.broke_reason }}</div>{% endif %}
+        {% if ma.car_state %}
+            <div class="ma-state {% if 'ไม่สามารถ' in ma.car_state %}ma-state-bad{% else %}ma-state-ok{% endif %}">{{ ma.car_state }}</div>
+        {% endif %}
+        <div class="ma-meta">
+            <div><i class="bi bi-hash"></i>{{ ma.ref_no }}{% if ma.branch_company %} ({{ ma.branch_company.code }}){% endif %}</div>
+            <div><i class="bi bi-calendar3"></i>{{ ma.created|date:"d/m/Y H:i" }}</div>
+            {% if ma.name %}<div><i class="bi bi-person"></i>ผู้แจ้ง {{ ma.name.get_full_name|default:ma.name.username }}</div>{% endif %}
+        </div>
+
+        {% if ma.image1 or ma.image2 or ma.image3 or ma.image4 %}
+        <div class="ma-photos">
+            {% if ma.image1 %}<a href="{{ ma.image1.url }}" target="_blank" rel="noopener"><img src="{{ ma.image1.url }}" alt="รูปภาพที่ 1 ของ {{ ma.ref_no }}" loading="lazy"></a>{% endif %}
+            {% if ma.image2 %}<a href="{{ ma.image2.url }}" target="_blank" rel="noopener"><img src="{{ ma.image2.url }}" alt="รูปภาพที่ 2 ของ {{ ma.ref_no }}" loading="lazy"></a>{% endif %}
+            {% if ma.image3 %}<a href="{{ ma.image3.url }}" target="_blank" rel="noopener"><img src="{{ ma.image3.url }}" alt="รูปภาพที่ 3 ของ {{ ma.ref_no }}" loading="lazy"></a>{% endif %}
+            {% if ma.image4 %}<a href="{{ ma.image4.url }}" target="_blank" rel="noopener"><img src="{{ ma.image4.url }}" alt="รูปภาพที่ 4 ของ {{ ma.ref_no }}" loading="lazy"></a>{% endif %}
+        </div>
+        {% endif %}
+
+        <form class="ma-card-actions" action="{% url 'editMAApprove' ma.id 1 %}" method="post"
+              onsubmit="return confirmApprove(this, '{{ ma.ref_no|escapejs }}');">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="อนุมัติ">
+            <div class="ma-note">
+                <label for="approve_note_{{ ma.id }}"><i class="bi bi-chat-square-text-fill"></i> ความคิดเห็นผู้อนุมัติซ่อม <span class="ma-label">(ถ้ามี)</span></label>
+                <textarea name="approve_note" id="approve_note_{{ ma.id }}" rows="2" placeholder="เช่น ให้ซ่อมด่วน, รออะไหล่, ส่งซ่อมร้านนอก"></textarea>
+            </div>
+            <button type="submit" class="btn btn-approve"><i class="fas fa-check-circle"></i> อนุมัติ</button>
+        </form>
     </div>
-  </div>
-</div>
-<div class="text-center my-3">
-  <a href="{% url 'mobileMenu' %}" class="btn btn-secondary floating-btn">
-    <i class="fas fa-arrow-left"></i> กลับไป
-  </a>
-</div>
+    {% empty %}
+    <div class="ma-card ma-empty">
+        <i class="bi bi-check2-circle"></i>
+        ไม่มีรายการที่ต้องอนุมัติ
+    </div>
+    {% endfor %}
+
+    <div class="cl-actions ma-back">
+        <a href="{% url 'mobileMenu' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> กลับไปเมนู
+        </a>
+    </div>
 </div>
 {% endblock%}
+{% block javascript %}
+<script>
+    function confirmApprove(form, refNo) {
+        if (!confirm('ต้องการอนุมัติใบแจ้งซ่อม ' + refNo + ' หรือไม่?')) {
+            return false;
+        }
+        //กันกดซ้ำ
+        form.querySelector('[type=submit]').disabled = true;
+        return true;
+    }
+</script>
+{% endblock %}
