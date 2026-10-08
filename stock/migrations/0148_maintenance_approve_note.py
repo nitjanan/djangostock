@@ -6,7 +6,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stock', '0145_maintenance_approve_note'),
         ('stock', '0147_image_upload_size_validator'),
     ]
 
