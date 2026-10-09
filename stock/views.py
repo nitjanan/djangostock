@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 from dis import dis
 from multiprocessing import context
 import numbers
@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -30,6 +30,8 @@ from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisiti
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
+import requests
+import time
 from django.db.models import Prefetch, Sum, Max
 from .resources import ReceiveItemResource, DistributorResource
 from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
@@ -12744,3 +12746,1236 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
         })
 
     return Response(result)
+
+
+# ตัวเลือก "ภาค" ของตารางผู้จัดจำหน่ายอื่นๆ: เลือกแล้วใช้พิกัดเมืองหลักของภาคแทนตำแหน่งปัจจุบัน (ค้นตามรัศมีรอบจุดนี้)
+REGION_PRESETS = [
+    {"value": "central", "label": "ภาคกลาง", "city": "กรุงเทพมหานคร", "lat": "13.756331", "lng": "100.501765"},
+    {"value": "north", "label": "ภาคเหนือ", "city": "เชียงใหม่", "lat": "18.788344", "lng": "98.985300"},
+    {"value": "northeast", "label": "ภาคอีสาน", "city": "ขอนแก่น", "lat": "16.432200", "lng": "102.823600"},
+    {"value": "south", "label": "ภาคใต้", "city": "สุราษฎร์ธานี", "lat": "9.138200", "lng": "99.321700"},
+]
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def venderReport(request, pages=None):
+    vender = Distributor.objects.all().order_by('id')
+
+    # เพิ่มส่วนของการฟิลเตอร์ (ต้องทำก่อนตัดแบ่งหน้า)
+    from stock.filters import DistributorFilter
+    myFilter = DistributorFilter(request.GET, queryset=vender)
+    vender = myFilter.qs
+
+    # เลขหน้ามาจาก URL /report/vendor/<pages> เกินหน้าสุดท้ายจะพาไปหน้าสุดท้าย
+    vender = Paginator(vender, 20).get_page(pages)
+    vendor_page_range = vender.paginator.get_elided_page_range(vender.number, on_each_side=2, on_ends=1)
+    vendor_total = vender.paginator.count
+
+    print(len(vender))
+    for v in vender :
+        print(v.id , v.name)
+
+    ext = _external_vendor_data(request)
+    external_vendors = ext["vendors"]
+    external_total = len(external_vendors)
+    external_page = Paginator(external_vendors, 20).get_page(request.GET.get("ext_page"))
+    external_page_range = external_page.paginator.get_elided_page_range(external_page.number, on_each_side=2, on_ends=1)
+
+    # query string เดิมทั้งหมด (lat/lng/keyword/ฟิลเตอร์) ยกเว้น ext_page ไว้ต่อท้ายลิงก์เปลี่ยนหน้า / export
+    ext_query = request.GET.copy()
+    ext_query.pop("ext_page", None)
+    ext_query = ext_query.urlencode()
+
+    content = {
+        "vender":vender,
+        "filter": myFilter,
+        "vendor_page_range": vendor_page_range,
+        "vendor_total": vendor_total,
+        "vendor_query": request.GET.urlencode(),
+        "external_vendors": external_page,
+        "external_page_range": external_page_range,
+        "ext_query": ext_query,
+        "lat": ext["lat"],
+        "lng": ext["lng"],
+        "keyword": ext["keyword"],
+        "radius_km": ext["radius_km"],
+        "external_total": external_total,
+        "shop_type": ext["shop_type"],
+        "shop_type_options": ext["shop_type_options"],
+        "category": ext["category"],
+        "category_options": ext["category_options"],
+        "source": ext["source"],
+        "tomtom_available": bool(settings.TOMTOM_API_KEY),
+        "region_presets": REGION_PRESETS,
+        "region": next((r["value"] for r in REGION_PRESETS if r["value"] == request.GET.get("region")), None),
+        "system_status": ext["system_status"],
+        "system_status_options": ext["system_status_options"],
+    }
+    content.update(_candidate_section(request))
+    # ปุ่มไปหน้าอนุมัติ (มุมบนของหน้า) แสดงเฉพาะกลุ่ม ApproveDistributor
+    if is_approve_distributor(request.user):
+        content["dist_ap_count"] = DistributorCandidate.objects.filter(status=DistributorCandidate.STATUS_SUBMITTED).count()
+    print(content)
+    # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
+    print(content['vender'])
+    return render(request, "report/viewVendor.html" , content )
+
+
+# แท็บของการ์ด "ใบขอเพิ่ม Supplier" ในหน้ารายงาน: (ค่า, ชื่อ, สถานะที่รวมไว้)
+CANDIDATE_TABS = [
+    ("open", "ร่าง / รออนุมัติ", ("draft", "submitted")),
+    ("submitted", "รออนุมัติ", ("submitted",)),
+    ("draft", "ร่าง", ("draft",)),
+    ("approved", "อนุมัติแล้ว", ("approved",)),
+    ("rejected", "ไม่อนุมัติ", ("rejected",)),
+]
+
+
+def _candidate_section(request):
+    """ใบขอเพิ่ม Supplier ที่เก็บไว้ใน DB แสดงในหน้ารายงานทันที ไม่ต้องค้นจากแผนที่ (API) ก่อน"""
+    tabs = {value: statuses for value, _, statuses in CANDIDATE_TABS}
+    cand_status = request.GET.get("cand_status")
+    if cand_status not in tabs:
+        cand_status = "open"
+    counts = dict(DistributorCandidate.objects.values_list("status").annotate(c=Count("id")))
+    candidates = (
+        DistributorCandidate.objects.filter(status__in=tabs[cand_status])
+        .select_related("requested_by", "approved_by", "distributor")
+        .order_by("-submitted_at", "-created")
+    )
+    page = Paginator(candidates, 10).get_page(request.GET.get("cand_page"))
+
+    # query string เดิมทั้งหมด (ตัวกรองตารางอื่น / lat lng) ยกเว้นของการ์ดนี้ ไว้ต่อท้ายลิงก์แท็บ / เปลี่ยนหน้า
+    cand_query = request.GET.copy()
+    cand_query.pop("cand_status", None)
+    cand_query.pop("cand_page", None)
+    return {
+        "candidates": page,
+        "cand_status": cand_status,
+        "cand_tabs": [
+            {"value": value, "label": label, "count": sum(counts.get(s, 0) for s in statuses)}
+            for value, label, statuses in CANDIDATE_TABS
+        ],
+        "cand_query": cand_query.urlencode(),
+    }
+
+
+def _external_vendor_data(request):
+    """อ่านตัวกรองของตารางผู้จัดจำหน่ายอื่นๆ จาก query string แล้วคืนรายการร้านที่กรองแล้ว (ใช้ทั้งหน้า report และ export)"""
+    # lat/lng มาจาก GPS ของเครื่อง user หรือที่ user กรอกเอง (ส่งมาทาง query string)
+    lat = request.GET.get("lat")
+    lng = request.GET.get("lng")
+    keyword = request.GET.get("keyword")
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+        if not (-90 <= lat_f <= 90 and -180 <= lng_f <= 180):
+            raise ValueError
+    except (TypeError, ValueError):
+        lat = lng = None
+
+    try:
+        radius_km = min(max(int(request.GET.get("radius", 10)), 1), 50)
+    except ValueError:
+        radius_km = 10
+
+    # แหล่งข้อมูล: tomtom (ค่าเริ่มต้นเมื่อมี API key) / osm
+    source = request.GET.get("source")
+    if source not in ("tomtom", "osm"):
+        source = "tomtom" if settings.TOMTOM_API_KEY else "osm"
+
+    external_vendors = []
+    if lat and lng:
+        if source == "tomtom":
+            # ไม่มี keyword: ดึงเฉพาะหมวดของฝ่ายซื้อ (1 หมวด = 1 request, cache 1 ชม.)
+            external_vendors = fetch_vendors_from_tomtom(
+                lat_f, lng_f, radius=radius_km * 1000, keyword=keyword,
+                category_ids=None if keyword else list(TOMTOM_CATEGORIES),
+            )
+        else:
+            external_vendors = fetch_vendors_from_openstreetmap(lat_f, lng_f, radius=radius_km * 1000, keyword=keyword)
+
+    from collections import Counter
+    for ev in external_vendors:
+        if source == "tomtom":
+            tt_category, tt_label = TOMTOM_CATEGORIES.get(ev["category_id"], ("other", None))
+            ev["category"] = tt_category
+            ev["shop_type_label"] = tt_label or ev["shop_type"] or "ไม่ระบุ"
+        else:
+            ev["category"] = purchasing_category(ev["shop_type"])
+            ev["shop_type_label"] = osm_shop_type_label(ev["shop_type"])
+        ev["category_label"] = PURCHASING_CATEGORY_LABELS[ev["category"]]
+    shop_type_labels = {ev["shop_type"] or "": ev["shop_type_label"] for ev in external_vendors}
+
+    # หมวดฝ่ายซื้อ: นับจากผลทั้งหมด / "purchasing" = รวมทั้ง 3 หมวด
+    category_counts = Counter(ev["category"] for ev in external_vendors)
+    category_options = [
+        {"value": "purchasing", "label": "ทั้ง 3 หมวดของฝ่ายซื้อ", "count": sum(category_counts[k] for k, _, _ in PURCHASING_CATEGORIES)},
+    ] + [
+        {"value": key, "label": PURCHASING_CATEGORY_LABELS[key], "count": category_counts[key]}
+        for key in [k for k, _, _ in PURCHASING_CATEGORIES] + ["other"]
+    ]
+
+    category = request.GET.get("category")
+    if category == "purchasing":
+        external_vendors = [ev for ev in external_vendors if ev["category"] != "other"]
+    elif category in PURCHASING_CATEGORY_LABELS:
+        external_vendors = [ev for ev in external_vendors if ev["category"] == category]
+    else:
+        category = None
+
+    # ตัวเลือกประเภทร้าน นับจากผลหลังกรองหมวด แต่ก่อนกรองประเภท จะได้สลับประเภทได้ตลอด
+    shop_type_counts = Counter(ev["shop_type"] or "" for ev in external_vendors)
+    shop_type_options = [
+        {"value": t, "label": shop_type_labels[t], "count": c}
+        for t, c in shop_type_counts.most_common()
+    ]
+
+    shop_type = request.GET.get("shop_type")
+    if shop_type is not None and shop_type in shop_type_counts:
+        external_vendors = [ev for ev in external_vendors if (ev["shop_type"] or "") == shop_type]
+    else:
+        shop_type = None
+
+    # สถานะในระบบ: เทียบ place_id กับ Distributor ที่อนุมัติแล้ว และร้านที่เสนอไว้ใน DistributorCandidate
+    _annotate_system_status(external_vendors, source)
+    system_status_counts = Counter(ev["system_status"] for ev in external_vendors)
+    system_status_options = [
+        {"value": key, "label": label, "count": system_status_counts[key]}
+        for key, label in SYSTEM_STATUS_LABELS.items()
+    ]
+
+    system_status = request.GET.get("system_status")
+    if system_status in SYSTEM_STATUS_LABELS:
+        external_vendors = [ev for ev in external_vendors if ev["system_status"] == system_status]
+    else:
+        system_status = None
+
+    return {
+        "vendors": external_vendors,
+        "lat": lat,
+        "lng": lng,
+        "keyword": keyword,
+        "radius_km": radius_km,
+        "source": source,
+        "category": category,
+        "category_options": category_options,
+        "shop_type": shop_type,
+        "shop_type_options": shop_type_options,
+        "system_status": system_status,
+        "system_status_options": system_status_options,
+    }
+
+
+SYSTEM_STATUS_LABELS = {
+    "new": "ยังไม่มีในระบบ",
+    "draft": "กำลังกรอกฟอร์ม",
+    "pending": "รออนุมัติ",
+    "in_system": "มีในระบบแล้ว",
+    "rejected": "ไม่อนุมัติ",
+}
+
+# สถานะของใบขอเพิ่ม -> สถานะที่แสดงในตารางผู้จัดจำหน่ายอื่นๆ
+CANDIDATE_SYSTEM_STATUS = {
+    DistributorCandidate.STATUS_DRAFT: "draft",
+    DistributorCandidate.STATUS_SUBMITTED: "pending",
+    DistributorCandidate.STATUS_REJECTED: "rejected",
+}
+
+# ส่วนหัวของใบ FM-PU-005 ที่ผู้คัดเลือกกรอกได้
+CANDIDATE_HEADER_FIELDS = ("name", "address", "branch", "contact", "tel", "fax_line", "tax_id", "email", "business_type")
+
+
+def external_place_id(ev, source):
+    """รหัสร้านจากแผนที่ที่ใช้เก็บใน Distributor.place_id / OSM ใส่ชนิดนำหน้า เพราะ node กับ way ใช้เลขซ้ำกันได้"""
+    if source == "tomtom":
+        return ev.get("tomtom_id")
+    if ev.get("osm_id") is None:
+        return None
+    return f"{ev.get('osm_type') or 'node'}/{ev['osm_id']}"
+
+
+def _annotate_system_status(external_vendors, source):
+    """เติม place_id / system_status / distributor_id / candidate_id ให้ร้านจากแผนที่แต่ละร้าน (query 2 ครั้งต่อหน้า)"""
+    for ev in external_vendors:
+        ev["place_source"] = source
+        ev["place_id"] = external_place_id(ev, source)
+    place_ids = [ev["place_id"] for ev in external_vendors if ev["place_id"]]
+
+    in_system = dict(
+        Distributor.objects.filter(place_source=source, place_id__in=place_ids).values_list("place_id", "id")
+    )
+    candidates = {
+        place_id: (pk, status)
+        for place_id, pk, status in DistributorCandidate.objects.filter(
+            place_source=source, place_id__in=place_ids
+        ).values_list("place_id", "pk", "status")
+    }
+    for ev in external_vendors:
+        pid = ev["place_id"]
+        candidate_pk, candidate_status = candidates.get(pid, (None, None))
+        ev["distributor_id"] = in_system.get(pid)
+        ev["candidate_id"] = candidate_pk
+        if ev["distributor_id"]:
+            ev["system_status"] = "in_system"
+        else:
+            ev["system_status"] = CANDIDATE_SYSTEM_STATUS.get(candidate_status, "new")
+        ev["system_status_label"] = SYSTEM_STATUS_LABELS[ev["system_status"]]
+
+
+def is_approve_distributor(user):
+    return user.groups.filter(name='ApproveDistributor').exists()
+
+
+def _redirect_back(request, fallback="viewVendorReport"):
+    """กลับไปหน้าเดิม (พร้อมตัวกรองเดิม) ถ้า next เป็น URL ภายในเว็บเรา"""
+    from django.utils.http import url_has_allowed_host_and_scheme
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(next_url)
+    return redirect(fallback)
+
+
+def _parse_coordinate(value, limit):
+    try:
+        d = Decimal(str(value)).quantize(Decimal("0.000001"))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    return d if -limit <= d <= limit else None
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def proposeDistributorCandidate(request):
+    """ผู้ใช้กด "เสนอเพิ่ม" จากตารางผู้จัดจำหน่ายอื่นๆ -> สร้างใบขอเพิ่ม (ร่าง) จากข้อมูลแผนที่ แล้วไปหน้ากรอกฟอร์ม"""
+    source = request.POST.get("place_source")
+    place_id = (request.POST.get("place_id") or "").strip()
+    name = (request.POST.get("name") or "").strip()
+    if source not in ("tomtom", "osm") or not place_id or not name:
+        messages.error(request, "ข้อมูลร้านไม่ครบ เสนอเพิ่มไม่สำเร็จ")
+        return _redirect_back(request)
+
+    existing = Distributor.objects.filter(place_source=source, place_id=place_id).first()
+    if existing:
+        messages.info(request, f"ร้าน {name} มีในระบบแล้ว (รหัส {existing.id})")
+        return _redirect_back(request)
+
+    candidate = DistributorCandidate.objects.filter(place_source=source, place_id=place_id).first()
+    if candidate and candidate.status == DistributorCandidate.STATUS_SUBMITTED:
+        messages.info(request, f"ร้าน {name} ส่งฟอร์มแล้ว อยู่ระหว่างรออนุมัติ")
+        return redirect("distributorCandidateDetail", candidate.pk)
+    if candidate and candidate.status == DistributorCandidate.STATUS_DRAFT:
+        if candidate.requested_by_id != request.user.id:
+            messages.info(request, f"ร้าน {name} มีผู้คัดเลือกคนอื่นกำลังกรอกฟอร์มอยู่")
+            return redirect("distributorCandidateDetail", candidate.pk)
+        return redirect("distributorCandidateForm", candidate.pk)
+
+    if candidate is None:
+        candidate = DistributorCandidate(
+            place_source=source,
+            place_id=place_id,
+            name=name[:255],
+            address=(request.POST.get("address") or "").strip() or None,
+            tel=(request.POST.get("tel") or "").strip()[:255] or None,
+            shop_type=(request.POST.get("shop_type") or "").strip()[:255] or None,
+            latitude=_parse_coordinate(request.POST.get("lat"), 90),
+            longitude=_parse_coordinate(request.POST.get("lng"), 180),
+        )
+    # ใบที่เคยไม่อนุมัติ (หรือร้านที่เคยอนุมัติแต่ Distributor ถูกลบ) เปิดเป็นร่างใหม่ คำตอบเดิมยังอยู่ให้แก้ต่อ
+    candidate.status = DistributorCandidate.STATUS_DRAFT
+    candidate.requested_by = request.user
+    candidate.created = timezone.now()
+    candidate.submitted_at = None
+    candidate.approved_by = None
+    candidate.approved_at = None
+    candidate.reject_reason = None
+    candidate.distributor = None
+    candidate.save()
+    return redirect("distributorCandidateForm", candidate.pk)
+
+
+def _can_edit_candidate(user, candidate):
+    return candidate.status == DistributorCandidate.STATUS_DRAFT and (
+        candidate.requested_by_id == user.id or user.is_superuser
+    )
+
+
+@login_required(login_url='signIn')
+def distributorCandidateForm(request, pk):
+    """ผู้คัดเลือกกรอกใบขอเพิ่ม Supplier: ส่วนหัว + ผ่าน/ไม่ผ่าน ทีละหลักเกณฑ์ -> บันทึกร่าง / ส่งฟอร์ม"""
+    candidate = get_object_or_404(DistributorCandidate, pk=pk)
+    if not _can_edit_candidate(request.user, candidate):
+        messages.warning(request, "ใบนี้แก้ไขไม่ได้ (ส่งฟอร์มแล้ว หรือคุณไม่ใช่ผู้คัดเลือกของใบนี้)")
+        return redirect("distributorCandidateDetail", pk)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "cancel":
+            name = candidate.name
+            candidate.delete()
+            messages.success(request, f"ยกเลิกใบขอเพิ่มร้าน {name} แล้ว")
+            return redirect("viewVendorReport")
+
+        for field in CANDIDATE_HEADER_FIELDS:
+            value = (request.POST.get(field) or "").strip()
+            setattr(candidate, field, value or (candidate.name if field == "name" else None))
+        try:
+            credit_days = int(request.POST.get("credit_days") or "")
+            candidate.credit_days = credit_days if credit_days >= 0 else None
+        except ValueError:
+            candidate.credit_days = None
+        candidate.save()
+
+        # ตอบได้เฉพาะข้อที่ไม่มีข้อย่อย ข้อหลักคำนวณผลจากข้อย่อย
+        for row in candidate.evaluate()["rows"]:
+            if not row["is_leaf"]:
+                continue
+            rule = row["rule"]
+            ans = request.POST.get(f"ans_{rule.pk}")
+            remark = (request.POST.get(f"remark_{rule.pk}") or "").strip() or None
+            if ans in (DistributorForm.ANS_PASS, DistributorForm.ANS_FAIL):
+                DistributorForm.objects.update_or_create(
+                    candidate=candidate, question=rule, defaults={"ans": ans, "remark": remark},
+                )
+            else:
+                DistributorForm.objects.filter(candidate=candidate, question=rule).delete()
+
+        if action == "submit":
+            evaluation = candidate.evaluate()
+            if evaluation["missing"]:
+                codes = ", ".join(r.code for r in evaluation["missing"])
+                messages.error(request, f"ยังส่งฟอร์มไม่ได้ กรุณาตอบหลักเกณฑ์ให้ครบ (ข้อ {codes})")
+                return redirect("distributorCandidateForm", pk)
+            candidate.status = DistributorCandidate.STATUS_SUBMITTED
+            candidate.submitted_at = timezone.now()
+            candidate.save()
+            messages.success(request, f"ส่งใบขอเพิ่มร้าน {candidate.name} แล้ว รอผู้อนุมัติ")
+            return redirect("distributorCandidateDetail", pk)
+
+        messages.success(request, "บันทึกร่างแล้ว")
+        return redirect("distributorCandidateForm", pk)
+
+    return render(request, "report/distributorCandidateForm.html", {
+        "candidate": candidate,
+        "evaluation": candidate.evaluate(),
+        "ans_choices": DistributorForm.ANS_CHOICES,
+    })
+
+
+def _approver_only(view):
+    """หน้าของผู้อนุมัติ: เฉพาะกลุ่ม ApproveDistributor คนอื่นกลับไปหน้ารายการผู้จัดจำหน่าย"""
+    from functools import wraps
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not is_approve_distributor(request.user):
+            messages.error(request, "หน้านี้สำหรับผู้อนุมัติผู้จัดจำหน่าย (กลุ่ม ApproveDistributor) เท่านั้น")
+            return redirect("viewVendorReport")
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@login_required(login_url='signIn')
+@_approver_only
+def distributorApproveList(request):
+    """หน้าผู้อนุมัติ: คิวใบขอเพิ่ม Supplier ที่รออนุมัติ + ประวัติที่พิจารณาแล้ว"""
+    tabs = [
+        (DistributorCandidate.STATUS_SUBMITTED, "รออนุมัติ"),
+        (DistributorCandidate.STATUS_APPROVED, "อนุมัติแล้ว"),
+        (DistributorCandidate.STATUS_REJECTED, "ไม่อนุมัติ"),
+    ]
+    status = request.GET.get("status")
+    if status not in dict(tabs):
+        status = DistributorCandidate.STATUS_SUBMITTED
+    candidates = DistributorCandidate.objects.filter(status=status).select_related("requested_by", "approved_by", "distributor")
+    # คิวรออนุมัติ: ใบที่ส่งก่อนขึ้นก่อน / ประวัติ: ล่าสุดขึ้นก่อน
+    candidates = candidates.order_by("submitted_at" if status == DistributorCandidate.STATUS_SUBMITTED else "-approved_at")
+    page = Paginator(candidates, 20).get_page(request.GET.get("page"))
+    for c in page:
+        c.evaluation = c.evaluate()
+    status_counts = dict(DistributorCandidate.objects.values_list("status").annotate(c=Count("id")))
+    return render(request, "report/distributorApprove.html", {
+        "candidates": page,
+        "status": status,
+        "status_options": [{"value": k, "label": label, "count": status_counts.get(k, 0)} for k, label in tabs],
+    })
+
+
+def _candidate_detail_context(request, pk):
+    candidate = get_object_or_404(
+        DistributorCandidate.objects.select_related("requested_by", "approved_by", "distributor"), pk=pk
+    )
+    return {"candidate": candidate, "evaluation": candidate.evaluate()}
+
+
+@login_required(login_url='signIn')
+def distributorCandidateDetail(request, pk):
+    """หน้าผู้ขอ: ดูใบขอเพิ่ม Supplier และสถานะ (อ่านอย่างเดียว)"""
+    context = _candidate_detail_context(request, pk)
+    context["can_edit"] = _can_edit_candidate(request.user, context["candidate"])
+    return render(request, "report/distributorCandidateDetail.html", context)
+
+
+@login_required(login_url='signIn')
+@_approver_only
+def distributorApproveDetail(request, pk):
+    """หน้าผู้อนุมัติ: ดูใบขอเพิ่ม Supplier + อนุมัติ / ไม่อนุมัติ"""
+    context = _candidate_detail_context(request, pk)
+    context["approve_view"] = True
+    context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
+    context["vat_types"] = BaseVatType.objects.order_by("id")
+    return render(request, "report/distributorCandidateDetail.html", context)
+
+
+@login_required(login_url='signIn')
+def distributorCandidatePrint(request, pk):
+    """หน้าพิมพ์ใบ FM-PU-005 ขนาด A4 (กดพิมพ์ -> บันทึกเป็น PDF)"""
+    candidate = get_object_or_404(
+        DistributorCandidate.objects.select_related("requested_by", "approved_by", "distributor"), pk=pk
+    )
+    return render(request, "report/distributorCandidatePrint.html", {
+        "candidate": candidate,
+        "evaluation": candidate.evaluate(),
+    })
+
+
+def _distributor_id_from_autocomplete(value):
+    """autocompalteDistributor คืนค่าเป็น "รหัส-ชื่อ" และรหัสเองก็อาจมี "-" -> เลือกส่วนหน้ายาวสุดที่เป็นรหัสจริง"""
+    prefixes = [value] + [value[:i].strip() for i in range(len(value) - 1, 0, -1) if value[i] == "-"]
+    existing = set(Distributor.objects.filter(id__in=prefixes).values_list("id", flat=True))
+    return next((p for p in prefixes if p in existing), value)
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def approveDistributorCandidate(request, pk):
+    """อนุมัติ: mode=new สร้าง Distributor ด้วยรหัส Express ที่กรอก / mode=link ผูกกับ Distributor ที่มีอยู่แล้ว"""
+    from django.db import transaction, IntegrityError
+    if not is_approve_distributor(request.user):
+        messages.error(request, "คุณไม่มีสิทธิ์อนุมัติผู้จัดจำหน่าย (ต้องอยู่ในกลุ่ม ApproveDistributor)")
+        return redirect("distributorApproveDetail", pk)
+
+    mode = request.POST.get("mode")
+    distributor_id = (request.POST.get("distributor_id") or "").strip()
+    if mode == "link":
+        distributor_id = _distributor_id_from_autocomplete(distributor_id)
+    if mode not in ("new", "link") or not distributor_id:
+        messages.error(request, "กรุณากรอกรหัส Supplier")
+        return redirect("distributorApproveDetail", pk)
+
+    try:
+        with transaction.atomic():
+            candidate = DistributorCandidate.objects.select_for_update().get(pk=pk)
+            if candidate.status != DistributorCandidate.STATUS_SUBMITTED:
+                messages.warning(request, f"ใบของร้าน {candidate.name} ไม่ได้อยู่ในสถานะรออนุมัติ")
+                return redirect("distributorApproveDetail", pk)
+
+            evaluation = candidate.evaluate()
+            if evaluation["missing"] or not evaluation["mandatory_passed"]:
+                failed = ", ".join(g["group"].name for g in evaluation["groups"] if not g["passed"])
+                messages.error(request, f"อนุมัติไม่ได้ ไม่ผ่านเกณฑ์บังคับ: {failed or 'ตอบหลักเกณฑ์ไม่ครบ'}")
+                return redirect("distributorApproveDetail", pk)
+
+            taken = Distributor.objects.filter(place_source=candidate.place_source, place_id=candidate.place_id).first()
+            if taken:
+                messages.error(request, f"ร้านนี้ผูกกับผู้จัดจำหน่าย {taken.id} อยู่แล้ว")
+                return redirect("distributorApproveDetail", pk)
+
+            if mode == "new":
+                if Distributor.objects.filter(id=distributor_id).exists():
+                    messages.error(request, f"รหัส {distributor_id} มีอยู่แล้ว ถ้าเป็นร้านเดียวกันให้เลือก \"ผูกกับรายเดิม\"")
+                    return redirect("distributorApproveDetail", pk)
+                # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL (โมเดลเขียน null=True) ต้องใส่ทุกครั้ง
+                vat_type = BaseVatType.objects.filter(pk=request.POST.get("vat_type")).first()
+                if vat_type is None:
+                    messages.error(request, "กรุณาเลือกชนิดภาษี")
+                    return redirect("distributorApproveDetail", pk)
+                distributor = Distributor(
+                    id=distributor_id,
+                    name=candidate.name,
+                    address=candidate.address,
+                    tel=candidate.tel,
+                    contact=candidate.contact,
+                    fax=candidate.fax_line,
+                    tex=candidate.tax_id,
+                    vat_type=vat_type,
+                )
+            else:
+                distributor = Distributor.objects.select_for_update().filter(id=distributor_id).first()
+                if distributor is None:
+                    messages.error(request, f"ไม่พบผู้จัดจำหน่ายรหัส {distributor_id}")
+                    return redirect("distributorApproveDetail", pk)
+                if distributor.place_id:
+                    messages.error(request, f"ผู้จัดจำหน่าย {distributor.id} ผูกกับร้านบนแผนที่อื่นอยู่แล้ว")
+                    return redirect("distributorApproveDetail", pk)
+
+            distributor.place_source = candidate.place_source
+            distributor.place_id = candidate.place_id
+            distributor.latitude = candidate.latitude
+            distributor.longitude = candidate.longitude
+            distributor.save()
+
+            candidate.status = DistributorCandidate.STATUS_APPROVED
+            candidate.approved_by = request.user
+            candidate.approved_at = timezone.now()
+            candidate.distributor = distributor
+            candidate.save()
+    except DistributorCandidate.DoesNotExist:
+        messages.error(request, "ไม่พบใบขอเพิ่มที่ต้องการอนุมัติ")
+        return redirect("distributorApproveList")
+    except IntegrityError as e:
+        # แสดงสาเหตุจริงจากฐานข้อมูล ไม่เดาว่าเป็นรหัสซ้ำ
+        messages.error(request, f"บันทึกไม่สำเร็จ: {e}")
+        return redirect("distributorApproveDetail", pk)
+
+    action = "เพิ่ม" if mode == "new" else "ผูก"
+    messages.success(request, f"อนุมัติแล้ว: {action}ร้าน {candidate.name} เป็น Supplier รหัส {distributor.id}")
+    return redirect("distributorApproveList")
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def rejectDistributorCandidate(request, pk):
+    if not is_approve_distributor(request.user):
+        messages.error(request, "คุณไม่มีสิทธิ์อนุมัติผู้จัดจำหน่าย (ต้องอยู่ในกลุ่ม ApproveDistributor)")
+        return redirect("distributorApproveDetail", pk)
+    updated = DistributorCandidate.objects.filter(pk=pk, status=DistributorCandidate.STATUS_SUBMITTED).update(
+        status=DistributorCandidate.STATUS_REJECTED,
+        approved_by=request.user,
+        approved_at=timezone.now(),
+        reject_reason=(request.POST.get("reject_reason") or "").strip() or None,
+    )
+    if not updated:
+        messages.warning(request, "ใบนี้ไม่ได้อยู่ในสถานะรออนุมัติ")
+        return redirect("distributorApproveDetail", pk)
+    messages.success(request, "บันทึกผล ไม่ผ่านการคัดเลือก แล้ว")
+    return redirect("distributorApproveList")
+
+
+def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link_column=None):
+    """สร้างไฟล์ .xlsx: หัวตารางตัวหนา + ตรึงแถวหัว + ปรับความกว้างคอลัมน์ / link_column = index คอลัมน์ที่เป็นลิงก์"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = title
+
+    ws.append(headers)
+    header_fill = PatternFill("solid", fgColor="343A40")
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.freeze_panes = "A2"
+
+    for row in rows:
+        ws.append(row)
+        if link_column is not None:
+            cell = ws.cell(row=ws.max_row, column=link_column + 1)
+            if cell.value:
+                cell.hyperlink = cell.value
+                cell.value = "เปิด Google Map"
+                cell.font = Font(color="0563C1", underline="single")
+
+    for line in footer_lines:
+        ws.append([])
+        ws.append([line])
+
+    for idx, header in enumerate(headers, start=1):
+        values = [str(header)] + [str(r[idx - 1]) for r in rows if idx - 1 < len(r) and r[idx - 1] is not None]
+        ws.column_dimensions[get_column_letter(idx)].width = min(max(len(v) for v in values) + 4, 60)
+
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f"attachment; filename={filename}"
+    wb.save(response)
+    return response
+
+
+@login_required(login_url='signIn')
+def exportExcelVendor(request):
+    """export ตารางผู้จัดจำหน่ายในระบบ ทุกแถวตามตัวกรองปัจจุบัน (ไม่ตัดหน้า)"""
+    from stock.filters import DistributorFilter
+    queryset = Distributor.objects.select_related(
+        "prefix", "type", "genre", "credit", "vat_type", "affiliated"
+    ).order_by("id")
+    vendors = DistributorFilter(request.GET, queryset=queryset).qs
+
+    headers = [
+        "รหัส", "คำนำหน้า", "ชื่อผู้จัดจำหน่าย", "ชนิด", "ประเภท", "เครดิต", "ชนิดภาษี",
+        "ที่อยู่", "เบอร์โทร", "แฟกซ์", "ผู้ติดต่อ", "เลขประจำตัวผู้เสียภาษี", "สังกัดบริษัท", "วันที่สร้าง",
+    ]
+    rows = [
+        [
+            v.id,
+            str(v.prefix) if v.prefix else None,
+            v.name,
+            str(v.type) if v.type else None,
+            str(v.genre) if v.genre else None,
+            str(v.credit) if v.credit else None,
+            str(v.vat_type) if v.vat_type else None,
+            v.address,
+            v.tel,
+            v.fax,
+            v.contact,
+            v.tex,
+            str(v.affiliated) if v.affiliated else None,
+            v.created,
+        ]
+        for v in vendors
+    ]
+    return _vendor_excel_response("ผู้จัดจำหน่ายในระบบ", headers, rows, "Vendor_Report.xlsx")
+
+
+@login_required(login_url='signIn')
+def exportExcelExternalVendor(request):
+    """export ตารางผู้จัดจำหน่ายอื่นๆ ทุกแถวตามตัวกรองปัจจุบัน (ไม่ตัดหน้า)"""
+    ext = _external_vendor_data(request)
+
+    # เงื่อนไข TomTom ข้อ 11.4 / 11.6.1: ห้ามเก็บผลลัพธ์หรือนำไปสร้างฐานข้อมูลของเรา
+    if ext["source"] == "tomtom":
+        return HttpResponse(
+            "ไม่สามารถ export ข้อมูลจาก TomTom ได้ เพราะเงื่อนไขการใช้งานของ TomTom ห้ามเก็บผลลัพธ์ไว้ "
+            "กรุณาเปลี่ยนแหล่งข้อมูลเป็น OpenStreetMap แล้ว export ใหม่",
+            status=403, content_type="text/plain; charset=utf-8",
+        )
+    if not ext["lat"] or not ext["lng"]:
+        return HttpResponse("กรุณาระบุตำแหน่ง (lat/lng) ก่อน export", status=400, content_type="text/plain; charset=utf-8")
+
+    headers = ["#", "ชื่อผู้จัดจำหน่าย", "สถานะในระบบ", "หมวดฝ่ายซื้อ", "ประเภทร้าน", "ที่อยู่", "เบอร์โทร", "Latitude", "Longitude", "แผนที่"]
+    rows = [
+        [
+            i,
+            ev["name"],
+            ev["system_status_label"] + (f" ({ev['distributor_id']})" if ev["distributor_id"] else ""),
+            ev["category_label"],
+            ev["shop_type_label"],
+            ev["address"],
+            ev["phone"],
+            ev["lat"],
+            ev["lng"],
+            f"https://www.google.com/maps/search/?api=1&query={ev['lat']},{ev['lng']}" if ev["lat"] is not None and ev["lng"] is not None else None,
+        ]
+        for i, ev in enumerate(ext["vendors"], start=1)
+    ]
+    footer = [
+        f"ตำแหน่ง {ext['lat']}, {ext['lng']} รัศมี {ext['radius_km']} กม."
+        + (f" คำค้น: {ext['keyword']}" if ext["keyword"] else ""),
+        "ข้อมูลร้านค้า © OpenStreetMap contributors (ODbL)",
+    ]
+    return _vendor_excel_response("ผู้จัดจำหน่ายอื่นๆ", headers, rows, "External_Vendor_Report.xlsx", footer, link_column=9)
+
+
+# หมวดฝ่ายซื้อ -> วิธีค้นใน Google Places API (New)
+# "types" = ค้นด้วย Nearby Search ตามประเภทของ Google (ประเภทละ 1 request ได้สูงสุด 20 ร้าน)
+# "queries" = Google ไม่มีประเภทเครื่องเขียน/อุปกรณ์สำนักงาน จึงใช้ Text Search ด้วยคำค้นแทน
+GOOGLE_PURCHASING_SEARCHES = {
+    "construction": {"types": ["hardware_store", "home_improvement_store", "building_materials_store"]},
+    "office": {"queries": ["เครื่องเขียน", "อุปกรณ์สำนักงาน", "ร้านถ่ายเอกสาร"]},
+    "parts": {"types": ["auto_parts_store", "tire_shop", "car_repair"]},
+}
+GOOGLE_TYPE_CATEGORIES = {
+    t: key for key, spec in GOOGLE_PURCHASING_SEARCHES.items() for t in spec.get("types", [])
+}
+
+# ใช้เฉพาะ field ระดับ Pro (ฟรี 5,000 ครั้ง/เดือน) ถ้าเพิ่มเบอร์โทร (nationalPhoneNumber) จะกลายเป็นระดับ Enterprise
+GOOGLE_PLACE_FIELDS = [
+    "id", "displayName", "formattedAddress", "location", "types",
+    "primaryType", "primaryTypeDisplayName", "googleMapsUri", "businessStatus",
+]
+
+
+def _google_places_post(url, body, field_mask):
+    try:
+        response = requests.post(
+            url,
+            json=body,
+            headers={
+                "X-Goog-Api-Key": settings.GOOGLE_MAPS_API_KEY,
+                "X-Goog-FieldMask": field_mask,
+            },
+            timeout=30,
+        )
+    except requests.RequestException as e:
+        print(f"Google Places API request failed: {e}")
+        return None
+    if response.status_code != 200:
+        print(f"Google Places API error: {response.status_code} - {response.text[:300]}")
+        return None
+    return response.json()
+
+
+def fetch_vendors_from_google_maps(lat, lng, radius=10000, keyword=None, category=None, max_text_pages=1):
+    """
+    ดึงร้านค้า/ผู้จำหน่ายจาก Google Places API (New)
+    ต้องผูกบัตรใน Google Cloud / ฟรีเดือนละ 5,000 request (Nearby Search Pro, Text Search Pro แยกโควตากัน)
+    - keyword: Text Search ค้นคำนั้นรอบจุด (หน้าละ 20 ร้าน สูงสุด max_text_pages หน้า)
+    - category ("construction" / "office" / "parts" / "purchasing"): ค้นตาม GOOGLE_PURCHASING_SEARCHES
+    - ไม่ส่งทั้งคู่: Nearby Search ทุกประเภท 20 ร้าน
+    เงื่อนไขของ Google: ห้าม cache ข้อมูลร้าน (เก็บได้เฉพาะ place_id) จึงไม่มี cache ในฟังก์ชันนี้
+    """
+    if not settings.GOOGLE_MAPS_API_KEY:
+        print("ไม่พบ GOOGLE_MAPS_API_KEY ใน environment variable")
+        return []
+
+    lat = float(lat)
+    lng = float(lng)
+    radius = float(min(int(radius), 50000))
+    circle = {"center": {"latitude": lat, "longitude": lng}, "radius": radius}
+    place_mask = ",".join(f"places.{f}" for f in GOOGLE_PLACE_FIELDS)
+
+    nearby_types = []
+    text_queries = []  # (คำค้น, หมวดฝ่ายซื้อของคำค้นนั้น)
+    if keyword:
+        text_queries = [(keyword.strip(), None)]
+    elif category:
+        keys = list(GOOGLE_PURCHASING_SEARCHES) if category == "purchasing" else [category]
+        for key in keys:
+            spec = GOOGLE_PURCHASING_SEARCHES.get(key, {})
+            nearby_types += spec.get("types", [])
+            text_queries += [(q, key) for q in spec.get("queries", [])]
+    else:
+        nearby_types = [None]
+
+    places = []  # (place, หมวดที่มาจากคำค้น)
+    for place_type in nearby_types:
+        body = {
+            "locationRestriction": {"circle": circle},
+            "maxResultCount": 20,
+            "rankPreference": "DISTANCE",
+            "languageCode": "th",
+            "regionCode": "TH",
+        }
+        if place_type:
+            body["includedTypes"] = [place_type]
+        data = _google_places_post("https://places.googleapis.com/v1/places:searchNearby", body, place_mask)
+        if data is None:
+            break
+        places += [(p, None) for p in data.get("places", [])]
+
+    for query, query_category in text_queries:
+        # Text Search จำกัดพื้นที่แบบวงกลมไม่ได้ ใช้ locationBias (เน้นรอบจุด) แล้วกรองระยะเองด้านล่าง
+        body = {
+            "textQuery": query,
+            "pageSize": 20,
+            "locationBias": {"circle": circle},
+            "languageCode": "th",
+            "regionCode": "TH",
+        }
+        for _ in range(max_text_pages):
+            data = _google_places_post("https://places.googleapis.com/v1/places:searchText", body, place_mask + ",nextPageToken")
+            if data is None:
+                break
+            places += [(p, query_category) for p in data.get("places", [])]
+            if not data.get("nextPageToken"):
+                break
+            body["pageToken"] = data["nextPageToken"]
+
+    import math
+    results = []
+    seen = set()
+    for place, query_category in places:
+        if place.get("id") in seen:
+            continue
+        seen.add(place.get("id"))
+        location = place.get("location", {})
+        p_lat, p_lng = location.get("latitude"), location.get("longitude")
+        distance_m = None
+        if p_lat is not None and p_lng is not None:
+            # haversine
+            dlat = math.radians(p_lat - lat)
+            dlng = math.radians(p_lng - lng)
+            a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat)) * math.cos(math.radians(p_lat)) * math.sin(dlng / 2) ** 2
+            distance_m = round(6371000 * 2 * math.asin(math.sqrt(a)))
+            if distance_m > radius:
+                continue
+
+        types = place.get("types", [])
+        category_key = GOOGLE_TYPE_CATEGORIES.get(place.get("primaryType")) or next(
+            (GOOGLE_TYPE_CATEGORIES[t] for t in types if t in GOOGLE_TYPE_CATEGORIES), query_category
+        )
+        results.append({
+            "name": place.get("displayName", {}).get("text"),
+            "shop_type": place.get("primaryType"),
+            "shop_type_display": place.get("primaryTypeDisplayName", {}).get("text"),
+            "types": types,
+            "category": category_key,
+            "address": place.get("formattedAddress"),
+            "lat": p_lat,
+            "lng": p_lng,
+            "distance_m": distance_m,
+            "business_status": place.get("businessStatus"),
+            "google_maps_uri": place.get("googleMapsUri"),
+            "place_id": place.get("id"),
+        })
+
+    results.sort(key=lambda r: r["distance_m"] if r["distance_m"] is not None else float("inf"))
+
+    print(f"พบร้านค้าจาก Google ทั้งหมด {len(results)} ร้าน (ยิง {len(nearby_types)} nearby + {len(text_queries)} text search)")
+    for r in results:
+        print(r)
+
+    return results
+
+
+def test_google_view(request, lat, lng):
+    """
+    view สำหรับทดสอบ fetch_vendors_from_google_maps ผ่าน browser
+    เรียกด้วย path param เช่น /test/google/view/13.7563/100.5018/
+    query string: ?category=construction|office|parts|purchasing  ?keyword=เครื่องเขียน  ?radius=5000 (เมตร)
+    """
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+        radius = int(request.GET.get("radius", 10000))
+    except ValueError:
+        return JsonResponse({"error": "lat/lng/radius ต้องเป็นตัวเลข"}, status=400, json_dumps_params={"ensure_ascii": False})
+
+    results = fetch_vendors_from_google_maps(
+        lat_f, lng_f, radius=radius,
+        keyword=request.GET.get("keyword"),
+        category=request.GET.get("category"),
+    )
+
+    return JsonResponse({"count": len(results), "results": results}, json_dumps_params={"ensure_ascii": False})
+
+
+OSM_SHOP_TYPE_LABELS = {
+    "hardware": "ฮาร์ดแวร์",
+    "doityourself": "วัสดุก่อสร้าง / DIY",
+    "trade": "วัสดุก่อสร้าง / ค้าส่ง",
+    "building_materials": "วัสดุก่อสร้าง",
+    "paint": "สี",
+    "electrical": "อุปกรณ์ไฟฟ้า",
+    "tools": "เครื่องมือช่าง",
+    "stationery": "เครื่องเขียน",
+    "copyshop": "ถ่ายเอกสาร",
+    "car_parts": "อะไหล่รถยนต์",
+    "car_repair": "ซ่อมรถยนต์",
+    "tyres": "ยางรถยนต์",
+    "motorcycle": "รถจักรยานยนต์",
+    "computer": "คอมพิวเตอร์",
+    "electronics": "เครื่องใช้ไฟฟ้า / อิเล็กทรอนิกส์",
+    "mobile_phone": "โทรศัพท์มือถือ",
+    "furniture": "เฟอร์นิเจอร์",
+    "gas": "แก๊ส",
+    "agrarian": "การเกษตร",
+    "convenience": "ร้านสะดวกซื้อ",
+    "supermarket": "ซูเปอร์มาร์เก็ต",
+    "clothes": "เสื้อผ้า",
+    "construction": "รับเหมา / วัสดุก่อสร้าง",
+    "lighting": "โคมไฟ / หลอดไฟ",
+    "flooring": "พื้น / กระเบื้องปูพื้น",
+    "tiles": "กระเบื้อง",
+    "bathroom_furnishing": "สุขภัณฑ์",
+    "kitchen": "ชุดครัว",
+    "glaziery": "กระจก",
+    "rope": "เชือก",
+    "printing": "โรงพิมพ์",
+    "office_supplies": "อุปกรณ์สำนักงาน",
+    "printer_ink": "หมึกพิมพ์",
+    "motorcycle_repair": "ซ่อมรถจักรยานยนต์",
+    "truck": "รถบรรทุก",
+    "truck_repair": "ซ่อมรถบรรทุก",
+    "safety_equipment": "อุปกรณ์เซฟตี้",
+    "weighing_scales": "เครื่องชั่ง",
+    "oxygen": "ออกซิเจน / แก๊สอุตสาหกรรม",
+}
+
+# หมวดของฝ่ายซื้อ (issue #44) -> ประเภทร้านของ OpenStreetMap ที่นับเข้าหมวดนั้น
+PURCHASING_CATEGORIES = [
+    ("construction", "วัสดุก่อสร้าง/ฮาร์ดแวร์", {
+        "hardware", "doityourself", "trade", "building_materials", "construction",
+        "paint", "electrical", "lighting", "flooring", "tiles",
+        "bathroom_furnishing", "kitchen", "glaziery", "rope",
+    }),
+    ("office", "อุปกรณ์สำนักงาน/เครื่องเขียน", {
+        "stationery", "copyshop", "printing", "office_supplies", "printer_ink", "computer",
+    }),
+    ("parts", "อะไหล่/เครื่องมืออุตสาหกรรม", {
+        "car_parts", "car_repair", "tyres", "motorcycle", "motorcycle_repair",
+        "truck", "truck_repair", "tools", "safety_equipment", "weighing_scales",
+        "oxygen", "gas", "agrarian",
+    }),
+]
+PURCHASING_CATEGORY_LABELS = dict((key, label) for key, label, _ in PURCHASING_CATEGORIES)
+PURCHASING_CATEGORY_LABELS["other"] = "อื่นๆ"
+
+
+def osm_shop_type_label(shop_type):
+    if not shop_type:
+        return "ไม่ระบุ"
+    thai = OSM_SHOP_TYPE_LABELS.get(shop_type)
+    return f"{thai} ({shop_type})" if thai else shop_type
+
+
+def purchasing_category(shop_type):
+    # OSM บางร้านใส่หลายประเภทคั่นด้วย ; เช่น "department_store;wholesale"
+    for part in (shop_type or "").split(";"):
+        for key, _, types in PURCHASING_CATEGORIES:
+            if part.strip() in types:
+                return key
+    return "other"
+
+
+def fetch_vendors_from_openstreetmap(lat, lng, radius=10000, keyword=None):
+    """
+    ดึงร้านค้า/ผู้จำหน่ายจาก OpenStreetMap ผ่าน Overpass API
+    ฟรี ไม่ต้องมี API key / ไม่ต้องผูกบัตรเครดิต
+    radius หน่วยเมตร: รัศมีกว้างมาก (เช่น 50 กม. ในกรุงเทพฯ) server ฟรีมักตอบ 504 หมดเวลา
+    """
+    lat = round(float(lat), 4)
+    lng = round(float(lng), 4)
+    radius = int(radius)
+
+    # เก็บผลไว้ 1 ชม. เปลี่ยน keyword / เปลี่ยนหน้า ไม่ต้องยิง Overpass ใหม่
+    cache_key = f"osm_shops:{lat}:{lng}:{radius}"
+    elements = cache.get(cache_key)
+
+    if elements is None:
+        overpass_url = "https://overpass-api.de/api/interpreter"
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["shop"](around:{radius},{lat},{lng});
+          way["shop"](around:{radius},{lat},{lng});
+        );
+        out center tags;
+        """
+        headers = {"User-Agent": "djangostock-vendor-list/1.0"}
+
+        response = None
+        for attempt in range(2):
+            try:
+                response = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=60)
+            except requests.RequestException as e:
+                print(f"Overpass API request failed: {e}")
+                response = None
+            if response is not None and response.status_code not in (429, 504):
+                break
+            time.sleep(3)
+
+        if response is None or response.status_code != 200:
+            status = response.status_code if response is not None else "no response"
+            print(f"Overpass API error: {status}")
+            return []
+
+        elements = response.json().get("elements", [])
+        cache.set(cache_key, elements, 60 * 60)
+
+    results = []
+    for element in elements:
+        tags = element.get("tags", {})
+        name = tags.get("name")
+        if not name:
+            continue
+
+        if keyword:
+            haystack = f"{name} {tags.get('shop', '')}".lower()
+            if keyword.lower() not in haystack:
+                continue
+
+        if element.get("type") == "node":
+            el_lat = element.get("lat")
+            el_lng = element.get("lon")
+        else:
+            center = element.get("center", {})
+            el_lat = center.get("lat")
+            el_lng = center.get("lon")
+
+        address_parts = [
+            tags.get("addr:housenumber"),
+            tags.get("addr:street"),
+            tags.get("addr:subdistrict"),
+            tags.get("addr:district"),
+            tags.get("addr:city"),
+        ]
+        address = " ".join(p for p in address_parts if p)
+
+        results.append({
+            "name": name,
+            "shop_type": tags.get("shop"),
+            "address": address or None,
+            "lat": el_lat,
+            "lng": el_lng,
+            "phone": tags.get("phone") or tags.get("contact:phone"),
+            "osm_id": element.get("id"),
+            "osm_type": element.get("type"),
+        })
+
+    print(f"พบร้านค้าจาก OpenStreetMap ทั้งหมด {len(results)} ร้าน")
+    for r in results:
+        print(r)
+
+    return results
+
+
+def test_osm_view(request, lat, lng):
+    """
+    view สำหรับทดสอบ fetch_vendors_from_openstreetmap ผ่าน browser
+    เรียกด้วย path param เช่น /test/osm/view/13.7563/100.5018/
+    keyword ยังรับผ่าน query string ได้ เช่น ?keyword=hardware
+    """
+    keyword = request.GET.get("keyword")
+
+    results = fetch_vendors_from_openstreetmap(lat, lng, keyword=keyword)
+
+    return JsonResponse({"count": len(results), "results": results})
+
+
+# รหัสหมวดของ TomTom (ดูทั้งหมดได้จาก /search/2/poiCategories.json) -> (หมวดฝ่ายซื้อ, ชื่อไทย)
+# TomTom ไม่มีหมวดเครื่องเขียนแยก / ร้านฮาร์ดแวร์ไทยส่วนใหญ่ถูกจัดเป็น Do-It-Yourself Centers
+TOMTOM_CATEGORIES = {
+    9361069: ("construction", "ฮาร์ดแวร์"),
+    9361030: ("construction", "ฮาร์ดแวร์ / วัสดุก่อสร้าง / DIY"),
+    9361042: ("construction", "วัสดุและอุปกรณ์ก่อสร้าง"),
+    9361035: ("construction", "สี / ตกแต่ง"),
+    9361034: ("construction", "โคมไฟ / หลอดไฟ"),
+    9361033: ("construction", "ครัว / สุขภัณฑ์"),
+    9361080: ("construction", "กระจก / หน้าต่าง"),
+    9361014: ("office", "อุปกรณ์สำนักงาน"),
+    9361012: ("office", "คอมพิวเตอร์และอุปกรณ์"),
+    9361047: ("office", "ถ่ายเอกสาร / การพิมพ์"),
+    7310006: ("parts", "อะไหล่ / อุปกรณ์แต่งรถ"),
+    7310007: ("parts", "ยางรถยนต์"),
+    7310004: ("parts", "ซ่อมรถยนต์ / อะไหล่"),
+    7310009: ("parts", "ซ่อมรถบรรทุก"),
+    7310008: ("parts", "ซ่อมรถจักรยานยนต์"),
+    9361073: ("parts", "อุปกรณ์การเกษตร"),
+}
+TOMTOM_PURCHASING_IDS = {}
+for _tt_id, (_tt_key, _) in TOMTOM_CATEGORIES.items():
+    TOMTOM_PURCHASING_IDS.setdefault(_tt_key, []).append(_tt_id)
+
+
+def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, category_ids=None, max_pages=3):
+    """
+    ดึงร้านค้า/ผู้จำหน่ายจาก TomTom Search API (ข้อมูล POI เชิงพาณิชย์ของ TomTom คล้าย Google)
+    ฟรี 20,000 request/เดือน ไม่ต้องผูกบัตร ใช้เกินโควตาแล้ว TomTom ตอบ 429 (ไม่เรียกเก็บเงิน ถ้าไม่ได้เติมเงินไว้)
+    - มี keyword: poiSearch ค้นจากชื่อร้าน/หมวด แบ่งหน้าได้ ไม่เกิน max_pages หน้า (หน้าละ 100)
+    - ไม่มี keyword แต่มี category_ids: nearbySearch แยกทีละหมวด เพราะ nearbySearch ได้สูงสุด 100 ร้านต่อครั้ง
+    - ไม่มีทั้งคู่: nearbySearch ทุกประเภทรอบจุด 100 ร้าน (ส่วนใหญ่เป็นร้านอาหาร โรงแรม)
+    ทุกครั้งที่ยิง = 1 request ของโควตา
+    """
+    from urllib.parse import quote
+
+    api_key = settings.TOMTOM_API_KEY
+    if not api_key:
+        print("ไม่พบ TOMTOM_API_KEY ใน environment variable")
+        return []
+
+    lat = round(float(lat), 4)
+    lng = round(float(lng), 4)
+    radius = min(int(radius), 50000)
+    keyword = (keyword or "").strip()
+    category_ids = sorted(int(i) for i in (category_ids or []))
+
+    ids_key = ",".join(str(i) for i in category_ids)
+    cache_key = f"tomtom_pois:{lat}:{lng}:{radius}:{quote(keyword.lower(), safe='')}:{ids_key}:{max_pages}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    base_params = {
+        "key": api_key,
+        "lat": lat,
+        "lon": lng,
+        "radius": radius,
+        "limit": 100,
+        "countrySet": "TH",
+        "language": "th-TH",
+    }
+
+    # (url, params, จำนวนหน้าสูงสุด)
+    if keyword:
+        params = dict(base_params)
+        if category_ids:
+            params["categorySet"] = ids_key
+        jobs = [(f"https://api.tomtom.com/search/2/poiSearch/{quote(keyword, safe='')}.json", params, max_pages)]
+    elif category_ids:
+        jobs = [("https://api.tomtom.com/search/2/nearbySearch/.json", dict(base_params, categorySet=str(i)), 1) for i in category_ids]
+    else:
+        jobs = [("https://api.tomtom.com/search/2/nearbySearch/.json", dict(base_params), 1)]
+
+    results = []
+    seen_ids = set()
+    failed = False
+    for url, params, pages in jobs:
+        for page in range(pages):
+            params["ofs"] = page * 100
+            try:
+                response = requests.get(url, params=params, timeout=30)
+            except requests.RequestException as e:
+                print(f"TomTom API request failed: {e}")
+                failed = True
+                break
+
+            if response.status_code != 200:
+                print(f"TomTom API error: {response.status_code} - {response.text[:200]}")
+                failed = True
+                break
+
+            data = response.json()
+            for item in data.get("results", []):
+                if item.get("id") in seen_ids:
+                    continue
+                seen_ids.add(item.get("id"))
+                poi = item.get("poi", {})
+                address = item.get("address", {})
+                position = item.get("position", {})
+                categories = poi.get("categories", [])
+                item_ids = [c.get("id") for c in poi.get("categorySet", [])]
+                category_id = next((i for i in item_ids if i in TOMTOM_CATEGORIES), item_ids[0] if item_ids else None)
+                results.append({
+                    "name": poi.get("name"),
+                    "shop_type": categories[0] if categories else None,
+                    "categories": categories,
+                    "category_id": category_id,
+                    "address": address.get("freeformAddress"),
+                    "lat": position.get("lat"),
+                    "lng": position.get("lon"),
+                    "phone": poi.get("phone"),
+                    "url": poi.get("url"),
+                    "distance_m": round(item["dist"]) if item.get("dist") is not None else None,
+                    "tomtom_id": item.get("id"),
+                })
+
+            time.sleep(0.25)  # TomTom จำกัด 5 request/วินาที
+            summary = data.get("summary", {})
+            if params["ofs"] + summary.get("numResults", 0) >= summary.get("totalResults", 0):
+                break
+        if failed:
+            break
+
+    results.sort(key=lambda r: r["distance_m"] if r["distance_m"] is not None else float("inf"))
+
+    # error แล้วไม่เก็บ cache จะได้ลองใหม่ได้ทันทีหลังแก้ key / รอโควตา
+    if not failed:
+        cache.set(cache_key, results, 60 * 60)
+
+    print(f"พบร้านค้าจาก TomTom ทั้งหมด {len(results)} ร้าน")
+    for r in results:
+        print(r)
+
+    return results
+
+
+def test_tomtom_view(request, lat, lng):
+    """
+    view สำหรับทดสอบ fetch_vendors_from_tomtom ผ่าน browser
+    เรียกด้วย path param เช่น /test/tomtom/view/13.7563/100.5018/
+    query string: ?keyword=hardware  ?radius=5000 (เมตร)
+    """
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+        radius = int(request.GET.get("radius", 10000))
+    except ValueError:
+        return JsonResponse({"error": "lat/lng/radius ต้องเป็นตัวเลข"}, status=400, json_dumps_params={"ensure_ascii": False})
+
+    keyword = request.GET.get("keyword")
+    # ?category=construction / office / parts / purchasing (ทั้ง 3 หมวด)
+    category = request.GET.get("category")
+    if category == "purchasing":
+        category_ids = list(TOMTOM_CATEGORIES)
+    else:
+        category_ids = TOMTOM_PURCHASING_IDS.get(category)
+
+    results = fetch_vendors_from_tomtom(lat_f, lng_f, radius=radius, keyword=keyword, category_ids=category_ids)
+
+    return JsonResponse({"count": len(results), "results": results}, json_dumps_params={"ensure_ascii": False})

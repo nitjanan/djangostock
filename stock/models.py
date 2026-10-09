@@ -1124,6 +1124,11 @@ class BaseVatType(models.Model):
     def __str__(self):
         return str(self.name)
 
+PLACE_SOURCE_CHOICES = [
+    ('tomtom', 'TomTom'),
+    ('osm', 'OpenStreetMap'),
+]
+
 class Distributor(models.Model):
     id = models.CharField(primary_key=True, max_length=255, unique=True, verbose_name="รหัสผู้จัดจำหน่าย")#เก็บไอดีสินค้าใน express
     prefix = models.ForeignKey(BasePrefix, on_delete=models.CASCADE, blank = True, null = True, verbose_name="คำนำหน้า")
@@ -1144,15 +1149,211 @@ class Distributor(models.Model):
     fax =  models.CharField(max_length=255, blank = True, null = True, verbose_name="แฟกส์")
     registration_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/registration/distributor/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="หนังสือรับรองบริษัท")
     created = models.DateField(default = timezone.now, verbose_name="วันที่สร้าง") #เก็บวันที่สร้าง
+    # ร้านจากแผนที่ (หน้ารายงานผู้จัดจำหน่าย) ที่ผ่านการอนุมัติแล้ว ใช้เช็กว่าร้านนั้นมีในระบบหรือยัง
+    place_source = models.CharField(max_length=20, choices=PLACE_SOURCE_CHOICES, blank=True, null=True, verbose_name="แหล่งข้อมูลแผนที่")
+    place_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="รหัสร้านบนแผนที่")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Latitude")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Longitude")
 
     class Meta:
         db_table = 'Distributor'
         ordering=('id',)
         verbose_name = 'ผู้จัดจำหน่าย'
         verbose_name_plural = 'ข้อมูลผู้จัดจำหน่าย'
+        constraints = [
+            models.UniqueConstraint(fields=['place_source', 'place_id'], name='unique_distributor_place'),
+        ]
 
     def __str__(self):
         return self.name
+
+
+class DistributorRuleGroup(models.Model):
+    """กลุ่มเกณฑ์บังคับ: ทุกกลุ่มต้องผ่านอย่างน้อย 1 ข้อ ถึงจะอนุมัติได้ (เช่น "ข้อ 8 หรือ 9")"""
+    name = models.CharField(max_length=255, verbose_name="ชื่อกลุ่ม")
+    order = models.PositiveIntegerField(default=0, verbose_name="ลำดับ")
+
+    class Meta:
+        db_table = 'DistributorRuleGroup'
+        ordering = ('order', 'id')
+        verbose_name = 'กลุ่มเกณฑ์บังคับผู้จัดจำหน่าย'
+        verbose_name_plural = 'ข้อมูลกลุ่มเกณฑ์บังคับผู้จัดจำหน่าย'
+
+    def __str__(self):
+        return self.name
+
+
+class DistributorRule(models.Model):
+    """หลักเกณฑ์คัดเลือกผู้จัดจำหน่ายตามใบ FM-PU-005 / ข้อที่มีข้อย่อยไม่ต้องตอบ ผลคำนวณจากข้อย่อยตาม children_mode"""
+    CHILDREN_ALL = 'all'
+    CHILDREN_ANY = 'any'
+    CHILDREN_MODE_CHOICES = [
+        (CHILDREN_ALL, 'ข้อย่อยต้องผ่านทั้งหมด'),
+        (CHILDREN_ANY, 'ผ่านข้อย่อยข้อใดข้อหนึ่งก็พอ'),
+    ]
+
+    code = models.CharField(max_length=20, verbose_name="ข้อ")
+    name = models.CharField(max_length=255, verbose_name="หลักเกณฑ์")
+    description = models.TextField(blank=True, null=True, verbose_name="รายละเอียด")
+    parent = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True, related_name='children', verbose_name="ข้อหลัก")
+    children_mode = models.CharField(max_length=10, choices=CHILDREN_MODE_CHOICES, default=CHILDREN_ALL, verbose_name="เงื่อนไขข้อย่อย")
+    mandatory_group = models.ForeignKey(DistributorRuleGroup, on_delete=models.PROTECT, blank=True, null=True, related_name='rules', verbose_name="กลุ่มเกณฑ์บังคับ")
+    order = models.PositiveIntegerField(default=0, verbose_name="ลำดับ")
+    is_active = models.BooleanField(default=True, verbose_name="ใช้งาน")
+
+    class Meta:
+        db_table = 'DistributorRule'
+        ordering = ('order', 'id')
+        verbose_name = 'หลักเกณฑ์คัดเลือกผู้จัดจำหน่าย'
+        verbose_name_plural = 'ข้อมูลหลักเกณฑ์คัดเลือกผู้จัดจำหน่าย'
+
+    def __str__(self):
+        return f"{self.code}. {self.name}"
+
+
+class DistributorCandidate(models.Model):
+    """ใบขอเพิ่ม Supplier รายใหม่ (FM-PU-005): ผู้คัดเลือกกรอกฟอร์ม -> ส่ง -> กลุ่ม ApproveDistributor อนุมัติ -> เข้า Distributor"""
+    STATUS_DRAFT = 'draft'
+    STATUS_SUBMITTED = 'submitted'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, 'ร่าง'),
+        (STATUS_SUBMITTED, 'รออนุมัติ'),
+        (STATUS_APPROVED, 'อนุมัติแล้ว'),
+        (STATUS_REJECTED, 'ไม่อนุมัติ'),
+    ]
+
+    place_source = models.CharField(max_length=20, choices=PLACE_SOURCE_CHOICES, verbose_name="แหล่งข้อมูลแผนที่")
+    place_id = models.CharField(max_length=255, verbose_name="รหัสร้านบนแผนที่")
+    name = models.CharField(max_length=255, verbose_name="ชื่อบริษัท/ร้านค้า")
+    address = models.TextField(blank=True, null=True, verbose_name="ที่อยู่")
+    branch = models.CharField(max_length=255, blank=True, null=True, verbose_name="สาขา")
+    contact = models.CharField(max_length=255, blank=True, null=True, verbose_name="ชื่อผู้ติดต่อ")
+    tel = models.CharField(max_length=255, blank=True, null=True, verbose_name="โทรศัพท์")
+    fax_line = models.CharField(max_length=255, blank=True, null=True, verbose_name="โทรสาร / LINE ID")
+    tax_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="เลขประจำตัวผู้เสียภาษี")
+    email = models.CharField(max_length=255, blank=True, null=True, verbose_name="EMAIL")
+    business_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทธุรกิจ/สินค้า/บริการที่จะใช้")
+    credit_days = models.PositiveIntegerField(blank=True, null=True, verbose_name="เครดิต (วัน)")
+    shop_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทร้าน (จากแผนที่)")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Latitude")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Longitude")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT, verbose_name="สถานะ")
+    # ผู้ยื่นฟอร์ม = ผู้คัดเลือก ตามใบ FM-PU-005
+    requested_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='distributor_candidate_requested', verbose_name="ผู้คัดเลือก")
+    created = models.DateTimeField(default=timezone.now, verbose_name="วันที่สร้าง")
+    submitted_at = models.DateTimeField(blank=True, null=True, verbose_name="วันที่ส่งฟอร์ม")
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='distributor_candidate_approved', verbose_name="ผู้อนุมัติ")
+    approved_at = models.DateTimeField(blank=True, null=True, verbose_name="วันที่อนุมัติ/ไม่อนุมัติ")
+    reject_reason = models.TextField(blank=True, null=True, verbose_name="เหตุผลที่ไม่อนุมัติ")
+    distributor = models.ForeignKey(Distributor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="รหัส Supplier")
+
+    class Meta:
+        db_table = 'DistributorCandidate'
+        ordering = ('-created',)
+        verbose_name = 'ใบขอเพิ่ม Supplier'
+        verbose_name_plural = 'ข้อมูลใบขอเพิ่ม Supplier'
+        constraints = [
+            models.UniqueConstraint(fields=['place_source', 'place_id'], name='unique_distributor_candidate_place'),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def _user_name(user):
+        return (user.get_full_name() or user.username) if user else ""
+
+    @property
+    def requested_by_name(self):
+        return self._user_name(self.requested_by)
+
+    @property
+    def approved_by_name(self):
+        return self._user_name(self.approved_by)
+
+    def evaluate(self):
+        """ตรวจคำตอบกับหลักเกณฑ์ที่ใช้งานอยู่
+
+        rows: เกณฑ์เรียงตามลำดับ (ข้อย่อยต่อท้ายข้อหลัก) พร้อมคำตอบและผล
+        groups: ผลของกลุ่มเกณฑ์บังคับ / mandatory_passed: ผ่านทุกกลุ่ม
+        missing: ข้อที่ต้องตอบแต่ยังไม่ได้ตอบ
+        """
+        rules = list(DistributorRule.objects.filter(is_active=True).select_related('mandatory_group'))
+        answers = {a.question_id: a for a in self.answers.all()}
+        children = {}
+        for r in rules:
+            children.setdefault(r.parent_id, []).append(r)
+
+        results = {}
+
+        def result(rule):
+            if rule.id not in results:
+                kids = children.get(rule.id)
+                if kids:
+                    kid_results = [result(k) for k in kids]
+                    passed = all(kid_results) if rule.children_mode == DistributorRule.CHILDREN_ALL else any(kid_results)
+                else:
+                    a = answers.get(rule.id)
+                    passed = a is not None and a.ans == DistributorForm.ANS_PASS
+                results[rule.id] = passed
+            return results[rule.id]
+
+        rows = []
+        missing = []
+
+        def walk(parent_id, depth):
+            for r in children.get(parent_id, []):
+                is_leaf = r.id not in children
+                if is_leaf and r.id not in answers:
+                    missing.append(r)
+                rows.append({"rule": r, "depth": depth, "is_leaf": is_leaf, "answer": answers.get(r.id), "passed": result(r)})
+                walk(r.id, depth + 1)
+
+        walk(None, 0)
+
+        groups = {}
+        for r in rules:
+            if r.mandatory_group_id:
+                g = groups.setdefault(r.mandatory_group_id, {"group": r.mandatory_group, "rules": [], "passed": False})
+                g["rules"].append(r)
+                g["passed"] = g["passed"] or result(r)
+        groups = sorted(groups.values(), key=lambda g: (g["group"].order, g["group"].id))
+
+        return {
+            "rows": rows,
+            "groups": groups,
+            "mandatory_passed": all(g["passed"] for g in groups),
+            "missing": missing,
+        }
+
+
+class DistributorForm(models.Model):
+    """คำตอบของแต่ละหลักเกณฑ์ในใบขอเพิ่ม Supplier (DistributorCandidate 1 : N DistributorForm)"""
+    ANS_PASS = 'pass'
+    ANS_FAIL = 'fail'
+    ANS_CHOICES = [
+        (ANS_PASS, 'ผ่าน'),
+        (ANS_FAIL, 'ไม่ผ่าน'),
+    ]
+
+    candidate = models.ForeignKey(DistributorCandidate, on_delete=models.CASCADE, related_name='answers', verbose_name="ใบขอเพิ่ม Supplier")
+    question = models.ForeignKey(DistributorRule, on_delete=models.PROTECT, related_name='answers', verbose_name="หลักเกณฑ์")
+    ans = models.CharField(max_length=10, choices=ANS_CHOICES, verbose_name="ผลพิจารณา")
+    remark = models.TextField(blank=True, null=True, verbose_name="หมายเหตุ")
+
+    class Meta:
+        db_table = 'DistributorForm'
+        ordering = ('question__order', 'question_id')
+        verbose_name = 'คำตอบหลักเกณฑ์ผู้จัดจำหน่าย'
+        verbose_name_plural = 'ข้อมูลคำตอบหลักเกณฑ์ผู้จัดจำหน่าย'
+        constraints = [
+            models.UniqueConstraint(fields=['candidate', 'question'], name='unique_distributor_form_answer'),
+        ]
+
+    def __str__(self):
+        return f"{self.candidate} - {self.question.code}: {self.get_ans_display()}"
 
 
 class BaseDelivery(models.Model):

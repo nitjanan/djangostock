@@ -1,0 +1,555 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
+
+{% block css %}
+<style>
+  /* สไตล์เฉพาะหน้านี้ */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">รายการผู้จัดจำหน่าย</h3>
+  {% if dist_ap_count is not None %}
+    <div class="text-right">
+      <a class="btn btn-warning" href="{% url 'distributorApproveList' %}">
+        <i class="fas fa-file-signature"></i> อนุมัติผู้จัดจำหน่ายรายใหม่
+        <span class="badge badge-light">{{dist_ap_count|intcomma}}</span>
+      </a>
+    </div>
+  {% endif %}
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
+  <!-- การ์ดฟอร์มกรอง -->
+  <div class="card my-3 bg-light div-shadow">
+    <div class="card-body">
+      <form method="get" action="{% url 'viewVendorReport' %}">
+        {% csrf_token %}
+        {% if lat and lng %}
+          <input type="hidden" name="lat" value="{{lat}}">
+          <input type="hidden" name="lng" value="{{lng}}">
+          <input type="hidden" name="radius" value="{{radius_km}}">
+          {% if keyword %}<input type="hidden" name="keyword" value="{{keyword}}">{% endif %}
+          <input type="hidden" name="source" value="{{source}}">
+          {% if category is not None %}<input type="hidden" name="category" value="{{category}}">{% endif %}
+          {% if shop_type is not None %}<input type="hidden" name="shop_type" value="{{shop_type}}">{% endif %}
+          {% if system_status is not None %}<input type="hidden" name="system_status" value="{{system_status}}">{% endif %}
+          {% if region %}<input type="hidden" name="region" value="{{region}}">{% endif %}
+        {% endif %}
+        <div class="form-row">
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor_id_from|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor|as_crispy_field}}
+          </div> 
+          <div class="form-group col-md-1 mb-0">
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- การ์ดตาราง -->
+  <div class="card div-shadow container my-3">
+    <div class="card-body"> 
+      <h5>รายการผู้จัดจำหน่ายในระบบ</h5>
+      <a class="btn btn-success" href="{% url 'exportExcelVendor' %}?{{vendor_query}}">ดาวโหลด excel <i class = "fas fa-file-excel"></i></a>
+      <div class="table-responsive">
+        <table class="table table-striped my-3">
+          <thead class="thead-dark g-4">
+            <tr>
+              <th scope="col">รหัส</th>
+              <th scope="col">ชื่อผู้จัดจำหน่าย</th>
+              <th scope="col">ที่อยู่</th>
+              <th scope="col">หมวดฝ่ายซื้อ</th>
+              <th scope="col">ประเภทร้าน</th>
+              <th scope="col">เบอร์โทร</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for v in vender %}
+            <tr>
+              <th scope="row">{{v.id}}</th>
+              <td>{{v.name}}</td>
+              {% comment %} <td class="px-1 text-nowrap align-middle" style="width:100px;">
+                <div class="d-flex justify-content-between">
+                  <button class="btn btn-primary">แก้ไข</button>
+                  <button class="btn btn-danger">ลบ</button>
+                </div>
+              </td> {% endcomment %}
+              <td>{{v.address}}</td>
+              <td>{{v.category}}</td>
+              <td>{{v.type}}</td>
+              <td>{{v.tel}}</td>
+
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="text-center text-muted">ไม่พบข้อมูลผู้จัดจำหน่ายในระบบ</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if vender.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าผู้จัดจำหน่ายในระบบ">
+        <p class="text-muted small mb-2">
+          แสดงรายการที่ {{vender.start_index|intcomma}}–{{vender.end_index|intcomma}}
+          จาก {{vendor_total|intcomma}} (หน้า {{vender.number}} / {{vender.paginator.num_pages|intcomma}})
+        </p>
+        <ul class="pagination flex-wrap">
+          {% if vender.has_previous %}
+            <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' vender.previous_page_number %}?{{vendor_query}}">&laquo; ก่อนหน้า</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; ก่อนหน้า</span></li>
+          {% endif %}
+
+          {% for p in vendor_page_range %}
+            {% if p == vender.paginator.ELLIPSIS %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% elif p == vender.number %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{p}}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' p %}?{{vendor_query}}">{{p}}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if vender.has_next %}
+            <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' vender.next_page_number %}?{{vendor_query}}">ถัดไป &raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">ถัดไป &raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ใบขอเพิ่ม Supplier ที่เก็บไว้แล้ว (อ่านจาก DB ไม่ต้องค้นแผนที่ก่อน) -->
+  <div class="card div-shadow container my-3" id="candidates">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <h5>ใบขอเพิ่ม Supplier รายใหม่</h5>
+        <ul class="nav nav-pills mb-2">
+          {% for tab in cand_tabs %}
+            <li class="nav-item">
+              <a class="nav-link py-1 {% if cand_status == tab.value %}active{% endif %}" href="?{{cand_query}}&cand_status={{tab.value}}#candidates">
+                {{tab.label}} <span class="badge {% if tab.value == 'submitted' and tab.count %}badge-warning{% else %}badge-light{% endif %}">{{tab.count|intcomma}}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped my-2">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">ชื่อบริษัท/ร้านค้า</th>
+              <th scope="col">ประเภทธุรกิจ</th>
+              <th scope="col">สถานะ</th>
+              <th scope="col">ผู้คัดเลือก</th>
+              <th scope="col">ผู้อนุมัติ</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in candidates %}
+            <tr>
+              <td>{{c.name}}<small class="d-block text-muted">{{c.address|default:""}}</small></td>
+              <td>{{c.business_type|default:c.shop_type|default:"-"}}</td>
+              <td class="text-nowrap">
+                {% if c.status == "approved" %}
+                  <span class="badge badge-success">อนุมัติแล้ว</span>
+                  {% if c.distributor %}<small class="d-block">รหัส {{c.distributor.id}}</small>{% endif %}
+                {% elif c.status == "submitted" %}<span class="badge badge-warning">รออนุมัติ</span>
+                {% elif c.status == "draft" %}<span class="badge badge-info">ร่าง</span>
+                {% else %}<span class="badge badge-secondary">ไม่อนุมัติ</span>{% endif %}
+              </td>
+              <td>
+                {{c.requested_by_name|default:"-"}}
+                {% if c.submitted_at %}<small class="d-block text-muted">ส่ง {{c.submitted_at|date:"d/m/Y H:i"}}</small>{% endif %}
+              </td>
+              <td>
+                {% if c.approved_by %}{{c.approved_by_name}}<small class="d-block text-muted">{{c.approved_at|date:"d/m/Y H:i"}}</small>{% else %}-{% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if c.status == "draft" and c.requested_by_id == request.user.id %}
+                  <a class="btn btn-sm btn-primary" href="{% url 'distributorCandidateForm' c.pk %}">กรอกต่อ</a>
+                {% else %}
+                  <a class="btn btn-sm btn-outline-primary" href="{% url 'distributorCandidateDetail' c.pk %}">ดูฟอร์ม</a>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-info" href="{% url 'distributorCandidatePrint' c.pk %}" target="_blank" rel="noopener" title="พิมพ์ / PDF"><i class="fas fa-print"></i></a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="text-center text-muted">ไม่มีใบขอเพิ่มในสถานะนี้</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if candidates.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าใบขอเพิ่ม Supplier">
+        <ul class="pagination flex-wrap mb-0">
+          {% if candidates.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{cand_query}}&cand_status={{cand_status}}&cand_page={{candidates.previous_page_number}}#candidates">&laquo; ก่อนหน้า</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">หน้า {{candidates.number}} / {{candidates.paginator.num_pages}}</span></li>
+          {% if candidates.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{cand_query}}&cand_status={{cand_status}}&cand_page={{candidates.next_page_number}}#candidates">ถัดไป &raquo;</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card div-shadow container my-3">
+    <div class="card-body">
+      <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
+      <form id="geo-form" class="form-row align-items-end mb-2">
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-region">ภาค</label>
+          <select class="form-control" id="geo-region" name="region">
+            <option value="">— เลือกภาค —</option>
+            {% for r in region_presets %}
+              <option value="{{r.value}}" data-lat="{{r.lat}}" data-lng="{{r.lng}}" {% if region == r.value %}selected{% endif %}>{{r.label}} ({{r.city}})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-2 mb-2">
+          <label for="geo-lat">Latitude</label>
+          <input type="number" step="any" min="-90" max="90" class="form-control" id="geo-lat" name="lat" value="{{lat|default:''}}" placeholder="เช่น 13.7563" required>
+        </div>
+        <div class="form-group col-md-2 mb-2">
+          <label for="geo-lng">Longitude</label>
+          <input type="number" step="any" min="-180" max="180" class="form-control" id="geo-lng" name="lng" value="{{lng|default:''}}" placeholder="เช่น 100.5018" required>
+        </div>
+        <div class="form-group col-md-2 mb-2">
+          <label for="geo-radius">รัศมี (กม.)</label>
+          <input type="number" min="1" max="50" step="1" class="form-control" id="geo-radius" name="radius" value="{{radius_km}}" required>
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-keyword">คำค้นหา</label>
+          <input type="text" class="form-control" id="geo-keyword" name="keyword" value="{{keyword|default:''}}" placeholder="เช่น hardware store">
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-category">หมวดฝ่ายซื้อ</label>
+          <select class="form-control" id="geo-category" name="category" {% if not lat or not lng %}disabled{% endif %}>
+            <option value="__all__">ทุกหมวด</option>
+            {% for opt in category_options %}
+              <option value="{{opt.value}}" {% if category == opt.value %}selected{% endif %}>{{opt.label}} — {{opt.count|intcomma}} ร้าน</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-source">แหล่งข้อมูล</label>
+          <select class="form-control" id="geo-source" name="source">
+            <option value="tomtom" {% if source == "tomtom" %}selected{% endif %} {% if not tomtom_available %}disabled{% endif %}>TomTom{% if not tomtom_available %} (ยังไม่ได้ตั้งค่า API key){% endif %}</option>
+            <option value="osm" {% if source == "osm" %}selected{% endif %}>OpenStreetMap</option>
+          </select>
+        </div>
+        <div class="form-group col-md-4 mb-2">
+          <label for="geo-shop-type">ประเภทร้าน</label>
+          <select class="form-control" id="geo-shop-type" name="shop_type" {% if not shop_type_options %}disabled{% endif %}>
+            <option value="__all__">ทุกประเภท</option>
+            {% for opt in shop_type_options %}
+              <option value="{{opt.value}}" {% if shop_type == opt.value %}selected{% endif %}>{{opt.label}} — {{opt.count|intcomma}} ร้าน</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-3 mb-2">
+          <label for="geo-system-status">สถานะในระบบ</label>
+          <select class="form-control" id="geo-system-status" name="system_status" {% if not lat or not lng %}disabled{% endif %}>
+            <option value="__all__">ทุกสถานะ</option>
+            {% for opt in system_status_options %}
+              <option value="{{opt.value}}" {% if system_status == opt.value %}selected{% endif %}>{{opt.label}} — {{opt.count|intcomma}} ร้าน</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-2 mb-2 d-flex">
+          <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
+          <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
+        </div>
+      </form>
+      <p id="geo-status" class="text-muted mb-2">
+        {% if lat and lng %}
+          {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %} ·
+          {% for r in region_presets %}{% if r.value == region %}{{r.label}} (รอบ{{r.city}}) ·{% endif %}{% endfor %}
+          ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
+          {% if category is not None %}หมวด: {% for opt in category_options %}{% if opt.value == category %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
+          {% if shop_type is not None %}ประเภท: {% for opt in shop_type_options %}{% if opt.value == shop_type %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
+          (<a href="https://www.openstreetmap.org/?mlat={{lat}}&mlon={{lng}}#map=14/{{lat}}/{{lng}}" target="_blank" rel="noopener">ดูบนแผนที่</a>)
+          — พบ {{external_total|intcomma}} ร้าน
+        {% else %}
+          กรอก Latitude / Longitude หรือกดปุ่ม "ตำแหน่งปัจจุบัน"
+        {% endif %}
+      </p>
+      {% if source == "tomtom" %}
+        <button class="btn btn-success" disabled title="เงื่อนไขของ TomTom ห้ามเก็บข้อมูล เปลี่ยนแหล่งข้อมูลเป็น OpenStreetMap เพื่อ export">ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+        <small class="text-muted ml-2">ข้อมูลจาก TomTom export ไม่ได้ตามเงื่อนไขการใช้งาน เปลี่ยนแหล่งข้อมูลเป็น OpenStreetMap เพื่อ export</small>
+      {% elif lat and lng and external_total %}
+        <a class="btn btn-success" href="{% url 'exportExcelExternalVendor' %}?{{ext_query}}">ดาวโหลด excel <i class = "fas fa-file-excel"></i></a>
+      {% else %}
+        <button class="btn btn-success" disabled>ดาวโหลด excel <i class = "fas fa-file-excel"></i></button>
+      {% endif %}
+      <div class="table-responsive">
+        <table class="table table-striped my-3">
+          <thead class="thead-dark g-4">
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">ชื่อผู้จัดจำหน่าย</th>
+              <th scope="col">ที่อยู่</th>
+              <th scope="col">หมวดฝ่ายซื้อ</th>
+              <th scope="col">ประเภทร้าน</th>
+              <th scope="col">เบอร์โทร</th>
+              <th scope="col">ตำแหน่ง แผนที่</th>
+              <th scope="col">สถานะในระบบ</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for ev in external_vendors %}
+            <tr>
+              <th scope="row">{{external_vendors.start_index|add:forloop.counter0}}</th>
+              <td>{{ev.name}}</td>
+              <td>{{ev.address|default:"-"}}</td>
+              <td>{% if ev.category == "other" %}<span class="text-muted">{{ev.category_label}}</span>{% else %}<span class="badge badge-info">{{ev.category_label}}</span>{% endif %}</td>
+              <td>{{ev.shop_type_label}}</td>
+              <td>{{ev.phone|default:"-"}}</td>
+              <td class="text-nowrap">
+                {% if ev.lat is not None and ev.lng is not None %}
+                  <small class="text-muted d-block">{{ev.lat|floatformat:6}}, {{ev.lng|floatformat:6}}</small>
+                  <a class="btn btn-sm btn-outline-primary"
+                     href="https://www.google.com/maps/search/?api=1&query={{ev.lat|floatformat:'6u'}},{{ev.lng|floatformat:'6u'}}"
+                     target="_blank" rel="noopener">
+                    Google Map <i class="fas fa-map-marker-alt"></i>
+                  </a>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if ev.system_status == "in_system" %}
+                  <a class="badge badge-success" href="{% url 'viewVendorReport' %}?distributor_id_from={{ev.distributor_id|urlencode}}&distributor_id_to={{ev.distributor_id|urlencode}}"
+                     title="ดูในตารางผู้จัดจำหน่ายในระบบ">มีในระบบ: {{ev.distributor_id}}</a>
+                {% elif ev.system_status == "pending" %}
+                  <a class="badge badge-warning" href="{% url 'distributorCandidateDetail' ev.candidate_id %}">รออนุมัติ</a>
+                {% elif ev.system_status == "draft" %}
+                  <a class="badge badge-info" href="{% url 'distributorCandidateDetail' ev.candidate_id %}">กำลังกรอกฟอร์ม</a>
+                {% elif ev.place_id %}
+                  {% if ev.system_status == "rejected" %}<span class="badge badge-secondary d-block mb-1">ไม่อนุมัติ</span>{% endif %}
+                  <form method="post" action="{% url 'proposeDistributorCandidate' %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{request.get_full_path}}">
+                    <input type="hidden" name="place_source" value="{{ev.place_source}}">
+                    <input type="hidden" name="place_id" value="{{ev.place_id}}">
+                    <input type="hidden" name="name" value="{{ev.name}}">
+                    <input type="hidden" name="address" value="{{ev.address|default:''}}">
+                    <input type="hidden" name="tel" value="{{ev.phone|default:''}}">
+                    <input type="hidden" name="shop_type" value="{{ev.shop_type_label|default:''}}">
+                    <input type="hidden" name="lat" value="{{ev.lat|default_if_none:''|floatformat:'6u'}}">
+                    <input type="hidden" name="lng" value="{{ev.lng|default_if_none:''|floatformat:'6u'}}">
+                    <button type="submit" class="btn btn-sm btn-outline-success">
+                      {% if ev.system_status == "rejected" %}เสนอใหม่{% else %}เสนอเพิ่ม{% endif %} <i class="fas fa-plus"></i>
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted">
+                {% if lat and lng %}ไม่พบข้อมูลผู้จัดจำหน่ายจาก {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %}{% else %}รอตำแหน่งจากเครื่องของคุณ{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted small mb-2">
+        {% if source == "tomtom" %}ข้อมูลร้านค้า &copy; TomTom{% else %}ข้อมูลร้านค้า &copy; OpenStreetMap contributors (ODbL){% endif %}
+      </p>
+
+      {% if external_vendors.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าผู้จัดจำหน่ายอื่นๆ">
+        <p class="text-muted small mb-2">
+          แสดงรายการที่ {{external_vendors.start_index|intcomma}}–{{external_vendors.end_index|intcomma}}
+          จาก {{external_total|intcomma}} (หน้า {{external_vendors.number}} / {{external_vendors.paginator.num_pages|intcomma}})
+        </p>
+        <ul class="pagination flex-wrap">
+          {% if external_vendors.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ext_query}}&ext_page={{external_vendors.previous_page_number}}">&laquo; ก่อนหน้า</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; ก่อนหน้า</span></li>
+          {% endif %}
+
+          {% for p in external_page_range %}
+            {% if p == external_vendors.paginator.ELLIPSIS %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% elif p == external_vendors.number %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{p}}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="?{{ext_query}}&ext_page={{p}}">{{p}}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if external_vendors.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ext_query}}&ext_page={{external_vendors.next_page_number}}">ถัดไป &raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">ถัดไป &raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script>
+  (function () {
+    const form = document.getElementById('geo-form');
+    const status = document.getElementById('geo-status');
+    const params = new URLSearchParams(window.location.search);
+
+    // โหลดหน้าใหม่พร้อม lat/lng/keyword โดยเก็บ query เดิม (เช่นค่าฟิลเตอร์ด้านบน) ไว้ด้วย
+    function search(lat, lng, keyword) {
+      params.set('lat', lat);
+      params.set('lng', lng);
+      params.set('radius', form.radius.value.trim() || '10');
+      params.delete('ext_page');
+      params.set('source', form.source.value);
+      if (form.region.value) {
+        params.set('region', form.region.value);
+      } else {
+        params.delete('region');
+      }
+      if (form.category.disabled || form.category.value === '__all__') {
+        params.delete('category');
+      } else {
+        params.set('category', form.category.value);
+      }
+      if (form.shop_type.disabled || form.shop_type.value === '__all__') {
+        params.delete('shop_type');
+      } else {
+        params.set('shop_type', form.shop_type.value);
+      }
+      if (form.system_status.disabled || form.system_status.value === '__all__') {
+        params.delete('system_status');
+      } else {
+        params.set('system_status', form.system_status.value);
+      }
+      if (keyword) {
+        params.set('keyword', keyword);
+      } else {
+        params.delete('keyword');
+      }
+      window.location.search = params.toString();
+    }
+
+    function useCurrentLocation() {
+      if (!navigator.geolocation) {
+        status.textContent = 'เบราว์เซอร์นี้ไม่รองรับการขอตำแหน่ง กรุณากรอก Latitude / Longitude เอง';
+        return;
+      }
+      status.textContent = 'กำลังขอตำแหน่งจากเครื่องของคุณ...';
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          search(
+            pos.coords.latitude.toFixed(6),
+            pos.coords.longitude.toFixed(6),
+            form.keyword.value.trim()
+          );
+        },
+        function (err) {
+          const messages = {
+            1: 'คุณไม่อนุญาตให้เข้าถึงตำแหน่ง กรุณาอนุญาต Location ในเบราว์เซอร์ หรือกรอก Latitude / Longitude เอง',
+            2: 'ไม่สามารถระบุตำแหน่งของเครื่องได้ กรุณากรอก Latitude / Longitude เอง',
+            3: 'ขอตำแหน่งนานเกินไป กรุณาลองใหม่ หรือกรอก Latitude / Longitude เอง',
+          };
+          status.textContent = messages[err.code] || 'ขอตำแหน่งไม่สำเร็จ';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+    });
+
+    document.getElementById('geo-current').addEventListener('click', function () {
+      form.region.value = '';
+      useCurrentLocation();
+    });
+
+    // เลือกภาค -> ใช้พิกัดเมืองหลักของภาคนั้นแทนตำแหน่งปัจจุบัน แล้วค้นทันที
+    form.region.addEventListener('change', function () {
+      const opt = form.region.selectedOptions[0];
+      if (!opt || !opt.value) {
+        return;
+      }
+      form.lat.value = opt.dataset.lat;
+      form.lng.value = opt.dataset.lng;
+      if (form.reportValidity()) {
+        search(form.lat.value, form.lng.value, form.keyword.value.trim());
+      }
+    });
+
+    // แก้พิกัดเอง -> ไม่ใช่พิกัดของภาคที่เลือกไว้แล้ว
+    [form.lat, form.lng].forEach(function (input) {
+      input.addEventListener('input', function () {
+        form.region.value = '';
+      });
+    });
+
+    form.system_status.addEventListener('change', function () {
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
+
+    form.shop_type.addEventListener('change', function () {
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
+
+    // เปลี่ยนแหล่งข้อมูล -> ล้างประเภทร้าน เพราะแต่ละแหล่งตั้งชื่อประเภทไม่เหมือนกัน
+    form.source.addEventListener('change', function () {
+      form.shop_type.value = '__all__';
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
+
+    // เปลี่ยนหมวด -> ล้างประเภทร้านที่เลือกไว้ เพราะอาจไม่อยู่ในหมวดใหม่
+    form.category.addEventListener('change', function () {
+      form.shop_type.value = '__all__';
+      if (form.reportValidity()) {
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+      }
+    });
+
+    // เปิดหน้าครั้งแรกยังไม่มีพิกัด -> ลองขอจาก GPS อัตโนมัติ
+    if (!params.get('lat') || !params.get('lng')) {
+      useCurrentLocation();
+    }
+  })();
+</script>
+{% endblock javascript %}

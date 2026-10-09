@@ -1,0 +1,96 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">อนุมัติผู้จัดจำหน่ายรายใหม่</h3>
+  <p class="text-center text-muted">ใบขอเพิ่ม Supplier รายใหม่ เข้า ASL (FM-PU-005)</p>
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
+
+  <a class="btn btn-outline-secondary" href="{% url 'viewVendorReport' %}">&laquo; กลับหน้ารายการผู้จัดจำหน่าย</a>
+  <ul class="nav nav-pills my-3">
+    {% for opt in status_options %}
+      <li class="nav-item">
+        <a class="nav-link {% if status == opt.value %}active{% endif %}" href="?status={{opt.value}}">
+          {{opt.label}} <span class="badge {% if opt.value == 'submitted' and opt.count %}badge-warning{% else %}badge-light{% endif %}">{{opt.count|intcomma}}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="card div-shadow">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">ชื่อบริษัท/ร้านค้า</th>
+              <th scope="col">ประเภทธุรกิจ</th>
+              <th scope="col">ผู้คัดเลือก</th>
+              <th scope="col">เกณฑ์บังคับ</th>
+              {% if status == "submitted" %}
+                <th scope="col">ส่งเมื่อ</th>
+              {% else %}
+                <th scope="col">ผู้อนุมัติ</th>
+                <th scope="col">รหัส Supplier</th>
+              {% endif %}
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in candidates %}
+            <tr>
+              <td>{{c.name}}<small class="d-block text-muted">{{c.address|default:""}}</small></td>
+              <td>{{c.business_type|default:c.shop_type|default:"-"}}</td>
+              <td>{{c.requested_by_name|default:"-"}}</td>
+              <td class="text-nowrap">
+                {% if c.evaluation.missing %}<span class="badge badge-secondary">ตอบไม่ครบ</span>
+                {% elif c.evaluation.mandatory_passed %}<span class="badge badge-success">ผ่าน</span>
+                {% else %}
+                  <span class="badge badge-danger">ไม่ผ่าน</span>
+                  {% for g in c.evaluation.groups %}{% if not g.passed %}<small class="d-block text-danger">{{g.group.name}}</small>{% endif %}{% endfor %}
+                {% endif %}
+              </td>
+              {% if status == "submitted" %}
+                <td class="text-nowrap">{{c.submitted_at|date:"d/m/Y H:i"}}<small class="d-block text-muted">{{c.submitted_at|timesince}}ที่แล้ว</small></td>
+              {% else %}
+                <td>{{c.approved_by_name|default:"-"}}<small class="d-block text-muted">{{c.approved_at|date:"d/m/Y H:i"}}</small></td>
+                <td>{{c.distributor.id|default:"-"}}</td>
+              {% endif %}
+              <td class="text-nowrap">
+                <a class="btn btn-sm {% if c.status == 'submitted' %}btn-warning{% else %}btn-outline-primary{% endif %}" href="{% url 'distributorApproveDetail' c.pk %}">
+                  {% if c.status == "submitted" %}พิจารณา{% else %}ดูฟอร์ม{% endif %}
+                </a>
+                <a class="btn btn-sm btn-outline-info" href="{% url 'distributorCandidatePrint' c.pk %}" target="_blank" rel="noopener" title="พิมพ์ / PDF"><i class="fas fa-print"></i></a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="text-center text-muted">{% if status == "submitted" %}ไม่มีใบรออนุมัติ{% else %}ไม่มีรายการ{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if candidates.paginator.num_pages > 1 %}
+  <nav aria-label="หน้าอนุมัติผู้จัดจำหน่าย" class="my-3">
+    <ul class="pagination flex-wrap">
+      {% if candidates.has_previous %}
+        <li class="page-item"><a class="page-link" href="?status={{status}}&page={{candidates.previous_page_number}}">&laquo; ก่อนหน้า</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">หน้า {{candidates.number}} / {{candidates.paginator.num_pages}}</span></li>
+      {% if candidates.has_next %}
+        <li class="page-item"><a class="page-link" href="?status={{status}}&page={{candidates.next_page_number}}">ถัดไป &raquo;</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}
