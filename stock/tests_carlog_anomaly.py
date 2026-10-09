@@ -186,12 +186,13 @@ class CarLogAnomalyPanelTestCase(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.all_tab = BaseBranchCompany.objects.create(id="0", code="ALL", name="All")
         cls.ho = BaseBranchCompany.objects.create(id="1", code="HO", name="Head Office")
         address = BaseAddress.objects.create(name_th="Test Co", address="1 Test Rd")
         BranchCompanyBaseAdress.objects.create(branch_company=cls.ho, address=address)
         cls.user = User.objects.create_user(username="cl_anomaly", password="pw")
         profile = UserProfile.objects.create(user=cls.user)
-        profile.branch_company.add(cls.ho)
+        profile.branch_company.add(cls.all_tab, cls.ho)
         car = BaseCar.objects.create(code="C1", name="Truck1")
         today = datetime.date.today()
         cls.bad = CarLogbook.objects.create(branch_company=cls.ho, car=car, created=today,
@@ -200,13 +201,23 @@ class CarLogAnomalyPanelTestCase(TestCase):
                                                 created=today - datetime.timedelta(days=60),
                                                 ref_no="CL-OLD", mile_start=200, mile_end=100)
 
-    def _get(self, params=None):
+    def _get(self, params=None, company_code="HO"):
         client = Client()
         client.login(username="cl_anomaly", password="pw")
         session = client.session
-        session["company_code"] = "HO"
+        session["company_code"] = company_code
         session.save()
         return client.get(reverse("viewCL"), params or {})
+
+    def test_all_tab_panel_links_to_records(self):
+        # แท็ป ALL กดรหัสเข้าไปดูได้ (หน้า edit เป็นแบบดูอย่างเดียว)
+        response = self._get(company_code="ALL")
+        self.assertEqual(response.status_code, 200)
+        # ตรวจเฉพาะ html ของแผงผิดปกติ (ตารางหลักก็มีลิงก์เหมือนกัน)
+        html = response.content.decode()
+        panel = html[html.index('id="anomaly-panel"'):html.index('<div class="card div-shadow">')]
+        self.assertIn(f'href="{reverse("editCL", args=[self.bad.id])}"', panel)
+        self.assertIn(f'href="{reverse("editCL", args=[self.old_bad.id])}"', panel)
 
     def test_panel_shows_recent_anomalies_by_default(self):
         response = self._get()

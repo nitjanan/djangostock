@@ -213,10 +213,9 @@ span.chain-bad {
           {% for a in anomalies %}
             <tr>
               {% if is_all_comp %}<td>{{ a.cl.branch_company.code }}</td>{% endif %}
+              {# แท็ป ALL กดเข้าไปดูได้ แต่หน้า edit จะเป็นแบบดูอย่างเดียว #}
               <th scope="row">
-                {% if is_all_comp %}
-                  {{ a.cl.ref_no }}
-                {% elif a.cl.branch_company.code != 'L1' %}
+                {% if a.cl.branch_company.code != 'L1' %}
                   <a href="{% url 'editCL' a.cl.id %}">{{ a.cl.ref_no }}</a>
                 {% else %}
                   <a href="{% url 'editCLRoi' a.cl.id %}">{{ a.cl.ref_no }}</a>
@@ -230,9 +229,7 @@ span.chain-bad {
                   <span class="badge badge-danger text-wrap text-left mb-1" style="white-space: normal;">{{ issue.text }}</span>
                   {% if issue.prev %}
                     <small class="text-nowrap">ใบก่อนหน้า:
-                      {% if is_all_comp %}
-                        <b>{{ issue.prev.ref_no }}</b>
-                      {% elif issue.prev.branch_company.code != 'L1' %}
+                      {% if issue.prev.branch_company.code != 'L1' %}
                         <a target="_blank" href="{% url 'editCL' issue.prev.id %}"><b>{{ issue.prev.ref_no }}</b></a>
                       {% else %}
                         <a target="_blank" href="{% url 'editCLRoi' issue.prev.id %}"><b>{{ issue.prev.ref_no }}</b></a>

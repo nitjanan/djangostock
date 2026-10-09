@@ -64,6 +64,61 @@ class CarLogbookAllCompanyTestCase(TestCase):
                 self.assertNotContains(response, "<th scope=\"col\">บริษัท</th>", html=False)
 
 
+class CarLogbookAllCompanyReadOnlyTestCase(TestCase):
+    """คลิกรหัสใบใช้รถจากแท็ป ALL ต้องดูได้อย่างเดียว แก้ไขไม่ได้
+    ส่วนแท็ปบริษัทยังแก้ไขได้ตามเดิม"""
+
+    URL_NAMES = ("editCL", "editCLRoi")
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.all_tab = BaseBranchCompany.objects.create(id="0", code="ALL", name="All")
+        cls.ho = BaseBranchCompany.objects.create(id="1", code="HO", name="Head Office")
+        address = BaseAddress.objects.create(name_th="Test Co", address="1 Test Rd")
+        BranchCompanyBaseAdress.objects.create(branch_company=cls.ho, address=address)
+
+        cls.user = User.objects.create_user(username="cl_ro", password="pw")
+        profile = UserProfile.objects.create(user=cls.user)
+        profile.branch_company.add(cls.all_tab, cls.ho)
+
+        cls.cl = CarLogbook.objects.create(branch_company=cls.ho, ref_no="CL-RO-1", note="old")
+
+    def _client(self, company_code):
+        client = Client()
+        client.login(username="cl_ro", password="pw")
+        session = client.session
+        session["company_code"] = company_code
+        session.save()
+        return client
+
+    def test_all_tab_get_is_read_only(self):
+        for url_name in self.URL_NAMES:
+            with self.subTest(url_name=url_name):
+                response = self._client("ALL").get(reverse(url_name, args=[self.cl.id]))
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.context["read_only"])
+                self.assertContains(response, "<fieldset disabled", html=False)
+                self.assertNotContains(response, "บันทึกการแก้ไข", html=False)
+
+    def test_all_tab_post_does_not_save(self):
+        for url_name in self.URL_NAMES:
+            with self.subTest(url_name=url_name):
+                response = self._client("ALL").post(
+                    reverse(url_name, args=[self.cl.id]), {"note": "changed"})
+                self.assertRedirects(response, reverse("viewCL"), fetch_redirect_response=False)
+                self.cl.refresh_from_db()
+                self.assertEqual(self.cl.note, "old")
+
+    def test_company_tab_is_editable(self):
+        for url_name in self.URL_NAMES:
+            with self.subTest(url_name=url_name):
+                response = self._client("HO").get(reverse(url_name, args=[self.cl.id]))
+                self.assertEqual(response.status_code, 200)
+                self.assertFalse(response.context["read_only"])
+                self.assertNotContains(response, "<fieldset disabled", html=False)
+                self.assertContains(response, "บันทึกการแก้ไข", html=False)
+
+
 class CarLogbookExcelCompanyNameTestCase(TestCase):
     """Excel รายงานบันทึกการใช้รถประจำวัน และ สรุปค่าใช้จ่ายแต่ละหน่วยงาน
     ต้องแสดงชื่อบริษัทของใบบันทึกการใช้รถ (แท็ป ALL มีหลายบริษัท)"""
