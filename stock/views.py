@@ -6195,12 +6195,13 @@ def exportExcelPO(request):
 
     po_ids = [row['id'] for row in po_rows]
 
-    item_discount_map = dict(
-        PurchaseOrderItem.objects.filter(po_id__in=po_ids)
-        .values('po_id')
-        .annotate(s_d=Sum('discount'))
-        .values_list('po_id', 's_d')
-    )
+    #discount เป็นข้อความ (บาท หรือ %) ใช้ Sum ใน database ไม่ได้ เพราะจะแปลง "10%" เป็น 10 บาท
+    item_discount_rows = defaultdict(list)
+    for po_id, raw, quantity, unit_price in PurchaseOrderItem.objects.filter(po_id__in=po_ids).values_list(
+        'po_id', 'discount', 'quantity', 'unit_price'
+    ):
+        item_discount_rows[po_id].append((raw, quantity, unit_price))
+    item_discount_map = {po_id: _sum_item_discounts(rows) for po_id, rows in item_discount_rows.items()}
 
     po_items_grouped = {}
     for row in PurchaseOrderItem.objects.filter(po_id__in=po_ids).annotate(
@@ -6400,49 +6401,7 @@ def exportExcelSummaryByProductValue(request):
     font_style = xlwt.XFStyle()
     decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
 
-    item_product_id_from = request.GET.get('item_product_id_from') or None
-    item_product_id_to = request.GET.get('item_product_id_to') or None
-    item_product_name = request.GET.get('item_product_name') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-    distri_id = request.GET.get('distri_id') or None
-    distributor = request.GET.get('distributor') or None
-    stockman_user = request.GET.get('stockman_user') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    unit_price_min = request.GET.get('unit_price_min') or None
-    unit_price_max = request.GET.get('unit_price_max') or None
-    category = request.GET.get('category') or None
-
-    my_q = Q()
-    if item_product_id_from is not None:
-        my_q = Q(item__product_id__gte = item_product_id_from)
-    if item_product_id_to is not None:
-        my_q &= Q(item__product_id__lte = item_product_id_to)
-    if item_product_name is not None:
-        my_q &= Q(item__product_name__icontains = item_product_name)
-    if stockman_user is not None:
-        my_q &= Q(po__stockman_user = stockman_user)
-    if category is not None:
-        my_q &= Q(item__product__category = category)
-    if distri_id is not None:
-        my_q &= Q(po__distributor__id__startswith = distri_id)
-    if distributor is not None:
-        my_q &= Q(po__distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(po__created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(po__created__lte = end_created)
-    if unit_price_min is not None:
-        my_q &= Q(unit_price__gte = unit_price_min)
-    if unit_price_max is not None :
-        my_q &=Q(unit_price__lte = unit_price_max)
-    if item_machine is not None :
-        my_q &=Q(item__machine__icontains = item_machine)
-    if item_rq_note is not None :
-        my_q &=Q(item__requisit__note__icontains = item_rq_note)
-
-    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
+    my_q = Q(po__approver_status = 2, po__is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานทั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
@@ -6450,18 +6409,19 @@ def exportExcelSummaryByProductValue(request):
     else:
         my_q &=Q(po__branch_company__code__in = company_in)
 
-    rows = PurchaseOrderItem.objects.filter(
-        my_q
-    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
+    #กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field
+    po_item_qs = PurchaseOrderItemFilter(request.GET, queryset = PurchaseOrderItem.objects.filter(my_q)).qs
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).annotate(
+    rows = po_item_qs.values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
+
+    po_items = po_item_qs.annotate(
                 car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
                 mc=Case(
                     When(~Q(car_name_code =''), then='car_name_code'),
                     default='item__machine'
                 )).values('item__product_id','unit_price','mc') #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
-    total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
+    total_price = po_item_qs.aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
     
     for row in rows:
@@ -6538,68 +6498,27 @@ def exportExcelSummaryByProductFrequently(request):
     font_style = xlwt.XFStyle()
     decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
 
-    item_product_id_from = request.GET.get('item_product_id_from') or None
-    item_product_id_to = request.GET.get('item_product_id_to') or None
-    item_product_name = request.GET.get('item_product_name') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-    distri_id = request.GET.get('distri_id') or None
-    distributor = request.GET.get('distributor') or None
-    stockman_user = request.GET.get('stockman_user') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    unit_price_min = request.GET.get('unit_price_min') or None
-    unit_price_max = request.GET.get('unit_price_max') or None
-    category = request.GET.get('category') or None
+    my_q = Q(po__approver_status = 2, po__is_cancel = False)
 
-    my_q = Q()
-    if item_product_id_from is not None:
-        my_q = Q(item__product_id__gte = item_product_id_from)
-    if item_product_id_to is not None:
-        my_q &= Q(item__product_id__lte = item_product_id_to)
-    if item_product_name is not None:
-        my_q &= Q(item__product_name__icontains = item_product_name)
-    if stockman_user is not None:
-        my_q &= Q(po__stockman_user = stockman_user)
-    if category is not None:
-        my_q &= Q(item__product__category = category)
-    if distri_id is not None:
-        my_q &= Q(po__distributor__id__startswith = distri_id)
-    if distributor is not None:
-        my_q &= Q(po__distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(po__created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(po__created__lte = end_created)
-    if unit_price_min is not None:
-        my_q &= Q(unit_price__gte = unit_price_min)
-    if unit_price_max is not None :
-        my_q &=Q(unit_price__lte = unit_price_max)
-    if item_machine is not None :
-        my_q &=Q(item__machine__icontains = item_machine)
-    if item_rq_note is not None:
-        my_q &= Q(item__requisit__note__icontains=item_rq_note)
-
-    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
-
-    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    #ถ้ามีสิทธิดูรายงานทั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
         pass
     else:
         my_q &=Q(po__branch_company__code__in = company_in)
 
-    rows = PurchaseOrderItem.objects.filter(
-        my_q
-    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
+    #กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field
+    po_item_qs = PurchaseOrderItemFilter(request.GET, queryset = PurchaseOrderItem.objects.filter(my_q)).qs
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).annotate(
+    rows = po_item_qs.values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
+
+    po_items = po_item_qs.annotate(
                 car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
                 mc=Case(
                     When(~Q(car_name_code =''), then='car_name_code'),
                     default='item__machine'
                 )).values('item__product_id','unit_price','mc') #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
-    total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
+    total_price = po_item_qs.aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
     
     for row in rows:
@@ -10448,83 +10367,34 @@ def exportExcelSummaryByDistributorFrequently(request):
     )
 
     # ---------------- FILTER ----------------
-    item_product_id_from = request.GET.get('item_product_id_from') or None
-    item_product_id_to = request.GET.get('item_product_id_to') or None
-    item_product_name = request.GET.get('item_product_name') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-    distri_id = request.GET.get('distri_id') or None
-    distributor = request.GET.get('distributor') or None
-    stockman_user = request.GET.get('stockman_user') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    unit_price_min = request.GET.get('unit_price_min') or None
-    unit_price_max = request.GET.get('unit_price_max') or None
-    category = request.GET.get('category') or None
-
-    my_q = Q()
-
-    # ใช้ purchaseorderitem__ (เพราะไม่มี related_name)
-    if item_product_id_from:
-        my_q &= Q(purchaseorderitem__item__product_id__gte=item_product_id_from)
-
-    if item_product_id_to:
-        my_q &= Q(purchaseorderitem__item__product_id__lte=item_product_id_to)
-
-    if item_product_name:
-        my_q &= Q(purchaseorderitem__item__product_name__icontains=item_product_name)
-
-    if stockman_user:
-        my_q &= Q(stockman_user=stockman_user)
-
-    if category:
-        my_q &= Q(purchaseorderitem__item__product__category=category)
-
-    if distri_id:
-        my_q &= Q(distributor__id__startswith=distri_id)
-
-    if distributor:
-        my_q &= Q(distributor__name__startswith=distributor)
-
-    if start_created:
-        my_q &= Q(created__gte=start_created)
-
-    if end_created:
-        my_q &= Q(created__lte=end_created)
-
-    if unit_price_min:
-        my_q &= Q(purchaseorderitem__unit_price__gte=unit_price_min)
-
-    if unit_price_max:
-        my_q &= Q(purchaseorderitem__unit_price__lte=unit_price_max)
-
-    if item_machine:
-        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
-
-    if item_rq_note:
-        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
-
-    # status
-    my_q &= Q(approver_status=2, is_cancel=False)
+    my_q = Q(po__approver_status = 2, po__is_cancel = False)
 
     # permission
     if not (is_view_report_all(request.user) and active == 'ALL'):
-        my_q &= Q(branch_company__code__in=company_in)
+        my_q &= Q(po__branch_company__code__in=company_in)
 
     # ---------------- BASE QUERY ----------------
-    # ใช้ id__in เพื่อตัด join กับ purchaseorderitem (เช่นตอนกรอง category)
-    # ออกจาก queryset ที่ใช้ Sum ป้องกันค่าถูกคูณซ้ำตามจำนวนรายการสินค้า
-    po_ids = PurchaseOrder.objects.filter(my_q).values_list('id', flat=True).distinct()
+    # กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field แล้วเอาเฉพาะ PO ที่มีรายการสินค้าตรงเงื่อนไข
+    # ใช้ id__in เพื่อตัด join กับ purchaseorderitem ออกจาก queryset ที่ใช้ Sum ป้องกันค่าถูกคูณซ้ำตามจำนวนรายการสินค้า
+    po_ids = PurchaseOrderItemFilter(request.GET, queryset = PurchaseOrderItem.objects.filter(my_q)).qs.values_list('po_id', flat=True).distinct()
     base_qs = PurchaseOrder.objects.filter(id__in=po_ids)
 
-    # ---------------- SUBQUERY (ITEM) ----------------
-    item_sub = PurchaseOrderItem.objects.filter(
-        po__distributor=OuterRef('distributor')
-    ).values(
-        'po__distributor'
-    ).annotate(
-        total_discount=Sum('discount')
-    ).values('total_discount')
+    # ---------------- DISCOUNT ----------------
+    # discount เป็นข้อความ (บาท หรือ %) ใช้ Sum ใน database ไม่ได้ เพราะจะแปลง "10%" เป็น 10 บาท
+    # จึงคำนวณเป็นบาทใน python แบบเดียวกับ calculateUnitDiscount() / calculateDiscount() ในหน้า PO
+    # ส่วนลดสินค้า: % คิดจาก quantity x unit_price ของรายการนั้น (เฉพาะ PO ที่ผ่าน filter)
+    item_discount_rows = defaultdict(list)
+    for distributor_id, raw, quantity, unit_price in PurchaseOrderItem.objects.filter(po_id__in=po_ids).values_list(
+        'po__distributor_id', 'discount', 'quantity', 'unit_price'
+    ):
+        item_discount_rows[distributor_id].append((raw, quantity, unit_price))
+    item_discount_map = {k: _sum_item_discounts(v) for k, v in item_discount_rows.items()}
+
+    # ส่วนลดท้ายบิล: % คิดจาก total_price ของ PO
+    po_discount_rows = defaultdict(list)
+    for distributor_id, raw, total_price in base_qs.values_list('distributor_id', 'discount', 'total_price'):
+        po_discount_rows[distributor_id].append((raw, 1, total_price))
+    po_discount_map = {k: _sum_item_discounts(v) for k, v in po_discount_rows.items()}
 
     # ---------------- MAIN QUERY ----------------
     rows = base_qs.values(
@@ -10532,34 +10402,23 @@ def exportExcelSummaryByDistributorFrequently(request):
         'distributor__name',
     ).annotate(
         s_total_price=Coalesce(Sum('total_price'), Value(0), output_field=models.DecimalField()),
-        s_discount=Coalesce(Sum('discount'), Value(0), output_field=models.DecimalField()),
         s_total_after_discount=Coalesce(Sum('total_after_discount'), Value(0), output_field=models.DecimalField()),
         s_freight=Coalesce(Sum('freight'), Value(0), output_field=models.DecimalField()),
         s_vat=Coalesce(Sum('vat'), Value(0), output_field=models.DecimalField()),
         s_amount=Coalesce(Sum('amount'), Value(0), output_field=models.DecimalField()),
-
-        s__product_discount=Coalesce(
-            Subquery(item_sub[:1]),
-            Value(0),
-            output_field=models.DecimalField()
-        ),
         count=Count('id', distinct=True)
     ).order_by('-count')
 
     # ---------------- TOTAL SUMMARY ----------------
     total_data = base_qs.aggregate(
         sum_total_price=Sum('total_price'),
-        sum_discount=Sum('discount'),
         sum_total_after_discount=Sum('total_after_discount'),
         sum_freight=Sum('freight'),
         sum_vat=Sum('vat'),
         sum_amount=Sum('amount'),
     )
-
-    # item total (ไม่ให้ join พัง)
-    total_item_discount = PurchaseOrderItem.objects.filter(
-        po__in=base_qs
-    ).aggregate(sum_discount=Sum('discount'))['sum_discount'] or 0
+    total_data['sum_discount'] = sum(po_discount_map.values(), Decimal('0'))
+    total_item_discount = sum(item_discount_map.values(), Decimal('0'))
 
     # ---------------- WRITE DATA ----------------
     for row in rows:
@@ -10567,9 +10426,9 @@ def exportExcelSummaryByDistributorFrequently(request):
 
         ws.write(row_num, 0, row['distributor__id'] or '', font_normal)
         ws.write(row_num, 1, row['distributor__name'] or '', font_normal)
-        ws.write(row_num, 2, row['s__product_discount'], decimal_style)
+        ws.write(row_num, 2, item_discount_map.get(row['distributor__id'], Decimal('0')), decimal_style)
         ws.write(row_num, 3, row['s_total_price'], decimal_style)
-        ws.write(row_num, 4, row['s_discount'], decimal_style)
+        ws.write(row_num, 4, po_discount_map.get(row['distributor__id'], Decimal('0')), decimal_style)
         ws.write(row_num, 5, row['s_total_after_discount'], decimal_style)
         ws.write(row_num, 6, row['s_freight'], decimal_style)
         ws.write(row_num, 7, row['s_vat'], decimal_style)

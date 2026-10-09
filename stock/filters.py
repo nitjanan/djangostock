@@ -89,40 +89,63 @@ class PurchaseOrderFilter(django_filters.FilterSet):
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='startswith')
     cp_ref_no = django_filters.CharFilter(field_name="cp__ref_no", lookup_expr='icontains')
-    pr_ref_no = django_filters.CharFilter(field_name="pr__ref_no", lookup_expr='icontains')
-    item_machine = django_filters.CharFilter(
-        field_name="purchaseorderitem__item__machine",
-        lookup_expr='icontains'
-    )
-    item_rq_note = django_filters.CharFilter(
-        field_name="purchaseorderitem__item__requisit__note",
-        lookup_expr='icontains'
-    )
+    pr_ref_no = django_filters.CharFilter(method='filter_pr_ref_no')
 
-    item_product_name = django_filters.CharFilter(
-        field_name="purchaseorderitem__item__product_name",
-        lookup_expr='icontains'
-    )
-    item_product_id = django_filters.CharFilter(
-        field_name="purchaseorderitem__item__product__id",
-        lookup_expr='icontains'
-    )
+    #filter ที่กรองจากรายการสินค้าใน PO ใช้ method เดียวกัน เพื่อรวมเงื่อนไขไว้ใน .filter() เดียว
+    #ถ้าแยก filter จะ join purchaseorderitem แยกกันทีละครั้ง ทำให้แต่ละเงื่อนไขไปตรงกับคนละรายการ
+    #เช่น ราคาต่อหน่วย 100-200 จะได้ PO ที่มีรายการราคา 50 และ 500 ติดมาด้วย
+    item_machine = django_filters.CharFilter(method='filter_po_item')
+    item_rq_note = django_filters.CharFilter(method='filter_po_item')
+    item_product_name = django_filters.CharFilter(method='filter_po_item')
+    item_product_id = django_filters.CharFilter(method='filter_po_item')
+    item_product_id_from  = django_filters.CharFilter(method='filter_po_item')
+    item_product_id_to  = django_filters.CharFilter(method='filter_po_item')
+    unit_price_min  = django_filters.NumberFilter(method='filter_po_item')
+    unit_price_max  = django_filters.NumberFilter(method='filter_po_item')
+    category = django_filters.ModelChoiceFilter(method='filter_po_item', queryset= Category.objects.all())
 
-    item_product_id_from  = django_filters.CharFilter(field_name="purchaseorderitem__item__product_id", lookup_expr='gte')
-    item_product_id_to  = django_filters.CharFilter(field_name="purchaseorderitem__item__product_id", lookup_expr='lte')
-    unit_price_min  = django_filters.CharFilter(field_name="purchaseorderitem__unit_price", lookup_expr='gte')
-    unit_price_max  = django_filters.CharFilter(field_name="purchaseorderitem__unit_price", lookup_expr='lte')
     distri_id  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='startswith')
-    category = django_filters.ModelChoiceFilter(field_name="purchaseorderitem__item__product__category__name", queryset= Category.objects.all())
-
     ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
-    amount_min  = django_filters.CharFilter(field_name="amount", lookup_expr='gte')
-    amount_max  = django_filters.CharFilter(field_name="amount", lookup_expr='lte')
+    amount_min  = django_filters.NumberFilter(field_name="amount", lookup_expr='gte')
+    amount_max  = django_filters.NumberFilter(field_name="amount", lookup_expr='lte')
+
+    #ชื่อ filter => lookup บน purchaseorderitem
+    PO_ITEM_LOOKUPS = {
+        'item_machine': 'purchaseorderitem__item__machine__icontains',
+        'item_rq_note': 'purchaseorderitem__item__requisit__note__icontains',
+        'item_product_name': 'purchaseorderitem__item__product_name__icontains',
+        'item_product_id': 'purchaseorderitem__item__product__id__icontains',
+        'item_product_id_from': 'purchaseorderitem__item__product_id__gte',
+        'item_product_id_to': 'purchaseorderitem__item__product_id__lte',
+        'unit_price_min': 'purchaseorderitem__unit_price__gte',
+        'unit_price_max': 'purchaseorderitem__unit_price__lte',
+        'category': 'purchaseorderitem__item__product__category',
+    }
 
     class Meta:
         model = PurchaseOrder
         fields = ('id', 'credit','shipping','created','approver_status', 'stockman_user')
+
+    def filter_po_item(self, queryset, name, value):
+        #กรองครั้งเดียวตอนเจอ filter รายการสินค้าตัวแรก ตัวที่เหลือข้ามไป
+        if getattr(self, '_po_item_filtered', False):
+            return queryset
+        self._po_item_filtered = True
+
+        my_q = Q()
+        for filter_name, lookup in self.PO_ITEM_LOOKUPS.items():
+            filter_value = self.form.cleaned_data.get(filter_name)
+            if filter_value not in (None, ''):
+                my_q &= Q(**{lookup: filter_value})
+        return queryset.filter(my_q)
+
+    def filter_pr_ref_no(self, queryset, name, value):
+        #PO หนึ่งใบอาจมีสินค้าจากหลายใบขอซื้อ แต่ po.pr เก็บไว้ใบเดียว จึงค้นจากใบขอซื้อของรายการสินค้าด้วย ให้ตรงกับที่หน้ารายงานแสดง
+        return queryset.filter(
+            Q(pr__ref_no__icontains = value) |
+            Q(purchaseorderitem__item__requisit__pr_ref_no__icontains = value)
+        )
 
 PurchaseOrderFilter.base_filters['id'].label = 'รหัส'
 PurchaseOrderFilter.base_filters['ref_no'].label = 'รหัส'
@@ -159,12 +182,13 @@ class PurchaseOrderItemFilter(django_filters.FilterSet):
     distri_id  = django_filters.CharFilter(field_name="po__distributor__id", lookup_expr='startswith')
     distributor  = django_filters.CharFilter(field_name="po__distributor__name", lookup_expr='startswith')
     stockman_user = django_filters.ModelChoiceFilter(field_name="po__stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
-    unit_price_min  = django_filters.CharFilter(field_name="unit_price", lookup_expr='gte')
-    unit_price_max  = django_filters.CharFilter(field_name="unit_price", lookup_expr='lte')
+    unit_price_min  = django_filters.NumberFilter(field_name="unit_price", lookup_expr='gte')
+    unit_price_max  = django_filters.NumberFilter(field_name="unit_price", lookup_expr='lte')
     category = django_filters.ModelChoiceFilter(field_name="item__product__category__name", queryset= Category.objects.all())
     po_ref_no = django_filters.CharFilter(field_name="po__ref_no", lookup_expr='icontains')
     cp_ref_no = django_filters.CharFilter(field_name="po__cp__ref_no", lookup_expr='icontains')
-    pr_ref_no = django_filters.CharFilter(field_name="po__pr__ref_no", lookup_expr='icontains')
+    #ค้นจากใบขอซื้อของรายการสินค้า (ตรงกับที่ตารางแสดง) ไม่ใช่ po.pr เพราะ PO ที่สร้างจากใบเปรียบไม่มี po.pr และ PO หนึ่งใบมีสินค้าจากหลายใบขอซื้อได้
+    pr_ref_no = django_filters.CharFilter(field_name="item__requisit__pr_ref_no", lookup_expr='icontains')
 
     class Meta:
         model = PurchaseOrderItem
