@@ -103,14 +103,23 @@
         margin: 0;
         padding: 5px 10px;
     }
+    /* select2 ไม่สนใจ fieldset disabled จึงต้องกันการคลิกเอง */
+    .cl-read-only .select2-container {
+        pointer-events: none;
+    }
+    .cl-read-only .select2-selection {
+        background-color: #e9ecef !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <div class="container my-3">
-    <h2 align="center">แก้ไขบันทึกการใช้รถ</h2>
+    <h2 align="center">{% if read_only %}ดูบันทึกการใช้รถ{% else %}แก้ไขบันทึกการใช้รถ{% endif %}</h2>
             <form method="POST" enctype="multipart/form-data">
+            {# แท็ป ALL ดูได้อย่างเดียว: ปิดทุกช่องใน fieldset #}
+            <fieldset {% if read_only %}disabled class="cl-read-only"{% endif %}>
                 {{form.id}}
                 {{ form.branch_company }}
                 <h6 class="text-right">รายละเอียดใบบันทึกการใช้รถ</h6>
@@ -159,7 +168,7 @@
                                         oninput="this.setCustomValidity('')">
 
                                     <!-- Label as button -->
-                                    <label for="id_image_mile" class="upload-label" id="label_image_mile">
+                                    <label for="id_image_mile" class="upload-label{% if read_only %} d-none{% endif %}" id="label_image_mile">
                                         <i class="fas fa-camera"></i>&nbsp;ถ่ายรูปเลขไมล์เริ่มต้น
                                     </label>
 
@@ -342,12 +351,20 @@
                     </div>
                     {% csrf_token %}
                 </div>
+            </fieldset>
                 <div class="row my-3">
                     <div class="col">
+                        {% if read_only %}
+                        <a href="{% url 'viewCL' %}" class="btn btn-lg btn-secondary float-right">
+                            <i class="fas fa-arrow-left"></i>
+                            กลับ
+                        </a>
+                        {% else %}
                         <button type="submit" class="btn btn-lg  btn-warning float-right">
                             <i class="fas fa-save"></i>
                             บันทึกการแก้ไข
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             </form>

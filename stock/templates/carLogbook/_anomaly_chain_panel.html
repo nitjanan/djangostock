@@ -1,14 +1,13 @@
 {% comment %}
 chain-panel ของใบบันทึกการใช้รถ 1 ใบ ในแผงตรวจจับความผิดปกติ
-ตัวแปร: c = CarLogbook, bad = set ของ field ที่ผิด, jobs = job_rows(), label, mod (prev|cur), is_all_comp
+ตัวแปร: c = CarLogbook, bad = set ของ field ที่ผิด, jobs = job_rows(), label, mod (prev|cur)
+แท็ป ALL กดเข้าไปดูได้ แต่หน้า edit จะเป็นแบบดูอย่างเดียว
 {% endcomment %}
 <div class="chain-panel chain-panel--{{ mod }}">
   <div class="chain-panel__head">
     <span class="badge {% if mod == 'cur' %}badge-warning{% else %}badge-secondary{% endif %}">{{ label }}</span>
     <span class="chain-panel__ref">
-      {% if is_all_comp %}
-        {{ c.ref_no }}
-      {% elif c.branch_company.code != 'L1' %}
+      {% if c.branch_company.code != 'L1' %}
         <a target="_blank" href="{% url 'editCL' c.id %}">{{ c.ref_no }}</a>
       {% else %}
         <a target="_blank" href="{% url 'editCLRoi' c.id %}">{{ c.ref_no }}</a>

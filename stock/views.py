@@ -9837,6 +9837,12 @@ def createCL(request):
 def editCLRoi(request, cl_id):
     active = request.session.get('company_code', 'ALL')
     cl = CarLogbook.objects.get(id=cl_id)
+    #แท็ป ALL ดูได้อย่างเดียว แก้ไขไม่ได้
+    read_only = active == 'ALL'
+
+    if request.method == 'POST' and read_only:
+        messages.error(request, "แท็ป ALL ดูได้อย่างเดียว ไม่สามารถแก้ไขบันทึกการใช้รถได้")
+        return redirect('viewCL')
 
     if request.method == 'POST':
         form = RoiCarLogbookForm(
@@ -9856,6 +9862,7 @@ def editCLRoi(request, cl_id):
         'cl_page': "tab-active",
         'cl_show': "show",
         'cl_data': cl,
+        'read_only': read_only,
         active: "active show",
         "disableTab": "disableTab",
         "colorNav": "disableNav"
@@ -9866,6 +9873,12 @@ def editCLRoi(request, cl_id):
 def editCL(request, cl_id):
     active = request.session.get('company_code', 'ALL')
     cl = CarLogbook.objects.get(id=cl_id)
+    #แท็ป ALL ดูได้อย่างเดียว แก้ไขไม่ได้
+    read_only = active == 'ALL'
+
+    if request.method == 'POST' and read_only:
+        messages.error(request, "แท็ป ALL ดูได้อย่างเดียว ไม่สามารถแก้ไขบันทึกการใช้รถได้")
+        return redirect('viewCL')
 
     if request.method == 'POST':
         form = CarLogbookForm(
@@ -9885,6 +9898,7 @@ def editCL(request, cl_id):
         'cl_page': "tab-active",
         'cl_show': "show",
         'cl_data': cl,
+        'read_only': read_only,
         active: "active show",
         "disableTab": "disableTab",
         "colorNav": "disableNav"
