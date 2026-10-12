@@ -13314,6 +13314,69 @@ def distributorRuleEdit(request, pk):
     return _rule_form_page(request, rule, f"แก้ไขข้อ {rule.code}")
 
 
+@login_required(login_url='signIn')
+@_approver_only
+@require_http_methods(["POST"])
+def distributorRuleToggle(request, pk):
+    """เปิด / ปิดใช้งานหลักเกณฑ์ (ปิด = ไม่แสดงในฟอร์มใหม่ คำตอบเดิมยังอยู่)"""
+    from stock.models import DistributorRule
+
+    rule = get_object_or_404(DistributorRule, pk=pk)
+    rule.is_active = not rule.is_active
+    rule.save(update_fields=["is_active"])
+    messages.success(request, f"{'เปิด' if rule.is_active else 'ปิด'}ใช้งานข้อ {rule.code} แล้ว")
+    return redirect(reverse("distributorRuleList") + f"#rule-{rule.pk}")
+
+
+@login_required(login_url='signIn')
+@_approver_only
+@require_http_methods(["POST"])
+def distributorRuleMove(request, pk, direction):
+    """ย้ายขึ้น / ลงหนึ่งตำแหน่ง ในกลุ่มพี่น้องเดียวกัน (ข้อหลักด้วยกัน หรือข้อย่อยใต้ข้อเดียวกัน)"""
+    from django.db import transaction
+    from stock.forms import sync_rule_groups
+    from stock.models import DistributorRule
+
+    if direction not in ("up", "down"):
+        from django.http import Http404
+        raise Http404
+    rule = get_object_or_404(DistributorRule, pk=pk)
+    siblings = list(DistributorRule.objects.filter(parent_id=rule.parent_id).order_by("order", "id"))
+    i = siblings.index(rule)
+    j = i - 1 if direction == "up" else i + 1
+    if 0 <= j < len(siblings):
+        siblings[i], siblings[j] = siblings[j], siblings[i]
+        with transaction.atomic():
+            # จัดลำดับใหม่ทั้งชุด กันกรณี order ซ้ำกัน
+            for n, r in enumerate(siblings, start=1):
+                if r.order != n * 10:
+                    r.order = n * 10
+                    r.save(update_fields=["order"])
+            sync_rule_groups()
+    return redirect(reverse("distributorRuleList") + f"#rule-{rule.pk}")
+
+
+@login_required(login_url='signIn')
+@_approver_only
+@require_http_methods(["POST"])
+def distributorRuleDelete(request, pk):
+    """ลบได้เฉพาะข้อที่ยังไม่มีคนตอบและไม่มีข้อย่อย ที่เหลือให้ปิดใช้งานแทน"""
+    from django.db.models import ProtectedError
+    from stock.forms import sync_rule_groups
+    from stock.models import DistributorRule
+
+    rule = get_object_or_404(DistributorRule, pk=pk)
+    label = f"ข้อ {rule.code} {rule.name}"
+    try:
+        rule.delete()
+    except ProtectedError:
+        messages.error(request, f"ลบ \"{label}\" ไม่ได้ เพราะมีคำตอบในใบขอเพิ่มแล้ว หรือมีข้อย่อย ให้ปิดใช้งานแทน")
+    else:
+        sync_rule_groups()
+        messages.success(request, f"ลบ \"{label}\" แล้ว")
+    return redirect(reverse("distributorRuleList"))
+
+
 def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link_column=None):
     """สร้างไฟล์ .xlsx: หัวตารางตัวหนา + ตรึงแถวหัว + ปรับความกว้างคอลัมน์ / link_column = index คอลัมน์ที่เป็นลิงก์"""
     wb = Workbook()
