@@ -1272,15 +1272,18 @@ class DistributorCandidate(models.Model):
     def approved_by_name(self):
         return self._user_name(self.approved_by)
 
-    def evaluate(self):
+    def evaluate(self, answers=None):
         """ตรวจคำตอบกับหลักเกณฑ์ที่ใช้งานอยู่
 
         rows: เกณฑ์เรียงตามลำดับ (ข้อย่อยต่อท้ายข้อหลัก) พร้อมคำตอบและผล
         groups: ผลของกลุ่มเกณฑ์บังคับ / mandatory_passed: ผ่านทุกกลุ่ม
         missing: ข้อที่ต้องตอบแต่ยังไม่ได้ตอบ
+        answers: {rule_id: DistributorForm} ใช้ตรวจคำตอบที่ยังไม่บันทึก (ปุ่ม "ตรวจเกณฑ์") / None = อ่านจาก DB
         """
-        rules = list(DistributorRule.objects.filter(is_active=True).select_related('mandatory_group'))
-        answers = {a.question_id: a for a in self.answers.all()}
+        # ข้อย่อยของข้อหลักที่ปิดอยู่ ถือว่าปิดตามไปด้วย
+        rules = list(DistributorRule.objects.filter(is_active=True).exclude(parent__is_active=False).select_related('mandatory_group'))
+        if answers is None:
+            answers = {a.question_id: a for a in self.answers.all()}
         children = {}
         for r in rules:
             children.setdefault(r.parent_id, []).append(r)
