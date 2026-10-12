@@ -13225,6 +13225,95 @@ def rejectDistributorCandidate(request, pk):
     return redirect("distributorApproveList")
 
 
+# ---------------- จัดการหลักเกณฑ์ใบขอเพิ่ม Supplier (FM-PU-005) ----------------
+
+def _requirement_label(rule):
+    """ข้อความ "ต้องผ่านไหม" ในหน้ารายการ แทนการแสดงชื่อกลุ่มเกณฑ์บังคับ"""
+    if rule.parent_id:
+        return f"นับรวมในข้อ {rule.parent.code}"
+    group = rule.mandatory_group
+    if group is None:
+        return ""
+    others = [r for r in group.rules.all() if r.pk != rule.pk]
+    if not others:
+        return "บังคับ"
+    return "บังคับ (ใช้ " + ", ".join(f"ข้อ {r.code}" for r in others) + " แทนได้)"
+
+
+@login_required(login_url='signIn')
+@_approver_only
+def distributorRuleList(request):
+    """หน้าจัดการหลักเกณฑ์ (เรียงแบบต้นไม้: ข้อย่อยต่อท้ายข้อหลัก)"""
+    from stock.models import DistributorRule
+
+    rules = list(
+        DistributorRule.objects.select_related("parent", "mandatory_group")
+        .prefetch_related("mandatory_group__rules")
+        .annotate(answer_count=Count("answers", distinct=True), child_count=Count("children", distinct=True))
+    )
+    children = {}
+    for r in rules:
+        children.setdefault(r.parent_id, []).append(r)
+
+    rows = []
+
+    def walk(parent_id, depth):
+        siblings = children.get(parent_id, [])
+        for i, r in enumerate(siblings):
+            rows.append({
+                "rule": r,
+                "depth": depth,
+                "requirement": _requirement_label(r),
+                "can_delete": not r.answer_count and not r.child_count,
+                "can_up": i > 0,
+                "can_down": i < len(siblings) - 1,
+                # ข้อหลักปิด -> ข้อย่อยปิดตาม (ไม่แสดงในฟอร์ม)
+                "parent_off": bool(r.parent_id and not r.parent.is_active),
+            })
+            walk(r.pk, depth + 1)
+
+    walk(None, 0)
+    return render(request, "report/distributorRule.html", {"rows": rows})
+
+
+def _rule_form_page(request, instance, title):
+    from stock.forms import DistributorRuleForm
+
+    form = DistributorRuleForm(request.POST or None, instance=instance)
+    if request.method == "POST" and form.is_valid():
+        rule = form.save()
+        messages.success(request, f"บันทึกข้อ {rule.code} แล้ว")
+        return redirect(reverse("distributorRuleList") + f"#rule-{rule.pk}")
+    return render(request, "report/distributorRuleEdit.html", {
+        "form": form,
+        "title": title,
+        "rule": instance,
+        "parent_options": form.parent_options(),
+        "next_main_code": form.suggest_code(),
+        "children": instance.children.order_by("order", "id") if instance.pk else [],
+    })
+
+
+@login_required(login_url='signIn')
+@_approver_only
+def distributorRuleCreate(request):
+    from stock.models import DistributorRule
+
+    # ?parent=<id> = กด "+ ข้อย่อย" จากหน้ารายการ
+    parent = DistributorRule.objects.filter(pk=request.GET.get("parent"), parent__isnull=True).first()
+    title = f"เพิ่มข้อย่อยของข้อ {parent.code}" if parent else "เพิ่มหลักเกณฑ์"
+    return _rule_form_page(request, DistributorRule(parent=parent), title)
+
+
+@login_required(login_url='signIn')
+@_approver_only
+def distributorRuleEdit(request, pk):
+    from stock.models import DistributorRule
+
+    rule = get_object_or_404(DistributorRule, pk=pk)
+    return _rule_form_page(request, rule, f"แก้ไขข้อ {rule.code}")
+
+
 def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link_column=None):
     """สร้างไฟล์ .xlsx: หัวตารางตัวหนา + ตรึงแถวหัว + ปรับความกว้างคอลัมน์ / link_column = index คอลัมน์ที่เป็นลิงก์"""
     wb = Workbook()
