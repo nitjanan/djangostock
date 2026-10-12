@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FM-PU-005 {{candidate.name}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 portrait; margin: 12mm 12mm 10mm; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Sarabun', 'TH Sarabun New', Tahoma, sans-serif; font-size: 13px; color: #000; background: #fff; margin: 0; }
+    .page { width: 186mm; margin: 0 auto; padding: 8mm 0; }
+    h1 { font-size: 18px; text-align: center; margin: 0 0 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
+    .info td { height: 24px; }
+    .label { white-space: nowrap; width: 1%; font-weight: 700; }
+    .ans { width: 60px; text-align: center; vertical-align: middle; font-size: 15px; }
+    .child { padding-left: 24px; }
+    .desc, .remark { display: block; font-size: 11.5px; }
+    .remark { font-style: italic; }
+    .note { margin: 8px 0; font-size: 12px; }
+    .summary td { border: none; padding: 2px 6px; }
+    .box { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; text-align: center; line-height: 12px; margin-right: 4px; }
+    .sign { margin-top: 24px; }
+    .sign td { border: none; width: 50%; text-align: center; padding-top: 18px; }
+    .footer { text-align: right; font-size: 11px; margin-top: 16px; }
+    .toolbar { text-align: center; margin: 12px 0; }
+    .toolbar button { font-family: inherit; font-size: 14px; padding: 6px 18px; cursor: pointer; }
+    @media print { .toolbar { display: none; } .page { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+  <div class="page">
+    <h1>ใบขอเพิ่ม Supplier รายใหม่ เข้า ASL</h1>
+
+    <table class="info">
+      <tr><td class="label">ชื่อบริษัท/ร้านค้า</td><td colspan="3">{{candidate.name}}</td></tr>
+      <tr><td class="label">ที่อยู่</td><td colspan="3">{{candidate.address|default:""}}</td></tr>
+      <tr>
+        <td class="label">สาขา</td><td>{{candidate.branch|default:""}}</td>
+        <td class="label">ชื่อผู้ติดต่อ</td><td>{{candidate.contact|default:""}}</td>
+      </tr>
+      <tr>
+        <td class="label">โทรสาร / LINE ID</td><td>{{candidate.fax_line|default:""}}</td>
+        <td class="label">โทรศัพท์</td><td>{{candidate.tel|default:""}}</td>
+      </tr>
+      <tr>
+        <td class="label">เลขประจำตัวผู้เสียภาษี</td><td>{{candidate.tax_id|default:""}}</td>
+        <td class="label">EMAIL</td><td>{{candidate.email|default:""}}</td>
+      </tr>
+      <tr>
+        <td class="label">ประเภทธุรกิจ/สินค้า/บริการที่จะใช้</td><td>{{candidate.business_type|default:""}}</td>
+        <td class="label">เครดิต</td><td>{% if candidate.credit_days is not None %}{{candidate.credit_days}}{% endif %} วัน</td>
+      </tr>
+    </table>
+
+    <table style="margin-top: 8px;">
+      <tr><th>หลักเกณฑ์</th><th class="ans">ผ่าน</th><th class="ans">ไม่ผ่าน</th></tr>
+      {% for row in evaluation.rows %}
+        <tr>
+          <td class="{% if row.depth %}child{% endif %}">
+            {{row.rule.code}}. {{row.rule.name}}
+            {% if row.rule.description %}<span class="desc">{{row.rule.description}}</span>{% endif %}
+            {% if row.answer.remark %}<span class="remark">หมายเหตุ: {{row.answer.remark}}</span>{% endif %}
+          </td>
+          {% if row.is_leaf %}
+            <td class="ans">{% if row.answer.ans == "pass" %}&#10003;{% endif %}</td>
+            <td class="ans">{% if row.answer.ans == "fail" %}&#10003;{% endif %}</td>
+          {% else %}
+            <td class="ans">{% if row.passed %}&#10003;{% endif %}</td>
+            <td class="ans">{% if not row.passed %}&#10003;{% endif %}</td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </table>
+
+    <div class="note">
+      หมายเหตุ 1. หลักเกณฑ์ที่ต้องผ่านของบริษัท:
+      {% for g in evaluation.groups %}{{g.group.name}}{% if not forloop.last %}, {% endif %}{% endfor %}<br>
+      &emsp;&emsp;&emsp;&ensp; 2. หลักเกณฑ์ข้อที่เหลือเป็นหลักเกณฑ์เพิ่มเติมเพื่อให้ได้ผู้ขายที่สอดคล้องตาม ISO
+    </div>
+
+    <table class="summary">
+      <tr>
+        <td style="width: 1%; white-space: nowrap;"><strong>สรุปผลพิจารณา</strong></td>
+        <td>
+          <span class="box">{% if candidate.status == "approved" %}&#10003;{% endif %}</span>
+          ผ่าน ให้บันทึกในทะเบียนรายชื่อผู้ขาย &nbsp; รหัส Supplier
+          <u>&nbsp;{{candidate.distributor.id|default:"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"}}&nbsp;</u>
+        </td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>
+          <span class="box">{% if candidate.status == "rejected" %}&#10003;{% endif %}</span>
+          ไม่ผ่านการคัดเลือก
+          {% if candidate.reject_reason %}({{candidate.reject_reason}}){% endif %}
+        </td>
+      </tr>
+    </table>
+
+    <table class="sign">
+      <tr>
+        <td>
+          ผู้คัดเลือก &nbsp;<u>&nbsp;{{candidate.requested_by_name|default:""}}&nbsp;</u><br>
+          วันที่ &nbsp;{{candidate.submitted_at|date:"d/m/Y"|default:"...................."}}
+        </td>
+        <td>
+          ผู้อนุมัติ &nbsp;<u>&nbsp;{{candidate.approved_by_name|default:""}}&nbsp;</u><br>
+          วันที่ &nbsp;{{candidate.approved_at|date:"d/m/Y"|default:"...................."}}
+        </td>
+      </tr>
+    </table>
+
+    <div class="footer">FM-PU-005 Rev.01</div>
+  </div>
+</body>
+</html>

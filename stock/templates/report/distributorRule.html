@@ -1,0 +1,111 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block css %}
+<style>
+  .rule-depth-1 { padding-left: 2.5rem !important; }
+  tr.rule-inactive td { color: #999; }
+  .move-btn { padding: 0 .4rem; line-height: 1.4; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">จัดการหลักเกณฑ์ใบขอเพิ่ม Supplier</h3>
+  <p class="text-center text-muted">หลักเกณฑ์ที่ใช้ในฟอร์ม FM-PU-005</p>
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+    <a class="btn btn-outline-secondary mb-2" href="{% url 'distributorApproveList' %}">&laquo; กลับหน้าอนุมัติ</a>
+    <a class="btn btn-success mb-2" href="{% url 'distributorRuleCreate' %}"><i class="fas fa-plus"></i> เพิ่มหลักเกณฑ์</a>
+  </div>
+
+  <div class="card div-shadow">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered mb-0">
+          <thead class="thead-light">
+            <tr>
+              <th style="width: 1%;"></th>
+              <th>ข้อ / หลักเกณฑ์</th>
+              <th>ต้องผ่านไหม</th>
+              <th class="text-center">ตอบแล้ว</th>
+              <th class="text-center">สถานะ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in rows %}
+            {% with r=row.rule %}
+            <tr id="rule-{{r.pk}}" class="{% if not r.is_active or row.parent_off %}rule-inactive{% endif %}">
+              <td class="text-nowrap align-middle">
+                {% if row.can_up %}
+                  <form method="post" action="{% url 'distributorRuleMove' r.pk 'up' %}" class="d-inline">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-light move-btn" title="ย้ายขึ้น" aria-label="ย้ายข้อ {{r.code}} ขึ้น"><i class="fas fa-arrow-up"></i></button>
+                  </form>
+                {% endif %}
+                {% if row.can_down %}
+                  <form method="post" action="{% url 'distributorRuleMove' r.pk 'down' %}" class="d-inline">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-light move-btn" title="ย้ายลง" aria-label="ย้ายข้อ {{r.code}} ลง"><i class="fas fa-arrow-down"></i></button>
+                  </form>
+                {% endif %}
+              </td>
+              <td class="rule-depth-{{row.depth}}">
+                <strong>{{r.code}}.</strong> {{r.name}}
+                {% if r.description %}<small class="d-block text-muted">{{r.description}}</small>{% endif %}
+                {% if r.child_count %}<small class="d-block text-info">{{r.get_children_mode_display}}</small>{% endif %}
+              </td>
+              <td>
+                {% if r.parent_id %}<span class="text-muted">{{row.requirement}}</span>
+                {% elif row.requirement %}<span class="badge badge-danger">{{row.requirement}}</span>
+                {% else %}<span class="text-muted">ไม่บังคับ</span>{% endif %}
+              </td>
+              <td class="text-center">{{r.answer_count}}</td>
+              <td class="text-center">
+                {% if not r.is_active %}<span class="badge badge-secondary">ปิด</span>
+                {% elif row.parent_off %}<span class="badge badge-secondary">ปิดตามข้อ {{r.parent.code}}</span>
+                {% else %}<span class="badge badge-success">ใช้งาน</span>{% endif %}
+              </td>
+              <td class="text-nowrap">
+                <a class="btn btn-sm btn-primary" href="{% url 'distributorRuleEdit' r.pk %}">แก้ไข</a>
+                {% if not r.parent_id %}
+                  <a class="btn btn-sm btn-outline-success" href="{% url 'distributorRuleCreate' %}?parent={{r.pk}}" title="เพิ่มข้อย่อยใต้ข้อนี้">+ ข้อย่อย</a>
+                {% endif %}
+                <form method="post" action="{% url 'distributorRuleToggle' r.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm {% if r.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                    {% if r.is_active %}ปิด{% else %}เปิด{% endif %}
+                  </button>
+                </form>
+                {% if row.can_delete %}
+                  <form method="post" action="{% url 'distributorRuleDelete' r.pk %}" class="d-inline"
+                        onsubmit="return confirm('ลบข้อ {{r.code|escapejs}} {{r.name|escapejs}} ?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">ลบ</button>
+                  </form>
+                {% else %}
+                  <span class="d-inline-block" tabindex="0" title="มีคำตอบในใบขอเพิ่มแล้ว หรือมีข้อย่อย ลบไม่ได้ ให้กด &quot;ปิด&quot; แทน">
+                    <button type="button" class="btn btn-sm btn-outline-danger" disabled style="pointer-events: none;">ลบ</button>
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+          {% empty %}
+            <tr><td colspan="6" class="text-center text-muted">ยังไม่มีหลักเกณฑ์</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted small mt-2 mb-0">
+        ข้อที่มีคนตอบแล้วลบไม่ได้ (เก็บประวัติไว้) ให้กด "ปิด" แทน ข้อที่ปิดจะไม่แสดงในฟอร์มและไม่บังคับตอบ
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

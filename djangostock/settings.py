@@ -108,7 +108,8 @@ TEMPLATES = [
                 'stock.context_processors.companyVisibleTab',
                 'stock.context_processors.document',
                 'stock.context_processors.MAAll',
-                'stock.context_processors.MAAPAll'
+                'stock.context_processors.MAAPAll',
+                'stock.context_processors.distributorApproveCounter',
             ],
 
         },
@@ -129,7 +130,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
-        'PORT': '',
+        'PORT': '13307',
     },
     'pg_db': {  # Remote PostgreSQL Server
         'ENGINE': 'django.db.backends.postgresql',
