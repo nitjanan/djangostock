@@ -214,6 +214,63 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
         self.assertIsNotNone(c.submitted_at)
 
+    def check(self, candidate, user=None, answers=None, skip=()):
+        data = {}
+        for code in LEAF_CODES:
+            if code not in skip:
+                data[f"ans_{self.rules[code].pk}"] = (answers or {}).get(code, "pass")
+        self.login(user or self.user)
+        return self.client.post(reverse('distributorCandidateCheck', args=[candidate.pk]), data)
+
+    def test_check_button_evaluates_without_saving(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+
+        res = self.check(c).json()
+        self.assertTrue(res["passed"])
+        self.assertEqual(res["missing"], [])
+        self.assertIn("สรุป: ผ่านเกณฑ์บังคับ", res["html"])
+        self.assertFalse(c.answers.exists())  # ไม่บันทึก
+
+        res = self.check(c, answers={"1": "fail"}).json()
+        self.assertFalse(res["passed"])
+        self.assertIn("ไม่ผ่านเกณฑ์บังคับ", res["html"])
+
+        res = self.check(c, skip=("5", "9.2")).json()
+        self.assertEqual(sorted(res["missing"]), sorted([self.rules["5"].pk, self.rules["9.2"].pk]))
+        self.assertIn("ยังตอบไม่ครบ: ข้อ 5, 9.2", res["html"])
+
+    def test_summary_explains_why_group_fails(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        # ข้อ 8 ไม่ผ่าน / 9.1 ไม่ผ่าน / 9.2 ยังไม่ตอบ -> กลุ่ม "ข้อ 8 หรือ ข้อ 9" ไม่ผ่าน
+        res = self.check(c, answers={"8": "fail", "9.1": "fail"}, skip=("9.2", "4")).json()
+        html = " ".join(res["html"].split())
+        self.assertIn("(ผ่านข้อใดข้อหนึ่งก็พอ)", html)
+        self.assertIn("ข้อ 8 <span class=\"text-danger\">ตอบว่าไม่ผ่าน</span>", html)
+        self.assertIn("เพราะข้อย่อยต้องผ่านทั้งหมด", html)
+        self.assertIn("ข้อ 9.1 ตอบว่าไม่ผ่าน", html)
+        self.assertIn("ข้อ 9.2 ยังไม่ได้ตอบ", html)
+        self.assertIn("ข้อ 4 <span class=\"text-secondary\">ยังไม่ได้ตอบ</span>", html)
+
+        # ผ่านด้วยข้อ 8 อย่างเดียว -> บอกว่าผ่านจากข้อไหน
+        res = self.check(c, answers={"9.1": "fail"}).json()
+        self.assertIn("ผ่านจาก ข้อ 8", " ".join(res["html"].split()))
+
+        evaluation = c.evaluate(answers={})
+        group89 = next(g for g in evaluation["groups"] if len(g["members"]) == 2)
+        nine = next(m for m in group89["members"] if m["rule"].code == "9")
+        self.assertEqual((nine["state"], nine["need_all"]), ("parent", True))
+        self.assertEqual([k["state"] for k in nine["children"]], ["missing", "missing"])
+
+    def test_check_button_only_for_editor(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.assertEqual(self.check(c, user=self.other).status_code, 403)
+        self.login(self.user)
+        self.assertEqual(self.client.get(reverse('distributorCandidateCheck', args=[c.pk])).status_code, 405)
+        self.assertContains(self.client.get(reverse('distributorCandidateForm', args=[c.pk])), "ตรวจเกณฑ์")
+
     def test_cancel_draft_deletes_it(self):
         self.propose()
         c = DistributorCandidate.objects.get()
