@@ -5,6 +5,7 @@
 <style>
   .rule-child { padding-left: 2rem !important; }
   .ans-col { width: 90px; text-align: center; }
+  tr.rule-missing td { background: #fdecea; }
 </style>
 {% endblock %}
 
@@ -87,7 +88,7 @@
             </thead>
             <tbody>
             {% for row in evaluation.rows %}
-              <tr>
+              <tr data-rule-id="{{row.rule.pk}}">
                 <td class="{% if row.depth %}rule-child{% endif %}">
                   <strong>{{row.rule.code}}.</strong> {{row.rule.name}}
                   {% if row.rule.mandatory_group %}<span class="badge badge-danger">บังคับ</span>{% endif %}
@@ -110,8 +111,14 @@
             </tbody>
           </table>
         </div>
-        {% include 'report/_distributorCandidateSummary.html' %}
-        <p class="text-muted small mb-0">สรุปผลด้านบนคำนวณจากคำตอบที่บันทึกไว้ล่าสุด กด "บันทึกร่าง" เพื่ออัปเดต</p>
+        <div id="eval-summary">{% include 'report/_distributorCandidateSummary.html' %}</div>
+        <div class="d-flex flex-wrap align-items-center">
+          <button type="button" class="btn btn-outline-info mr-2 mb-1" id="btn-check"
+                  data-url="{% url 'distributorCandidateCheck' candidate.pk %}">
+            <i class="fas fa-clipboard-check"></i> ตรวจเกณฑ์
+          </button>
+          <small class="text-muted mb-1" id="check-note">ตรวจจากคำตอบที่เลือกอยู่ตอนนี้ (ยังไม่บันทึก)</small>
+        </div>
       </div>
     </div>
 
@@ -127,3 +134,53 @@
   </form>
 </div>
 {% endblock %}
+
+{% block javascript %}
+<script>
+  (function () {
+    const form = document.getElementById('candidate-form');
+    const btn = document.getElementById('btn-check');
+    const note = document.getElementById('check-note');
+    const summary = document.getElementById('eval-summary');
+
+    btn.addEventListener('click', function () {
+      const data = new FormData(form);
+      data.delete('action');
+      btn.disabled = true;
+      note.textContent = 'กำลังตรวจ...';
+      fetch(btn.dataset.url, { method: 'POST', body: data, credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        })
+        .then(function (res) {
+          summary.innerHTML = res.html;
+          // ไฮไลต์ข้อที่ยังไม่ได้ตอบ แล้วเลื่อนไปข้อแรก
+          const missing = new Set(res.missing.map(String));
+          let first = null;
+          form.querySelectorAll('tr[data-rule-id]').forEach(function (tr) {
+            const miss = missing.has(tr.dataset.ruleId);
+            tr.classList.toggle('rule-missing', miss);
+            if (miss && !first) first = tr;
+          });
+          if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          note.textContent = 'ตรวจจากคำตอบที่เลือกอยู่ตอนนี้ (ยังไม่บันทึก กด "บันทึกร่าง" เพื่อเก็บ)';
+        })
+        .catch(function () {
+          note.textContent = 'ตรวจไม่สำเร็จ ลองใหม่อีกครั้ง';
+        })
+        .finally(function () {
+          btn.disabled = false;
+        });
+    });
+
+    // ตอบข้อที่ไฮไลต์ไว้แล้ว -> เอาไฮไลต์ออก
+    form.addEventListener('change', function (e) {
+      if (e.target.type === 'radio') {
+        const tr = e.target.closest('tr[data-rule-id]');
+        if (tr) tr.classList.remove('rule-missing');
+      }
+    });
+  })();
+</script>
+{% endblock javascript %}
