@@ -992,3 +992,12 @@ def document(request):
         document = None
 
     return dict(document = document)
+
+#จำนวนใบขอเพิ่ม Supplier ที่รออนุมัติ แสดงเป็น badge ในเมนู "ผู้จัดจำหน่าย" เฉพาะกลุ่ม ApproveDistributor
+def distributorApproveCounter(request):
+    if 'admin' in request.path or not request.user.is_authenticated:
+        return {}
+    if not request.user.groups.filter(name='ApproveDistributor').exists():
+        return {}
+    from stock.models import DistributorCandidate
+    return dict(dist_ap_count = DistributorCandidate.objects.filter(status=DistributorCandidate.STATUS_SUBMITTED).count())

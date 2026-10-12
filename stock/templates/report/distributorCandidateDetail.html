@@ -23,7 +23,7 @@
     {% if approve_view %}
       <a class="btn btn-outline-secondary mb-2" href="{% url 'distributorApproveList' %}?status={{candidate.status}}">&laquo; กลับหน้าอนุมัติ</a>
     {% else %}
-      <a class="btn btn-outline-secondary mb-2" href="{% url 'viewVendorReport' %}#candidates">&laquo; กลับหน้ารายการผู้จัดจำหน่าย</a>
+      <a class="btn btn-outline-secondary mb-2" href="{% url 'distributorCandidateList' %}">&laquo; กลับหน้าใบขอเพิ่ม Supplier</a>
     {% endif %}
     <div>
       {% if can_edit %}<a class="btn btn-primary mb-2" href="{% url 'distributorCandidateForm' candidate.pk %}">แก้ไขฟอร์ม</a>{% endif %}

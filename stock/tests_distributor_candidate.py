@@ -305,7 +305,7 @@ class DistributorCandidateTestCase(TestCase):
     def test_propose_redirect_ignores_external_next(self):
         Distributor.objects.create(id="V001", name="x", place_source="osm", place_id="node/555")
         response = self.propose(next="https://evil.example.com/")
-        self.assertEqual(response.url, reverse('viewVendorReport'))
+        self.assertEqual(response.url, reverse('viewExternalVendorReport'))
 
     # ----- หน้าจอ -----
 
@@ -316,7 +316,7 @@ class DistributorCandidateTestCase(TestCase):
         Distributor.objects.create(id="V777", name="ร้านในระบบ", place_source="osm", place_id="node/777")
 
         self.login(self.user)
-        url = reverse('viewVendorReport') + "?lat=13.75&lng=100.5&source=osm"
+        url = reverse('viewExternalVendorReport') + "?lat=13.75&lng=100.5&source=osm"
         response = self.client.get(url + "&system_status=new")
         self.assertEqual([ev["name"] for ev in response.context["external_vendors"]], [OSM_SHOP["name"]])
         self.assertContains(response, "เสนอเพิ่ม")
@@ -333,30 +333,30 @@ class DistributorCandidateTestCase(TestCase):
         approved = DistributorCandidate.objects.create(place_source="osm", place_id="node/9", name="ร้านอนุมัติแล้ว", status="approved")
 
         self.login(self.user)
-        response = self.client.get(reverse('viewVendorReport'))
+        response = self.client.get(reverse('distributorCandidateList'))
         fetch_osm.assert_not_called()
         fetch_tomtom.assert_not_called()
         self.assertEqual([c.pk for c in response.context["candidates"]], [draft.pk])
         self.assertContains(response, reverse('distributorCandidateForm', args=[draft.pk]))
 
-        response = self.client.get(reverse('viewVendorReport') + "?cand_status=approved")
+        response = self.client.get(reverse('distributorCandidateList') + "?cand_status=approved")
         self.assertEqual([c.pk for c in response.context["candidates"]], [approved.pk])
 
     @patch("stock.views.fetch_vendors_from_openstreetmap", return_value=[])
     def test_report_region_presets(self, fetch):
         self.login(self.user)
-        response = self.client.get(reverse('viewVendorReport'))
+        response = self.client.get(reverse('viewExternalVendorReport'))
         self.assertContains(response, 'data-lat="9.138200" data-lng="99.321700"')
         self.assertIsNone(response.context["region"])
 
         # ภาคที่เลือกค้างไว้ในหน้า + ค้นตามพิกัดของภาคนั้น
-        response = self.client.get(reverse('viewVendorReport') + "?region=south&lat=9.138200&lng=99.321700&source=osm")
+        response = self.client.get(reverse('viewExternalVendorReport') + "?region=south&lat=9.138200&lng=99.321700&source=osm")
         self.assertEqual(response.context["region"], "south")
         self.assertContains(response, '<option value="south" data-lat="9.138200" data-lng="99.321700" selected>', html=False)
         self.assertEqual(fetch.call_args[0][:2], (9.1382, 99.3217))
 
         # ค่าที่ไม่รู้จักถูกตัดทิ้ง
-        response = self.client.get(reverse('viewVendorReport') + "?region=mars")
+        response = self.client.get(reverse('viewExternalVendorReport') + "?region=mars")
         self.assertIsNone(response.context["region"])
 
     def test_form_page_renders_rules(self):
@@ -390,24 +390,65 @@ class DistributorCandidateTestCase(TestCase):
 
         self.login(self.user)
         for url in (reverse('distributorApproveList'), reverse('distributorApproveDetail', args=[c.pk])):
-            self.assertRedirects(self.client.get(url), reverse('viewVendorReport'), fetch_redirect_response=False)
+            self.assertRedirects(self.client.get(url), reverse('distributorCandidateList'), fetch_redirect_response=False)
 
     def test_approve_returns_to_queue(self):
         c = self.submitted_candidate()
         response = self.approve(c, mode="new", distributor_id="V900")
         self.assertRedirects(response, reverse('distributorApproveList'), fetch_redirect_response=False)
 
-    def test_report_page_shows_approve_button_only_for_approver(self):
+    def test_sidebar_approve_menu_and_badge_only_for_approver(self):
         self.submitted_candidate()
-        self.login(self.approver)
-        response = self.client.get(reverse('viewVendorReport'))
-        self.assertEqual(response.context["dist_ap_count"], 1)
-        self.assertContains(response, reverse('distributorApproveList'))
+        approve_url = reverse('distributorApproveList')
+        # sidebar อยู่ทุกหน้า: เช็คทั้งหน้าในกลุ่มผู้จัดจำหน่าย และหน้าอื่น
+        for name in ('viewVendorReport', 'home'):
+            self.login(self.approver)
+            response = self.client.get(reverse(name))
+            self.assertEqual(response.context["dist_ap_count"], 1)
+            self.assertContains(response, f'href="{approve_url}"')
 
+            self.login(self.user)
+            response = self.client.get(reverse(name))
+            self.assertNotIn("dist_ap_count", response.context)
+            self.assertNotContains(response, f'href="{approve_url}"')
+
+    @patch("stock.views.fetch_vendors_from_tomtom")
+    @patch("stock.views.fetch_vendors_from_openstreetmap")
+    def test_vendor_pages_render_and_highlight_menu(self, fetch_osm, fetch_tomtom):
+        self.login(self.approver)
+        pages = {
+            'viewVendorReport': "vd_in_page",
+            'viewExternalVendorReport': "vd_ext_page",
+            'distributorCandidateList': "vd_cand_page",
+            'distributorApproveList': "vd_ap_page",
+        }
+        for name, flag in pages.items():
+            response = self.client.get(reverse(name))
+            self.assertEqual(response.status_code, 200, name)
+            self.assertEqual(response.context[flag], "tab-active", name)
+            self.assertEqual(response.context["vd_show"], "show", name)
+            for other in pages:
+                self.assertContains(response, f'href="{reverse(other)}"')
+        # หน้าในระบบ / ใบขอเพิ่ม ไม่ต้องค้นแผนที่ / หน้าค้นหาไม่มีพิกัด ก็ยังไม่ยิง API
+        fetch_osm.assert_not_called()
+        fetch_tomtom.assert_not_called()
+
+    def test_internal_page_only_lists_distributors(self):
+        Distributor.objects.create(id="V001", name="ร้านหนึ่ง")
+        Distributor.objects.create(id="V002", name="ร้านสอง")
         self.login(self.user)
-        response = self.client.get(reverse('viewVendorReport'))
-        self.assertNotIn("dist_ap_count", response.context)
-        self.assertNotContains(response, reverse('distributorApproveList'))
+        response = self.client.get(reverse('viewVendorReport') + "?distributor_id_from=V002&distributor_id_to=V002")
+        self.assertEqual([v.id for v in response.context["vender"]], ["V002"])
+        self.assertNotIn("external_vendors", response.context)
+        self.assertNotIn("candidates", response.context)
+
+    def test_cancel_draft_returns_to_candidate_list(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        response = self.client.post(reverse('distributorCandidateForm', args=[c.pk]), {"action": "cancel"})
+        self.assertRedirects(response, reverse('distributorCandidateList'), fetch_redirect_response=False)
+        self.assertFalse(DistributorCandidate.objects.exists())
 
     def test_print_page_shows_signers_and_supplier_code(self):
         c = self.submitted_candidate()
@@ -428,4 +469,4 @@ class DistributorCandidateTestCase(TestCase):
         for name in ('distributorCandidateDetail', 'distributorApproveDetail', 'distributorCandidatePrint'):
             self.assertEqual(self.client.get(reverse(name, args=[c.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse('distributorApproveList') + "?status=approved").status_code, 200)
-        self.assertEqual(self.client.get(reverse('viewVendorReport') + "?cand_status=approved").status_code, 200)
+        self.assertEqual(self.client.get(reverse('distributorCandidateList') + "?cand_status=approved").status_code, 200)

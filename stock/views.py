@@ -12606,6 +12606,28 @@ def venderReport(request, pages=None):
     for v in vender :
         print(v.id , v.name)
 
+    content = {
+        "vender":vender,
+        "filter": myFilter,
+        "vendor_page_range": vendor_page_range,
+        "vendor_total": vendor_total,
+        "vendor_query": request.GET.urlencode(),
+        **_vendor_menu("in"),
+    }
+    print(content)
+    # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
+    print(content['vender'])
+    return render(request, "report/viewVendor.html" , content )
+
+
+def _vendor_menu(active):
+    """ไฮไลต์เมนูย่อยของ "ผู้จัดจำหน่าย" ใน sidebar (in / ext / cand / ap) และกางเมนูค้างไว้"""
+    return {f"vd_{active}_page": "tab-active", "vd_show": "show"}
+
+
+@login_required(login_url='signIn')
+def externalVendorReport(request):
+    """หน้าค้นหาผู้จัดจำหน่ายอื่นๆ จากแผนที่ (TomTom / OpenStreetMap) + เสนอเพิ่มเป็น Supplier"""
     ext = _external_vendor_data(request)
     external_vendors = ext["vendors"]
     external_total = len(external_vendors)
@@ -12617,12 +12639,7 @@ def venderReport(request, pages=None):
     ext_query.pop("ext_page", None)
     ext_query = ext_query.urlencode()
 
-    content = {
-        "vender":vender,
-        "filter": myFilter,
-        "vendor_page_range": vendor_page_range,
-        "vendor_total": vendor_total,
-        "vendor_query": request.GET.urlencode(),
+    return render(request, "report/viewExternalVendor.html", {
         "external_vendors": external_page,
         "external_page_range": external_page_range,
         "ext_query": ext_query,
@@ -12641,15 +12658,16 @@ def venderReport(request, pages=None):
         "region": next((r["value"] for r in REGION_PRESETS if r["value"] == request.GET.get("region")), None),
         "system_status": ext["system_status"],
         "system_status_options": ext["system_status_options"],
-    }
-    content.update(_candidate_section(request))
-    # ปุ่มไปหน้าอนุมัติ (มุมบนของหน้า) แสดงเฉพาะกลุ่ม ApproveDistributor
-    if is_approve_distributor(request.user):
-        content["dist_ap_count"] = DistributorCandidate.objects.filter(status=DistributorCandidate.STATUS_SUBMITTED).count()
-    print(content)
-    # ใช้ content['vender'] แทน content.vender เพราะเป็น Dictionary
-    print(content['vender'])
-    return render(request, "report/viewVendor.html" , content )
+        **_vendor_menu("ext"),
+    })
+
+
+@login_required(login_url='signIn')
+def distributorCandidateList(request):
+    """หน้าใบขอเพิ่ม Supplier ทั้งหมด (อ่านจาก DB) แยกแท็บตามสถานะ"""
+    context = _candidate_section(request)
+    context.update(_vendor_menu("cand"))
+    return render(request, "report/distributorCandidateList.html", context)
 
 
 # แท็บของการ์ด "ใบขอเพิ่ม Supplier" ในหน้ารายงาน: (ค่า, ชื่อ, สถานะที่รวมไว้)
@@ -12857,7 +12875,7 @@ def is_approve_distributor(user):
     return user.groups.filter(name='ApproveDistributor').exists()
 
 
-def _redirect_back(request, fallback="viewVendorReport"):
+def _redirect_back(request, fallback="viewExternalVendorReport"):
     """กลับไปหน้าเดิม (พร้อมตัวกรองเดิม) ถ้า next เป็น URL ภายในเว็บเรา"""
     from django.utils.http import url_has_allowed_host_and_scheme
     next_url = request.POST.get("next")
@@ -12944,7 +12962,7 @@ def distributorCandidateForm(request, pk):
             name = candidate.name
             candidate.delete()
             messages.success(request, f"ยกเลิกใบขอเพิ่มร้าน {name} แล้ว")
-            return redirect("viewVendorReport")
+            return redirect("distributorCandidateList")
 
         for field in CANDIDATE_HEADER_FIELDS:
             value = (request.POST.get(field) or "").strip()
@@ -12989,6 +13007,7 @@ def distributorCandidateForm(request, pk):
         "candidate": candidate,
         "evaluation": candidate.evaluate(),
         "ans_choices": DistributorForm.ANS_CHOICES,
+        **_vendor_menu("cand"),
     })
 
 
@@ -13000,7 +13019,7 @@ def _approver_only(view):
     def wrapper(request, *args, **kwargs):
         if not is_approve_distributor(request.user):
             messages.error(request, "หน้านี้สำหรับผู้อนุมัติผู้จัดจำหน่าย (กลุ่ม ApproveDistributor) เท่านั้น")
-            return redirect("viewVendorReport")
+            return redirect("distributorCandidateList")
         return view(request, *args, **kwargs)
     return wrapper
 
@@ -13028,6 +13047,7 @@ def distributorApproveList(request):
         "candidates": page,
         "status": status,
         "status_options": [{"value": k, "label": label, "count": status_counts.get(k, 0)} for k, label in tabs],
+        **_vendor_menu("ap"),
     })
 
 
@@ -13043,6 +13063,7 @@ def distributorCandidateDetail(request, pk):
     """หน้าผู้ขอ: ดูใบขอเพิ่ม Supplier และสถานะ (อ่านอย่างเดียว)"""
     context = _candidate_detail_context(request, pk)
     context["can_edit"] = _can_edit_candidate(request.user, context["candidate"])
+    context.update(_vendor_menu("cand"))
     return render(request, "report/distributorCandidateDetail.html", context)
 
 
@@ -13054,6 +13075,7 @@ def distributorApproveDetail(request, pk):
     context["approve_view"] = True
     context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
     context["vat_types"] = BaseVatType.objects.order_by("id")
+    context.update(_vendor_menu("ap"))
     return render(request, "report/distributorCandidateDetail.html", context)
 
 
