@@ -12949,6 +12949,27 @@ def _can_edit_candidate(user, candidate):
 
 
 @login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def distributorCandidateCheck(request, pk):
+    """ปุ่ม "ตรวจเกณฑ์" ในหน้ากรอกฟอร์ม: ตรวจคำตอบที่เลือกอยู่บนหน้าจอ โดยไม่บันทึก"""
+    candidate = get_object_or_404(DistributorCandidate, pk=pk)
+    if not _can_edit_candidate(request.user, candidate):
+        return JsonResponse({"error": "ใบนี้แก้ไขไม่ได้"}, status=403)
+
+    answers = {}
+    for key, value in request.POST.items():
+        if key.startswith("ans_") and key[4:].isdigit() and value in (DistributorForm.ANS_PASS, DistributorForm.ANS_FAIL):
+            rule_id = int(key[4:])
+            answers[rule_id] = DistributorForm(candidate=candidate, question_id=rule_id, ans=value)
+    evaluation = candidate.evaluate(answers=answers)
+    return JsonResponse({
+        "html": render_to_string("report/_distributorCandidateSummary.html", {"evaluation": evaluation}, request=request),
+        "missing": [r.pk for r in evaluation["missing"]],
+        "passed": not evaluation["missing"] and evaluation["mandatory_passed"],
+    })
+
+
+@login_required(login_url='signIn')
 def distributorCandidateForm(request, pk):
     """ผู้คัดเลือกกรอกใบขอเพิ่ม Supplier: ส่วนหัว + ผ่าน/ไม่ผ่าน ทีละหลักเกณฑ์ -> บันทึกร่าง / ส่งฟอร์ม"""
     candidate = get_object_or_404(DistributorCandidate, pk=pk)
