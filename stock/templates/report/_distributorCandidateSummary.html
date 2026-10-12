@@ -4,9 +4,41 @@
     <strong>เกณฑ์บังคับ</strong>
     <ul class="list-unstyled mb-1">
       {% for g in evaluation.groups %}
-        <li>
+        <li class="mt-1">
           {% if g.passed %}<span class="text-success">&#10004;</span>{% else %}<span class="text-danger">&#10008;</span>{% endif %}
           {{g.group.name}}
+          {% if g.members|length > 1 %}<small class="text-muted">(ผ่านข้อใดข้อหนึ่งก็พอ)</small>{% endif %}
+
+          {% if g.passed %}
+            {% if g.members|length > 1 %}
+              <small class="text-success">: ผ่านจาก{% for m in g.members %}{% if m.passed %} ข้อ {{m.rule.code}}{% endif %}{% endfor %}</small>
+            {% endif %}
+          {% else %}
+            {# ไม่ผ่าน: บอกเหตุผลทีละข้อในกลุ่ม ลงไปถึงข้อย่อย #}
+            <ul class="small text-muted mb-0 pl-4">
+              {% for m in g.members %}
+                <li>
+                  ข้อ {{m.rule.code}}
+                  {% if m.state == "missing" %}<span class="text-secondary">ยังไม่ได้ตอบ</span>
+                  {% elif m.state == "fail" %}<span class="text-danger">ตอบว่าไม่ผ่าน</span>
+                  {% elif m.state == "pass" %}<span class="text-success">ผ่าน</span>
+                  {% else %}
+                    <span class="text-danger">ไม่ผ่าน</span>
+                    เพราะ{% if m.need_all %}ข้อย่อยต้องผ่านทั้งหมด{% else %}ต้องผ่านข้อย่อยอย่างน้อย 1 ข้อ{% endif %}
+                    <ul class="mb-0 pl-3">
+                      {% for c in m.children %}
+                        <li>
+                          {% if c.state == "pass" %}<span class="text-success">&#10004;</span> ข้อ {{c.rule.code}} ผ่าน
+                          {% elif c.state == "fail" %}<span class="text-danger">&#10008;</span> ข้อ {{c.rule.code}} ตอบว่าไม่ผ่าน
+                          {% else %}<span class="text-secondary">&#9675;</span> ข้อ {{c.rule.code}} ยังไม่ได้ตอบ{% endif %}
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
