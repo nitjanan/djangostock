@@ -1276,7 +1276,7 @@ class DistributorCandidate(models.Model):
         """ตรวจคำตอบกับหลักเกณฑ์ที่ใช้งานอยู่
 
         rows: เกณฑ์เรียงตามลำดับ (ข้อย่อยต่อท้ายข้อหลัก) พร้อมคำตอบและผล
-        groups: ผลของกลุ่มเกณฑ์บังคับ / mandatory_passed: ผ่านทุกกลุ่ม
+        groups: ผลของกลุ่มเกณฑ์บังคับ + members (เหตุผลรายข้อ ลงไปถึงข้อย่อย) / mandatory_passed: ผ่านทุกกลุ่ม
         missing: ข้อที่ต้องตอบแต่ยังไม่ได้ตอบ
         answers: {rule_id: DistributorForm} ใช้ตรวจคำตอบที่ยังไม่บันทึก (ปุ่ม "ตรวจเกณฑ์") / None = อ่านจาก DB
         """
@@ -1315,6 +1315,21 @@ class DistributorCandidate(models.Model):
 
         walk(None, 0)
 
+        def detail(rule):
+            """เหตุผลของข้อนี้: state = pass / fail / missing (ข้อที่ตอบเอง) หรือ parent (ผลมาจากข้อย่อย)"""
+            kids = children.get(rule.id)
+            if kids:
+                return {
+                    "rule": rule,
+                    "passed": result(rule),
+                    "state": "parent",
+                    "need_all": rule.children_mode == DistributorRule.CHILDREN_ALL,
+                    "children": [detail(k) for k in kids],
+                }
+            a = answers.get(rule.id)
+            state = "missing" if a is None else ("pass" if a.ans == DistributorForm.ANS_PASS else "fail")
+            return {"rule": rule, "passed": state == "pass", "state": state}
+
         groups = {}
         for r in rules:
             if r.mandatory_group_id:
@@ -1322,6 +1337,8 @@ class DistributorCandidate(models.Model):
                 g["rules"].append(r)
                 g["passed"] = g["passed"] or result(r)
         groups = sorted(groups.values(), key=lambda g: (g["group"].order, g["group"].id))
+        for g in groups:
+            g["members"] = [detail(r) for r in g["rules"]]
 
         return {
             "rows": rows,
