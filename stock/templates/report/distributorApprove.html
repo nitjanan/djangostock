@@ -13,6 +13,9 @@
     </div>
   {% endfor %}
 
+  <div class="text-right">
+    <a class="btn btn-outline-primary" href="{% url 'distributorRuleList' %}"><i class="fas fa-tasks"></i> จัดการหลักเกณฑ์</a>
+  </div>
   <ul class="nav nav-pills my-3">
     {% for opt in status_options %}
       <li class="nav-item">
