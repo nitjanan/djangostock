@@ -23,9 +23,14 @@
             </li>
           {% endfor %}
         </ul>
-        <a class="btn btn-outline-success mb-2" href="{% url 'viewExternalVendorReport' %}">
-          <i class="fas fa-search"></i> ค้นหาร้านเพื่อเสนอเพิ่ม
-        </a>
+        <div>
+          <a class="btn btn-outline-success mb-2" href="{% url 'viewExternalVendorReport' %}">
+            <i class="fas fa-search"></i> ค้นหาร้านเพื่อเสนอเพิ่ม
+          </a>
+          <a class="btn btn-success mb-2" href="{% url 'distributorCandidateNew' %}">
+            <i class="fas fa-plus"></i> เพิ่มร้านเอง
+          </a>
+        </div>
       </div>
       <div class="table-responsive">
         <table class="table table-striped my-2">
@@ -50,7 +55,10 @@
                   {% if c.distributor %}<small class="d-block">รหัส {{c.distributor.id}}</small>{% endif %}
                 {% elif c.status == "submitted" %}<span class="badge badge-warning">รออนุมัติ</span>
                 {% elif c.status == "draft" %}<span class="badge badge-info">ร่าง</span>
-                {% else %}<span class="badge badge-secondary">ไม่อนุมัติ</span>{% endif %}
+                {% else %}
+                  <span class="badge badge-secondary">ไม่อนุมัติ</span>
+                  {% if c.reject_reason %}<small class="d-block text-danger text-wrap" style="max-width: 16rem;">เหตุผล: {{c.reject_reason}}</small>{% endif %}
+                {% endif %}
               </td>
               <td>
                 {{c.requested_by_name|default:"-"}}
@@ -66,6 +74,13 @@
                   <a class="btn btn-sm btn-outline-primary" href="{% url 'distributorCandidateDetail' c.pk %}">ดูฟอร์ม</a>
                 {% endif %}
                 <a class="btn btn-sm btn-outline-info" href="{% url 'distributorCandidatePrint' c.pk %}" target="_blank" rel="noopener" title="พิมพ์ / PDF"><i class="fas fa-print"></i></a>
+                {% if c.status == "rejected" %}
+                  <form method="post" action="{% url 'distributorCandidateReopen' c.pk %}" class="d-inline"
+                        onsubmit="return confirm('เปิดใบของร้าน {{c.name|escapejs}} เป็นร่าง เพื่อแก้ไขแล้วส่งใหม่?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-success">เสนอใหม่ <i class="fas fa-redo"></i></button>
+                  </form>
+                {% endif %}
               </td>
             </tr>
           {% empty %}

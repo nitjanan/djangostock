@@ -13,8 +13,8 @@
 <div class="container my-3">
   <h3 align="center">ใบขอเพิ่ม Supplier รายใหม่ เข้า ASL</h3>
   <p class="text-center text-muted mb-2">
-    {{candidate.get_place_source_display}} · {{candidate.place_id}} ·
-    สถานะ: {{candidate.get_status_display}} · ผู้คัดเลือก: {{candidate.requested_by_name}}
+    {% if candidate.place_source == "manual" %}ร้านที่กรอกเอง{% else %}{{candidate.get_place_source_display}} · {{candidate.place_id}}{% endif %} ·
+    สถานะ: {% if candidate.pk %}{{candidate.get_status_display}}{% else %}ใบใหม่ (ยังไม่บันทึก){% endif %} · ผู้คัดเลือก: {{candidate.requested_by_name}}
   </p>
   {% for message in messages %}
     <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
@@ -22,6 +22,13 @@
       <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
   {% endfor %}
+
+  {% if candidate.reject_reason %}
+    <div class="alert alert-warning my-3">
+      <strong>ใบนี้เคยไม่อนุมัติ</strong> เหตุผล: {{candidate.reject_reason}}
+      <small class="d-block">แก้ไขตามเหตุผลนี้ แล้วกด "ส่งฟอร์ม" อีกครั้ง</small>
+    </div>
+  {% endif %}
 
   <form method="post" id="candidate-form">
     {% csrf_token %}
@@ -69,6 +76,24 @@
             <label for="f-credit">เครดิต (วัน)</label>
             <input type="number" min="0" step="1" class="form-control" id="f-credit" name="credit_days" value="{{candidate.credit_days|default_if_none:''}}">
           </div>
+          <div class="form-group col-md-6">
+            <label for="f-type">ชนิดผู้จัดจำหน่าย</label>
+            <select class="form-control" id="f-type" name="type">
+              <option value="">— ไม่ระบุ —</option>
+              {% for t in type_options %}
+                <option value="{{t.pk}}" {% if candidate.type_id == t.pk %}selected{% endif %}>{{t.name}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-6">
+            <label for="f-genre">ประเภทผู้จัดจำหน่าย</label>
+            <select class="form-control" id="f-genre" name="genre">
+              <option value="">— ไม่ระบุ —</option>
+              {% for g in genre_options %}
+                <option value="{{g.pk}}" {% if candidate.genre_id == g.pk %}selected{% endif %}>{{g.name}}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -114,7 +139,7 @@
         <div id="eval-summary">{% include 'report/_distributorCandidateSummary.html' %}</div>
         <div class="d-flex flex-wrap align-items-center">
           <button type="button" class="btn btn-outline-info mr-2 mb-1" id="btn-check"
-                  data-url="{% url 'distributorCandidateCheck' candidate.pk %}">
+                  data-url="{% if candidate.pk %}{% url 'distributorCandidateCheck' candidate.pk %}{% else %}{% url 'distributorCandidateNewCheck' %}{% endif %}">
             <i class="fas fa-clipboard-check"></i> ตรวจเกณฑ์
           </button>
           <small class="text-muted mb-1" id="check-note">ตรวจจากคำตอบที่เลือกอยู่ตอนนี้ (ยังไม่บันทึก)</small>

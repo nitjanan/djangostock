@@ -37,7 +37,7 @@
         <h5 class="mb-2">{{candidate.name}}</h5>
         <span>
           <span class="badge {% if candidate.status == 'approved' %}badge-success{% elif candidate.status == 'rejected' %}badge-secondary{% elif candidate.status == 'submitted' %}badge-warning{% else %}badge-info{% endif %}">{{candidate.get_status_display}}</span>
-          <small class="text-muted">{{candidate.get_place_source_display}} · {{candidate.place_id}}</small>
+          <small class="text-muted">{% if candidate.place_source == "manual" %}ร้านที่กรอกเอง{% else %}{{candidate.get_place_source_display}} · {{candidate.place_id}}{% endif %}</small>
         </span>
       </div>
       <div class="row">
@@ -50,6 +50,8 @@
         <div class="col-md-6 mb-1">EMAIL: {{candidate.email|default:"-"}}</div>
         <div class="col-md-6 mb-1">ประเภทธุรกิจ/สินค้า/บริการ: {{candidate.business_type|default:"-"}}</div>
         <div class="col-md-6 mb-1">เครดิต: {% if candidate.credit_days is not None %}{{candidate.credit_days}} วัน{% else %}-{% endif %}</div>
+        <div class="col-md-6 mb-1">ชนิดผู้จัดจำหน่าย: {{candidate.type.name|default:"-"}}</div>
+        <div class="col-md-6 mb-1">ประเภทผู้จัดจำหน่าย: {{candidate.genre.name|default:"-"}}</div>
         {% if candidate.latitude is not None and candidate.longitude is not None %}
           <div class="col-md-12 mb-1">พิกัด: <a href="https://www.google.com/maps/search/?api=1&query={{candidate.latitude}},{{candidate.longitude}}" target="_blank" rel="noopener">{{candidate.latitude}}, {{candidate.longitude}} <i class="fas fa-map-marker-alt"></i></a></div>
         {% endif %}
@@ -103,7 +105,11 @@
           {% if candidate.distributor %}· รหัส Supplier <a href="{% url 'viewVendorReport' %}?distributor_id_from={{candidate.distributor.id|urlencode}}&distributor_id_to={{candidate.distributor.id|urlencode}}">{{candidate.distributor.id}}</a>{% endif %}
         </p>
       {% endif %}
-      {% if candidate.reject_reason %}<p class="text-danger mb-1">เหตุผลที่ไม่อนุมัติ: {{candidate.reject_reason}}</p>{% endif %}
+      {% if candidate.reject_reason %}
+        <p class="text-danger mb-1">
+          {% if candidate.status == "rejected" %}เหตุผลที่ไม่อนุมัติ{% else %}ครั้งก่อนไม่อนุมัติเพราะ{% endif %}: {{candidate.reject_reason}}
+        </p>
+      {% endif %}
     </div>
   </div>
 

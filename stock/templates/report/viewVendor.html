@@ -54,8 +54,8 @@
               <th scope="col">รหัส</th>
               <th scope="col">ชื่อผู้จัดจำหน่าย</th>
               <th scope="col">ที่อยู่</th>
-              <th scope="col">หมวดฝ่ายซื้อ</th>
-              <th scope="col">ประเภทร้าน</th>
+              <th scope="col">ชนิดผู้จัดจำหน่าย</th>
+              <th scope="col">ประเภทผู้จัดจำหน่าย</th>
               <th scope="col">เบอร์โทร</th>
             </tr>
           </thead>
@@ -63,17 +63,17 @@
           {% for v in vender %}
             <tr>
               <th scope="row">{{v.id}}</th>
-              <td>{{v.name}}</td>
+              <td>{{v.name|default:"-"}}</td>
               {% comment %} <td class="px-1 text-nowrap align-middle" style="width:100px;">
                 <div class="d-flex justify-content-between">
                   <button class="btn btn-primary">แก้ไข</button>
                   <button class="btn btn-danger">ลบ</button>
                 </div>
               </td> {% endcomment %}
-              <td>{{v.address}}</td>
-              <td>{{v.category}}</td>
-              <td>{{v.type}}</td>
-              <td>{{v.tel}}</td>
+              <td>{{v.address|default:"-"}}</td>
+              <td>{{v.type.name|default:"-"}}</td>
+              <td>{{v.genre.name|default:"-"}}</td>
+              <td>{{v.tel|default:"-"}}</td>
 
             </tr>
           {% empty %}

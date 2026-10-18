@@ -294,6 +294,38 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual((c.distributor, c.approved_by), (d, self.approver))
         self.assertIsNotNone(c.approved_at)
 
+    def test_type_and_genre_dropdowns_saved_and_copied_on_approve(self):
+        from stock.models import BaseDistributorGenre, BaseDistributorType
+        transport = BaseDistributorType.objects.create(id="06", name="ขนส่ง")
+        BaseDistributorType.objects.create(id="00", name="ไม่ทราบ")
+        hauling = BaseDistributorGenre.objects.create(id="19", name="ค่าจ้างบรรทุก-บุคคลภายนอก")
+
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        page = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(page, '<option value="06" >ขนส่ง</option>')
+        self.assertContains(page, '<option value="19" >ค่าจ้างบรรทุก-บุคคลภายนอก</option>')
+
+        self.fill_form(c, type="06", genre="19")
+        c.refresh_from_db()
+        self.assertEqual((c.type, c.genre), (transport, hauling))
+        page = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(page, '<option value="06" selected>ขนส่ง</option>')
+
+        # ค่าที่ไม่มีในตาราง = ไม่เลือก
+        self.fill_form(c, type="99", genre="")
+        c.refresh_from_db()
+        self.assertEqual((c.type, c.genre), (None, None))
+
+        self.fill_form(c, action="submit", type="06", genre="19")
+        c.refresh_from_db()
+        self.approve(c, mode="new", distributor_id="V900")
+        d = Distributor.objects.get(id="V900")
+        self.assertEqual((d.type, d.genre), (transport, hauling))
+        self.login(self.approver)
+        self.assertContains(self.client.get(reverse('distributorApproveDetail', args=[c.pk])), "ชนิดผู้จัดจำหน่าย: ขนส่ง")
+
     def test_approve_new_requires_vat_type(self):
         # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL
         c = self.submitted_candidate()
@@ -356,8 +388,57 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
         self.assertEqual(c.requested_by, self.other)
         self.assertIsNone(c.approved_by)
-        self.assertIsNone(c.reject_reason)
+        # เหตุผลครั้งก่อนเก็บไว้ แสดงบนฟอร์มตอนแก้
+        self.assertEqual(c.reject_reason, "ราคาสูง")
         self.assertEqual(c.answers.get(question=self.rules["3"]).ans, "fail")
+
+    def reject(self, candidate, reason="ไม่มีหนังสือรับรอง"):
+        self.login(self.approver)
+        self.client.post(reverse('rejectDistributorCandidate', args=[candidate.pk]), {"reject_reason": reason})
+        candidate.refresh_from_db()
+
+    def test_reopen_button_on_rejected_tab(self):
+        c = self.submitted_candidate(answers={"3": "fail"})
+        self.reject(c)
+
+        self.login(self.other)
+        page = self.client.get(reverse('distributorCandidateList') + "?cand_status=rejected")
+        self.assertContains(page, reverse('distributorCandidateReopen', args=[c.pk]))
+        self.assertContains(page, "เหตุผล: ไม่มีหนังสือรับรอง")
+
+        response = self.client.post(reverse('distributorCandidateReopen', args=[c.pk]))
+        self.assertRedirects(response, reverse('distributorCandidateForm', args=[c.pk]), fetch_redirect_response=False)
+        c.refresh_from_db()
+        self.assertEqual((c.status, c.requested_by, c.approved_by), (DistributorCandidate.STATUS_DRAFT, self.other, None))
+        self.assertEqual(c.answers.get(question=self.rules["3"]).ans, "fail")
+
+        form = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(form, "ใบนี้เคยไม่อนุมัติ")
+        self.assertContains(form, "ไม่มีหนังสือรับรอง")
+
+        # ส่งใหม่แล้ว หน้าดูใบบอกว่าเป็นเหตุผล "ครั้งก่อน"
+        self.login(self.other)
+        self.client.post(reverse('distributorCandidateForm', args=[c.pk]), dict(
+            {"action": "submit", "name": c.name}, **{f"ans_{self.rules[code].pk}": "pass" for code in LEAF_CODES}))
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.assertContains(self.client.get(reverse('distributorCandidateDetail', args=[c.pk])), "ครั้งก่อนไม่อนุมัติเพราะ: ไม่มีหนังสือรับรอง")
+
+    def test_reopen_only_rejected_and_post(self):
+        c = self.submitted_candidate()
+        self.login(self.user)
+        self.client.post(reverse('distributorCandidateReopen', args=[c.pk]))
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.assertEqual(self.client.get(reverse('distributorCandidateReopen', args=[c.pk])).status_code, 405)
+
+        # ร้านเข้าระบบไปแล้ว (เช่นมีคนผูกไว้ทางอื่น) -> ไม่เปิดซ้ำ
+        self.reject(c)
+        Distributor.objects.create(id="V500", name="x", place_source="osm", place_id="node/555")
+        self.login(self.user)
+        self.client.post(reverse('distributorCandidateReopen', args=[c.pk]))
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_REJECTED)
 
     def test_propose_redirect_ignores_external_next(self):
         Distributor.objects.create(id="V001", name="x", place_source="osm", place_id="node/555")
@@ -398,6 +479,35 @@ class DistributorCandidateTestCase(TestCase):
 
         response = self.client.get(reverse('distributorCandidateList') + "?cand_status=approved")
         self.assertEqual([c.pk for c in response.context["candidates"]], [approved.pk])
+
+    def test_report_lists_newest_vendors_first(self):
+        import datetime
+        Distributor.objects.create(id="A01", name="เก่า", created=datetime.date(2024, 2, 16))
+        Distributor.objects.create(id="A02", name="เก่า 2", created=datetime.date(2024, 2, 16))
+        Distributor.objects.create(id="Z99", name="ใหม่", created=datetime.date(2026, 10, 1))
+        self.login(self.user)
+        response = self.client.get(reverse('viewVendorReport'))
+        self.assertEqual([v.id for v in response.context["vender"]], ["Z99", "A02", "A01"])
+
+    def test_report_shows_type_and_genre(self):
+        from stock.models import BaseDistributorGenre, BaseDistributorType
+        Distributor.objects.create(
+            id="T01", name="ร้านมีชนิด",
+            type=BaseDistributorType.objects.create(id="06", name="ขนส่ง"),
+            genre=BaseDistributorGenre.objects.create(id="19", name="ค่าจ้างบรรทุก-บุคคลภายนอก"),
+        )
+        Distributor.objects.create(id="T02", name="ร้านไม่มีชนิด", address=None, tel="")
+        self.login(self.user)
+        response = self.client.get(reverse('viewVendorReport'))
+        self.assertContains(response, "ชนิดผู้จัดจำหน่าย")
+        self.assertContains(response, "ประเภทผู้จัดจำหน่าย")
+        self.assertContains(response, "<td>ขนส่ง</td>")
+        self.assertContains(response, "<td>ค่าจ้างบรรทุก-บุคคลภายนอก</td>")
+        self.assertContains(response, "<td>-</td>")
+        # T02 ไม่มีที่อยู่ / เบอร์ / ชนิด / ประเภท -> "-" ทั้ง 4 ช่อง ไม่มี "None"
+        row = response.content.decode().split('<th scope="row">T02</th>')[1].split("</tr>")[0]
+        self.assertEqual(row.count("<td>-</td>"), 4)
+        self.assertNotIn("None", row)
 
     @patch("stock.views.fetch_vendors_from_openstreetmap", return_value=[])
     def test_report_region_presets(self, fetch):
@@ -527,3 +637,78 @@ class DistributorCandidateTestCase(TestCase):
             self.assertEqual(self.client.get(reverse(name, args=[c.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse('distributorApproveList') + "?status=approved").status_code, 200)
         self.assertEqual(self.client.get(reverse('distributorCandidateList') + "?cand_status=approved").status_code, 200)
+
+    # ----- เพิ่มร้านเอง (ไม่เจอในแผนที่) -----
+
+    def manual_post(self, action="save", answers=None, skip=(), **header):
+        data = {"action": action, "name": "หจก. ร้านกรอกเอง", "address": "1 ถ.ทดสอบ", "tel": "081-111-1111"}
+        data.update(header)
+        answers = answers or {}
+        for code in LEAF_CODES:
+            if code not in skip:
+                data[f"ans_{self.rules[code].pk}"] = answers.get(code, "pass")
+        self.login(self.user)
+        return self.client.post(reverse('distributorCandidateNew'), data)
+
+    def test_manual_form_page_renders_same_form_without_saving(self):
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateNew'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ร้านที่กรอกเอง")
+        self.assertContains(response, f'name="ans_{self.rules["9.1"].pk}"')
+        self.assertContains(response, reverse('distributorCandidateNewCheck'))
+        self.assertNotContains(response, 'name="lat"')
+        self.assertFalse(DistributorCandidate.objects.exists())
+
+    def test_manual_save_creates_draft_and_goes_to_normal_form(self):
+        response = self.manual_post(skip=("11",))
+        c = DistributorCandidate.objects.get()
+        self.assertRedirects(response, reverse('distributorCandidateForm', args=[c.pk]), fetch_redirect_response=False)
+        self.assertEqual((c.place_source, c.status, c.requested_by), ("manual", DistributorCandidate.STATUS_DRAFT, self.user))
+        self.assertTrue(c.place_id.startswith("manual-"))
+        self.assertEqual((c.name, c.tel), ("หจก. ร้านกรอกเอง", "081-111-1111"))
+        self.assertIsNone(c.latitude)
+        self.assertEqual(c.answers.count(), len(LEAF_CODES) - 1)
+        # หน้าฟอร์มเดิมเปิดต่อได้ / ใบที่ 2 ได้ place_id ไม่ซ้ำ
+        self.assertEqual(self.client.get(reverse('distributorCandidateForm', args=[c.pk])).status_code, 200)
+        self.manual_post(name="ร้านที่สอง")
+        self.assertEqual(DistributorCandidate.objects.values("place_id").distinct().count(), 2)
+
+    def test_manual_submit_then_approve_into_distributor(self):
+        self.manual_post(action="submit")
+        c = DistributorCandidate.objects.get()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.approve(c, mode="new", distributor_id="V950")
+        d = Distributor.objects.get(id="V950")
+        self.assertEqual((d.name, d.place_source), ("หจก. ร้านกรอกเอง", "manual"))
+
+    def test_manual_requires_name_and_keeps_typed_values(self):
+        response = self.manual_post(name="  ", tel="099-999-9999")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(DistributorCandidate.objects.exists())
+        self.assertContains(response, "กรุณากรอกชื่อบริษัท/ร้านค้า")
+        self.assertContains(response, 'value="099-999-9999"')
+
+    def test_manual_cancel_saves_nothing(self):
+        response = self.manual_post(action="cancel")
+        self.assertRedirects(response, reverse('distributorCandidateList'), fetch_redirect_response=False)
+        self.assertFalse(DistributorCandidate.objects.exists())
+
+    def test_manual_check_works_before_saving(self):
+        self.login(self.user)
+        data = {f"ans_{self.rules[code].pk}": "pass" for code in LEAF_CODES}
+        response = self.client.post(reverse('distributorCandidateNewCheck'), data)
+        self.assertEqual(response.json()["passed"], True)
+        self.assertFalse(DistributorCandidate.objects.exists())
+
+    def test_manual_warns_on_similar_name(self):
+        Distributor.objects.create(id="V001", name="บริษัท ร้านกรอกเอง จำกัด")
+        self.manual_post()
+        self.assertTrue(DistributorCandidate.objects.exists())
+        warnings = [str(m) for m in self.client.get(reverse('distributorCandidateList')).context["messages"]]
+        self.assertTrue(any("V001" in w for w in warnings), warnings)
+
+    def test_add_manual_buttons_on_list_and_search_pages(self):
+        self.login(self.user)
+        for name in ('distributorCandidateList', 'viewExternalVendorReport'):
+            self.assertContains(self.client.get(reverse(name)), reverse('distributorCandidateNew'))

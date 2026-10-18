@@ -1123,9 +1123,11 @@ class BaseVatType(models.Model):
     def __str__(self):
         return str(self.name)
 
+PLACE_SOURCE_MANUAL = 'manual'
 PLACE_SOURCE_CHOICES = [
     ('tomtom', 'TomTom'),
     ('osm', 'OpenStreetMap'),
+    (PLACE_SOURCE_MANUAL, 'กรอกเอง'),
 ]
 
 class Distributor(models.Model):
@@ -1235,6 +1237,9 @@ class DistributorCandidate(models.Model):
     email = models.CharField(max_length=255, blank=True, null=True, verbose_name="EMAIL")
     business_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทธุรกิจ/สินค้า/บริการที่จะใช้")
     credit_days = models.PositiveIntegerField(blank=True, null=True, verbose_name="เครดิต (วัน)")
+    # ชนิด / ประเภท ตามรหัสของ Express คัดลอกไป Distributor ตอนอนุมัติ
+    type = models.ForeignKey(BaseDistributorType, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ชนิดผู้จัดจำหน่าย")
+    genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ประเภทผู้จัดจำหน่าย")
     shop_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทร้าน (จากแผนที่)")
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Latitude")
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, verbose_name="Longitude")

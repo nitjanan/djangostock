@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType, BaseDistributorType, BaseDistributorGenre, PLACE_SOURCE_MANUAL
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -12590,7 +12590,8 @@ REGION_PRESETS = [
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def venderReport(request, pages=None):
-    vender = Distributor.objects.all().order_by('id')
+    # ใหม่ -> เก่า: ร้านที่ import จาก Express มีวันที่สร้างเดียวกันหมด (16/02/2024) จึงเรียงต่อด้วยรหัส
+    vender = Distributor.objects.select_related('type', 'genre').order_by('-created', '-id')
 
     # เพิ่มส่วนของการฟิลเตอร์ (ต้องทำก่อนตัดแบ่งหน้า)
     from stock.filters import DistributorFilter
@@ -12930,15 +12931,36 @@ def proposeDistributorCandidate(request):
             longitude=_parse_coordinate(request.POST.get("lng"), 180),
         )
     # ใบที่เคยไม่อนุมัติ (หรือร้านที่เคยอนุมัติแต่ Distributor ถูกลบ) เปิดเป็นร่างใหม่ คำตอบเดิมยังอยู่ให้แก้ต่อ
+    _reopen_candidate(candidate, request.user)
+    return redirect("distributorCandidateForm", candidate.pk)
+
+
+def _reopen_candidate(candidate, user):
+    """เปิดใบเป็นร่างอีกครั้ง: คำตอบเดิมยังอยู่ / เก็บเหตุผลที่ไม่อนุมัติครั้งก่อนไว้แสดงบนฟอร์มตอนแก้"""
     candidate.status = DistributorCandidate.STATUS_DRAFT
-    candidate.requested_by = request.user
+    candidate.requested_by = user
     candidate.created = timezone.now()
     candidate.submitted_at = None
     candidate.approved_by = None
     candidate.approved_at = None
-    candidate.reject_reason = None
     candidate.distributor = None
     candidate.save()
+
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def distributorCandidateReopen(request, pk):
+    """ปุ่ม "เสนอใหม่" ในแท็บไม่อนุมัติของหน้า /report/vendor/candidate/ (ไม่ต้องไปหาร้านในแผนที่)"""
+    candidate = get_object_or_404(DistributorCandidate, pk=pk)
+    if candidate.status != DistributorCandidate.STATUS_REJECTED:
+        messages.warning(request, f"ใบของร้าน {candidate.name} ไม่ได้อยู่ในสถานะไม่อนุมัติ")
+        return redirect(reverse("distributorCandidateList") + "?cand_status=rejected")
+    existing = Distributor.objects.filter(place_source=candidate.place_source, place_id=candidate.place_id).first()
+    if existing:
+        messages.info(request, f"ร้าน {candidate.name} มีในระบบแล้ว (รหัส {existing.id})")
+        return redirect(reverse("distributorCandidateList") + "?cand_status=rejected")
+    _reopen_candidate(candidate, request.user)
+    messages.success(request, f"เปิดใบของร้าน {candidate.name} เป็นร่างแล้ว แก้ไขแล้วกดส่งฟอร์มอีกครั้ง")
     return redirect("distributorCandidateForm", candidate.pk)
 
 
@@ -12950,18 +12972,16 @@ def _can_edit_candidate(user, candidate):
 
 @login_required(login_url='signIn')
 @require_http_methods(["POST"])
-def distributorCandidateCheck(request, pk):
-    """ปุ่ม "ตรวจเกณฑ์" ในหน้ากรอกฟอร์ม: ตรวจคำตอบที่เลือกอยู่บนหน้าจอ โดยไม่บันทึก"""
-    candidate = get_object_or_404(DistributorCandidate, pk=pk)
-    if not _can_edit_candidate(request.user, candidate):
-        return JsonResponse({"error": "ใบนี้แก้ไขไม่ได้"}, status=403)
+def distributorCandidateCheck(request, pk=None):
+    """ปุ่ม "ตรวจเกณฑ์" ในหน้ากรอกฟอร์ม: ตรวจคำตอบที่เลือกอยู่บนหน้าจอ โดยไม่บันทึก (pk=None = ร้านที่กรอกเอง ยังไม่บันทึก)"""
+    if pk is None:
+        candidate = DistributorCandidate(place_source=PLACE_SOURCE_MANUAL, requested_by=request.user)
+    else:
+        candidate = get_object_or_404(DistributorCandidate, pk=pk)
+        if not _can_edit_candidate(request.user, candidate):
+            return JsonResponse({"error": "ใบนี้แก้ไขไม่ได้"}, status=403)
 
-    answers = {}
-    for key, value in request.POST.items():
-        if key.startswith("ans_") and key[4:].isdigit() and value in (DistributorForm.ANS_PASS, DistributorForm.ANS_FAIL):
-            rule_id = int(key[4:])
-            answers[rule_id] = DistributorForm(candidate=candidate, question_id=rule_id, ans=value)
-    evaluation = candidate.evaluate(answers=answers)
+    evaluation = candidate.evaluate(answers=_posted_answers(request, candidate))
     return JsonResponse({
         "html": render_to_string("report/_distributorCandidateSummary.html", {"evaluation": evaluation}, request=request),
         "missing": [r.pk for r in evaluation["missing"]],
@@ -12978,58 +12998,148 @@ def distributorCandidateForm(request, pk):
         return redirect("distributorCandidateDetail", pk)
 
     if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "cancel":
+        if request.POST.get("action") == "cancel":
             name = candidate.name
             candidate.delete()
             messages.success(request, f"ยกเลิกใบขอเพิ่มร้าน {name} แล้ว")
             return redirect("distributorCandidateList")
 
-        for field in CANDIDATE_HEADER_FIELDS:
-            value = (request.POST.get(field) or "").strip()
-            setattr(candidate, field, value or (candidate.name if field == "name" else None))
-        try:
-            credit_days = int(request.POST.get("credit_days") or "")
-            candidate.credit_days = credit_days if credit_days >= 0 else None
-        except ValueError:
-            candidate.credit_days = None
+        _apply_candidate_header(request, candidate)
+        return _save_candidate_form(request, candidate)
+
+    return _render_candidate_form(request, candidate, candidate.evaluate())
+
+
+@login_required(login_url='signIn')
+def distributorCandidateNew(request):
+    """เพิ่มร้านเอง (ไม่เจอในแผนที่): ฟอร์มเดียวกับใบที่เสนอจากแผนที่ บันทึกลง DB ตอนกดบันทึกร่าง / ส่งฟอร์ม เท่านั้น"""
+    candidate = DistributorCandidate(
+        place_source=PLACE_SOURCE_MANUAL, requested_by=request.user, status=DistributorCandidate.STATUS_DRAFT, name="",
+    )
+    if request.method == "POST":
+        if request.POST.get("action") == "cancel":
+            messages.info(request, "ยกเลิกการเพิ่มร้านแล้ว")
+            return redirect("distributorCandidateList")
+
+        _apply_candidate_header(request, candidate)
+        if not candidate.name:
+            messages.error(request, "กรุณากรอกชื่อบริษัท/ร้านค้า")
+            return _render_candidate_form(request, candidate, candidate.evaluate(answers=_posted_answers(request, candidate)))
+
+        import uuid
+        candidate.place_id = f"{PLACE_SOURCE_MANUAL}-{uuid.uuid4().hex}"
+        candidate.created = timezone.now()
+        response = _save_candidate_form(request, candidate)
+        similar = _similar_vendor_names(candidate.name, exclude_candidate_pk=candidate.pk)
+        if similar:
+            messages.warning(request, "มีร้านชื่อใกล้เคียงอยู่แล้ว ตรวจสอบว่าไม่ใช่ร้านเดียวกัน: " + ", ".join(similar))
+        return response
+
+    return _render_candidate_form(request, candidate, candidate.evaluate(answers={}))
+
+
+def _apply_candidate_header(request, candidate):
+    """ส่วนหัวของใบขอเพิ่ม (ข้อมูลผู้ขาย) จากฟอร์ม -> candidate (ยังไม่ save)"""
+    for field in CANDIDATE_HEADER_FIELDS:
+        value = (request.POST.get(field) or "").strip()
+        setattr(candidate, field, value or (candidate.name if field == "name" else None))
+    try:
+        credit_days = int(request.POST.get("credit_days") or "")
+        candidate.credit_days = credit_days if credit_days >= 0 else None
+    except ValueError:
+        candidate.credit_days = None
+    # dropdown ชนิด / ประเภท (รหัสของ Express) ค่าที่ไม่มีในตารางถือว่าไม่เลือก
+    candidate.type = BaseDistributorType.objects.filter(pk=request.POST.get("type") or None).first()
+    candidate.genre = BaseDistributorGenre.objects.filter(pk=request.POST.get("genre") or None).first()
+
+
+def _posted_answers(request, candidate):
+    """คำตอบ ผ่าน/ไม่ผ่าน ที่เลือกบนหน้าจอ (ยังไม่บันทึก) -> {rule_id: DistributorForm}"""
+    answers = {}
+    for key, value in request.POST.items():
+        if key.startswith("ans_") and key[4:].isdigit() and value in (DistributorForm.ANS_PASS, DistributorForm.ANS_FAIL):
+            rule_id = int(key[4:])
+            answers[rule_id] = DistributorForm(
+                candidate=candidate, question_id=rule_id, ans=value,
+                remark=(request.POST.get(f"remark_{rule_id}") or "").strip() or None,
+            )
+    return answers
+
+
+def _save_candidate_form(request, candidate):
+    """บันทึกใบขอเพิ่ม + คำตอบรายข้อ แล้วบันทึกร่าง / ส่งฟอร์ม ตามปุ่มที่กด"""
+    action = request.POST.get("action")
+    candidate.save()
+
+    # ตอบได้เฉพาะข้อที่ไม่มีข้อย่อย ข้อหลักคำนวณผลจากข้อย่อย
+    for row in candidate.evaluate()["rows"]:
+        if not row["is_leaf"]:
+            continue
+        rule = row["rule"]
+        ans = request.POST.get(f"ans_{rule.pk}")
+        remark = (request.POST.get(f"remark_{rule.pk}") or "").strip() or None
+        if ans in (DistributorForm.ANS_PASS, DistributorForm.ANS_FAIL):
+            DistributorForm.objects.update_or_create(
+                candidate=candidate, question=rule, defaults={"ans": ans, "remark": remark},
+            )
+        else:
+            DistributorForm.objects.filter(candidate=candidate, question=rule).delete()
+
+    if action == "submit":
+        evaluation = candidate.evaluate()
+        if evaluation["missing"]:
+            codes = ", ".join(r.code for r in evaluation["missing"])
+            messages.error(request, f"ยังส่งฟอร์มไม่ได้ กรุณาตอบหลักเกณฑ์ให้ครบ (ข้อ {codes})")
+            return redirect("distributorCandidateForm", candidate.pk)
+        candidate.status = DistributorCandidate.STATUS_SUBMITTED
+        candidate.submitted_at = timezone.now()
         candidate.save()
+        messages.success(request, f"ส่งใบขอเพิ่มร้าน {candidate.name} แล้ว รอผู้อนุมัติ")
+        return redirect("distributorCandidateDetail", candidate.pk)
 
-        # ตอบได้เฉพาะข้อที่ไม่มีข้อย่อย ข้อหลักคำนวณผลจากข้อย่อย
-        for row in candidate.evaluate()["rows"]:
-            if not row["is_leaf"]:
-                continue
-            rule = row["rule"]
-            ans = request.POST.get(f"ans_{rule.pk}")
-            remark = (request.POST.get(f"remark_{rule.pk}") or "").strip() or None
-            if ans in (DistributorForm.ANS_PASS, DistributorForm.ANS_FAIL):
-                DistributorForm.objects.update_or_create(
-                    candidate=candidate, question=rule, defaults={"ans": ans, "remark": remark},
-                )
-            else:
-                DistributorForm.objects.filter(candidate=candidate, question=rule).delete()
+    messages.success(request, "บันทึกร่างแล้ว")
+    return redirect("distributorCandidateForm", candidate.pk)
 
-        if action == "submit":
-            evaluation = candidate.evaluate()
-            if evaluation["missing"]:
-                codes = ", ".join(r.code for r in evaluation["missing"])
-                messages.error(request, f"ยังส่งฟอร์มไม่ได้ กรุณาตอบหลักเกณฑ์ให้ครบ (ข้อ {codes})")
-                return redirect("distributorCandidateForm", pk)
-            candidate.status = DistributorCandidate.STATUS_SUBMITTED
-            candidate.submitted_at = timezone.now()
-            candidate.save()
-            messages.success(request, f"ส่งใบขอเพิ่มร้าน {candidate.name} แล้ว รอผู้อนุมัติ")
-            return redirect("distributorCandidateDetail", pk)
 
-        messages.success(request, "บันทึกร่างแล้ว")
-        return redirect("distributorCandidateForm", pk)
-
+def _render_candidate_form(request, candidate, evaluation):
     return render(request, "report/distributorCandidateForm.html", {
         "candidate": candidate,
-        "evaluation": candidate.evaluate(),
+        "evaluation": evaluation,
         "ans_choices": DistributorForm.ANS_CHOICES,
+        "type_options": BaseDistributorType.objects.order_by("id"),
+        "genre_options": BaseDistributorGenre.objects.order_by("id"),
         **_vendor_menu("cand"),
     })
+
+
+# คำนำหน้า/ต่อท้ายนิติบุคคล + เครื่องหมาย ที่ตัดออกก่อนเทียบชื่อร้าน
+_VENDOR_NAME_NOISE = re.compile(
+    r"ห้างหุ้นส่วนจำกัด|ห้างหุ้นส่วนสามัญ|บริษัท|บจก\.?|หจก\.?|หสน\.?|\(?มหาชน\)?|จำกัด|ร้าน"
+    r"|company\s+limited|co\.?\s*,?\s*ltd\.?|limited|ltd\.?|[\s.,\-()\"'&/]",
+    re.IGNORECASE,
+)
+
+
+def _normalize_vendor_name(name):
+    return _VENDOR_NAME_NOISE.sub("", name or "").lower()
+
+
+def _similar_vendor_names(name, exclude_candidate_pk=None):
+    """ร้านใน Distributor / ใบขอเพิ่มอื่น ที่ชื่อตรงกันเมื่อตัดคำนำหน้านิติบุคคลออก (ใช้เตือน ไม่บล็อก)"""
+    key = _normalize_vendor_name(name)
+    if len(key) < 2:
+        return []
+    found = [
+        f"{n} (รหัส {pk})"
+        for pk, n in Distributor.objects.values_list("id", "name")
+        if _normalize_vendor_name(n) == key
+    ]
+    found += [
+        f"{n} (ใบขอเพิ่ม)"
+        for pk, n in DistributorCandidate.objects.exclude(pk=exclude_candidate_pk).values_list("pk", "name")
+        if _normalize_vendor_name(n) == key
+    ]
+    return found[:5]
 
 
 def _approver_only(view):
@@ -13172,6 +13282,8 @@ def approveDistributorCandidate(request, pk):
                     fax=candidate.fax_line,
                     tex=candidate.tax_id,
                     vat_type=vat_type,
+                    type=candidate.type,
+                    genre=candidate.genre,
                 )
             else:
                 distributor = Distributor.objects.select_for_update().filter(id=distributor_id).first()
@@ -13420,7 +13532,7 @@ def exportExcelVendor(request):
     from stock.filters import DistributorFilter
     queryset = Distributor.objects.select_related(
         "prefix", "type", "genre", "credit", "vat_type", "affiliated"
-    ).order_by("id")
+    ).order_by("-created", "-id")
     vendors = DistributorFilter(request.GET, queryset=queryset).qs
 
     headers = [
