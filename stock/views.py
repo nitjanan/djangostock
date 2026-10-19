@@ -13826,8 +13826,6 @@ def fetch_vendors_from_google_maps(lat, lng, radius=10000, keyword=None, categor
     results.sort(key=lambda r: r["distance_m"] if r["distance_m"] is not None else float("inf"))
 
     print(f"พบร้านค้าจาก Google ทั้งหมด {len(results)} ร้าน (ยิง {len(nearby_types)} nearby + {len(text_queries)} text search)")
-    for r in results:
-        print(r)
 
     return results
 
@@ -14017,8 +14015,6 @@ def fetch_vendors_from_openstreetmap(lat, lng, radius=10000, keyword=None):
         })
 
     print(f"พบร้านค้าจาก OpenStreetMap ทั้งหมด {len(results)} ร้าน")
-    for r in results:
-        print(r)
 
     return results
 
@@ -14167,8 +14163,6 @@ def fetch_vendors_from_tomtom(lat, lng, radius=10000, keyword=None, category_ids
         cache.set(cache_key, results, 60 * 60)
 
     print(f"พบร้านค้าจาก TomTom ทั้งหมด {len(results)} ร้าน")
-    for r in results:
-        print(r)
 
     return results
 
