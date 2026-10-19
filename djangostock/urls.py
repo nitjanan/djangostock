@@ -229,6 +229,7 @@ urlpatterns = [
     path('ex/oil/invoice',views.viewExOiInvoice,name="viewExOiInvoice"),
     path('ex/soc/',views.viewExSOC,name="viewExSOC"),
     path('ex/oil/soc/',views.viewExOiSOC,name="viewExOiSOC"),
+    path('ex/export/excel/all',views.exportExcelExAll,name="exportExcelExAll"),
 
     path('car-search/', views.car_search, name='car_search'),
 
@@ -302,6 +303,7 @@ urlpatterns = [
 
     path('exp/repair/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpRepair,name="apiExpRepair"),
     path('all/exp/repair/api/between/<str:start_date>/<str:end_date>/',views.getapiExpRepairAll,name="getapiExpRepairAll"),
+    path('all/maintenance/api/between/<str:start_date>/<str:end_date>/',views.getapiMaintenanceAll,name="getapiMaintenanceAll"),
 
     path('exp/cartype/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiExpCarType,name="apiExpCarType"),
     

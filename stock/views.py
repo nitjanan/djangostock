@@ -34,6 +34,7 @@ import requests
 import time
 from django.db.models import Prefetch, Sum, Max
 from .resources import ReceiveItemResource, DistributorResource
+from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
@@ -2617,8 +2618,11 @@ def showPR(request, pr_id, mode):
     #ต้องเป็นใบที่เกิดจากการ CLOSE เท่านั้น (มี stamp C# นำหน้า note)
     isFromClose = bool(pr.note) and pr.note[:2] == 'C#'
 
-    #ต้องมีสิทธิ rePR, เป็น staff (จัดซื้อ/พัสดุ), มาจากการ CLOSE และยังมีรายการคงเหลือ
-    isRePr = is_re_pr(request.user) and is_staff and isFromClose and isHasRemainItem
+    #ต้องเป็นผู้จัดทำ (organizer) ของใบขอซื้อนี้
+    isOrganizer = pr.organizer_id == request.user.id
+
+    #ต้องเป็นผู้จัดทำ, มาจากการ CLOSE และยังมีรายการคงเหลือ
+    isRePr = isOrganizer and isFromClose and isHasRemainItem
 
     #ที่อยู่และหัวบริษัท
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
@@ -6193,12 +6197,13 @@ def exportExcelPO(request):
 
     po_ids = [row['id'] for row in po_rows]
 
-    item_discount_map = dict(
-        PurchaseOrderItem.objects.filter(po_id__in=po_ids)
-        .values('po_id')
-        .annotate(s_d=Sum('discount'))
-        .values_list('po_id', 's_d')
-    )
+    #discount เป็นข้อความ (บาท หรือ %) ใช้ Sum ใน database ไม่ได้ เพราะจะแปลง "10%" เป็น 10 บาท
+    item_discount_rows = defaultdict(list)
+    for po_id, raw, quantity, unit_price in PurchaseOrderItem.objects.filter(po_id__in=po_ids).values_list(
+        'po_id', 'discount', 'quantity', 'unit_price'
+    ):
+        item_discount_rows[po_id].append((raw, quantity, unit_price))
+    item_discount_map = {po_id: _sum_item_discounts(rows) for po_id, rows in item_discount_rows.items()}
 
     po_items_grouped = {}
     for row in PurchaseOrderItem.objects.filter(po_id__in=po_ids).annotate(
@@ -6398,49 +6403,7 @@ def exportExcelSummaryByProductValue(request):
     font_style = xlwt.XFStyle()
     decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
 
-    item_product_id_from = request.GET.get('item_product_id_from') or None
-    item_product_id_to = request.GET.get('item_product_id_to') or None
-    item_product_name = request.GET.get('item_product_name') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-    distri_id = request.GET.get('distri_id') or None
-    distributor = request.GET.get('distributor') or None
-    stockman_user = request.GET.get('stockman_user') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    unit_price_min = request.GET.get('unit_price_min') or None
-    unit_price_max = request.GET.get('unit_price_max') or None
-    category = request.GET.get('category') or None
-
-    my_q = Q()
-    if item_product_id_from is not None:
-        my_q = Q(item__product_id__gte = item_product_id_from)
-    if item_product_id_to is not None:
-        my_q &= Q(item__product_id__lte = item_product_id_to)
-    if item_product_name is not None:
-        my_q &= Q(item__product_name__icontains = item_product_name)
-    if stockman_user is not None:
-        my_q &= Q(po__stockman_user = stockman_user)
-    if category is not None:
-        my_q &= Q(item__product__category = category)
-    if distri_id is not None:
-        my_q &= Q(po__distributor__id__startswith = distri_id)
-    if distributor is not None:
-        my_q &= Q(po__distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(po__created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(po__created__lte = end_created)
-    if unit_price_min is not None:
-        my_q &= Q(unit_price__gte = unit_price_min)
-    if unit_price_max is not None :
-        my_q &=Q(unit_price__lte = unit_price_max)
-    if item_machine is not None :
-        my_q &=Q(item__machine__icontains = item_machine)
-    if item_rq_note is not None :
-        my_q &=Q(item__requisit__note__icontains = item_rq_note)
-
-    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
+    my_q = Q(po__approver_status = 2, po__is_cancel = False)
 
     #ถ้ามีสิทธิดูรายงานทั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
@@ -6448,18 +6411,19 @@ def exportExcelSummaryByProductValue(request):
     else:
         my_q &=Q(po__branch_company__code__in = company_in)
 
-    rows = PurchaseOrderItem.objects.filter(
-        my_q
-    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
+    #กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field
+    po_item_qs = PurchaseOrderItemFilter(request.GET, queryset = PurchaseOrderItem.objects.filter(my_q)).qs
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).annotate(
+    rows = po_item_qs.values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-total_price')
+
+    po_items = po_item_qs.annotate(
                 car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
                 mc=Case(
                     When(~Q(car_name_code =''), then='car_name_code'),
                     default='item__machine'
                 )).values('item__product_id','unit_price','mc') #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
-    total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
+    total_price = po_item_qs.aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
     
     for row in rows:
@@ -6536,68 +6500,27 @@ def exportExcelSummaryByProductFrequently(request):
     font_style = xlwt.XFStyle()
     decimal_style = xlwt.easyxf(num_format_str='#,##0.00')
 
-    item_product_id_from = request.GET.get('item_product_id_from') or None
-    item_product_id_to = request.GET.get('item_product_id_to') or None
-    item_product_name = request.GET.get('item_product_name') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-    distri_id = request.GET.get('distri_id') or None
-    distributor = request.GET.get('distributor') or None
-    stockman_user = request.GET.get('stockman_user') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    unit_price_min = request.GET.get('unit_price_min') or None
-    unit_price_max = request.GET.get('unit_price_max') or None
-    category = request.GET.get('category') or None
+    my_q = Q(po__approver_status = 2, po__is_cancel = False)
 
-    my_q = Q()
-    if item_product_id_from is not None:
-        my_q = Q(item__product_id__gte = item_product_id_from)
-    if item_product_id_to is not None:
-        my_q &= Q(item__product_id__lte = item_product_id_to)
-    if item_product_name is not None:
-        my_q &= Q(item__product_name__icontains = item_product_name)
-    if stockman_user is not None:
-        my_q &= Q(po__stockman_user = stockman_user)
-    if category is not None:
-        my_q &= Q(item__product__category = category)
-    if distri_id is not None:
-        my_q &= Q(po__distributor__id__startswith = distri_id)
-    if distributor is not None:
-        my_q &= Q(po__distributor__name__startswith = distributor)
-    if start_created is not None:
-        my_q &= Q(po__created__gte = start_created)
-    if end_created is not None:
-        my_q &=Q(po__created__lte = end_created)
-    if unit_price_min is not None:
-        my_q &= Q(unit_price__gte = unit_price_min)
-    if unit_price_max is not None :
-        my_q &=Q(unit_price__lte = unit_price_max)
-    if item_machine is not None :
-        my_q &=Q(item__machine__icontains = item_machine)
-    if item_rq_note is not None:
-        my_q &= Q(item__requisit__note__icontains=item_rq_note)
-
-    my_q &=Q(po__approver_status = 2, po__is_cancel = False)
-
-    #ถ้ามีสิทธิดูรายงานของบริษัททั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
+    #ถ้ามีสิทธิดูรายงานทั้งหมด ในแท็ป ALL จะดึงรายงานของทุกๆบริษัทมา
     if  is_view_report_all(request.user) and active == 'ALL':
         pass
     else:
         my_q &=Q(po__branch_company__code__in = company_in)
 
-    rows = PurchaseOrderItem.objects.filter(
-        my_q
-    ).values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
+    #กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field
+    po_item_qs = PurchaseOrderItemFilter(request.GET, queryset = PurchaseOrderItem.objects.filter(my_q)).qs
 
-    po_items = PurchaseOrderItem.objects.filter(my_q).annotate(
+    rows = po_item_qs.values_list('item__product_id', 'item__product__name', 'item__product__unit__name','item__product_id').annotate(avg = Avg('unit_price'), count = Count('item__product_id'), quantity = Sum('quantity'), total_price = Sum('price'), ugency = Round(Avg('item__urgency'))).order_by('-count')
+
+    po_items = po_item_qs.annotate(
                 car_name_code=Concat('item__requisit__car__name', 'item__requisit__car__code'),
                 mc=Case(
                     When(~Q(car_name_code =''), then='car_name_code'),
                     default='item__machine'
                 )).values('item__product_id','unit_price','mc') #ใช้ในระบบงาน version ใหม่ดึงจาก car.name + car.code อันเก่าดึงจาก machine 10/10/2024
 
-    total_price = PurchaseOrderItem.objects.filter(my_q).aggregate(Sum('price'))
+    total_price = po_item_qs.aggregate(Sum('price'))
     sum_total_price = total_price['price__sum']
     
     for row in rows:
@@ -8408,20 +8331,21 @@ def exportToExcelRegistrationAndRepair(request):
 
 
 
-def viewExInvoice(request):
-    active = request.session.get('company_code', 'ALL')
+def getExQueryset(request, model, code_field, date_field):
+    # ดึงเอกสาร express ของสาขาที่ user มีสิทธิ์ และมีรหัสเอกสาร (code_field) ของสาขานั้น
     company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี invoice_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(invoice_code__isnull=True).exclude(invoice_code='')
+    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(**{f'{code_field}__isnull': True}).exclude(**{code_field: ''})
     query = Q()
     for b in b_coms:
         if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.invoice_code)
+            query |= Q(comcod=b.affiliated.name, docnum__startswith=getattr(b, code_field))
     if query:
-        data = ExOESTNH.objects.using('pg_db').filter(query).order_by('-docdat', '-docnum')
-    else:
-        data = ExOESTNH.objects.using('pg_db').none()
+        return model.objects.using('pg_db').filter(query).order_by(f'-{date_field}', '-docnum', 'comcod')
+    return model.objects.using('pg_db').none()
+
+def viewExInvoice(request):
+    active = request.session.get('company_code', 'ALL')
+    data = getExQueryset(request, ExOESTNH, 'invoice_code', 'docdat')
 
     #กรองข้อมูล
     myFilter = ExOESTNHFilter(request.GET, queryset = data)
@@ -8444,18 +8368,7 @@ def viewExInvoice(request):
 
 def viewExOiInvoice(request):
     active = request.session.get('company_code', 'ALL')
-    company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี oi_invoice_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(oi_invoice_code__isnull=True).exclude(oi_invoice_code='')
-    query = Q()
-    for b in b_coms:
-        if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.oi_invoice_code)
-    if query:
-        data = ExOESTNH.objects.using('pg_db').filter(query).order_by('-docdat', '-docnum')
-    else:
-        data = ExOESTNH.objects.using('pg_db').none()
+    data = getExQueryset(request, ExOESTNH, 'oi_invoice_code', 'docdat')
 
     #กรองข้อมูล
     myFilter = ExOESTNHFilter(request.GET, queryset = data)
@@ -8478,18 +8391,7 @@ def viewExOiInvoice(request):
 
 def viewExSOC(request):
     active = request.session.get('company_code', 'ALL')
-    company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี soc_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(soc_code__isnull=True).exclude(soc_code='')
-    query = Q()
-    for b in b_coms:
-        if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.soc_code)
-    if query:
-        data = ExOEINVH.objects.using('pg_db').filter(query).order_by('-docdate', '-docnum')
-    else:
-        data = ExOEINVH.objects.using('pg_db').none()
+    data = getExQueryset(request, ExOEINVH, 'soc_code', 'docdate')
 
     #กรองข้อมูล
     myFilter = ExOEINVHFilter(request.GET, queryset = data)
@@ -8512,18 +8414,7 @@ def viewExSOC(request):
 
 def viewExOiSOC(request):
     active = request.session.get('company_code', 'ALL')
-    company_in = findCompanyIn(request)
-
-    # ดึงสาขาที่ user มีสิทธิ์ และมี oi_soc_code
-    b_coms = BaseBranchCompany.objects.filter(code__in=company_in).exclude(oi_soc_code__isnull=True).exclude(oi_soc_code='')
-    query = Q()
-    for b in b_coms:
-        if b.affiliated:
-            query |= Q(comcod=b.affiliated.name, docnum__startswith=b.oi_soc_code)
-    if query:
-        data = ExOEINVH.objects.using('pg_db').filter(query).order_by('-docdate', '-docnum')
-    else:
-        data = ExOEINVH.objects.using('pg_db').none()
+    data = getExQueryset(request, ExOEINVH, 'oi_soc_code', 'docdate')
 
     #กรองข้อมูล
     myFilter = ExOEINVHFilter(request.GET, queryset = data)
@@ -8543,6 +8434,156 @@ def viewExOiSOC(request):
         "colorNav":"enableNav"
     }
     return render(request, "express/viewExOiSOC.html", context)
+
+def chunked(items, size=1000):
+    items = list(items)
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+def getExOESTNHRows(queryset, with_repair):
+    # สร้างแถวของตารางใบจ่ายภายใน (ดึงรายละเอียดทีละก้อน แทน get_items/get_total_price ทีละแถว)
+    headers = list(queryset.values('docnum', 'comcod', 'docdat', 'depcod', 'remark', 'note2', 'note3'))
+    comcods = {h['comcod'] for h in headers}
+
+    stkcods = defaultdict(list)
+    totals = defaultdict(Decimal)
+    for chunk in chunked({h['docnum'] for h in headers}):
+        details = ExOESTND.objects.using('pg_db').filter(docnum__in=chunk, comcod__in=comcods).order_by('docnum', 'seqnum').values('docnum', 'comcod', 'stkcod', 'trnval')
+        for d in details:
+            key = (d['docnum'], d['comcod'])
+            stkcod = (d['stkcod'] or '').strip()  # ข้อมูล express เป็น CHAR มีช่องว่างต่อท้าย
+            if stkcod not in stkcods[key]:
+                stkcods[key].append(stkcod)
+            totals[key] += d['trnval'] or 0
+
+    products = {}
+    for chunk in chunked({c for codes in stkcods.values() for c in codes}):
+        products.update(Product.objects.filter(id__in=chunk).values_list('id', 'name'))
+    departments = dict(BaseExpenseDepartment.objects.values_list('id', 'name'))
+    repair_types = dict(BaseRepairType.objects.values_list('id', 'name'))
+
+    rows = []
+    for h in headers:
+        key = (h['docnum'], h['comcod'])
+        items = "\n".join(f"{c} : {products[c]}" for c in stkcods[key] if c in products)
+        depcod = (h['depcod'] or '').strip()
+        depnam = f"{depcod} {departments[depcod]}" if depcod in departments else ''
+        row = [h['docnum'], h['docdat'], items, h['depcod'], depnam, h['remark'], float(totals[key])]
+        if with_repair:
+            note2 = (h['note2'] or '').strip()
+            repair = f"{note2} {repair_types[note2]}" if note2 in repair_types else h['note2']
+            row += [repair, h['note3']]
+        rows.append(row)
+    return rows
+
+def getExOEINVHRows(queryset):
+    # สร้างแถวของตารางใบขายเงินเชื่อ
+    headers = list(queryset.values('docnum', 'comcod', 'docdate', 'cusnam', 'total', 'vatamt', 'netval'))
+    comcods = {h['comcod'] for h in headers}
+
+    items = defaultdict(list)
+    for chunk in chunked({h['docnum'] for h in headers}):
+        details = ExOEINVD.objects.using('pg_db').filter(docnum__in=chunk, comcod__in=comcods).order_by('docnum', 'seqnum').values('docnum', 'comcod', 'stkcod', 'stkdes')
+        for d in details:
+            items[(d['docnum'], d['comcod'])].append(f"{(d['stkcod'] or '').strip()} : {(d['stkdes'] or '').strip()}")
+
+    return [
+        [h['docnum'], h['docdate'], h['cusnam'], "\n".join(items[(h['docnum'], h['comcod'])]),
+         float(h['total'] or 0), float(h['vatamt'] or 0), float(h['netval'] or 0)]
+        for h in headers
+    ]
+
+def writeExSheet(workbook, title, columns, rows):
+    # columns = [(หัวคอลัมน์, ชนิด)] ชนิด: text, date, money, multiline
+    sheet = workbook.create_sheet(title=title)
+    thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    header_fill = PatternFill(start_color='24493D', end_color='24493D', fill_type='solid')
+
+    sheet.append([name for name, _ in columns])
+    for cell in sheet[1]:
+        cell.font = Font(bold=True, color='FFFFFF')
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin_border
+    sheet.freeze_panes = 'A2'
+
+    if not rows:
+        sheet.cell(row=2, column=1, value='ไม่มีข้อมูล')
+        sheet.column_dimensions['A'].width = 20
+        return
+
+    for row in rows:
+        sheet.append([v.strip() if isinstance(v, str) else v for v in row])
+    last_row = sheet.max_row
+
+    #คำนวนรวมทั้งสิ้น
+    money_cols = [idx for idx, (_, kind) in enumerate(columns, start=1) if kind == 'money']
+    if money_cols:
+        total_row = last_row + 1
+        sheet.cell(row=total_row, column=1, value='รวมทั้งสิ้น').font = Font(bold=True)
+        for idx in money_cols:
+            letter = get_column_letter(idx)
+            cell = sheet.cell(row=total_row, column=idx, value=f'=SUM({letter}2:{letter}{last_row})')
+            cell.font = Font(bold=True)
+            cell.number_format = '#,##0.00'
+        for idx in range(1, len(columns) + 1):
+            sheet.cell(row=total_row, column=idx).border = thin_border
+
+    # Set number format, กรอบ และความกว้างคอลัมน์
+    for idx, (name, kind) in enumerate(columns, start=1):
+        max_length = len(name)
+        for r in range(2, last_row + 1):
+            cell = sheet.cell(row=r, column=idx)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical='top', wrap_text=(kind == 'multiline'))
+            if kind == 'date':
+                cell.number_format = 'DD/MM/YYYY'
+                length = 10
+            elif kind == 'money':
+                cell.number_format = '#,##0.00'
+                length = len(f'{cell.value or 0:,.2f}')
+            else:
+                length = max((len(line) for line in str(cell.value or '').split('\n')), default=0)
+            max_length = max(max_length, length)
+        sheet.column_dimensions[get_column_letter(idx)].width = min(max_length + 2, 60)
+
+def exportExcelExAll(request):
+    active = request.session.get('company_code', 'ALL')
+
+    # ถ้าไม่ได้เลือกวันที่ ให้ใช้เดือนปัจจุบัน (ข้อมูลทุกปีมีหลายแสนแถว export ไม่ไหว)
+    start_date, end_date = get_month_start_end()
+    params = request.GET.copy()
+    params['start_created'] = request.GET.get('start_created') or start_date.isoformat()
+    params['end_created'] = request.GET.get('end_created') or end_date.isoformat()
+
+    # sheet ใบจ่ายภายใน-อะไหล่ ใช้ตัวกรองทั้งหมดของหน้า /ex/invoice/ ส่วน sheet อื่นใช้แค่ช่วงวันที่
+    date_params = {k: params[k] for k in ('start_created', 'end_created')}
+
+    iv = ExOESTNHFilter(params, queryset=getExQueryset(request, ExOESTNH, 'invoice_code', 'docdat')).qs
+    oi_iv = ExOESTNHFilter(date_params, queryset=getExQueryset(request, ExOESTNH, 'oi_invoice_code', 'docdat')).qs
+    soc = ExOEINVHFilter(date_params, queryset=getExQueryset(request, ExOEINVH, 'soc_code', 'docdate')).qs
+    oi_soc = ExOEINVHFilter(date_params, queryset=getExQueryset(request, ExOEINVH, 'oi_soc_code', 'docdate')).qs
+
+    iv_columns = [
+        ('เลขที่เอกสาร', 'text'), ('วันที่จ่าย', 'date'), ('สินค้า', 'multiline'), ('exp คชจ.', 'text'),
+        ('แผนกคชจ.', 'text'), ('หมายเหตุ', 'text'), ('จำนวนเงิน', 'money'),
+    ]
+    soc_columns = [
+        ('เลขที่เอกสาร', 'text'), ('วันที่ขาย', 'date'), ('ลูกค้า', 'text'), ('สินค้า', 'multiline'),
+        ('รวมเงิน', 'money'), ('vat', 'money'), ('จำนวนเงินทั้งสิ้น', 'money'),
+    ]
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    writeExSheet(workbook, 'ใบจ่ายสินค้าภายใน-อะไหล่', iv_columns + [('ประเภทการซ่อม', 'text'), ('เลขที่ใบแจ้งซ่อม', 'text')], getExOESTNHRows(iv, with_repair=True))
+    writeExSheet(workbook, 'ใบจ่ายสินค้าภายใน-น้ำมัน', iv_columns, getExOESTNHRows(oi_iv, with_repair=False))
+    writeExSheet(workbook, 'ใบขายเงินเชื่อ-อะไหล่', soc_columns, getExOEINVHRows(soc))
+    writeExSheet(workbook, 'ใบขายเงินเชื่อ-น้ำมัน', soc_columns, getExOEINVHRows(oi_soc))
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Express All({active}).xlsx'
+    workbook.save(response)
+    return response
 
 def sanitize_sheet_title(title):
     # Remove invalid characters and truncate to 30 characters
@@ -9278,11 +9319,19 @@ def roi_carLogBook_appsheet(request):
 @login_required(login_url='signIn')
 def viewCL(request):
     active = request.session.get('company_code', 'ALL')
-    data = CarLogbook.objects.filter(branch_company__code = active)
+    company_in = findCompanyIn(request)
+    #แท็ป ALL จะดึงใบบันทึกการใช้รถของทุกบริษัทที่ user มีสิทธิ์มองเห็น
+    data = CarLogbook.objects.filter(branch_company__code__in = company_in).select_related('branch_company', 'car', 'name')
+
+    visible = data
 
     #กรองข้อมูล
     myFilter = CarLogbookFilter(request.GET, queryset = data)
     data = myFilter.qs
+
+    #ตรวจจับการคีย์ใบบันทึกการใช้รถที่ผิดปกติ ตามตัวกรองเดียวกัน (ใบก่อนหน้าต้องเป็นบริษัทที่ user มีสิทธิ์เห็น)
+    has_date = request.GET.get('start_created') or request.GET.get('end_created')
+    anomalies = detect_carlog_anomalies(anomaly_default_scope(data, has_date), visible)
 
     #สร้าง page
     p = Paginator(data, 10)
@@ -9292,6 +9341,9 @@ def viewCL(request):
     context = {
         'cls':dataPage,
         'filter':myFilter,
+        'anomalies': anomalies,
+        'anomaly_default_days': None if has_date else ANOMALY_DEFAULT_DAYS,
+        'is_all_comp': active == 'ALL',
         'cl_page': "tab-active",
         'cl_show': "show",
         active :"active show",
@@ -9362,6 +9414,29 @@ def excelDailyCL(request):
     car_all = CarLogbook.objects.filter(my_q).values_list('car', flat=True).distinct()
     cars = BaseCar.objects.filter(id__in = car_all)
 
+    #ดึงใบบันทึกการใช้รถในช่วงวันที่ครั้งเดียว แล้วจัดกลุ่มตามรถใน python (เดิม query ทุกรถ x ทุกวัน ทำให้โหลดช้า)
+    cl_sum_fields = ('oil', 'gas', 'engine', 'hydraulic', 'grease', 'coolant', 'DW_water')
+    logs_by_car = defaultdict(list)
+    for log in CarLogbook.objects.filter(
+        car__in = car_all,
+        created__range=(startDate, endDate),
+        branch_company__code__in=company_in
+    ).values(
+        'id', 'car_id', 'created', 'mile_start', 'mile_end', 'note',
+        'job1', 'job2', 'job3', 'job4', 'job5', 'job6',
+        'name__first_name', 'name__last_name', 'branch_company__name',
+        *cl_sum_fields
+    ).order_by('created', 'id'):
+        log['full_name'] = f"{log['name__first_name'] or ''} {log['name__last_name'] or ''}"
+        logs_by_car[log['car_id']].append(log)
+
+    def sum_logs(logs):
+        result = {}
+        for field in cl_sum_fields:
+            values = [log[field] for log in logs if log[field] is not None]
+            result[f'sum_{field}'] = sum(values) if values else None
+        return result
+
     workbook = openpyxl.Workbook()
 
     # Define custom date style only once
@@ -9381,49 +9456,31 @@ def excelDailyCL(request):
 
     if cars:
         for car in cars:
-            driver = (
-                CarLogbook.objects.filter(
-                    car=car,
-                    created__range=(startDate, endDate),
-                    branch_company__code__in=company_in
-                )
-                .annotate(
-                    full_name=Concat(
-                        F('name__first_name'),
-                        Value(' '),
-                        F('name__last_name'),
-                        output_field=CharField()
-                    )
-                )
-                .values('full_name')
-                .annotate(count=Count('id'))
-                .order_by('-count')
-                .first()
-            )
-            driver_name = driver['full_name'] if driver else ''
-            
-            qs = CarLogbook.objects.filter(
-                car=car, 
-                created__range=(startDate, endDate), 
-                branch_company__code__in=company_in
-            )
-            data_sum = qs.aggregate(
-                sum_oil=Sum('oil'),
-                sum_gas=Sum('gas'),
-                sum_engine=Sum('engine'),
-                sum_hydraulic=Sum('hydraulic'),
-                sum_grease=Sum('grease'),
-                sum_coolant=Sum('coolant'),
-                sum_DW_water=Sum('DW_water'),
-            )
+            car_logs = logs_by_car.get(car.id, [])  #เรียงตาม created, id แล้ว
 
-            first_row = qs.order_by('created', 'id').first()
-            last_row = qs.order_by('created', 'id').last()
+            #ผู้ขับ = ชื่อที่บันทึกบ่อยที่สุด
+            driver_count = defaultdict(int)
+            for log in car_logs:
+                driver_count[log['full_name']] += 1
+            driver_name = min(driver_count, key=lambda n: (-driver_count[n], n)) if driver_count else ''
+
+            data_sum = sum_logs(car_logs)
+
+            first_row = car_logs[0] if car_logs else None
+            last_row = car_logs[-1] if car_logs else None
+
+            #ชื่อบริษัทของใบบันทึกรถคันนี้ (แท็ป ALL อาจมีหลายบริษัท)
+            comp_names = sorted({log['branch_company__name'] for log in car_logs if log['branch_company__name']})
+            comp_name = ", ".join(comp_names) or comp.name
 
             if first_row and last_row:
-                total_mile = last_row.mile_end - first_row.mile_start
+                total_mile = last_row['mile_end'] - first_row['mile_start']
             else:
                 total_mile = 0
+
+            logs_by_date = defaultdict(list)
+            for log in car_logs:
+                logs_by_date[log['created']].append(log)
                             
             sheet = workbook.create_sheet(title=f"{car.code} {car.name}")
             sheet.cell(row=1, column=1, value='รายงานการใช้รถ').font = Font(bold=True)
@@ -9432,7 +9489,7 @@ def excelDailyCL(request):
             sheet.cell(row=4, column=1, value='ผู้ขับ')
             sheet.cell(row=6, column=1, value='วันที่ ' + str(startDate.strftime('%d/%m/%Y')) + " ถึง " + str(endDate.strftime('%d/%m/%Y'))) 
 
-            sheet.cell(row=2, column=2, value=f"{comp.name}")
+            sheet.cell(row=2, column=2, value=f"{comp_name}")
             sheet.cell(row=3, column=2, value=f"{car.name}")
             sheet.cell(row=4, column=2, value=f"{driver_name}")
             sheet.cell(row=3, column=12, value=f"{car.code}").font = Font(bold=True)
@@ -9481,51 +9538,21 @@ def excelDailyCL(request):
             row_index = 9
             for idl, ldate in enumerate(list_date):
                 row_index += 1
+                day_logs = logs_by_date.get(ldate, [])  #เรียงตาม id
+
                 # aggregate sums
-                data = CarLogbook.objects.filter(
-                    car=car, 
-                    created=ldate, 
-                    branch_company__code__in=company_in
-                ).aggregate(
-                    sum_oil=Sum('oil'),
-                    sum_gas=Sum('gas'),
-                    sum_engine=Sum('engine'),
-                    sum_hydraulic=Sum('hydraulic'),
-                    sum_grease=Sum('grease'),
-                    sum_coolant=Sum('coolant'),
-                    sum_DW_water=Sum('DW_water'),
-                )
+                data = sum_logs(day_logs)
 
                 # first and last records
-                data_first = CarLogbook.objects.filter(
-                    car=car, created=ldate,
-                    branch_company__code__in=company_in
-                ).order_by('id').first()
+                data_first = day_logs[0] if day_logs else None
+                data_last = day_logs[-1] if day_logs else None
 
-                data_last = CarLogbook.objects.filter(
-                    car=car, created=ldate,
-                    branch_company__code__in=company_in
-                ).order_by('id').last()
-
-
-                notes = CarLogbook.objects.filter(
-                    car=car,
-                    created=ldate,
-                    branch_company__code__in=company_in
-                ).annotate(
-                    full_name=Concat(
-                        F('name__first_name'),
-                        Value(' '),
-                        F('name__last_name'),
-                        output_field=CharField()
-                    )
-                ).values_list('note', 'full_name', 'job1','job2','job3','job4','job5','job6')
-
-                # clean job text
+                # clean job text (เรียง id ล่าสุดก่อน ตาม ordering ของ CarLogbook)
                 cleaned_notes = []
-                for note, full_name, *jobs in notes:
+                for log in reversed(day_logs):
+                    jobs = [log['job1'], log['job2'], log['job3'], log['job4'], log['job5'], log['job6']]
                     job_text = ", ".join([j for j in jobs if j])  # filter None/empty
-                    cleaned_notes.append((note, full_name, job_text))
+                    cleaned_notes.append((log['note'], log['full_name'], job_text))
 
                 # แยกเป็น string สำหรับเขียน Excel
                 notes_text       = ", ".join([row[0] for row in cleaned_notes if row[0]])
@@ -9552,13 +9579,13 @@ def excelDailyCL(request):
 
                 # write mile_start and mile_end
                 if data_first:
-                    sheet.cell(row=idl+9, column=9, value=data_first.mile_start)
+                    sheet.cell(row=idl+9, column=9, value=data_first['mile_start'])
                 if data_last:
-                    sheet.cell(row=idl+9, column=10, value=data_last.mile_end)
+                    sheet.cell(row=idl+9, column=10, value=data_last['mile_end'])
 
                 # write distance
                 if data_first and data_last:
-                    distance = data_last.mile_end - data_first.mile_start
+                    distance = data_last['mile_end'] - data_first['mile_start']
                     total_distance += distance
                     sheet.cell(row=idl+9, column=11, value=distance)
             
@@ -9699,6 +9726,14 @@ def createCL(request):
     
     try:
         form = CarLogbookForm(request.POST or None, initial={'branch_company': company, 'name': request.user,})
+        #ให้ user เลือกบริษัทที่ไปทำงานได้ (default เป็นบริษัทที่สังกัด)
+        bc_field = form.fields['branch_company']
+        bc_field.required = True
+        bc_field.empty_label = None
+        bc_field.label = 'บริษัทที่ไปทำงาน'
+        bc_field.queryset = BaseBranchCompany.objects.exclude(code='ALL')
+        bc_field.label_from_instance = lambda obj: f"{obj.code} : {obj.name}" if obj.name else obj.code
+        bc_field.widget = forms.Select(choices=bc_field.choices, attrs={'class': 'form-control'})
         if form.is_valid():
             form = CarLogbookForm(request.POST or None, request.FILES)
             new_contact = form.save(commit=False)
@@ -9723,6 +9758,12 @@ def createCL(request):
 def editCLRoi(request, cl_id):
     active = request.session.get('company_code', 'ALL')
     cl = CarLogbook.objects.get(id=cl_id)
+    #แท็ป ALL ดูได้อย่างเดียว แก้ไขไม่ได้
+    read_only = active == 'ALL'
+
+    if request.method == 'POST' and read_only:
+        messages.error(request, "แท็ป ALL ดูได้อย่างเดียว ไม่สามารถแก้ไขบันทึกการใช้รถได้")
+        return redirect('viewCL')
 
     if request.method == 'POST':
         form = RoiCarLogbookForm(
@@ -9742,6 +9783,7 @@ def editCLRoi(request, cl_id):
         'cl_page': "tab-active",
         'cl_show': "show",
         'cl_data': cl,
+        'read_only': read_only,
         active: "active show",
         "disableTab": "disableTab",
         "colorNav": "disableNav"
@@ -9752,6 +9794,12 @@ def editCLRoi(request, cl_id):
 def editCL(request, cl_id):
     active = request.session.get('company_code', 'ALL')
     cl = CarLogbook.objects.get(id=cl_id)
+    #แท็ป ALL ดูได้อย่างเดียว แก้ไขไม่ได้
+    read_only = active == 'ALL'
+
+    if request.method == 'POST' and read_only:
+        messages.error(request, "แท็ป ALL ดูได้อย่างเดียว ไม่สามารถแก้ไขบันทึกการใช้รถได้")
+        return redirect('viewCL')
 
     if request.method == 'POST':
         form = CarLogbookForm(
@@ -9771,6 +9819,7 @@ def editCL(request, cl_id):
         'cl_page': "tab-active",
         'cl_show': "show",
         'cl_data': cl,
+        'read_only': read_only,
         active: "active show",
         "disableTab": "disableTab",
         "colorNav": "disableNav"
@@ -9919,7 +9968,7 @@ def viewMAApprove(request):
         approve_status='ขออนุมัติซ่อมบำรุง',
         branch_company__in=branch_companies,
         car__in=ucd
-    )
+    ).select_related('car', 'name', 'ma_type', 'branch_company')
 
     '''
     #กรองข้อมูล
@@ -9964,6 +10013,7 @@ def editMAApprove(request, ma_id, mode):
             obj.approve_status = 'อนุมัติซ่อมบำรุง'
             obj.approve_name_id = request.user.id
             obj.approve_update = datetime.datetime.now()
+            obj.approve_note = (request.POST.get('approve_note') or '').strip() or None
             obj.save()
             messages.success(request, "อนุมัติแจ้งซ่อม " + str(obj.ref_no) + " เรียบร้อยแล้ว")
         return redirect('viewMAApprove')
@@ -9993,8 +10043,9 @@ def searchJobByCarDep(request):
     if 'car' in request.GET:
         car = request.GET.get('car')
 
-        bc_dep = BaseCar.objects.get(id = car)
-        job = BaseJobCarDep.objects.filter(car_dep = bc_dep.car_dep).values('id', 'name')
+        #bc_dep = BaseCar.objects.get(id = car)
+        #job = BaseJobCarDep.objects.filter(car_dep = bc_dep.car_dep).values('id', 'name')
+        job = BaseJobCarDep.objects.filter(~Q(car_dep_id = 4)).values('id', 'name') #เปลี่ยนให้ค้นหาได้ทุกรายละเอียดงาน ยกเว้น รถร้อยเกาะ
         
     data = {
         'job_list': list(job),
@@ -10041,7 +10092,12 @@ def excelExpensesByCarLog(request):
 
 
     #data = CarLogbook.objects.filter(my_q)
-    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'), s_coolant = Sum('coolant'), s_DW_water = Sum('DW_water'))
+    #แยกตามรถ + บริษัท เพื่อให้แท็ป ALL แสดงชื่อบริษัทและดึงค่าอะไหล่จากบริษัทของแถวนั้นๆ
+    data = CarLogbook.objects.filter(my_q).values('car__id', 'car__code', 'car__name', 'branch_company__code', 'branch_company__name').annotate(s_oil = Sum('oil'), s_gas = Sum('gas'), s_engine = Sum('engine'), s_hydraulic = Sum('hydraulic'), s_grease = Sum('grease'), s_coolant = Sum('coolant'), s_DW_water = Sum('DW_water')).order_by('branch_company__code', 'car__code')
+    data = list(data)
+    row_comps = BaseBranchCompany.objects.select_related('affiliated').in_bulk(
+        {car['branch_company__code'] for car in data}, field_name='code'
+    )
 
     qs = CarLogbook.objects.filter(
         my_q,
@@ -10055,6 +10111,70 @@ def excelExpensesByCarLog(request):
     exd_ids = {exd for row in qs for exd in row if exd}
 
     exd_all = BaseExpenseDepartment.objects.filter(id__in=exd_ids).values('id', 'name')
+
+    #ชั่วโมงทำงาน: ดึงใบบันทึกครั้งเดียวแล้วรวมใน python (เดิม query ทุกรถ x ทุกหน่วยงาน ทำให้โหลดช้า)
+    dept_hours = defaultdict(timedelta)   #(บริษัท, รถ, หน่วยงาน) -> ชั่วโมงรวม
+    total_hours = defaultdict(timedelta)  #(บริษัท, รถ) -> ชั่วโมงรวมทุกหน่วยงาน
+    for log in CarLogbook.objects.filter(my_q).values(
+        'branch_company__code', 'car_id',
+        'exd_job1', 'exd_job2', 'exd_job3', 'exd_job4',
+        'diff_time_job1', 'diff_time_job2', 'diff_time_job3', 'diff_time_job4',
+    ):
+        key = (log['branch_company__code'], log['car_id'])
+        seen_dept = set()
+        for j in range(1, 5):
+            dept_id = log[f'exd_job{j}']
+            diff = log[f'diff_time_job{j}']
+            if dept_id is None:
+                continue
+            if diff is not None:
+                total_hours[key] += diff
+            #ใบเดียวที่มีหน่วยงานซ้ำหลายงาน นับเฉพาะงานแรกที่ตรง (เหมือน Case/When เดิม)
+            if dept_id not in seen_dept:
+                seen_dept.add(dept_id)
+                if diff is not None:
+                    dept_hours[key + (dept_id,)] += diff
+
+    #ค่าอะไหล่: ดึงเอกสารจาก pg_db ครั้งเดียวต่อบริษัท แทนการ query ทุกแถว
+    def car_remark(car):
+        return f"{car['car__name']}:{car['car__code']}"
+
+    parts_cost = {}  #(บริษัท, remark) -> ค่าอะไหล่รวม
+    remarks_by_comp = defaultdict(set)
+    for car in data:
+        remarks_by_comp[car['branch_company__code']].add(car_remark(car))
+    for comp_code, remarks in remarks_by_comp.items():
+        row_comp = row_comps.get(comp_code)
+        if not (row_comp and row_comp.invoice_code and row_comp.affiliated):
+            continue
+        docs_by_remark = defaultdict(set)
+        for docnum, remark in (
+            ExOESTNH.objects.using('pg_db')
+            .filter(
+                docnum__startswith=row_comp.invoice_code,
+                comcod=row_comp.affiliated.name,
+                docdat__range=(start_created, end_created),
+                remark__in=remarks,
+            )
+            .values_list('docnum', 'remark')
+        ):
+            docs_by_remark[remark].add(docnum)
+        all_docs = set().union(*docs_by_remark.values())
+        doc_sums = {}
+        if all_docs:
+            doc_sums = dict(
+                ExOESTND.objects.using('pg_db')
+                .filter(comcod=row_comp.affiliated.name, docnum__in=all_docs)
+                .values('docnum')
+                .annotate(sum_other=Sum(Case(
+                    When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
+                    output_field=models.DecimalField()
+                )))
+                .order_by()
+                .values_list('docnum', 'sum_other')
+            )
+        for remark, docs in docs_by_remark.items():
+            parts_cost[(comp_code, remark)] = sum((doc_sums.get(d) or Decimal(0) for d in docs), Decimal(0))
 
     workbook = openpyxl.Workbook()
     sheet = workbook.active
@@ -10073,127 +10193,58 @@ def excelExpensesByCarLog(request):
     )
 
     if data:
-        sheet.cell(row=1, column=1, value=f'สรุปค่าใช้จ่ายแต่ละหน่วยงาน ตามทะเบียนรถ {comp.affiliated.name_th}').font = Font(bold=True)
+        title_comp = comp.affiliated.name_th if comp.affiliated else comp.name
+        sheet.cell(row=1, column=1, value=f'สรุปค่าใช้จ่ายแต่ละหน่วยงาน ตามทะเบียนรถ {title_comp}').font = Font(bold=True)
         sheet.cell(row=2, column=1, value='วันที่ ' + str(startDate.strftime('%d/%m/%Y')) + " ถึง " + str(endDate.strftime('%d/%m/%Y')))
         sheet.cell(row=3, column=1, value='')
 
         row = []
-        row.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
+        row.extend(['ลำดับที่', 'บริษัท', 'รหัส', 'ทะเบียนรถ', 'ปริมาณที่ใช้', '', '', '', '', '', '', 'อะไหล่ + ค่าซ่อม'])
         row.extend(['จำนวนชั่วโมงทำงาน' for dept in exd_all])
         row.extend(['รวม'])
         sheet.append(row)
 
         row2 = []
-        row2.extend(['ลำดับที่', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'น้ำยาหม้อน้ำ', 'น้ำกลั่น', 'อะไหล่ + ค่าซ่อม'])
+        row2.extend(['ลำดับที่', 'บริษัท', 'รหัส', 'ทะเบียนรถ', 'น้ำมันโซล่า', 'น้ำเบนซิล', 'น้ำมันเครื่อง', 'น้ำมันไฮโดรลิค', 'จารบี', 'น้ำยาหม้อน้ำ', 'น้ำกลั่น', 'อะไหล่ + ค่าซ่อม'])
         row2.extend([dept['name'] for dept in exd_all])
         row2.extend(['รวม'])
         sheet.append(row2)
 
-        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=14 + len(exd_all))
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=15 + len(exd_all))
         sheet.cell(row=1, column=1).alignment = Alignment(horizontal='center')
-        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=14 + len(exd_all))
+        sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=15 + len(exd_all))
         sheet.cell(row=2, column=1).alignment = Alignment(horizontal='center')
         sheet.merge_cells(f'A4:A5')
         sheet.merge_cells(f'B4:B5')
         sheet.merge_cells(f'C4:C5')
-        sheet.merge_cells(f'D4:J4')
-        sheet.merge_cells(f'K4:K5')
+        sheet.merge_cells(f'D4:D5')
+        sheet.merge_cells(f'E4:K4')
+        sheet.merge_cells(f'L4:L5')
 
-        sheet.merge_cells(start_row=4, start_column=12, end_row=4, end_column=12 + len(exd_all))
+        sheet.merge_cells(start_row=4, start_column=13, end_row=4, end_column=13 + len(exd_all))
 
         for idx, car in enumerate(data, start=1):
+            key = (car['branch_company__code'], car['car__id'])
             row3 = []
-            row3.extend([idx, car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease'], car['s_coolant'], car['s_DW_water']])
-            
-            #ใบจ่ายสินค้าภายใน - จ่ายอะไหล่ 
-            l_iv = list(
-                ExOESTNH.objects.using('pg_db')
-                .filter(
-                    docnum__startswith=comp.invoice_code,
-                    comcod=comp.affiliated.name,
-                    docdat__range=(start_created, end_created),
-                    remark = f"{car['car__name']}:{car['car__code']}"
-                )
-                .values_list('docnum', flat=True)
-            )
-            sum_trnval = ExOESTND.objects.using('pg_db').filter(
-                comcod=comp.affiliated.name,
-                docnum__in=l_iv
-            ).aggregate(
-                sum_other=Sum(Case(
-                    When(Q(stktyp ='อะไหล่') | Q(stktyp ='พัสดุ'), then='trnval'),
-                    output_field=models.DecimalField()
-                ))
-            )['sum_other'] or Decimal(0) 
+            row3.extend([idx, car['branch_company__name'], car['car__code'], car['car__name'], car['s_oil'], car['s_gas'], car['s_engine'], car['s_hydraulic'], car['s_grease'], car['s_coolant'], car['s_DW_water']])
+
+            #ใบจ่ายสินค้าภายใน - จ่ายอะไหล่ (ใช้บริษัทของแถวนั้น เพราะแท็ป ALL มีหลายบริษัท)
+            sum_trnval = parts_cost.get((car['branch_company__code'], car_remark(car)), Decimal(0))
             row3.extend([sum_trnval])
 
             for dept in exd_all:
-                total = (
-                    CarLogbook.objects.filter(
-                        my_q,
-                        Q(exd_job1=dept['id']) | Q(exd_job2=dept['id']) | Q(exd_job3=dept['id']) | Q(exd_job4=dept['id']),
-                        car=car['car__id'],
-                    )
-                    .aggregate(
-                        total_diff=Sum(
-                            Case(
-                                When(exd_job1=dept['id'], then=F('diff_time_job1')),
-                                When(exd_job2=dept['id'], then=F('diff_time_job2')),
-                                When(exd_job3=dept['id'], then=F('diff_time_job3')),
-                                When(exd_job4=dept['id'], then=F('diff_time_job4')),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                    )['total_diff'] or None
-                )
+                row3.append(format_duration(dept_hours.get(key + (dept['id'],)) or None))
 
-                row3.append(format_duration(total))
-            
-
-            total_diff = (
-                CarLogbook.objects
-                .filter(my_q, car=car['car__id'])
-                .aggregate(
-                    total=(
-                        Sum(
-                            Case(
-                                When(exd_job1__isnull=False, then=Coalesce(F('diff_time_job1'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                        + Sum(
-                            Case(
-                                When(exd_job2__isnull=False, then=Coalesce(F('diff_time_job2'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                        + Sum(
-                            Case(
-                                When(exd_job3__isnull=False, then=Coalesce(F('diff_time_job3'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                        + Sum(
-                            Case(
-                                When(exd_job4__isnull=False, then=Coalesce(F('diff_time_job4'), Value(0))),
-                                default=Value(0),
-                                output_field=models.DurationField(),
-                            )
-                        )
-                    )
-                )['total'] or None 
-            )
-            row3.append(format_duration(total_diff))    
+            row3.append(format_duration(total_hours.get(key) or None))
             sheet.append(row3)
 
-        col_index = 13 + len(exd_all)
+        col_index = 14 + len(exd_all)
         row_index = 4 + len(data)
         for col in range(1, col_index):  # columns 1 to 11 (A to K)
             col_letter = get_column_letter(col)
-            if col > 10:
+            if col == 2:
+                sheet.column_dimensions[col_letter].width = 25
+            elif col > 11:
                 sheet.column_dimensions[col_letter].width = 20
             else:
                 sheet.column_dimensions[col_letter].width = 10
@@ -10248,7 +10299,9 @@ def searchPmRound(request):
 @login_required(login_url='signIn')
 def viewCLReport(request):
     active = request.session.get('company_code', 'ALL')
-    data = CarLogbook.objects.filter(branch_company__code = active)
+    company_in = findCompanyIn(request)
+    #แท็ป ALL จะดึงใบบันทึกการใช้รถของทุกบริษัทที่ user มีสิทธิ์มองเห็น
+    data = CarLogbook.objects.filter(branch_company__code__in = company_in).select_related('branch_company', 'car', 'name')
 
     #กรองข้อมูล
     myFilter = CarLogbookFilter(request.GET, queryset = data)
@@ -10262,6 +10315,7 @@ def viewCLReport(request):
     context = {
         'cls':dataPage,
         'filter':myFilter,
+        'is_all_comp': active == 'ALL',
         'rp_cl_page': "tab-active",
         'rp_cl_show': "show",
         active :"active show",
@@ -10315,83 +10369,34 @@ def exportExcelSummaryByDistributorFrequently(request):
     )
 
     # ---------------- FILTER ----------------
-    item_product_id_from = request.GET.get('item_product_id_from') or None
-    item_product_id_to = request.GET.get('item_product_id_to') or None
-    item_product_name = request.GET.get('item_product_name') or None
-    item_machine = request.GET.get('item_machine') or None
-    item_rq_note = request.GET.get('item_rq_note') or None
-    distri_id = request.GET.get('distri_id') or None
-    distributor = request.GET.get('distributor') or None
-    stockman_user = request.GET.get('stockman_user') or None
-    start_created = request.GET.get('start_created') or None
-    end_created = request.GET.get('end_created') or None
-    unit_price_min = request.GET.get('unit_price_min') or None
-    unit_price_max = request.GET.get('unit_price_max') or None
-    category = request.GET.get('category') or None
-
-    my_q = Q()
-
-    # ใช้ purchaseorderitem__ (เพราะไม่มี related_name)
-    if item_product_id_from:
-        my_q &= Q(purchaseorderitem__item__product_id__gte=item_product_id_from)
-
-    if item_product_id_to:
-        my_q &= Q(purchaseorderitem__item__product_id__lte=item_product_id_to)
-
-    if item_product_name:
-        my_q &= Q(purchaseorderitem__item__product_name__icontains=item_product_name)
-
-    if stockman_user:
-        my_q &= Q(stockman_user=stockman_user)
-
-    if category:
-        my_q &= Q(purchaseorderitem__item__product__category=category)
-
-    if distri_id:
-        my_q &= Q(distributor__id__startswith=distri_id)
-
-    if distributor:
-        my_q &= Q(distributor__name__startswith=distributor)
-
-    if start_created:
-        my_q &= Q(created__gte=start_created)
-
-    if end_created:
-        my_q &= Q(created__lte=end_created)
-
-    if unit_price_min:
-        my_q &= Q(purchaseorderitem__unit_price__gte=unit_price_min)
-
-    if unit_price_max:
-        my_q &= Q(purchaseorderitem__unit_price__lte=unit_price_max)
-
-    if item_machine:
-        my_q &= Q(purchaseorderitem__item__machine__icontains=item_machine)
-
-    if item_rq_note:
-        my_q &= Q(purchaseorderitem__item__requisit__note__icontains=item_rq_note)
-
-    # status
-    my_q &= Q(approver_status=2, is_cancel=False)
+    my_q = Q(po__approver_status = 2, po__is_cancel = False)
 
     # permission
     if not (is_view_report_all(request.user) and active == 'ALL'):
-        my_q &= Q(branch_company__code__in=company_in)
+        my_q &= Q(po__branch_company__code__in=company_in)
 
     # ---------------- BASE QUERY ----------------
-    # ใช้ id__in เพื่อตัด join กับ purchaseorderitem (เช่นตอนกรอง category)
-    # ออกจาก queryset ที่ใช้ Sum ป้องกันค่าถูกคูณซ้ำตามจำนวนรายการสินค้า
-    po_ids = PurchaseOrder.objects.filter(my_q).values_list('id', flat=True).distinct()
+    # กรองด้วย filter ชุดเดียวกับหน้ารายงาน เพื่อให้ Excel ตรงกับผลที่กรองบนหน้าเว็บทุก field แล้วเอาเฉพาะ PO ที่มีรายการสินค้าตรงเงื่อนไข
+    # ใช้ id__in เพื่อตัด join กับ purchaseorderitem ออกจาก queryset ที่ใช้ Sum ป้องกันค่าถูกคูณซ้ำตามจำนวนรายการสินค้า
+    po_ids = PurchaseOrderItemFilter(request.GET, queryset = PurchaseOrderItem.objects.filter(my_q)).qs.values_list('po_id', flat=True).distinct()
     base_qs = PurchaseOrder.objects.filter(id__in=po_ids)
 
-    # ---------------- SUBQUERY (ITEM) ----------------
-    item_sub = PurchaseOrderItem.objects.filter(
-        po__distributor=OuterRef('distributor')
-    ).values(
-        'po__distributor'
-    ).annotate(
-        total_discount=Sum('discount')
-    ).values('total_discount')
+    # ---------------- DISCOUNT ----------------
+    # discount เป็นข้อความ (บาท หรือ %) ใช้ Sum ใน database ไม่ได้ เพราะจะแปลง "10%" เป็น 10 บาท
+    # จึงคำนวณเป็นบาทใน python แบบเดียวกับ calculateUnitDiscount() / calculateDiscount() ในหน้า PO
+    # ส่วนลดสินค้า: % คิดจาก quantity x unit_price ของรายการนั้น (เฉพาะ PO ที่ผ่าน filter)
+    item_discount_rows = defaultdict(list)
+    for distributor_id, raw, quantity, unit_price in PurchaseOrderItem.objects.filter(po_id__in=po_ids).values_list(
+        'po__distributor_id', 'discount', 'quantity', 'unit_price'
+    ):
+        item_discount_rows[distributor_id].append((raw, quantity, unit_price))
+    item_discount_map = {k: _sum_item_discounts(v) for k, v in item_discount_rows.items()}
+
+    # ส่วนลดท้ายบิล: % คิดจาก total_price ของ PO
+    po_discount_rows = defaultdict(list)
+    for distributor_id, raw, total_price in base_qs.values_list('distributor_id', 'discount', 'total_price'):
+        po_discount_rows[distributor_id].append((raw, 1, total_price))
+    po_discount_map = {k: _sum_item_discounts(v) for k, v in po_discount_rows.items()}
 
     # ---------------- MAIN QUERY ----------------
     rows = base_qs.values(
@@ -10399,34 +10404,23 @@ def exportExcelSummaryByDistributorFrequently(request):
         'distributor__name',
     ).annotate(
         s_total_price=Coalesce(Sum('total_price'), Value(0), output_field=models.DecimalField()),
-        s_discount=Coalesce(Sum('discount'), Value(0), output_field=models.DecimalField()),
         s_total_after_discount=Coalesce(Sum('total_after_discount'), Value(0), output_field=models.DecimalField()),
         s_freight=Coalesce(Sum('freight'), Value(0), output_field=models.DecimalField()),
         s_vat=Coalesce(Sum('vat'), Value(0), output_field=models.DecimalField()),
         s_amount=Coalesce(Sum('amount'), Value(0), output_field=models.DecimalField()),
-
-        s__product_discount=Coalesce(
-            Subquery(item_sub[:1]),
-            Value(0),
-            output_field=models.DecimalField()
-        ),
         count=Count('id', distinct=True)
     ).order_by('-count')
 
     # ---------------- TOTAL SUMMARY ----------------
     total_data = base_qs.aggregate(
         sum_total_price=Sum('total_price'),
-        sum_discount=Sum('discount'),
         sum_total_after_discount=Sum('total_after_discount'),
         sum_freight=Sum('freight'),
         sum_vat=Sum('vat'),
         sum_amount=Sum('amount'),
     )
-
-    # item total (ไม่ให้ join พัง)
-    total_item_discount = PurchaseOrderItem.objects.filter(
-        po__in=base_qs
-    ).aggregate(sum_discount=Sum('discount'))['sum_discount'] or 0
+    total_data['sum_discount'] = sum(po_discount_map.values(), Decimal('0'))
+    total_item_discount = sum(item_discount_map.values(), Decimal('0'))
 
     # ---------------- WRITE DATA ----------------
     for row in rows:
@@ -10434,9 +10428,9 @@ def exportExcelSummaryByDistributorFrequently(request):
 
         ws.write(row_num, 0, row['distributor__id'] or '', font_normal)
         ws.write(row_num, 1, row['distributor__name'] or '', font_normal)
-        ws.write(row_num, 2, row['s__product_discount'], decimal_style)
+        ws.write(row_num, 2, item_discount_map.get(row['distributor__id'], Decimal('0')), decimal_style)
         ws.write(row_num, 3, row['s_total_price'], decimal_style)
-        ws.write(row_num, 4, row['s_discount'], decimal_style)
+        ws.write(row_num, 4, po_discount_map.get(row['distributor__id'], Decimal('0')), decimal_style)
         ws.write(row_num, 5, row['s_total_after_discount'], decimal_style)
         ws.write(row_num, 6, row['s_freight'], decimal_style)
         ws.write(row_num, 7, row['s_vat'], decimal_style)
@@ -11530,7 +11524,56 @@ def getapiExpRepairAll(request, start_date, end_date):
             })
 
     return Response(result)
-	
+
+
+###############################################################################
+########## ดึงใบแจ้งซ่อมทั้งหมด สำหรับคำนวณ MTBF / MTTR ใน dashboard ############
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiMaintenanceAll(request, start_date, end_date):
+
+    rows = (
+        Maintenance.objects
+        .filter(
+            is_cancel=False,
+            car__isnull=False,
+            created__date__range=(start_date, end_date),
+        )
+        .values(
+            'id',
+            'created',
+            'chief_update',
+            'mile',
+            'ma_type',
+            'car_state',
+            'is_complete',
+            'car_id',
+            'car__car_dep',
+            'branch_company',
+        )
+        .order_by('car_id', 'created')
+    )
+
+    result = []
+    for r in rows:
+        result.append({
+            "id": r['id'],
+            # วันเวลาที่แจ้งซ่อม = เวลาที่รถเสีย
+            "created": r['created'].isoformat() if r['created'] else None,
+            # วันเวลาที่หัวหน้าช่างปิดงาน = เวลาที่ซ่อมเสร็จ
+            "chief_update": r['chief_update'].isoformat() if r['chief_update'] else None,
+            "mile": r['mile'],
+            "ma_type": r['ma_type'],
+            "car_state": r['car_state'],
+            "is_complete": r['is_complete'],
+            "car_id": r['car_id'],
+            "car_dep": r['car__car_dep'],
+            "branch_company": r['branch_company'],
+        })
+
+    return Response(result)
+
 
 def query_exp_car_type(start_date, end_date, b_com):
     sql = f"""

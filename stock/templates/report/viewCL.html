@@ -84,6 +84,7 @@
       <table class="table table-striped my-3">
         <thead class="thead-dark">
           <tr>
+            {% if is_all_comp %}<th scope="col">บริษัท</th>{% endif %}
             <th scope="col">รหัสใบใช้รถ</th>
             <th scope="col">วันที่</th>
             <th scope="col">ชื่อผู้ใช้</th>
@@ -99,6 +100,7 @@
         <tbody>
         {% for cl in cls %}
           <tr>
+            {% if is_all_comp %}<td>{{cl.branch_company.code}}</td>{% endif %}
             <th scope="row"><a href="">{{cl.ref_no}}</a></th>
             <td>{{cl.created |date:"d/m/Y" }}</td>
             <td>{{cl.name}}</td>
