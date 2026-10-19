@@ -39,14 +39,14 @@
     <h1>ใบขอเพิ่ม Supplier รายใหม่ เข้า ASL</h1>
 
     <table class="info">
-      <tr><td class="label">ชื่อบริษัท/ร้านค้า</td><td colspan="3">{{candidate.name}}</td></tr>
+      <tr><td class="label">ชื่อบริษัท/ร้านค้า</td><td colspan="3">{% if candidate.prefix %}{{candidate.prefix.name}} {% endif %}{{candidate.name}}</td></tr>
       <tr><td class="label">ที่อยู่</td><td colspan="3">{{candidate.address|default:""}}</td></tr>
       <tr>
         <td class="label">สาขา</td><td>{{candidate.branch|default:""}}</td>
         <td class="label">ชื่อผู้ติดต่อ</td><td>{{candidate.contact|default:""}}</td>
       </tr>
       <tr>
-        <td class="label">โทรสาร / LINE ID</td><td>{{candidate.fax_line|default:""}}</td>
+        <td class="label">โทรสาร / LINE ID</td><td>{{candidate.fax|default:""}}{% if candidate.fax and candidate.other_contact %} / {% endif %}{{candidate.other_contact|default:""|linebreaksbr}}</td>
         <td class="label">โทรศัพท์</td><td>{{candidate.tel|default:""}}</td>
       </tr>
       <tr>
@@ -54,8 +54,8 @@
         <td class="label">EMAIL</td><td>{{candidate.email|default:""}}</td>
       </tr>
       <tr>
-        <td class="label">ประเภทธุรกิจ/สินค้า/บริการที่จะใช้</td><td>{{candidate.business_type|default:""}}</td>
-        <td class="label">เครดิต</td><td>{% if candidate.credit_days is not None %}{{candidate.credit_days}}{% endif %} วัน</td>
+        <td class="label">ประเภทธุรกิจ/สินค้า/บริการที่จะใช้</td><td>{{candidate.business_type|default:candidate.shop_type|default:""}}</td>
+        <td class="label">เครดิต</td><td>{{candidate.credit.name|default:""}}</td>
       </tr>
     </table>
 

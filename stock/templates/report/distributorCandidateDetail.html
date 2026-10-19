@@ -34,7 +34,7 @@
   <div class="card div-shadow my-3">
     <div class="card-body">
       <div class="d-flex flex-wrap justify-content-between">
-        <h5 class="mb-2">{{candidate.name}}</h5>
+        <h5 class="mb-2">{% if candidate.prefix %}{{candidate.prefix.name}} {% endif %}{{candidate.name}}</h5>
         <span>
           <span class="badge {% if candidate.status == 'approved' %}badge-success{% elif candidate.status == 'rejected' %}badge-secondary{% elif candidate.status == 'submitted' %}badge-warning{% else %}badge-info{% endif %}">{{candidate.get_status_display}}</span>
           <small class="text-muted">{% if candidate.place_source == "manual" %}ร้านที่กรอกเอง{% else %}{{candidate.get_place_source_display}} · {{candidate.place_id}}{% endif %}</small>
@@ -44,12 +44,13 @@
         <div class="col-md-12 mb-1">ที่อยู่: {{candidate.address|default:"-"}}</div>
         <div class="col-md-6 mb-1">สาขา: {{candidate.branch|default:"-"}}</div>
         <div class="col-md-6 mb-1">ชื่อผู้ติดต่อ: {{candidate.contact|default:"-"}}</div>
-        <div class="col-md-6 mb-1">โทรสาร / LINE ID: {{candidate.fax_line|default:"-"}}</div>
+        <div class="col-md-6 mb-1">โทรสาร: {{candidate.fax|default:"-"}}</div>
+        <div class="col-md-6 mb-1">ช่องทางติดต่ออื่นๆ: {{candidate.other_contact|default:"-"|linebreaksbr}}</div>
         <div class="col-md-6 mb-1">โทรศัพท์: {{candidate.tel|default:"-"}}</div>
         <div class="col-md-6 mb-1">เลขประจำตัวผู้เสียภาษี: {{candidate.tax_id|default:"-"}}</div>
         <div class="col-md-6 mb-1">EMAIL: {{candidate.email|default:"-"}}</div>
-        <div class="col-md-6 mb-1">ประเภทธุรกิจ/สินค้า/บริการ: {{candidate.business_type|default:"-"}}</div>
-        <div class="col-md-6 mb-1">เครดิต: {% if candidate.credit_days is not None %}{{candidate.credit_days}} วัน{% else %}-{% endif %}</div>
+        <div class="col-md-6 mb-1">ประเภทธุรกิจ/สินค้า/บริการ: {{candidate.business_type|default:candidate.shop_type|default:"-"}}</div>
+        <div class="col-md-6 mb-1">เครดิต: {{candidate.credit.name|default:"-"}}</div>
         <div class="col-md-6 mb-1">ชนิดผู้จัดจำหน่าย: {{candidate.type.name|default:"-"}}</div>
         <div class="col-md-6 mb-1">ประเภทผู้จัดจำหน่าย: {{candidate.genre.name|default:"-"}}</div>
         {% if candidate.latitude is not None and candidate.longitude is not None %}
