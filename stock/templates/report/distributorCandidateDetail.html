@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block css %}
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
 <style>
   .rule-child { padding-left: 2rem !important; }
   .ans-col { width: 90px; text-align: center; }
@@ -125,7 +124,6 @@
         <div class="col-md-6">
           <form method="post" action="{% url 'approveDistributorCandidate' candidate.pk %}" class="border rounded p-2 mb-2">
             {% csrf_token %}
-            <input type="hidden" name="mode" value="new">
             <strong>ผ่าน: บันทึกในทะเบียนรายชื่อผู้ขาย (สร้างใหม่)</strong>
             <div class="form-group mb-1 mt-1">
               <label class="small mb-0" for="new-distributor-id">รหัส Supplier (รหัส Express) <span class="text-danger">*</span></label>
@@ -138,16 +136,6 @@
               </select>
             </div>
             <button type="submit" class="btn btn-sm btn-success" {% if not evaluation.mandatory_passed or evaluation.missing %}disabled{% endif %}>อนุมัติ + สร้างใหม่</button>
-          </form>
-          <form method="post" action="{% url 'approveDistributorCandidate' candidate.pk %}" class="border rounded p-2 mb-2">
-            {% csrf_token %}
-            <input type="hidden" name="mode" value="link">
-            <strong>ผ่าน: ผูกกับผู้จัดจำหน่ายที่มีอยู่แล้ว</strong>
-            <div class="form-group mb-1 mt-1">
-              <label class="small mb-0" for="link-distributor-id">ค้นหารหัสหรือชื่อ <span class="text-danger">*</span></label>
-              <input type="text" id="link-distributor-id" name="distributor_id" class="form-control form-control-sm distributor-autocomplete" required>
-            </div>
-            <button type="submit" class="btn btn-sm btn-primary" {% if not evaluation.mandatory_passed or evaluation.missing %}disabled{% endif %}>อนุมัติ + ผูกรายเดิม</button>
           </form>
         </div>
         <div class="col-md-6">
@@ -168,15 +156,3 @@
   {% endif %}
 </div>
 {% endblock %}
-
-{% block javascript %}
-<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
-<script>
-  $(function () {
-    $('.distributor-autocomplete').autocomplete({
-      source: '{% url "autocompalteDistributor" %}',
-      minLength: 1,
-    });
-  });
-</script>
-{% endblock javascript %}

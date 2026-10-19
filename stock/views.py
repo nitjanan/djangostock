@@ -13229,27 +13229,17 @@ def distributorCandidatePrint(request, pk):
     })
 
 
-def _distributor_id_from_autocomplete(value):
-    """autocompalteDistributor คืนค่าเป็น "รหัส-ชื่อ" และรหัสเองก็อาจมี "-" -> เลือกส่วนหน้ายาวสุดที่เป็นรหัสจริง"""
-    prefixes = [value] + [value[:i].strip() for i in range(len(value) - 1, 0, -1) if value[i] == "-"]
-    existing = set(Distributor.objects.filter(id__in=prefixes).values_list("id", flat=True))
-    return next((p for p in prefixes if p in existing), value)
-
-
 @login_required(login_url='signIn')
 @require_http_methods(["POST"])
 def approveDistributorCandidate(request, pk):
-    """อนุมัติ: mode=new สร้าง Distributor ด้วยรหัส Express ที่กรอก / mode=link ผูกกับ Distributor ที่มีอยู่แล้ว"""
+    """อนุมัติ: สร้าง Distributor ใหม่ด้วยรหัส Express ที่กรอก + ข้อมูลจากใบขอเพิ่ม"""
     from django.db import transaction, IntegrityError
     if not is_approve_distributor(request.user):
         messages.error(request, "คุณไม่มีสิทธิ์อนุมัติผู้จัดจำหน่าย (ต้องอยู่ในกลุ่ม ApproveDistributor)")
         return redirect("distributorApproveDetail", pk)
 
-    mode = request.POST.get("mode")
     distributor_id = (request.POST.get("distributor_id") or "").strip()
-    if mode == "link":
-        distributor_id = _distributor_id_from_autocomplete(distributor_id)
-    if mode not in ("new", "link") or not distributor_id:
+    if not distributor_id:
         messages.error(request, "กรุณากรอกรหัส Supplier")
         return redirect("distributorApproveDetail", pk)
 
@@ -13271,36 +13261,29 @@ def approveDistributorCandidate(request, pk):
                 messages.error(request, f"ร้านนี้ผูกกับผู้จัดจำหน่าย {taken.id} อยู่แล้ว")
                 return redirect("distributorApproveDetail", pk)
 
-            if mode == "new":
-                if Distributor.objects.filter(id=distributor_id).exists():
-                    messages.error(request, f"รหัส {distributor_id} มีอยู่แล้ว ถ้าเป็นร้านเดียวกันให้เลือก \"ผูกกับรายเดิม\"")
-                    return redirect("distributorApproveDetail", pk)
-                # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL (โมเดลเขียน null=True) ต้องใส่ทุกครั้ง
-                vat_type = BaseVatType.objects.filter(pk=request.POST.get("vat_type")).first()
-                if vat_type is None:
-                    messages.error(request, "กรุณาเลือกชนิดภาษี")
-                    return redirect("distributorApproveDetail", pk)
-                distributor = Distributor(
-                    id=distributor_id,
-                    name=candidate.name,
-                    address=candidate.address,
-                    tel=candidate.tel,
-                    contact=candidate.contact,
-                    fax=candidate.fax_line,
-                    tex=candidate.tax_id,
-                    vat_type=vat_type,
-                    type=candidate.type,
-                    genre=candidate.genre,
-                )
-            else:
-                distributor = Distributor.objects.select_for_update().filter(id=distributor_id).first()
-                if distributor is None:
-                    messages.error(request, f"ไม่พบผู้จัดจำหน่ายรหัส {distributor_id}")
-                    return redirect("distributorApproveDetail", pk)
-                if distributor.place_id:
-                    messages.error(request, f"ผู้จัดจำหน่าย {distributor.id} ผูกกับร้านบนแผนที่อื่นอยู่แล้ว")
-                    return redirect("distributorApproveDetail", pk)
-
+            if Distributor.objects.filter(id=distributor_id).exists():
+                messages.error(request, f"รหัส {distributor_id} มีอยู่แล้ว กรุณาใช้รหัสอื่น")
+                return redirect("distributorApproveDetail", pk)
+            # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL (โมเดลเขียน null=True) ต้องใส่ทุกครั้ง
+            vat_type = BaseVatType.objects.filter(pk=request.POST.get("vat_type")).first()
+            if vat_type is None:
+                messages.error(request, "กรุณาเลือกชนิดภาษี")
+                return redirect("distributorApproveDetail", pk)
+            distributor = Distributor(
+                id=distributor_id,
+                prefix=candidate.prefix,
+                name=candidate.name,
+                credit=candidate.credit,
+                address=candidate.address,
+                tel=candidate.tel,
+                contact=candidate.contact,
+                fax=candidate.fax,
+                other_contact=candidate.other_contact,
+                tex=candidate.tax_id,
+                vat_type=vat_type,
+                type=candidate.type,
+                genre=candidate.genre,
+            )
             distributor.place_source = candidate.place_source
             distributor.place_id = candidate.place_id
             distributor.latitude = candidate.latitude
@@ -13320,8 +13303,7 @@ def approveDistributorCandidate(request, pk):
         messages.error(request, f"บันทึกไม่สำเร็จ: {e}")
         return redirect("distributorApproveDetail", pk)
 
-    action = "เพิ่ม" if mode == "new" else "ผูก"
-    messages.success(request, f"อนุมัติแล้ว: {action}ร้าน {candidate.name} เป็น Supplier รหัส {distributor.id}")
+    messages.success(request, f"อนุมัติแล้ว: เพิ่มร้าน {candidate.name} เป็น Supplier รหัส {distributor.id}")
     return redirect("distributorApproveList")
 
 
