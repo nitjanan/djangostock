@@ -12587,9 +12587,44 @@ REGION_PRESETS = [
 ]
 
 
+DISTRIBUTOR_TAB = 'Distributor'                   # แท็บการใช้งานใน UserProfile: เห็นเมนูผู้จัดจำหน่าย (ยกเว้นหน้าอนุมัติ)
+APPROVE_DISTRIBUTOR_GROUP = 'ApproveDistributor'  # กลุ่มผู้ใช้: เห็นครบ + อนุมัติ
+
+
+def is_approve_distributor(user):
+    return user.groups.filter(name=APPROVE_DISTRIBUTOR_GROUP).exists()
+
+
+def can_use_distributor_menu(user):
+    """เมนู "ผู้จัดจำหน่าย": ติ๊กแท็บ Distributor ใน UserProfile หรืออยู่กลุ่ม ApproveDistributor (กำหนดในหน้า admin)"""
+    if not user.is_authenticated:
+        return False
+    return is_approve_distributor(user) or BaseVisible.objects.filter(userprofile__user=user, name=DISTRIBUTOR_TAB).exists()
+
+
+def _deny_distributor_menu(request):
+    request = getattr(request, "_request", request)  # venderReport เป็น DRF view
+    messages.error(request, f"คุณไม่มีสิทธิ์เข้าหน้านี้ (ต้องเปิดแท็บการใช้งาน {DISTRIBUTOR_TAB} หรืออยู่กลุ่ม {APPROVE_DISTRIBUTOR_GROUP})")
+    return redirect("home")
+
+
+def _distributor_member_only(view):
+    """หน้าในเมนู "ผู้จัดจำหน่าย" (ยกเว้นหน้าอนุมัติ ซึ่งใช้ _approver_only)"""
+    from functools import wraps
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not can_use_distributor_menu(request.user):
+            return _deny_distributor_menu(request)
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def venderReport(request, pages=None):
+    if not can_use_distributor_menu(request.user):
+        return _deny_distributor_menu(request)
     # ใหม่ -> เก่า: ร้านที่ import จาก Express มีวันที่สร้างเดียวกันหมด (16/02/2024) จึงเรียงต่อด้วยรหัส
     vender = Distributor.objects.select_related('type', 'genre').order_by('-created', '-id')
 
@@ -12627,6 +12662,7 @@ def _vendor_menu(active):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def externalVendorReport(request):
     """หน้าค้นหาผู้จัดจำหน่ายอื่นๆ จากแผนที่ (TomTom / OpenStreetMap) + เสนอเพิ่มเป็น Supplier"""
     ext = _external_vendor_data(request)
@@ -12664,6 +12700,7 @@ def externalVendorReport(request):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def distributorCandidateList(request):
     """หน้าใบขอเพิ่ม Supplier ทั้งหมด (อ่านจาก DB) แยกแท็บตามสถานะ"""
     context = _candidate_section(request)
@@ -12872,9 +12909,6 @@ def _annotate_system_status(external_vendors, source):
         ev["system_status_label"] = SYSTEM_STATUS_LABELS[ev["system_status"]]
 
 
-def is_approve_distributor(user):
-    return user.groups.filter(name='ApproveDistributor').exists()
-
 
 def _redirect_back(request, fallback="viewExternalVendorReport"):
     """กลับไปหน้าเดิม (พร้อมตัวกรองเดิม) ถ้า next เป็น URL ภายในเว็บเรา"""
@@ -12894,6 +12928,7 @@ def _parse_coordinate(value, limit):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 @require_http_methods(["POST"])
 def proposeDistributorCandidate(request):
     """ผู้ใช้กด "เสนอเพิ่ม" จากตารางผู้จัดจำหน่ายอื่นๆ -> สร้างใบขอเพิ่ม (ร่าง) จากข้อมูลแผนที่ แล้วไปหน้ากรอกฟอร์ม"""
@@ -12948,6 +12983,7 @@ def _reopen_candidate(candidate, user):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 @require_http_methods(["POST"])
 def distributorCandidateReopen(request, pk):
     """ปุ่ม "เสนอใหม่" ในแท็บไม่อนุมัติของหน้า /report/vendor/candidate/ (ไม่ต้องไปหาร้านในแผนที่)"""
@@ -12971,6 +13007,7 @@ def _can_edit_candidate(user, candidate):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 @require_http_methods(["POST"])
 def distributorCandidateCheck(request, pk=None):
     """ปุ่ม "ตรวจเกณฑ์" ในหน้ากรอกฟอร์ม: ตรวจคำตอบที่เลือกอยู่บนหน้าจอ โดยไม่บันทึก (pk=None = ร้านที่กรอกเอง ยังไม่บันทึก)"""
@@ -12990,6 +13027,7 @@ def distributorCandidateCheck(request, pk=None):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def distributorCandidateForm(request, pk):
     """ผู้คัดเลือกกรอกใบขอเพิ่ม Supplier: ส่วนหัว + ผ่าน/ไม่ผ่าน ทีละหลักเกณฑ์ -> บันทึกร่าง / ส่งฟอร์ม"""
     candidate = get_object_or_404(DistributorCandidate, pk=pk)
@@ -13011,6 +13049,7 @@ def distributorCandidateForm(request, pk):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def distributorCandidateNew(request):
     """เพิ่มร้านเอง (ไม่เจอในแผนที่): ฟอร์มเดียวกับใบที่เสนอจากแผนที่ บันทึกลง DB ตอนกดบันทึกร่าง / ส่งฟอร์ม เท่านั้น"""
     candidate = DistributorCandidate(
@@ -13157,7 +13196,7 @@ def _approver_only(view):
     def wrapper(request, *args, **kwargs):
         if not is_approve_distributor(request.user):
             messages.error(request, "หน้านี้สำหรับผู้อนุมัติผู้จัดจำหน่าย (กลุ่ม ApproveDistributor) เท่านั้น")
-            return redirect("distributorCandidateList")
+            return redirect("distributorCandidateList" if can_use_distributor_menu(request.user) else "home")
         return view(request, *args, **kwargs)
     return wrapper
 
@@ -13197,6 +13236,7 @@ def _candidate_detail_context(request, pk):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def distributorCandidateDetail(request, pk):
     """หน้าผู้ขอ: ดูใบขอเพิ่ม Supplier และสถานะ (อ่านอย่างเดียว)"""
     context = _candidate_detail_context(request, pk)
@@ -13218,6 +13258,7 @@ def distributorApproveDetail(request, pk):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def distributorCandidatePrint(request, pk):
     """หน้าพิมพ์ใบ FM-PU-005 ขนาด A4 (กดพิมพ์ -> บันทึกเป็น PDF)"""
     candidate = get_object_or_404(
@@ -13520,6 +13561,7 @@ def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def exportExcelVendor(request):
     """export ตารางผู้จัดจำหน่ายในระบบ ทุกแถวตามตัวกรองปัจจุบัน (ไม่ตัดหน้า)"""
     from stock.filters import DistributorFilter
@@ -13556,6 +13598,7 @@ def exportExcelVendor(request):
 
 
 @login_required(login_url='signIn')
+@_distributor_member_only
 def exportExcelExternalVendor(request):
     """export ตารางผู้จัดจำหน่ายอื่นๆ ทุกแถวตามตัวกรองปัจจุบัน (ไม่ตัดหน้า)"""
     ext = _external_vendor_data(request)
