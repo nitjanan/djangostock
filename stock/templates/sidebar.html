@@ -196,6 +196,7 @@
                 </li>
             </ul>
         </li>
+        {% if can_vendor_menu %}
         <li class="">
             <a href="{% if request.user.is_authenticated %}#vendorSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if vd_show %}true{% else %}false{% endif %}" class="dropdown-toggle">
                 <i class="fas fa-store"></i>
@@ -225,6 +226,7 @@
                 {% endif %}
             </ul>
         </li>
+        {% endif %}
         <li class="">
             <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page or rp_all_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                 <i class="fas fa-file-pdf"></i> Report
