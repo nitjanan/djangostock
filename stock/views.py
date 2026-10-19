@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType, BaseDistributorType, BaseDistributorGenre, PLACE_SOURCE_MANUAL
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType, BaseDistributorType, BaseDistributorGenre, PLACE_SOURCE_MANUAL, BasePrefix, BaseCredit
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -12832,7 +12832,7 @@ CANDIDATE_SYSTEM_STATUS = {
 }
 
 # ส่วนหัวของใบ FM-PU-005 ที่ผู้คัดเลือกกรอกได้
-CANDIDATE_HEADER_FIELDS = ("name", "address", "branch", "contact", "tel", "fax_line", "tax_id", "email", "business_type")
+CANDIDATE_HEADER_FIELDS = ("name", "address", "branch", "contact", "tel", "fax", "other_contact", "tax_id", "email")
 
 
 def external_place_id(ev, source):
@@ -13043,12 +13043,9 @@ def _apply_candidate_header(request, candidate):
     for field in CANDIDATE_HEADER_FIELDS:
         value = (request.POST.get(field) or "").strip()
         setattr(candidate, field, value or (candidate.name if field == "name" else None))
-    try:
-        credit_days = int(request.POST.get("credit_days") or "")
-        candidate.credit_days = credit_days if credit_days >= 0 else None
-    except ValueError:
-        candidate.credit_days = None
-    # dropdown ชนิด / ประเภท (รหัสของ Express) ค่าที่ไม่มีในตารางถือว่าไม่เลือก
+    # dropdown คำนำหน้า / เครดิต / ชนิด / ประเภท (รหัสของ Express) ค่าที่ไม่มีในตารางถือว่าไม่เลือก
+    candidate.prefix = BasePrefix.objects.filter(pk=request.POST.get("prefix") or None).first()
+    candidate.credit = BaseCredit.objects.filter(pk=request.POST.get("credit") or None).first()
     candidate.type = BaseDistributorType.objects.filter(pk=request.POST.get("type") or None).first()
     candidate.genre = BaseDistributorGenre.objects.filter(pk=request.POST.get("genre") or None).first()
 
@@ -13106,10 +13103,20 @@ def _render_candidate_form(request, candidate, evaluation):
         "candidate": candidate,
         "evaluation": evaluation,
         "ans_choices": DistributorForm.ANS_CHOICES,
+        "prefix_options": BasePrefix.objects.order_by("id"),
+        "credit_options": _credit_options(),
         "type_options": BaseDistributorType.objects.order_by("id"),
         "genre_options": BaseDistributorGenre.objects.order_by("id"),
         **_vendor_menu("cand"),
     })
+
+
+def _credit_options():
+    """BaseCredit เรียงตามจำนวนวัน ("0 วัน", "7 วัน", ...) ค่าที่ไม่ใช่ตัวเลข เช่น "เข้าลิสซิ่ง" อยู่ท้าย"""
+    def days(credit):
+        m = re.match(r"\s*(\d+)", credit.name or "")
+        return (0, int(m.group(1))) if m else (1, credit.name or "")
+    return sorted(BaseCredit.objects.all(), key=days)
 
 
 # คำนำหน้า/ต่อท้ายนิติบุคคล + เครื่องหมาย ที่ตัดออกก่อนเทียบชื่อร้าน

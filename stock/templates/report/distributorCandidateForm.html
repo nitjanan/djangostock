@@ -36,7 +36,16 @@
       <div class="card-body">
         <h5>ข้อมูลผู้ขาย</h5>
         <div class="form-row">
-          <div class="form-group col-md-12">
+          <div class="form-group col-md-3">
+            <label for="f-prefix">คำนำหน้า</label>
+            <select class="form-control" id="f-prefix" name="prefix">
+              <option value="">— ไม่ระบุ —</option>
+              {% for p in prefix_options %}
+                <option value="{{p.pk}}" {% if candidate.prefix_id == p.pk %}selected{% endif %}>{{p.name}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-9">
             <label for="f-name">ชื่อบริษัท/ร้านค้า <span class="text-danger">*</span></label>
             <input type="text" class="form-control" id="f-name" name="name" value="{{candidate.name}}" maxlength="255" required>
           </div>
@@ -53,12 +62,17 @@
             <input type="text" class="form-control" id="f-contact" name="contact" value="{{candidate.contact|default:''}}" maxlength="255">
           </div>
           <div class="form-group col-md-6">
-            <label for="f-fax">โทรสาร / LINE ID</label>
-            <input type="text" class="form-control" id="f-fax" name="fax_line" value="{{candidate.fax_line|default:''}}" maxlength="255">
-          </div>
-          <div class="form-group col-md-6">
             <label for="f-tel">โทรศัพท์</label>
             <input type="text" class="form-control" id="f-tel" name="tel" value="{{candidate.tel|default:''}}" maxlength="255">
+          </div>
+          <div class="form-group col-md-6">
+            <label for="f-fax">โทรสาร</label>
+            <input type="text" class="form-control" id="f-fax" name="fax" value="{{candidate.fax|default:''}}" maxlength="255">
+          </div>
+          <div class="form-group col-md-12">
+            <label for="f-other-contact">ช่องทางติดต่ออื่นๆ <small class="text-muted">(LINE / Facebook / เว็บไซต์ ฯลฯ บรรทัดละช่องทาง)</small></label>
+            <textarea class="form-control" id="f-other-contact" name="other_contact" rows="2"
+                      placeholder="LINE: @shop&#10;Facebook: ร้านไทยวัสดุ">{{candidate.other_contact|default:''}}</textarea>
           </div>
           <div class="form-group col-md-6">
             <label for="f-tax">เลขประจำตัวผู้เสียภาษี</label>
@@ -68,15 +82,16 @@
             <label for="f-email">EMAIL</label>
             <input type="text" class="form-control" id="f-email" name="email" value="{{candidate.email|default:''}}" maxlength="255">
           </div>
-          <div class="form-group col-md-8">
-            <label for="f-business">ประเภทธุรกิจ/สินค้า/บริการที่จะใช้</label>
-            <input type="text" class="form-control" id="f-business" name="business_type" value="{{candidate.business_type|default:''}}" maxlength="255" placeholder="{{candidate.shop_type|default:''}}">
+          <div class="form-group col-md-4">
+            <label for="f-credit">เครดิต</label>
+            <select class="form-control" id="f-credit" name="credit">
+              <option value="">— ไม่ระบุ —</option>
+              {% for c in credit_options %}
+                <option value="{{c.pk}}" {% if candidate.credit_id == c.pk %}selected{% endif %}>{{c.name}}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="form-group col-md-4">
-            <label for="f-credit">เครดิต (วัน)</label>
-            <input type="number" min="0" step="1" class="form-control" id="f-credit" name="credit_days" value="{{candidate.credit_days|default_if_none:''}}">
-          </div>
-          <div class="form-group col-md-6">
             <label for="f-type">ชนิดผู้จัดจำหน่าย</label>
             <select class="form-control" id="f-type" name="type">
               <option value="">— ไม่ระบุ —</option>
@@ -85,7 +100,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-group col-md-6">
+          <div class="form-group col-md-4">
             <label for="f-genre">ประเภทผู้จัดจำหน่าย</label>
             <select class="form-control" id="f-genre" name="genre">
               <option value="">— ไม่ระบุ —</option>
