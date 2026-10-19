@@ -13494,6 +13494,10 @@ def _vendor_excel_response(title, headers, rows, filename, footer_lines=(), link
 
     for row in rows:
         ws.append(row)
+        # ข้อมูลจากผู้ใช้ที่ขึ้นต้นด้วย "=" openpyxl จะบันทึกเป็นสูตร (เปิดไฟล์แล้วสูตรทำงาน) -> เก็บเป็นข้อความ
+        for cell in ws[ws.max_row]:
+            if cell.data_type == "f":
+                cell.data_type = "s"
         if link_column is not None:
             cell = ws.cell(row=ws.max_row, column=link_column + 1)
             if cell.value:
