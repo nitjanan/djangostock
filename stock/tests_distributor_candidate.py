@@ -68,7 +68,7 @@ class DistributorCandidateTestCase(TestCase):
         """ตอบผ่านทุกข้อ ยกเว้นที่ระบุใน answers / ข้ามข้อใน skip"""
         # หน้าฟอร์มส่งค่าส่วนหัวที่กรอกไว้แล้วกลับมาทุกช่อง
         data = {"action": action}
-        for field in ("name", "address", "branch", "contact", "tel", "fax_line", "tax_id", "email", "business_type"):
+        for field in ("name", "address", "branch", "contact", "tel", "fax", "other_contact", "tax_id", "email"):
             data[field] = getattr(candidate, field) or ""
         data.update(header)
         answers = answers or {}
@@ -186,10 +186,10 @@ class DistributorCandidateTestCase(TestCase):
     def test_save_draft_stores_header_and_answers(self):
         self.propose()
         c = DistributorCandidate.objects.get()
-        self.fill_form(c, answers={"3": "fail"}, contact="คุณสมชาย", tax_id="0105555000000", credit_days="30")
+        self.fill_form(c, answers={"3": "fail"}, contact="คุณสมชาย", tax_id="0105555000000", fax="02-111-2222", other_contact="LINE: @shop\nFacebook: ร้านทดสอบ")
         c.refresh_from_db()
         self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
-        self.assertEqual((c.contact, c.tax_id, c.credit_days), ("คุณสมชาย", "0105555000000", 30))
+        self.assertEqual((c.contact, c.tax_id, c.fax, c.other_contact), ("คุณสมชาย", "0105555000000", "02-111-2222", "LINE: @shop\nFacebook: ร้านทดสอบ"))
         self.assertEqual(c.answers.count(), len(LEAF_CODES))
         self.assertEqual(c.answers.get(question=self.rules["3"]).ans, "fail")
 
@@ -281,12 +281,13 @@ class DistributorCandidateTestCase(TestCase):
     # ----- อนุมัติ -----
 
     def test_approve_new_copies_form_into_distributor(self):
-        c = self.submitted_candidate(contact="คุณสมชาย", fax_line="@line", tax_id="0105555000000")
+        c = self.submitted_candidate(contact="คุณสมชาย", fax="02-111-2222", other_contact="LINE: @shop", tax_id="0105555000000")
         self.approve(c, mode="new", distributor_id="V900")
 
         d = Distributor.objects.get(id="V900")
         self.assertEqual((d.name, d.address, d.tel), (OSM_SHOP["name"], OSM_SHOP["address"], OSM_SHOP["phone"]))
-        self.assertEqual((d.contact, d.fax, d.tex), ("คุณสมชาย", "@line", "0105555000000"))
+        self.assertEqual((d.contact, d.fax, d.tex), ("คุณสมชาย", "02-111-2222", "0105555000000"))
+        self.assertEqual(d.other_contact, "LINE: @shop")
         self.assertEqual((d.place_source, d.place_id), ("osm", "node/555"))
         self.assertEqual((d.latitude, d.longitude), (Decimal("13.756331"), Decimal("100.501765")))
         c.refresh_from_db()
@@ -358,14 +359,19 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
         self.assertIsNone(Distributor.objects.get(id="V900").place_id)
 
-    def test_approve_link_accepts_autocomplete_value_with_dash_in_id(self):
+    def test_link_mode_removed_existing_id_is_not_linked(self):
+        # หน้าอนุมัติไม่มีโหมด "ผูกกับผู้จัดจำหน่ายที่มีอยู่แล้ว" แล้ว: ส่ง mode=link มาก็ทำเหมือนสร้างใหม่ (รหัสซ้ำ -> ไม่ผ่าน)
         Distributor.objects.create(id="D-01", name="เจริญการช่าง")
         c = self.submitted_candidate()
-        self.approve(c, mode="link", distributor_id="D-01-เจริญการช่าง")
-        d = Distributor.objects.get(id="D-01")
-        self.assertEqual(d.place_id, "node/555")
-        self.assertEqual(d.name, "เจริญการช่าง")  # ผูกรายเดิม ไม่ทับข้อมูลเดิม
-        self.assertEqual(Distributor.objects.count(), 1)
+        self.approve(c, mode="link", distributor_id="D-01")
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.assertIsNone(Distributor.objects.get(id="D-01").place_id)
+        self.login(self.approver)
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertNotContains(response, "ผูกกับผู้จัดจำหน่ายที่มีอยู่แล้ว")
+        self.assertNotContains(response, "ผูกรายเดิม")
+        self.assertContains(response, "อนุมัติ + สร้างใหม่")
 
     def test_user_outside_group_cannot_approve_or_reject(self):
         c = self.submitted_candidate()
@@ -712,3 +718,79 @@ class DistributorCandidateTestCase(TestCase):
         self.login(self.user)
         for name in ('distributorCandidateList', 'viewExternalVendorReport'):
             self.assertContains(self.client.get(reverse(name)), reverse('distributorCandidateNew'))
+
+    # ----- คำนำหน้า / เครดิต (ตาราง BasePrefix / BaseCredit ของ Express) -----
+
+    def test_prefix_and_credit_dropdowns_saved_shown_and_copied_on_approve(self):
+        from stock.models import BaseCredit, BasePrefix
+        hjk = BasePrefix.objects.create(id="01", name="หจก.")
+        BasePrefix.objects.create(id="03", name="บจก.")
+        c30 = BaseCredit.objects.create(id=3, name="30 วัน")
+        BaseCredit.objects.create(id=14, name="เข้าลิสซิ่ง")
+        BaseCredit.objects.create(id=15, name="7 วัน")
+
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(response, 'name="prefix"')
+        # เรียงตามจำนวนวัน ค่าที่ไม่ใช่ตัวเลขอยู่ท้าย
+        self.assertEqual([x.name for x in response.context["credit_options"]], ["7 วัน", "30 วัน", "เข้าลิสซิ่ง"])
+
+        self.fill_form(c, action="submit", prefix=hjk.pk, credit=c30.pk)
+        c.refresh_from_db()
+        self.assertEqual((c.prefix, c.credit), (hjk, c30))
+        for name in ('distributorCandidateDetail', 'distributorCandidatePrint'):
+            response = self.client.get(reverse(name, args=[c.pk]))
+            self.assertContains(response, f"หจก. {OSM_SHOP['name']}")
+            self.assertContains(response, "30 วัน")
+
+        self.approve(c, mode="new", distributor_id="V901")
+        d = Distributor.objects.get(id="V901")
+        self.assertEqual((d.prefix, d.credit), (hjk, c30))
+
+    def test_unknown_prefix_or_credit_is_ignored(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.fill_form(c, prefix="zz", credit="999")
+        c.refresh_from_db()
+        self.assertEqual((c.prefix, c.credit), (None, None))
+
+    def test_other_contact_shown_and_exported(self):
+        import io as _io
+        import openpyxl
+        c = self.submitted_candidate(other_contact="LINE: @shop\nFacebook: ร้านทดสอบ")
+        for name in ('distributorCandidateDetail', 'distributorCandidatePrint'):
+            self.assertContains(self.client.get(reverse(name, args=[c.pk])), "LINE: @shop<br>Facebook: ร้านทดสอบ")
+
+        self.approve(c, mode="new", distributor_id="V902")
+        self.login(self.user)
+        ws = openpyxl.load_workbook(_io.BytesIO(self.client.get(reverse('exportExcelVendor')).content)).active
+        header = [cell.value for cell in ws[1]]
+        row = {h: cell.value for h, cell in zip(header, ws[2])}
+        self.assertEqual(header.index("ช่องทางติดต่ออื่นๆ"), header.index("แฟกซ์") + 1)
+        self.assertEqual(row["ช่องทางติดต่ออื่นๆ"], "LINE: @shop\nFacebook: ร้านทดสอบ")
+
+    def test_business_type_not_in_form_and_kept_when_saving(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        DistributorCandidate.objects.filter(pk=c.pk).update(business_type="ค่าเดิม")
+        self.login(self.user)
+        self.assertNotContains(self.client.get(reverse('distributorCandidateForm', args=[c.pk])), 'name="business_type"')
+        self.fill_form(c, contact="คุณสมชาย")
+        c.refresh_from_db()
+        self.assertEqual((c.contact, c.business_type), ("คุณสมชาย", "ค่าเดิม"))
+
+    def test_vendor_excel_export_keeps_formula_like_values_as_text(self):
+        import io as _io
+        import openpyxl
+        Distributor.objects.create(id="V778", name="=HYPERLINK(\"http://x\",\"x\")", other_contact="=1+1")
+        self.login(self.user)
+        ws = openpyxl.load_workbook(_io.BytesIO(self.client.get(reverse('exportExcelVendor')).content)).active
+        header = [cell.value for cell in ws[1]]
+        row = next(r for r in ws.iter_rows(min_row=2) if r[0].value == "V778")
+        for column in ("ชื่อผู้จัดจำหน่าย", "ช่องทางติดต่ออื่นๆ"):
+            cell = row[header.index(column)]
+            self.assertEqual(cell.data_type, "s", column)
+        self.assertEqual(row[header.index("ช่องทางติดต่ออื่นๆ")].value, "=1+1")
+
