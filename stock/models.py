@@ -1148,6 +1148,7 @@ class Distributor(models.Model):
     affiliated = models.ForeignKey(BaseAffiliatedCompany, on_delete=models.CASCADE, blank = True, null = True, verbose_name="สังกัดบริษัท")
     tex = models.CharField(max_length=255, blank = True, null = True, verbose_name="เลขประจำตัวผู้เสียภาษี")#เลขประจำตัวผู้เสียภาษี
     fax =  models.CharField(max_length=255, blank = True, null = True, verbose_name="แฟกส์")
+    other_contact = models.TextField(blank=True, null=True, verbose_name="ช่องทางติดต่ออื่นๆ")
     registration_pdf = ContentTypeRestrictedFileField(upload_to='pdfs/registration/distributor/%Y/%m/%d', content_types=['application/msword', 'text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/pdf', 'image/gif','image/vnd.microsoft.icon','image/jpeg','image/png','application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.rar','text/plain','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','application/x-7z-compressed','application/x-zip-compressed'], max_upload_size=5242880 ,blank=True, null=True, verbose_name="หนังสือรับรองบริษัท")
     created = models.DateField(default = timezone.now, verbose_name="วันที่สร้าง") #เก็บวันที่สร้าง
     # ร้านจากแผนที่ (หน้ารายงานผู้จัดจำหน่าย) ที่ผ่านการอนุมัติแล้ว ใช้เช็กว่าร้านนั้นมีในระบบหรือยัง
@@ -1227,17 +1228,19 @@ class DistributorCandidate(models.Model):
 
     place_source = models.CharField(max_length=20, choices=PLACE_SOURCE_CHOICES, verbose_name="แหล่งข้อมูลแผนที่")
     place_id = models.CharField(max_length=255, verbose_name="รหัสร้านบนแผนที่")
+    # คำนำหน้า / ชื่อ / เครดิต / ชนิด / ประเภท ใช้ตารางเดียวกับ Distributor (รหัสของ Express) คัดลอกไปตอนอนุมัติ
+    prefix = models.ForeignKey(BasePrefix, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="คำนำหน้า")
     name = models.CharField(max_length=255, verbose_name="ชื่อบริษัท/ร้านค้า")
     address = models.TextField(blank=True, null=True, verbose_name="ที่อยู่")
     branch = models.CharField(max_length=255, blank=True, null=True, verbose_name="สาขา")
     contact = models.CharField(max_length=255, blank=True, null=True, verbose_name="ชื่อผู้ติดต่อ")
     tel = models.CharField(max_length=255, blank=True, null=True, verbose_name="โทรศัพท์")
-    fax_line = models.CharField(max_length=255, blank=True, null=True, verbose_name="โทรสาร / LINE ID")
+    fax = models.CharField(max_length=255, blank=True, null=True, verbose_name="โทรสาร")
+    other_contact = models.TextField(blank=True, null=True, verbose_name="ช่องทางติดต่ออื่นๆ")  # LINE / Facebook / เว็บไซต์ ฯลฯ
     tax_id = models.CharField(max_length=255, blank=True, null=True, verbose_name="เลขประจำตัวผู้เสียภาษี")
     email = models.CharField(max_length=255, blank=True, null=True, verbose_name="EMAIL")
     business_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทธุรกิจ/สินค้า/บริการที่จะใช้")
-    credit_days = models.PositiveIntegerField(blank=True, null=True, verbose_name="เครดิต (วัน)")
-    # ชนิด / ประเภท ตามรหัสของ Express คัดลอกไป Distributor ตอนอนุมัติ
+    credit = models.ForeignKey(BaseCredit, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="เครดิต")
     type = models.ForeignKey(BaseDistributorType, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ชนิดผู้จัดจำหน่าย")
     genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ประเภทผู้จัดจำหน่าย")
     shop_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทร้าน (จากแผนที่)")
