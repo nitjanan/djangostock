@@ -231,7 +231,7 @@ class DistributorAdmin(ImportExportModelAdmin):
     autocomplete_fields = ['prefix','genre']
 
     resource_class = DistributorResource
-    list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax')
+    list_display = ('id', 'prefix', 'name', 'type', 'genre', 'credit', 'vat_type', 'discount', 'credit_limit', 'account_number', 'address', 'tel', 'payment', 'contact', 'affiliated', 'tex', 'fax', 'other_contact')
     search_fields = ('id', 'name','affiliated__name')
 
 class DistributorFormInline(admin.TabularInline):
