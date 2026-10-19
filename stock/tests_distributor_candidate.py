@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from stock.models import (
-    BaseBranchCompany, BaseVatType, Distributor, DistributorCandidate, DistributorForm, DistributorRule,
+    BaseBranchCompany, BaseVatType, BaseVisible, Distributor, DistributorCandidate, DistributorForm, DistributorRule,
     DistributorRuleGroup, UserProfile,
 )
 from stock.views import _annotate_system_status
@@ -34,10 +34,15 @@ class DistributorCandidateTestCase(TestCase):
         self.user = User.objects.create_user(username='requester', password='password')
         self.other = User.objects.create_user(username='other', password='password')
         self.approver = User.objects.create_user(username='approver', password='password')
+        self.outsider = User.objects.create_user(username='outsider', password='password')
         self.approver.groups.add(self.approver_group)
         branch = BaseBranchCompany.objects.create(id="1", code="HO", name="Head Office")
-        for u in (self.user, self.other, self.approver):
+        for u in (self.user, self.other, self.approver, self.outsider):
             UserProfile.objects.create(user=u).branch_company.add(branch)
+        # เมนู "ผู้จัดจำหน่าย": ผู้คัดเลือกเปิดแท็บ Distributor ใน UserProfile / ผู้อนุมัติเห็นครบจากกลุ่ม ApproveDistributor
+        self.distributor_tab = BaseVisible.objects.get(name='Distributor')
+        for u in (self.user, self.other):
+            u.userprofile.visible.add(self.distributor_tab)
         self.rules = {r.code: r for r in DistributorRule.objects.all()}
         self.no_vat = BaseVatType.objects.create(id="0", name="ไม่มี vat")
         self.vat = BaseVatType.objects.create(id="1", name="รวม vat")
@@ -794,3 +799,48 @@ class DistributorCandidateTestCase(TestCase):
             self.assertEqual(cell.data_type, "s", column)
         self.assertEqual(row[header.index("ช่องทางติดต่ออื่นๆ")].value, "=1+1")
 
+    # ----- สิทธิ์เมนู "ผู้จัดจำหน่าย" ตามกลุ่มผู้ใช้ -----
+
+    VENDOR_PAGES = ('viewVendorReport', 'viewExternalVendorReport', 'distributorCandidateList', 'distributorCandidateNew', 'exportExcelVendor')
+
+    def test_distributor_tab_created_by_migration(self):
+        self.assertTrue(BaseVisible.objects.filter(name='Distributor').exists())
+        self.assertFalse(Group.objects.filter(name='Distributor').exists())
+
+    def test_outsider_has_no_vendor_menu_and_pages_redirect_home(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.outsider)
+        response = self.client.get(reverse('home'))
+        self.assertFalse(response.context["can_vendor_menu"])
+        self.assertNotContains(response, 'id="vendorSubmenu"')
+        for name in self.VENDOR_PAGES:
+            self.assertRedirects(self.client.get(reverse(name)), reverse('home'), fetch_redirect_response=False, msg_prefix=name)
+        for name in ('distributorCandidateDetail', 'distributorCandidateForm', 'distributorCandidatePrint', 'distributorApproveDetail'):
+            self.assertRedirects(self.client.get(reverse(name, args=[c.pk])), reverse('home'), fetch_redirect_response=False, msg_prefix=name)
+        self.assertRedirects(self.client.get(reverse('distributorApproveList')), reverse('home'), fetch_redirect_response=False)
+        # เสนอเพิ่ม / กรอกเอง ผ่าน POST ก็ไม่ได้
+        before = DistributorCandidate.objects.count()
+        self.client.post(reverse('distributorCandidateNew'), {"action": "save", "name": "ร้านแอบเพิ่ม"})
+        self.client.post(reverse('proposeDistributorCandidate'), {"place_source": "osm", "place_id": "node/9", "name": "x"})
+        self.assertEqual(DistributorCandidate.objects.count(), before)
+
+    def test_distributor_group_sees_vendor_menu_without_approve(self):
+        self.login(self.user)
+        response = self.client.get(reverse('home'))
+        self.assertTrue(response.context["can_vendor_menu"])
+        for name in ('viewVendorReport', 'viewExternalVendorReport', 'distributorCandidateList'):
+            self.assertContains(response, f'href="{reverse(name)}"')
+        self.assertNotContains(response, f'href="{reverse("distributorApproveList")}"')
+        for name in self.VENDOR_PAGES:
+            self.assertEqual(self.client.get(reverse(name)).status_code, 200, name)
+        self.assertRedirects(self.client.get(reverse('distributorApproveList')), reverse('distributorCandidateList'), fetch_redirect_response=False)
+
+    def test_approve_group_alone_sees_everything(self):
+        self.assertFalse(self.approver.userprofile.visible.filter(name='Distributor').exists())
+        self.login(self.approver)
+        response = self.client.get(reverse('home'))
+        for name in ('viewVendorReport', 'viewExternalVendorReport', 'distributorCandidateList', 'distributorApproveList'):
+            self.assertContains(response, f'href="{reverse(name)}"')
+        for name in self.VENDOR_PAGES + ('distributorApproveList',):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 200, name)

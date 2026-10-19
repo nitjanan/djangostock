@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from stock.models import (
-    BaseBranchCompany, DistributorCandidate, DistributorForm, DistributorRule, DistributorRuleGroup, UserProfile,
+    BaseBranchCompany, BaseVisible, DistributorCandidate, DistributorForm, DistributorRule, DistributorRuleGroup, UserProfile,
 )
 
 
@@ -17,6 +17,8 @@ class DistributorRulePageTestCase(TestCase):
         self.user = User.objects.create_user(username="user", password="pw")
         for u in (self.approver, self.user):
             UserProfile.objects.create(user=u).branch_company.add(branch)
+        # ผู้ใช้ทั่วไปของเมนูผู้จัดจำหน่าย (เปิดแท็บ Distributor แต่ไม่ใช่ผู้อนุมัติ)
+        self.user.userprofile.visible.add(BaseVisible.objects.get(name="Distributor"))
         self.login(self.approver)
 
     def login(self, user):
