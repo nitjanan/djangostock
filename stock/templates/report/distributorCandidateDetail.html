@@ -130,7 +130,7 @@
               <input type="text" id="new-distributor-id" name="distributor_id" class="form-control form-control-sm" maxlength="255" value="{{suggested_distributor_id|default:''}}" required>
               <small class="text-muted d-block">
                 รูปแบบ XX Y ZZZ: XX = รหัสชนิดผู้จัดจำหน่าย, Y = ตัวอักษรตัวแรกของชื่อร้าน, ZZZ = เลขรันต่อ
-                {% if suggested_distributor_id %}(ระบบตั้งให้แล้ว แก้ได้){% else %}— ตั้งให้อัตโนมัติไม่ได้ เพราะใบขอไม่มีชนิดผู้จัดจำหน่าย หรือชื่อร้านไม่ขึ้นต้นด้วยตัวอักษรไทย{% endif %}
+                {% if suggested_distributor_id %}(ระบบตั้งให้แล้ว แก้ได้{% if not candidate.type_id %} · ใบนี้ไม่ได้เลือกชนิดผู้จัดจำหน่าย ใช้ 01{% endif %}){% else %}— ตั้งให้อัตโนมัติไม่ได้ เพราะชื่อร้านไม่ขึ้นต้นด้วยตัวอักษรไทย{% endif %}
               </small>
             </div>
             <div class="form-group mb-1">

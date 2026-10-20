@@ -13302,12 +13302,13 @@ def distributorApproveDetail(request, pk):
 
 
 # รหัส Supplier (รหัส Express) = XX Y ZZZ
-#   XX  = id ของชนิดผู้จัดจำหน่าย (BaseDistributorType) 2 หลัก
+#   XX  = id ของชนิดผู้จัดจำหน่าย (BaseDistributorType) 2 หลัก / ใบที่ไม่ได้เลือกชนิด ใช้ 01 (ทั่วไป)
 #   Y   = พยัญชนะไทยตัวแรกของชื่อร้าน (ข้ามคำนำหน้า และสระหน้า เ แ โ ใ ไ)
 #   ZZZ = เลขรันต่อจากเลขมากสุดของ XX+Y เดียวกัน 3 หลัก
 # คำนำหน้าบุคคล (นาย / นาง / คุณ) ไม่ตัด ตามรหัสเดิม เช่น "นาย วีรยุทร" = 01น009
 _SUPPLIER_COMPANY_PREFIXES = ("ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนสามัญ", "บริษัท", "บจก.", "บจก", "หจก.", "หจก", "หสน.", "ร้าน")
 _THAI_LEADING_VOWELS = "เแโใไ"
+DEFAULT_SUPPLIER_TYPE_ID = "01"
 
 
 def supplier_code_letter(name):
@@ -13324,8 +13325,8 @@ def supplier_code_letter(name):
 
 
 def suggest_distributor_id(type_id, name):
-    """รหัส Supplier ถัดไปตามรูปแบบ XX Y ZZZ / None = สร้างไม่ได้ (ไม่มีชนิด หรือชื่อไม่ขึ้นต้นด้วยตัวอักษรไทย)"""
-    xx = str(type_id or "")
+    """รหัส Supplier ถัดไปตามรูปแบบ XX Y ZZZ / None = สร้างไม่ได้ (ชื่อไม่ขึ้นต้นด้วยตัวอักษรไทย)"""
+    xx = str(type_id or DEFAULT_SUPPLIER_TYPE_ID)
     y = supplier_code_letter(name)
     if not re.fullmatch(r"\d{2}", xx) or not y:
         return None
