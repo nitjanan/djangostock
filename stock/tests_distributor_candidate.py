@@ -916,3 +916,49 @@ class DistributorCandidateTestCase(TestCase):
         response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
         self.assertIsNone(response.context["suggested_distributor_id"])
         self.assertContains(response, "ตั้งให้อัตโนมัติไม่ได้")
+
+    # ----- ชื่อบริษัท + สาขา -----
+
+    def test_name_with_branch_rules(self):
+        from stock.views import name_with_branch
+        self.assertEqual(name_with_branch("หจก. ร้านกรอกเอง", ""), "หจก. ร้านกรอกเอง")
+        self.assertEqual(name_with_branch("  ", "2"), "")  # ชื่อว่าง ต้องยังว่าง ไม่งั้นผ่านเช็คช่องบังคับ
+        self.assertEqual(name_with_branch("หจก. ร้านกรอกเอง", " 2 "), "หจก. ร้านกรอกเอง (สาขา 2)")
+        # บันทึกซ้ำไม่ต่อซ้อน / เปลี่ยนสาขา / ลบสาขา
+        self.assertEqual(name_with_branch("หจก. ร้านกรอกเอง (สาขา 2)", "2"), "หจก. ร้านกรอกเอง (สาขา 2)")
+        self.assertEqual(name_with_branch("หจก. ร้านกรอกเอง (สาขา 2)", "00003"), "หจก. ร้านกรอกเอง (สาขา 00003)")
+        self.assertEqual(name_with_branch("หจก. ร้านกรอกเอง (สาขา 2)", ""), "หจก. ร้านกรอกเอง")
+        # กรอกคำว่า "สาขา" มาเอง / สำนักงานใหญ่
+        self.assertEqual(name_with_branch("ร้าน ก", "สาขาบางนา"), "ร้าน ก (สาขาบางนา)")
+        self.assertEqual(name_with_branch("ร้าน ก", "สำนักงานใหญ่"), "ร้าน ก (สำนักงานใหญ่)")
+        self.assertEqual(name_with_branch("ร้าน ก (สำนักงานใหญ่)", "2"), "ร้าน ก (สาขา 2)")
+        # วงเล็บอื่นในชื่อร้านไม่แตะ
+        self.assertEqual(name_with_branch("บริษัท เอ (ประเทศไทย) จำกัด", "2"), "บริษัท เอ (ประเทศไทย) จำกัด (สาขา 2)")
+        # ยาวเกินช่อง -> ตัดชื่อ แต่สาขายังอยู่ครบ
+        long_name = name_with_branch("ก" * 255, "2")
+        self.assertEqual(len(long_name), 255)
+        self.assertTrue(long_name.endswith(" (สาขา 2)"))
+
+    def test_manual_form_appends_branch_to_name(self):
+        response = self.manual_post(name="  ", branch="2")
+        self.assertContains(response, "กรุณากรอกชื่อบริษัท/ร้านค้า")
+        self.assertFalse(DistributorCandidate.objects.exists())
+
+        self.manual_post(branch="2")
+        c = DistributorCandidate.objects.get()
+        self.assertEqual((c.name, c.branch), ("หจก. ร้านกรอกเอง (สาขา 2)", "2"))
+        # เปิดฟอร์มเดิมแล้วบันทึกซ้ำ ชื่อไม่ต่อซ้อน / เปลี่ยนสาขาแล้วชื่อเปลี่ยนตาม
+        self.fill_form(c)
+        c.refresh_from_db()
+        self.assertEqual(c.name, "หจก. ร้านกรอกเอง (สาขา 2)")
+        self.fill_form(c, branch="5")
+        c.refresh_from_db()
+        self.assertEqual(c.name, "หจก. ร้านกรอกเอง (สาขา 5)")
+        self.fill_form(c, branch="")
+        c.refresh_from_db()
+        self.assertEqual(c.name, "หจก. ร้านกรอกเอง")
+
+    def test_form_page_has_name_preview(self):
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateNew'))
+        self.assertContains(response, 'id="f-name-preview"')
