@@ -844,3 +844,54 @@ class DistributorCandidateTestCase(TestCase):
             self.assertContains(response, f'href="{reverse(name)}"')
         for name in self.VENDOR_PAGES + ('distributorApproveList',):
             self.assertEqual(self.client.get(reverse(name)).status_code, 200, name)
+
+    # ----- รหัส Supplier อัตโนมัติ (XX Y ZZZ) -----
+
+    def test_supplier_code_letter_rules(self):
+        from stock.views import supplier_code_letter
+        cases = {
+            "กิจเจริญ": "ก",
+            "เกื้อเจริญเครื่องครัว": "ก",    # ข้ามสระหน้า
+            "โก้จุ้ย": "ก",
+            "ร้านไพศาลเมืองไฟฟ้า": "พ",      # ข้ามคำนำหน้าร้าน
+            "บริษัท ศรีสุทธา จำกัด": "ศ",
+            "ห้างหุ้นส่วนจำกัด แหลมทองฮาร์ดแวร์": "ห",
+            "หจก. ติยะฮาร์ดแวร์": "ต",
+            "นาย\xa0วีรยุทร": "น",            # คำนำหน้าบุคคลไม่ตัด (ตามรหัสเดิม)
+            "ABC Shop": None,
+            "": None,
+        }
+        for name, letter in cases.items():
+            self.assertEqual(supplier_code_letter(name), letter, name)
+
+    def test_suggest_distributor_id_runs_per_type_and_letter(self):
+        from stock.models import BaseDistributorType
+        from stock.views import suggest_distributor_id
+        BaseDistributorType.objects.create(id="01", name="ทั่วไป")
+        for code in ("01ก001", "01ก002", "01ข007", "03ก010", "01ก0001", "01ก"):
+            Distributor.objects.create(id=code, name="x")
+        self.assertEqual(suggest_distributor_id("01", "กิจเจริญ"), "01ก003")
+        self.assertEqual(suggest_distributor_id("01", "ขวัญใจ"), "01ข008")
+        self.assertEqual(suggest_distributor_id("03", "เก่งการค้า"), "03ก011")
+        self.assertEqual(suggest_distributor_id("02", "จันทร์"), "02จ001")
+        self.assertIsNone(suggest_distributor_id(None, "กิจเจริญ"))
+        self.assertIsNone(suggest_distributor_id("01", "ABC"))
+        # เลข 999 ถูกใช้ไปแล้ว -> ใช้เลขว่างตัวแรก
+        Distributor.objects.create(id="01ข999", name="x")
+        self.assertEqual(suggest_distributor_id("01", "ขวัญใจ"), "01ข001")
+
+    def test_approve_page_prefills_suggested_supplier_code(self):
+        from stock.models import BaseDistributorType
+        general = BaseDistributorType.objects.create(id="01", name="ทั่วไป")
+        Distributor.objects.create(id="01จ004", name="จันทร์เจริญ")  # ร้านในใบ = "ร้านเจริญการช่าง" -> จ
+        c = self.submitted_candidate(type=general.pk)
+        self.assertEqual(c.type, general)
+        self.login(self.approver)
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertEqual(response.context["suggested_distributor_id"], "01จ005")
+        self.assertContains(response, 'value="01จ005"')
+
+        DistributorCandidate.objects.filter(pk=c.pk).update(type=None)
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertIsNone(response.context["suggested_distributor_id"])
+        self.assertContains(response, "ตั้งให้อัตโนมัติไม่ได้")
