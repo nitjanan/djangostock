@@ -13297,6 +13297,7 @@ def distributorApproveDetail(request, pk):
     context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
     context["vat_types"] = BaseVatType.objects.order_by("id")
     context["suggested_distributor_id"] = suggest_distributor_id(context["candidate"].type_id, context["candidate"].name)
+    context["suggested_from_english"] = supplier_name_is_english(context["candidate"].name)
     context.update(_vendor_menu("ap"))
     return render(request, "report/distributorCandidateDetail.html", context)
 
@@ -13304,14 +13305,22 @@ def distributorApproveDetail(request, pk):
 # รหัส Supplier (รหัส Express) = XX Y ZZZ
 #   XX  = id ของชนิดผู้จัดจำหน่าย (BaseDistributorType) 2 หลัก / ใบที่ไม่ได้เลือกชนิด ใช้ 01 (ทั่วไป)
 #   Y   = พยัญชนะไทยตัวแรกของชื่อร้าน (ข้ามคำนำหน้า และสระหน้า เ แ โ ใ ไ)
+#         ชื่อภาษาอังกฤษ: แปลงอักษรตัวแรกเป็นพยัญชนะไทยตามเสียงอ่าน (รหัสใน Express ใช้อักษรไทยเสมอ)
 #   ZZZ = เลขรันต่อจากเลขมากสุดของ XX+Y เดียวกัน 3 หลัก
 # คำนำหน้าบุคคล (นาย / นาง / คุณ) ไม่ตัด ตามรหัสเดิม เช่น "นาย วีรยุทร" = 01น009
 _SUPPLIER_COMPANY_PREFIXES = ("ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนสามัญ", "บริษัท", "บจก.", "บจก", "หจก.", "หจก", "หสน.", "ร้าน")
 _THAI_LEADING_VOWELS = "เแโใไ"
 DEFAULT_SUPPLIER_TYPE_ID = "01"
+# C อ่านได้ทั้ง ซ (Central) และ ค (Computer) ใช้ ค ซึ่งเจอบ่อยกว่า ผู้อนุมัติแก้ได้
+_ENGLISH_TO_THAI_LETTER = {
+    "A": "อ", "B": "บ", "C": "ค", "D": "ด", "E": "อ", "F": "ฟ", "G": "ก", "H": "ฮ", "I": "อ",
+    "J": "จ", "K": "ค", "L": "ล", "M": "ม", "N": "น", "O": "อ", "P": "พ", "Q": "ค", "R": "ร",
+    "S": "ส", "T": "ท", "U": "ย", "V": "ว", "W": "ว", "X": "อ", "Y": "ย", "Z": "ซ",
+}
 
 
-def supplier_code_letter(name):
+def _supplier_name_first_letter(name):
+    """อักษรตัวแรกของชื่อร้านที่ใช้ตั้งรหัส (ข้ามคำนำหน้าบริษัท และสระหน้า) / None = ไม่มี"""
     text = (name or "").replace("\xa0", " ").strip()
     for prefix in _SUPPLIER_COMPANY_PREFIXES:
         if text.startswith(prefix):
@@ -13320,12 +13329,26 @@ def supplier_code_letter(name):
     for ch in text:
         if ch in _THAI_LEADING_VOWELS:
             continue
-        return ch if "ก" <= ch <= "ฮ" else None
+        return ch
     return None
 
 
+def supplier_name_is_english(name):
+    ch = _supplier_name_first_letter(name)
+    return bool(ch) and ch.upper() in _ENGLISH_TO_THAI_LETTER
+
+
+def supplier_code_letter(name):
+    ch = _supplier_name_first_letter(name)
+    if not ch:
+        return None
+    if "ก" <= ch <= "ฮ":
+        return ch
+    return _ENGLISH_TO_THAI_LETTER.get(ch.upper())
+
+
 def suggest_distributor_id(type_id, name):
-    """รหัส Supplier ถัดไปตามรูปแบบ XX Y ZZZ / None = สร้างไม่ได้ (ชื่อไม่ขึ้นต้นด้วยตัวอักษรไทย)"""
+    """รหัส Supplier ถัดไปตามรูปแบบ XX Y ZZZ / None = สร้างไม่ได้ (ชื่อไม่ขึ้นต้นด้วยตัวอักษรไทยหรืออังกฤษ)"""
     xx = str(type_id or DEFAULT_SUPPLIER_TYPE_ID)
     y = supplier_code_letter(name)
     if not re.fullmatch(r"\d{2}", xx) or not y:

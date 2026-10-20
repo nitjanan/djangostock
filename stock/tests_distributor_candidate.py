@@ -858,7 +858,11 @@ class DistributorCandidateTestCase(TestCase):
             "ห้างหุ้นส่วนจำกัด แหลมทองฮาร์ดแวร์": "ห",
             "หจก. ติยะฮาร์ดแวร์": "ต",
             "นาย\xa0วีรยุทร": "น",            # คำนำหน้าบุคคลไม่ตัด (ตามรหัสเดิม)
-            "ABC Shop": None,
+            "ABC Shop": "อ",                  # ชื่ออังกฤษ: แปลงตามเสียงอ่าน
+            "Siam Global": "ส",
+            "bangkok steel": "บ",
+            "Computer Plus": "ค",
+            "3K Shop": None,
             "": None,
         }
         for name, letter in cases.items():
@@ -875,7 +879,8 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual(suggest_distributor_id("03", "เก่งการค้า"), "03ก011")
         self.assertEqual(suggest_distributor_id("02", "จันทร์"), "02จ001")
         self.assertEqual(suggest_distributor_id(None, "กิจเจริญ"), "01ก003")  # ไม่มีชนิด -> 01
-        self.assertIsNone(suggest_distributor_id("01", "ABC"))
+        self.assertEqual(suggest_distributor_id("01", "ABC"), "01อ001")
+        self.assertIsNone(suggest_distributor_id("01", "3K Shop"))
         # เลข 999 ถูกใช้ไปแล้ว -> ใช้เลขว่างตัวแรก
         Distributor.objects.create(id="01ข999", name="x")
         self.assertEqual(suggest_distributor_id("01", "ขวัญใจ"), "01ข001")
@@ -897,8 +902,17 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual(response.context["suggested_distributor_id"], "01จ005")
         self.assertContains(response, "ใบนี้ไม่ได้เลือกชนิดผู้จัดจำหน่าย ใช้ 01")
 
-        # ชื่อไม่ขึ้นต้นด้วยตัวอักษรไทย -> ว่างไว้ให้กรอกเอง
-        DistributorCandidate.objects.filter(pk=c.pk).update(name="ABC Shop")
+        self.assertFalse(response.context["suggested_from_english"])
+        self.assertNotContains(response, "ระบบเดาตัวอักษรไทยตามเสียงอ่าน")
+
+        # ชื่อภาษาอังกฤษ -> เดาตัวอักษรไทยตามเสียงอ่าน + เตือนให้ตรวจ
+        DistributorCandidate.objects.filter(pk=c.pk).update(name="Siam Global")
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertEqual(response.context["suggested_distributor_id"], "01ส001")
+        self.assertContains(response, "ระบบเดาตัวอักษรไทยตามเสียงอ่าน")
+
+        # ชื่อขึ้นต้นด้วยตัวเลข -> ว่างไว้ให้กรอกเอง
+        DistributorCandidate.objects.filter(pk=c.pk).update(name="3K Shop")
         response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
         self.assertIsNone(response.context["suggested_distributor_id"])
         self.assertContains(response, "ตั้งให้อัตโนมัติไม่ได้")
