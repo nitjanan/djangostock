@@ -13296,8 +13296,52 @@ def distributorApproveDetail(request, pk):
     context["approve_view"] = True
     context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
     context["vat_types"] = BaseVatType.objects.order_by("id")
+    context["suggested_distributor_id"] = suggest_distributor_id(context["candidate"].type_id, context["candidate"].name)
     context.update(_vendor_menu("ap"))
     return render(request, "report/distributorCandidateDetail.html", context)
+
+
+# รหัส Supplier (รหัส Express) = XX Y ZZZ
+#   XX  = id ของชนิดผู้จัดจำหน่าย (BaseDistributorType) 2 หลัก
+#   Y   = พยัญชนะไทยตัวแรกของชื่อร้าน (ข้ามคำนำหน้า และสระหน้า เ แ โ ใ ไ)
+#   ZZZ = เลขรันต่อจากเลขมากสุดของ XX+Y เดียวกัน 3 หลัก
+# คำนำหน้าบุคคล (นาย / นาง / คุณ) ไม่ตัด ตามรหัสเดิม เช่น "นาย วีรยุทร" = 01น009
+_SUPPLIER_COMPANY_PREFIXES = ("ห้างหุ้นส่วนจำกัด", "ห้างหุ้นส่วนสามัญ", "บริษัท", "บจก.", "บจก", "หจก.", "หจก", "หสน.", "ร้าน")
+_THAI_LEADING_VOWELS = "เแโใไ"
+
+
+def supplier_code_letter(name):
+    text = (name or "").replace("\xa0", " ").strip()
+    for prefix in _SUPPLIER_COMPANY_PREFIXES:
+        if text.startswith(prefix):
+            text = text[len(prefix):].lstrip(" .")
+            break
+    for ch in text:
+        if ch in _THAI_LEADING_VOWELS:
+            continue
+        return ch if "ก" <= ch <= "ฮ" else None
+    return None
+
+
+def suggest_distributor_id(type_id, name):
+    """รหัส Supplier ถัดไปตามรูปแบบ XX Y ZZZ / None = สร้างไม่ได้ (ไม่มีชนิด หรือชื่อไม่ขึ้นต้นด้วยตัวอักษรไทย)"""
+    xx = str(type_id or "")
+    y = supplier_code_letter(name)
+    if not re.fullmatch(r"\d{2}", xx) or not y:
+        return None
+    group = xx + y
+    used = {
+        int(code[3:])
+        for code in Distributor.objects.filter(id__startswith=group).values_list("id", flat=True)
+        if len(code) == 6 and code[3:].isdigit()
+    }
+    number = max(used, default=0) + 1
+    if number > 999:
+        # มีรหัสเลข 999 ไปแล้ว (เช่นข้อมูลทดสอบ) ใช้เลขที่ยังว่างตัวแรกแทน
+        number = next((n for n in range(1, 1000) if n not in used), None)
+        if number is None:
+            return None
+    return f"{group}{number:03d}"
 
 
 @login_required(login_url='signIn')

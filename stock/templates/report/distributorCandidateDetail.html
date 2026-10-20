@@ -127,7 +127,11 @@
             <strong>ผ่าน: บันทึกในทะเบียนรายชื่อผู้ขาย (สร้างใหม่)</strong>
             <div class="form-group mb-1 mt-1">
               <label class="small mb-0" for="new-distributor-id">รหัส Supplier (รหัส Express) <span class="text-danger">*</span></label>
-              <input type="text" id="new-distributor-id" name="distributor_id" class="form-control form-control-sm" maxlength="255" required>
+              <input type="text" id="new-distributor-id" name="distributor_id" class="form-control form-control-sm" maxlength="255" value="{{suggested_distributor_id|default:''}}" required>
+              <small class="text-muted d-block">
+                รูปแบบ XX Y ZZZ: XX = รหัสชนิดผู้จัดจำหน่าย, Y = ตัวอักษรตัวแรกของชื่อร้าน, ZZZ = เลขรันต่อ
+                {% if suggested_distributor_id %}(ระบบตั้งให้แล้ว แก้ได้){% else %}— ตั้งให้อัตโนมัติไม่ได้ เพราะใบขอไม่มีชนิดผู้จัดจำหน่าย หรือชื่อร้านไม่ขึ้นต้นด้วยตัวอักษรไทย{% endif %}
+              </small>
             </div>
             <div class="form-group mb-1">
               <label class="small mb-0" for="new-vat-type">ชนิดภาษี <span class="text-danger">*</span></label>
