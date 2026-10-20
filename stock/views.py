@@ -13125,11 +13125,27 @@ def _apply_candidate_header(request, candidate):
     for field in CANDIDATE_HEADER_FIELDS:
         value = (request.POST.get(field) or "").strip()
         setattr(candidate, field, value or (candidate.name if field == "name" else None))
+    candidate.name = name_with_branch(candidate.name, candidate.branch)
     # dropdown คำนำหน้า / เครดิต / ชนิด / ประเภท (รหัสของ Express) ค่าที่ไม่มีในตารางถือว่าไม่เลือก
     candidate.prefix = BasePrefix.objects.filter(pk=request.POST.get("prefix") or None).first()
     candidate.credit = BaseCredit.objects.filter(pk=request.POST.get("credit") or None).first()
     candidate.type = BaseDistributorType.objects.filter(pk=request.POST.get("type") or None).first()
     candidate.genre = BaseDistributorGenre.objects.filter(pk=request.POST.get("genre") or None).first()
+
+
+# ชื่อที่ระบบต่อสาขาไว้เอง: "... (สาขา 2)" / "... (สำนักงานใหญ่)" (วงเล็บอื่นในชื่อร้านไม่แตะ)
+_BRANCH_SUFFIX = re.compile(r"\s*\((?:สาขา[^()]*|สำนักงานใหญ่)\)\s*$")
+
+
+def name_with_branch(name, branch):
+    """ชื่อบริษัท + สาขา แบบ "ชื่อบริษัท (สาขา x)" ตัดสาขาที่เคยต่อไว้ออกก่อน ไม่งั้นบันทึกซ้ำจะต่อซ้อน"""
+    base = _BRANCH_SUFFIX.sub("", (name or "").strip())
+    branch = (branch or "").strip()
+    if not branch or not base:
+        return base
+    suffix = f" ({branch})" if branch.startswith("สาขา") or branch == "สำนักงานใหญ่" else f" (สาขา {branch})"
+    max_len = DistributorCandidate._meta.get_field("name").max_length
+    return base[: max_len - len(suffix)].rstrip() + suffix
 
 
 def _posted_answers(request, candidate):

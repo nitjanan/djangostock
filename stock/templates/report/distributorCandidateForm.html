@@ -48,6 +48,7 @@
           <div class="form-group col-md-9">
             <label for="f-name">ชื่อบริษัท/ร้านค้า <span class="text-danger">*</span></label>
             <input type="text" class="form-control" id="f-name" name="name" value="{{candidate.name}}" maxlength="255" required>
+            <small class="form-text text-muted" id="f-name-preview"></small>
           </div>
           <div class="form-group col-md-12">
             <label for="f-address">ที่อยู่</label>
@@ -213,6 +214,25 @@
           btn.disabled = false;
         });
     });
+
+    // ตัวอย่างชื่อที่จะบันทึก (กฎเดียวกับ name_with_branch ใน views.py)
+    const nameInput = document.getElementById('f-name');
+    const branchInput = document.getElementById('f-branch');
+    const namePreview = document.getElementById('f-name-preview');
+    const branchSuffix = /\s*\((?:สาขา[^()]*|สำนักงานใหญ่)\)\s*$/;
+    function updateNamePreview() {
+      const base = nameInput.value.trim().replace(branchSuffix, '');
+      const branch = branchInput.value.trim();
+      if (!branch || !base) {
+        namePreview.textContent = '';
+        return;
+      }
+      const suffix = (branch.startsWith('สาขา') || branch === 'สำนักงานใหญ่') ? ' (' + branch + ')' : ' (สาขา ' + branch + ')';
+      namePreview.textContent = 'จะบันทึกเป็น: ' + base + suffix;
+    }
+    nameInput.addEventListener('input', updateNamePreview);
+    branchInput.addEventListener('input', updateNamePreview);
+    updateNamePreview();
 
     // ตอบข้อที่ไฮไลต์ไว้แล้ว -> เอาไฮไลต์ออก
     form.addEventListener('change', function (e) {
