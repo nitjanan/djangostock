@@ -13134,18 +13134,19 @@ def _apply_candidate_header(request, candidate):
 
 
 # ชื่อที่ระบบต่อสาขาไว้เอง: "... (สาขา 2)" / "... (สำนักงานใหญ่)" (วงเล็บอื่นในชื่อร้านไม่แตะ)
-_BRANCH_SUFFIX = re.compile(r"\s*\((?:สาขา[^()]*|สำนักงานใหญ่)\)\s*$")
+_BRANCH_SUFFIX = re.compile(r"\((?:สาขา[^()]*|สำนักงานใหญ่)\)$")
 
 
 def name_with_branch(name, branch):
     """ชื่อบริษัท + สาขา แบบ "ชื่อบริษัท (สาขา x)" ตัดสาขาที่เคยต่อไว้ออกก่อน ไม่งั้นบันทึกซ้ำจะต่อซ้อน"""
-    base = _BRANCH_SUFFIX.sub("", (name or "").strip())
-    branch = (branch or "").strip()
+    max_len = DistributorCandidate._meta.get_field("name").max_length
+    # ตัดความยาวก่อนเข้า regex (POST ส่งมายาวเท่าไหร่ก็ได้) และไม่ขึ้นต้น pattern ด้วย \s* กัน backtrack แบบ O(n^2)
+    base = _BRANCH_SUFFIX.sub("", (name or "").strip()[:max_len]).rstrip()
+    branch = (branch or "").strip()[:max_len]
     if not branch or not base:
         return base
     suffix = f" ({branch})" if branch.startswith("สาขา") or branch == "สำนักงานใหญ่" else f" (สาขา {branch})"
-    max_len = DistributorCandidate._meta.get_field("name").max_length
-    return base[: max_len - len(suffix)].rstrip() + suffix
+    return (base[: max(max_len - len(suffix), 0)].rstrip() + suffix)[:max_len]
 
 
 def _posted_answers(request, candidate):

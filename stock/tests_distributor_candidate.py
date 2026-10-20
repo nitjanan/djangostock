@@ -938,6 +938,12 @@ class DistributorCandidateTestCase(TestCase):
         long_name = name_with_branch("ก" * 255, "2")
         self.assertEqual(len(long_name), 255)
         self.assertTrue(long_name.endswith(" (สาขา 2)"))
+        # POST ยาวผิดปกติ (ช่องว่างกลางชื่อเป็นแสนตัว) ต้องไม่ค้าง และได้ไม่เกินความยาวช่อง
+        import time
+        started = time.monotonic()
+        huge = name_with_branch("ก" + " " * 200000 + "ข", "2" * 300000)
+        self.assertLess(time.monotonic() - started, 1)
+        self.assertLessEqual(len(huge), 255)
 
     def test_manual_form_appends_branch_to_name(self):
         response = self.manual_post(name="  ", branch="2")

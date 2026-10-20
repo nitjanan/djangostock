@@ -219,9 +219,9 @@
     const nameInput = document.getElementById('f-name');
     const branchInput = document.getElementById('f-branch');
     const namePreview = document.getElementById('f-name-preview');
-    const branchSuffix = /\s*\((?:สาขา[^()]*|สำนักงานใหญ่)\)\s*$/;
+    const branchSuffix = /\((?:สาขา[^()]*|สำนักงานใหญ่)\)$/;
     function updateNamePreview() {
-      const base = nameInput.value.trim().replace(branchSuffix, '');
+      const base = nameInput.value.trim().replace(branchSuffix, '').trim();
       const branch = branchInput.value.trim();
       if (!branch || !base) {
         namePreview.textContent = '';
