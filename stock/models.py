@@ -1240,6 +1240,7 @@ class ComparisonPrice(models.Model):
 
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
     is_cancel = models.BooleanField(default=False)
+    is_draft = models.BooleanField(default=True) #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้ตรวจสอบ/ผู้อนุมัติ
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -1247,7 +1248,7 @@ class ComparisonPrice(models.Model):
             self.address_company = company.address
         if self.ref_no is None:
             self.ref_no = comparisonPrice_ref_number(self.branch_company)
-            
+
         super(ComparisonPrice, self).save(*args, **kwargs)
 
     class Meta:
@@ -1307,6 +1308,7 @@ class PurchaseOrder(models.Model):
     due_receive_update = models.DateField(blank=True, null=True) #วันที่กำหนดรับของ
     qr_code = models.ImageField(null=True, blank=True, upload_to = "qr_codes/",verbose_name="qr code")
     po_type = models.ForeignKey(BasePOType, on_delete=models.CASCADE, blank=True, null=True)
+    is_draft = models.BooleanField(default=True) #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้อนุมัติ
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -2056,3 +2058,38 @@ class PmRoundItem(models.Model):
         ordering=('id',)
         verbose_name = 'การทำ PM ล่าสุด'
         verbose_name_plural = 'ข้อมูลการทำ PM ล่าสุด'
+
+#log การแก้ไขใบเปรียบเทียบราคา / ใบสั่งซื้อ และรายการ item ในใบ (บันทึกอัตโนมัติจาก stock/signals.py)
+class DocumentChangeLog(models.Model):
+    DOC_TYPE_CHOICES = (
+        ('CP', 'ใบเปรียบเทียบราคา'),
+        ('PO', 'ใบสั่งซื้อ'),
+    )
+    ACTION_CHOICES = (
+        ('create', 'สร้าง'),
+        ('update', 'แก้ไข'),
+        ('delete', 'ลบ'),
+    )
+    doc_type = models.CharField(max_length=2, choices=DOC_TYPE_CHOICES, verbose_name='ประเภทเอกสาร')
+    doc_id = models.IntegerField(null=True, blank=True, verbose_name='id เอกสาร')
+    doc_ref_no = models.CharField(max_length=255, blank=True, default='', verbose_name='เลขที่เอกสาร')
+    model_name = models.CharField(max_length=100, verbose_name='ตาราง')
+    object_id = models.IntegerField(null=True, blank=True, verbose_name='id รายการ')
+    object_repr = models.CharField(max_length=255, blank=True, default='', verbose_name='รายการ')
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES, verbose_name='การกระทำ')
+    changes = models.JSONField(default=dict, blank=True, verbose_name='ข้อมูลที่เปลี่ยน') #{field: {"old": ..., "new": ...}}
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='document_change_logs', verbose_name='ผู้แก้ไข')
+    path = models.CharField(max_length=255, blank=True, default='', verbose_name='หน้าที่แก้ไข')
+    created = models.DateTimeField(auto_now_add=True, verbose_name='วันเวลา')
+
+    class Meta:
+        db_table = 'DocumentChangeLog'
+        ordering = ('-created', '-id')
+        indexes = [
+            models.Index(fields=['doc_type', 'doc_id']),
+        ]
+        verbose_name = 'log การแก้ไขเอกสาร'
+        verbose_name_plural = 'log การแก้ไขใบเปรียบเทียบราคาและใบสั่งซื้อ'
+
+    def __str__(self):
+        return '{} {} {} {}'.format(self.doc_ref_no, self.model_name, self.get_action_display(), self.created)

@@ -4,6 +4,10 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_draft_tabs_style.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h3 align="center">ใบสั่งซื้อ</h3>
@@ -11,6 +15,7 @@
         <div class="card-body">
           <form method="get">
             {% csrf_token %}
+            <input type="hidden" name="tab" value="{{ tab }}">
             <div class="form-row">
               <div class="form-group col-md-2 mb-0">
                 {{ filter.form.ref_no|as_crispy_field }}
@@ -55,6 +60,7 @@
         </div>
       </div>
     <div class="card div-shadow">
+        {% include '_draft_tabs.html' %}
         <div class="card-body">
           <!-- a class="btn btn-primary btn-block" href="{%url 'preparePO' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบสั่งซื้อ</a-->
           <div class="table-responsive">
@@ -77,7 +83,7 @@
               <tbody>
               {% for po in pos %}
                 <tr>
-                  <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 1 %}">{{po.ref_no}}</a></th>
+                  <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 1 %}">{{po.ref_no}}</a>{% if po.is_draft %} <span class="badge badge-secondary">แบบร่าง</span>{% endif %}</th>
                   <td>
                     {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 1 %}">{{po.cp.ref_no}}</a>{%endif%}
                     {%if po.pr %}

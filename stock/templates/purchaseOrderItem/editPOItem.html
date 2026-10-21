@@ -372,6 +372,15 @@
             </div>
             <div class="row spacer my-3">
                 <div class="col">
+                    {% if canSaveDraft %}
+                    <input type="hidden" name="save_draft" id="id_save_draft" value="">
+                    <button type="submit" class="btn btn-secondary hidden-print" formnovalidate onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
+                      บันทึกแบบร่าง
+                    </button>
+                    <button id="submit" type="submit" class="btn btn-primary hidden-print" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
+                      บันทึกและส่งอนุมัติ
+                    </button>
+                    {% else %}
                     <button id="submit" type="submit" class="btn {% if isFromPR == 'True'%}btn-primary{% else %}btn-warning{% endif %} hidden-print"><i class="fas fa-save"></i>
                       {% if isFromPR  == 'True'%}
                         บันทึก
@@ -379,9 +388,10 @@
                         บันทึกการแก้ไข
                       {% endif %}
                     </button>
+                    {% endif %}
                 </div>
                 <div>
-                  <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
+                  <button type="button" class="col btn btn-outline-info pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
                       <i class="fas fa-print"></i>
                       ปริ้นใบสั่งซื้อ
                   </button>
@@ -576,8 +586,9 @@ $('form').submit(function() {
     }
   }
 
-  //เช็คว่าได้ประเมินร้านค้าหรือยัง ถ้าไม่ได้ประเมินจะไม่ให้ save
+  //เช็คว่าได้ประเมินร้านค้าหรือยัง ถ้าไม่ได้ประเมินจะไม่ให้ save (ยกเว้นบันทึกแบบร่าง)
   if (
+    $('#id_save_draft').val() == '1' ||
     parseInt($('input[name=rate-price]:checked').val() || 0) > 0 &&
     parseInt($('input[name=rate-quantity]:checked').val() || 0) > 0 &&
     parseInt($('input[name=rate-service]:checked').val() || 0) > 0 &&

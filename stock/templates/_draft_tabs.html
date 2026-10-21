@@ -1,0 +1,20 @@
+{# แท็ป กำลังดำเนินการ / แบบร่าง วางไว้บนสุดของ card รายการ ต้องใส่ _draft_tabs_style.html ใน block css ด้วย #}
+{# context: tab ('process' / 'draft'), tab_qs, count_process, count_draft #}
+        <div class="card-header cp-tab-header">
+          <nav class="cp-tabs" role="tablist">
+            <a class="cp-tab cp-tab-process {% if tab == 'process' %}is-active{% endif %}" role="tab"
+               aria-selected="{% if tab == 'process' %}true{% else %}false{% endif %}"
+               href="?tab=process{% if tab_qs %}&{{ tab_qs }}{% endif %}">
+              <span class="cp-tab-icon"><i class="fas fa-tasks"></i></span>
+              <span class="cp-tab-label">กำลังดำเนินการ</span>
+              <span class="cp-tab-count">{{ count_process }}</span>
+            </a>
+            <a class="cp-tab cp-tab-draft {% if tab == 'draft' %}is-active{% endif %}" role="tab"
+               aria-selected="{% if tab == 'draft' %}true{% else %}false{% endif %}"
+               href="?tab=draft{% if tab_qs %}&{{ tab_qs }}{% endif %}">
+              <span class="cp-tab-icon"><i class="fas fa-pencil-alt"></i></span>
+              <span class="cp-tab-label">แบบร่าง</span>
+              <span class="cp-tab-count">{{ count_draft }}</span>
+            </a>
+          </nav>
+        </div>

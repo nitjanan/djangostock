@@ -106,6 +106,7 @@ urlpatterns = [
 
     path('purchaseOrderItem/create/<int:po_id>',views.createPOItem,name="createPOItem"),
     path('purchaseOrderItem/edit/<int:po_id>/<str:isFromPR>/<str:isReApprove>',views.editPOItem,name="editPOItem"),
+    path('purchaseOrder/requestReApprove/<int:po_id>',views.requestPOReApprove,name="requestPOReApprove"),
     path('purchaseOrderItem/createFromComparisonPrice/<int:po_id>',views.createPOItemFromComparisonPrice,name="createPOItemFromComparisonPrice"),
 
     path('purchaseOrderApprove/',views.viewPOApprove,name="viewPOApprove"),
