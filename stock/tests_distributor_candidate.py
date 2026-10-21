@@ -968,3 +968,32 @@ class DistributorCandidateTestCase(TestCase):
         self.login(self.user)
         response = self.client.get(reverse('distributorCandidateNew'))
         self.assertContains(response, 'id="f-name-preview"')
+
+    # ----- check รหัส Supplier ซ้ำอีกรอบตอนกดอนุมัติ -----
+
+    def test_approve_renumbers_suggested_code_taken_meanwhile(self):
+        from django.contrib.messages import get_messages
+        c = self.submitted_candidate()  # "ร้านเจริญการช่าง" ไม่มีชนิด -> 01จ
+        self.login(self.approver)
+        page = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertEqual(page.context["suggested_distributor_id"], "01จ001")
+        self.assertContains(page, 'name="suggested_distributor_id" value="01จ001"')
+        # เปิดหน้าค้างไว้ ระหว่างนั้นมีร้านอื่นได้รหัส 01จ001 ไปก่อน
+        Distributor.objects.create(id="01จ001", name="จันทร์เจริญ")
+        response = self.approve(c, mode="new", distributor_id="01จ001", suggested_distributor_id="01จ001")
+        c.refresh_from_db()
+        self.assertEqual((c.status, c.distributor_id), (DistributorCandidate.STATUS_APPROVED, "01จ002"))
+        self.assertEqual(Distributor.objects.get(id="01จ002").name, c.name)
+        self.assertEqual(Distributor.objects.get(id="01จ001").name, "จันทร์เจริญ")  # ร้านเดิมไม่โดนเขียนทับ
+        text = " ".join(str(m) for m in get_messages(response.wsgi_request))
+        self.assertIn("รหัส 01จ001 ถูกใช้ไปแล้วก่อนกดอนุมัติ ระบบรันเลขใหม่ให้", text)
+
+    def test_approve_typed_code_taken_is_not_renumbered(self):
+        c = self.submitted_candidate()
+        Distributor.objects.create(id="01จ005", name="ร้านอื่น")
+        # ผู้อนุมัติแก้รหัสเอง (ไม่ตรงกับที่ระบบตั้งให้) -> ไม่เดาให้ เด้งกลับให้แก้
+        self.approve(c, mode="new", distributor_id="01จ005", suggested_distributor_id="01จ001")
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
+        self.assertFalse(Distributor.objects.filter(id="01จ006").exists())
+        self.assertEqual(Distributor.objects.get(id="01จ005").name, "ร้านอื่น")
