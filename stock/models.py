@@ -1214,6 +1214,27 @@ class DistributorRule(models.Model):
         return f"{self.code}. {self.name}"
 
 
+class BaseVendorOrigin(models.Model):
+    """จุดต้นทาง (ไซต์ / เหมืองของบริษัทในเครือ) ให้เลือกในหน้าค้นหาผู้จัดจำหน่ายอื่นๆ แทนการกรอกพิกัดเอง"""
+    name = models.CharField(max_length=255, unique=True, verbose_name="ชื่อต้นทาง")
+    address = models.TextField(blank=True, null=True, verbose_name="ที่อยู่")
+    map_url = models.URLField(max_length=500, blank=True, null=True, verbose_name="ลิงก์ Google Maps")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, verbose_name="Latitude")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, verbose_name="Longitude")
+    branch_company = models.ForeignKey(BaseBranchCompany, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="สาขาบริษัท")
+    order = models.PositiveIntegerField(default=0, verbose_name="ลำดับ")
+    is_active = models.BooleanField(default=True, verbose_name="ใช้งาน")
+
+    class Meta:
+        db_table = 'BaseVendorOrigin'
+        ordering = ('order', 'name')
+        verbose_name = 'ต้นทางค้นหาผู้จัดจำหน่าย'
+        verbose_name_plural = 'ข้อมูลต้นทางค้นหาผู้จัดจำหน่าย'
+
+    def __str__(self):
+        return self.name
+
+
 class DistributorCandidate(models.Model):
     """ใบขอเพิ่ม Supplier รายใหม่ (FM-PU-005): ผู้คัดเลือกกรอกฟอร์ม -> ส่ง -> กลุ่ม ApproveDistributor อนุมัติ -> เข้า Distributor"""
     STATUS_DRAFT = 'draft'
