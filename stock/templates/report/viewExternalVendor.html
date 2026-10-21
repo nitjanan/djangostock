@@ -24,31 +24,33 @@
     <div class="card-body">
       <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
       <form id="geo-form" class="form-row align-items-end mb-2">
-        <div class="form-group col-md-3 mb-2">
-          <label for="geo-origin">ต้นทาง</label>
-          <select class="form-control" id="geo-origin" name="origin">
-            <option value="">— เลือกต้นทาง —</option>
-            {% for o in origin_presets %}
-              <option value="{{o.pk}}" data-lat="{{o.latitude}}" data-lng="{{o.longitude}}" {% if origin.pk == o.pk %}selected{% endif %}>{{o.name}}</option>
-            {% endfor %}
+        <div class="form-group col-md-4 mb-2">
+          <label for="geo-place">ค้นหารอบ</label>
+          <select class="form-control" id="geo-place" name="place">
+            <option value="">— เลือกจุดที่จะค้นหารอบๆ —</option>
+            <option value="current" {% if place == "current" %}selected{% endif %}>ตำแหน่งปัจจุบันของเครื่องนี้</option>
+            {% if origin_presets %}
+            <optgroup label="ไซต์บริษัท">
+              {% for o in origin_presets %}
+                <option value="o{{o.pk}}" data-lat="{{o.latitude}}" data-lng="{{o.longitude}}" {% if origin.pk == o.pk %}selected{% endif %}>{{o.name}}</option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+            <optgroup label="ภาค (เมืองหลัก)">
+              {% for r in region_presets %}
+                <option value="r{{r.value}}" data-lat="{{r.lat}}" data-lng="{{r.lng}}" {% if region.value == r.value %}selected{% endif %}>{{r.label}} ({{r.city}})</option>
+              {% endfor %}
+            </optgroup>
+            <option value="manual" {% if place == "manual" %}selected{% endif %}>กรอกพิกัดเอง (Latitude / Longitude)</option>
           </select>
         </div>
-        <div class="form-group col-md-3 mb-2">
-          <label for="geo-region">ภาค</label>
-          <select class="form-control" id="geo-region" name="region">
-            <option value="">— เลือกภาค —</option>
-            {% for r in region_presets %}
-              <option value="{{r.value}}" data-lat="{{r.lat}}" data-lng="{{r.lng}}" {% if region == r.value %}selected{% endif %}>{{r.label}} ({{r.city}})</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-group col-md-2 mb-2">
+        <div class="form-group col-md-2 mb-2 geo-manual" {% if place != "manual" %}hidden{% endif %}>
           <label for="geo-lat">Latitude</label>
-          <input type="number" step="any" min="-90" max="90" class="form-control" id="geo-lat" name="lat" value="{{lat|default:''}}" placeholder="เช่น 13.7563" required>
+          <input type="number" step="any" min="-90" max="90" class="form-control" id="geo-lat" name="lat" value="{{lat|default:''}}" placeholder="เช่น 13.7563" {% if place == "manual" %}required{% endif %}>
         </div>
-        <div class="form-group col-md-2 mb-2">
+        <div class="form-group col-md-2 mb-2 geo-manual" {% if place != "manual" %}hidden{% endif %}>
           <label for="geo-lng">Longitude</label>
-          <input type="number" step="any" min="-180" max="180" class="form-control" id="geo-lng" name="lng" value="{{lng|default:''}}" placeholder="เช่น 100.5018" required>
+          <input type="number" step="any" min="-180" max="180" class="form-control" id="geo-lng" name="lng" value="{{lng|default:''}}" placeholder="เช่น 100.5018" {% if place == "manual" %}required{% endif %}>
         </div>
         <div class="form-group col-md-2 mb-2">
           <label for="geo-radius">รัศมี (กม.)</label>
@@ -93,22 +95,20 @@
           </select>
         </div>
         <div class="form-group col-md-2 mb-2 d-flex">
-          <button type="submit" class="btn btn-info mr-2">ค้นหา <i class="fas fa-search"></i></button>
-          <button type="button" class="btn btn-outline-secondary" id="geo-current">ตำแหน่งปัจจุบัน <i class="fas fa-location-arrow"></i></button>
+          <button type="submit" class="btn btn-info">ค้นหา <i class="fas fa-search"></i></button>
         </div>
       </form>
       <p id="geo-status" class="text-muted mb-2">
         {% if lat and lng %}
           {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %} ·
-          {% if origin %}ต้นทาง: {{origin.name}} ·{% endif %}
-          {% for r in region_presets %}{% if r.value == region %}{{r.label}} (รอบ{{r.city}}) ·{% endif %}{% endfor %}
+          {% if origin %}รอบ {{origin.name}} ·{% elif region %}{{region.label}} (รอบ{{region.city}}) ·{% elif place == "current" %}รอบตำแหน่งปัจจุบัน ·{% endif %}
           ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
           {% if category is not None %}หมวด: {% for opt in category_options %}{% if opt.value == category %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           {% if shop_type is not None %}ประเภท: {% for opt in shop_type_options %}{% if opt.value == shop_type %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
           (<a href="https://www.openstreetmap.org/?mlat={{lat}}&mlon={{lng}}#map=14/{{lat}}/{{lng}}" target="_blank" rel="noopener">ดูบนแผนที่</a>)
           — พบ {{external_total|intcomma}} ร้าน
         {% else %}
-          กรอก Latitude / Longitude หรือกดปุ่ม "ตำแหน่งปัจจุบัน"
+          เลือกจุดที่จะค้นหารอบๆ ในช่อง "ค้นหารอบ"
         {% endif %}
       </p>
       {% if source == "tomtom" %}
@@ -252,15 +252,12 @@
       params.set('radius', form.radius.value.trim() || '10');
       params.delete('ext_page');
       params.set('source', form.source.value);
-      if (form.region.value) {
-        params.set('region', form.region.value);
+      params.delete('region');  // ลิงก์เก่าก่อนรวม dropdown
+      params.delete('origin');
+      if (form.place.value) {
+        params.set('place', form.place.value);
       } else {
-        params.delete('region');
-      }
-      if (form.origin.value) {
-        params.set('origin', form.origin.value);
-      } else {
-        params.delete('origin');
+        params.delete('place');
       }
       if (form.category.disabled || form.category.value === '__all__') {
         params.delete('category');
@@ -288,6 +285,8 @@
     function useCurrentLocation() {
       if (!navigator.geolocation) {
         status.textContent = 'เบราว์เซอร์นี้ไม่รองรับการขอตำแหน่ง กรุณากรอก Latitude / Longitude เอง';
+        form.place.value = 'manual';
+        toggleManual();
         return;
       }
       status.textContent = 'กำลังขอตำแหน่งจากเครื่องของคุณ...';
@@ -306,76 +305,91 @@
             3: 'ขอตำแหน่งนานเกินไป กรุณาลองใหม่ หรือกรอก Latitude / Longitude เอง',
           };
           status.textContent = messages[err.code] || 'ขอตำแหน่งไม่สำเร็จ';
+          form.place.value = 'manual';  // เปิดช่องพิกัดให้กรอกเองต่อได้เลย
+          toggleManual();
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
       );
     }
 
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
-    });
+    // ช่อง Latitude / Longitude โผล่เฉพาะตอนเลือก "กรอกพิกัดเอง"
+    function toggleManual() {
+      const manual = form.place.value === 'manual';
+      document.querySelectorAll('.geo-manual').forEach(function (el) { el.hidden = !manual; });
+      form.lat.required = manual;
+      form.lng.required = manual;
+    }
 
-    document.getElementById('geo-current').addEventListener('click', function () {
-      form.region.value = '';
-      form.origin.value = '';
-      useCurrentLocation();
-    });
-
-    // เลือกต้นทาง / ภาค -> ใช้พิกัดของตัวที่เลือกแทนตำแหน่งปัจจุบัน แล้วค้นทันที (เลือกได้ทีละอย่าง)
-    function searchFromPreset(select, other) {
-      const opt = select.selectedOptions[0];
+    // ค้นตามตัวเลือกใน "ค้นหารอบ": ไซต์ / ภาค ใช้พิกัดที่ตั้งไว้, ตำแหน่งปัจจุบัน ขอจาก GPS, กรอกเอง ใช้ค่าในช่อง
+    function searchFromPlace() {
+      const opt = form.place.selectedOptions[0];
       if (!opt || !opt.value) {
+        status.textContent = 'เลือกจุดที่จะค้นหารอบๆ ก่อน';
+        form.place.focus();
         return;
       }
-      other.value = '';
-      form.lat.value = opt.dataset.lat;
-      form.lng.value = opt.dataset.lng;
+      if (opt.value === 'current') {
+        useCurrentLocation();
+        return;
+      }
+      if (opt.dataset.lat) {
+        form.lat.value = opt.dataset.lat;
+        form.lng.value = opt.dataset.lng;
+      }
       if (form.reportValidity()) {
-        search(form.lat.value, form.lng.value, form.keyword.value.trim());
+        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
       }
     }
-    form.origin.addEventListener('change', function () { searchFromPreset(form.origin, form.region); });
-    form.region.addEventListener('change', function () { searchFromPreset(form.region, form.origin); });
 
-    // แก้พิกัดเอง -> ไม่ใช่พิกัดของต้นทาง / ภาคที่เลือกไว้แล้ว
-    [form.lat, form.lng].forEach(function (input) {
-      input.addEventListener('input', function () {
-        form.region.value = '';
-        form.origin.value = '';
-      });
+    // เปลี่ยนฟิลเตอร์: ค้นที่พิกัดเดิมถ้ามีแล้ว (ตำแหน่งปัจจุบันไม่ต้องขอ GPS ใหม่) / ยังไม่มีพิกัด -> ค้นตามที่เลือกใน "ค้นหารอบ"
+    function refresh() {
+      if (form.place.value && form.lat.value.trim() && form.lng.value.trim()) {
+        if (form.reportValidity()) {
+          search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
+        }
+      } else {
+        searchFromPlace();
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      searchFromPlace();
+    });
+
+    // เลือกจุดแล้วค้นทันที ยกเว้นกรอกพิกัดเอง (รอกรอกให้เสร็จแล้วกดค้นหา)
+    form.place.addEventListener('change', function () {
+      toggleManual();
+      if (form.place.value === 'manual') {
+        form.lat.focus();
+      } else if (form.place.value) {
+        searchFromPlace();
+      }
     });
 
     form.system_status.addEventListener('change', function () {
-      if (form.reportValidity()) {
-        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
-      }
+      refresh();
     });
 
     form.shop_type.addEventListener('change', function () {
-      if (form.reportValidity()) {
-        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
-      }
+      refresh();
     });
 
     // เปลี่ยนแหล่งข้อมูล -> ล้างประเภทร้าน เพราะแต่ละแหล่งตั้งชื่อประเภทไม่เหมือนกัน
     form.source.addEventListener('change', function () {
       form.shop_type.value = '__all__';
-      if (form.reportValidity()) {
-        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
-      }
+      refresh();
     });
 
     // เปลี่ยนหมวด -> ล้างประเภทร้านที่เลือกไว้ เพราะอาจไม่อยู่ในหมวดใหม่
     form.category.addEventListener('change', function () {
       form.shop_type.value = '__all__';
-      if (form.reportValidity()) {
-        search(form.lat.value.trim(), form.lng.value.trim(), form.keyword.value.trim());
-      }
+      refresh();
     });
 
     // เปิดหน้าครั้งแรกยังไม่มีพิกัด -> ลองขอจาก GPS อัตโนมัติ
     if (!params.get('lat') || !params.get('lng')) {
+      form.place.value = 'current';
       useCurrentLocation();
     }
   })();

@@ -12719,13 +12719,20 @@ def externalVendorReport(request):
     ext_query.pop("ext_page", None)
     ext_query = ext_query.urlencode()
 
-    # ต้นทาง (ไซต์ของบริษัท) ที่เพิ่ม/ลบได้ในหน้า admin: เลือกแล้วใช้พิกัดของต้นทางนั้น
+    # dropdown "ค้นหารอบ" ช่องเดียว (param place): o<pk> = ไซต์บริษัท (เพิ่ม/ลบในหน้า admin), r<ภาค> = เมืองหลักของภาค,
+    # current = ตำแหน่งปัจจุบัน, manual = กรอกพิกัดเอง
     origin_presets = list(BaseVendorOrigin.objects.filter(is_active=True))
-    origin = next((o for o in origin_presets if str(o.pk) == request.GET.get("origin")), None)
+    place = request.GET.get("place") or ""
+    origin = next((o for o in origin_presets if place == f"o{o.pk}"), None)
+    region = next((r for r in REGION_PRESETS if place == f"r{r['value']}"), None)
+    if not (origin or region or place in ("current", "manual")):
+        place = "manual" if ext["lat"] and ext["lng"] else ""
 
     return render(request, "report/viewExternalVendor.html", {
         "origin_presets": origin_presets,
         "origin": origin,
+        "region": region,
+        "place": place,
         "external_vendors": external_page,
         "external_page_range": external_page_range,
         "ext_query": ext_query,
@@ -12741,7 +12748,6 @@ def externalVendorReport(request):
         "source": ext["source"],
         "tomtom_available": bool(settings.TOMTOM_API_KEY),
         "region_presets": REGION_PRESETS,
-        "region": next((r["value"] for r in REGION_PRESETS if r["value"] == request.GET.get("region")), None),
         "system_status": ext["system_status"],
         "system_status_options": ext["system_status_options"],
         **_vendor_menu("ext"),
