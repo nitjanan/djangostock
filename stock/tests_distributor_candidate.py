@@ -1070,3 +1070,57 @@ class DistributorCandidateTestCase(TestCase):
             form = BaseVendorOriginAdminForm(data={"name": "x", "coordinates": bad, "order": 1})
             self.assertFalse(form.is_valid(), bad)
             self.assertIn("coordinates", form.errors)
+
+    # ----- ค้นชื่อร้านที่คล้ายกันตอนพิมพ์ชื่อในฟอร์ม -----
+
+    def similar(self, q, exclude=""):
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateSimilar'), {"q": q, "exclude": exclude})
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def test_similar_finds_contains_exact_and_typo(self):
+        Distributor.objects.create(id="01ต001", name="เตาไฟการช่าง")
+        Distributor.objects.create(id="01ต002", name="บจก. เตาไฟ")
+        Distributor.objects.create(id="01ส001", name="สมหวังค้าไม้")
+        data = self.similar("เตาไฟ")
+        names = [r["name"] for r in data["results"]]
+        self.assertEqual(names, ["บจก. เตาไฟ", "เตาไฟการช่าง"])  # ตรงกัน (ตัด บจก. แล้ว) ขึ้นก่อน มีคำอยู่ในชื่อตามมา
+        self.assertEqual(data["total"], 2)
+        self.assertEqual(data["results"][0]["label"], "ในระบบ · รหัส 01ต002")
+        self.assertIn("distributor_id_from=01%E0%B8%95002", data["results"][0]["url"])
+        # พิมพ์ "บริษัท ... จำกัด" ก็ยังเจอ / พิมพ์ผิดตัวเดียว ("เคาไฟ") ก็เจอ
+        self.assertEqual(self.similar("บริษัท เตาไฟ จำกัด")["results"][0]["name"], "บจก. เตาไฟ")
+        self.assertIn("บจก. เตาไฟ", [r["name"] for r in self.similar("เตาไฟฟ้า")["results"]])  # ชื่อในระบบอยู่ในคำที่พิมพ์
+        self.assertEqual({r["name"] for r in self.similar("เคาไฟ")["results"]}, {"บจก. เตาไฟ", "เตาไฟการช่าง"})
+        self.assertEqual({r["name"] for r in self.similar("เคาไฟการ")["results"]}, {"เตาไฟการช่าง"})
+        # สั้นไป / ไม่เจอ
+        self.assertEqual(self.similar("ต")["results"], [])
+        self.assertEqual(self.similar("ไม่มีร้านนี้แน่นอน")["total"], 0)
+
+    def test_similar_includes_open_candidates_but_not_self_or_approved(self):
+        self.propose()  # "ร้านเจริญการช่าง"
+        c = DistributorCandidate.objects.get()
+        data = self.similar("เจริญการช่าง")
+        self.assertEqual([(r["name"], r["label"]) for r in data["results"]], [("ร้านเจริญการช่าง", "ใบขอเพิ่ม · ร่าง")])
+        self.assertEqual(data["results"][0]["url"], reverse('distributorCandidateDetail', args=[c.pk]))
+        # ในฟอร์มของใบนี้เอง ไม่นับตัวเอง
+        self.assertEqual(self.similar("เจริญการช่าง", exclude=c.pk)["results"], [])
+        # อนุมัติแล้ว -> เหลือแค่ร้านในระบบ ไม่ขึ้นใบซ้ำ
+        DistributorCandidate.objects.filter(pk=c.pk).update(status=DistributorCandidate.STATUS_APPROVED)
+        Distributor.objects.create(id="01จ001", name="ร้านเจริญการช่าง")
+        self.assertEqual([r["label"] for r in self.similar("เจริญการช่าง")["results"]], ["ในระบบ · รหัส 01จ001"])
+
+    def test_similar_only_for_vendor_menu_users(self):
+        self.login(self.outsider)
+        response = self.client.get(reverse('distributorCandidateSimilar'), {"q": "เตาไฟ"})
+        self.assertRedirects(response, reverse('home'), fetch_redirect_response=False)
+
+    def test_form_pages_have_similar_box(self):
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateNew'))
+        self.assertContains(response, f'id="f-name-similar" class="small mt-1" data-url="{reverse("distributorCandidateSimilar")}" data-exclude=""', html=False)
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        response = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(response, f'data-exclude="{c.pk}"', html=False)
