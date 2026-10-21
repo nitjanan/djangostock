@@ -1,3 +1,6 @@
+from decimal import Decimal, ROUND_HALF_UP
+
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
@@ -10,7 +13,7 @@ from django.forms.fields import ImageField
 from import_export.admin import ImportExportModelAdmin
 from import_export import fields, resources
 from import_export.widgets import ForeignKeyWidget
-from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, DistributorCandidate, DistributorRuleGroup, DistributorRule, DistributorForm, BaseVisible, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
+from stock.models import BaseCredit, BaseDelivery, BaseDepartment, BaseIsoCode, BasePermission, BaseSparesType, BaseUnit, BaseVatType, Category, ComparisonPrice, ComparisonPriceDistributor, ComparisonPriceItem, Position, PositionBasePermission, Product, CartItem, Cart, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Requisition, RequisitionItem, BaseApproveStatus, BaseUrgency, UserProfile, Distributor, DistributorCandidate, DistributorRuleGroup, DistributorRule, DistributorForm, BaseVisible, BaseVendorOrigin, ReceiveItem, BaseDistributorType, BaseDistributorGenre, BaseAffiliatedCompany, BasePrefix, PurchaseOrderItem, BaseCMType, BaseBranchCompany, BranchCompanyBaseAdress, BaseAddress, BaseIsoCode, Document, BaseGrade, BasePOType, BaseRepairType, BaseCar, BaseBrokeType, BaseRequisitionType, BaseExpenseDepartment, BaseExpenses, BaseAgency, Invoice, InvoiceItem, RateDistributor, BaseMAType, CarLogbook, Maintenance, BaseCarDepartment, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, BaseOrigSta, BaseCarType
 from .resources import ReceiveItemResource, DistributorResource, UserProfileResource
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html, format_html_join
@@ -244,6 +247,46 @@ class DistributorCandidateAdmin(admin.ModelAdmin):
     search_fields = ('name', 'place_id', 'distributor__id')
     raw_id_fields = ('distributor',)
     inlines = [DistributorFormInline]
+
+class BaseVendorOriginAdminForm(forms.ModelForm):
+    # วางพิกัดที่ก๊อปจาก Google Maps ได้ในช่องเดียว เช่น "8.935915423841209, 98.96090612019505"
+    coordinates = forms.CharField(
+        label="พิกัด (Latitude, Longitude)",
+        help_text="ก๊อปจาก Google Maps: คลิกขวาที่จุด แล้วกดที่ตัวเลขพิกัด เช่น 8.935915, 98.960906",
+    )
+
+    class Meta:
+        model = BaseVendorOrigin
+        fields = ('name', 'address', 'map_url', 'coordinates', 'branch_company', 'order', 'is_active')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['coordinates'].initial = f"{self.instance.latitude}, {self.instance.longitude}"
+
+    def clean_coordinates(self):
+        parts = [p.strip() for p in self.cleaned_data['coordinates'].replace('，', ',').split(',')]
+        try:
+            lat, lng = (Decimal(p) for p in parts)
+            if not (lat.is_finite() and lng.is_finite()):
+                raise ValueError
+        except (ValueError, ArithmeticError):
+            raise forms.ValidationError('กรอกเป็น "Latitude, Longitude" เช่น 8.935915, 98.960906')
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise forms.ValidationError('Latitude ต้องอยู่ระหว่าง -90 ถึง 90 และ Longitude ระหว่าง -180 ถึง 180')
+        six = Decimal('0.000001')
+        return lat.quantize(six, rounding=ROUND_HALF_UP), lng.quantize(six, rounding=ROUND_HALF_UP)
+
+    def save(self, commit=True):
+        self.instance.latitude, self.instance.longitude = self.cleaned_data['coordinates']
+        return super().save(commit)
+
+class BaseVendorOriginAdmin(admin.ModelAdmin):
+    form = BaseVendorOriginAdminForm
+    list_display = ('name', 'latitude', 'longitude', 'branch_company', 'order', 'is_active')
+    list_editable = ('order', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'address')
 
 class DistributorRuleGroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'order')
@@ -522,6 +565,7 @@ admin.site.register(BaseBranchCompany, BaseBranchCompanyAdmin)
 admin.site.register(BasePrefix, BasePrefixAdmin)
 admin.site.register(Distributor, DistributorAdmin)
 admin.site.register(DistributorCandidate, DistributorCandidateAdmin)
+admin.site.register(BaseVendorOrigin, BaseVendorOriginAdmin)
 admin.site.register(DistributorRuleGroup, DistributorRuleGroupAdmin)
 admin.site.register(DistributorRule, DistributorRuleAdmin)
 admin.site.register(BaseVatType, BaseVatTypeAdmin)
