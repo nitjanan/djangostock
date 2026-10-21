@@ -1124,3 +1124,14 @@ class DistributorCandidateTestCase(TestCase):
         c = DistributorCandidate.objects.get()
         response = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
         self.assertContains(response, f'data-exclude="{c.pk}"', html=False)
+
+    def test_vendor_name_normalize_is_linear_and_strips_company_words(self):
+        import time
+        from stock.views import _normalize_vendor_name
+        for name in ("ABC Co., Ltd.", "ABC co ltd", "ABC CO. , LTD.", "ABC Company Limited", "abc"):
+            self.assertEqual(_normalize_vendor_name(name), "abc", name)
+        self.assertEqual(_normalize_vendor_name("บริษัท เอบีซี จำกัด"), "เอบีซี")
+        # CodeQL py/polynomial-redos: "co" + ช่องว่างยาวๆ เคยใช้เวลาเพิ่มแบบ O(n^2) (2 หมื่นตัว = 2.6 วินาที)
+        started = time.monotonic()
+        _normalize_vendor_name("co" + " " * 20000 + "x")
+        self.assertLess(time.monotonic() - started, 0.5)
