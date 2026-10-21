@@ -99,7 +99,8 @@ class ViewPOEditLinkTestCase(TestCase):
         html = self._get_html()
         self.assertIn(f'href="{self._edit_url(po, True)}"', html)
 
-    def test_superuser_re_approve_approved_links_to_normal_edit(self):
+    def test_superuser_approved_po_has_no_edit_link(self):
+        #ใบที่อนุมัติแล้ว superuser ก็ต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน (editPOItem ตอบ 403)
         self.user.is_superuser = True
         self.user.save()
         other = User.objects.create_user(username='other_stockman', password='password')
@@ -107,5 +108,5 @@ class ViewPOEditLinkTestCase(TestCase):
         po.stockman_user = other
         po.save()
         html = self._get_html()
-        self.assertIn(f'href="{self._edit_url(po, False)}"', html)
+        self.assertNotIn(f'href="{self._edit_url(po, False)}"', html)
         self.assertNotIn(f'href="{self._edit_url(po, True)}"', html)

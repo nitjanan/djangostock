@@ -196,12 +196,14 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
         self.assertFalse(po.is_draft)
         self.assertEqual(po.approver_status_id, 2)
 
-    def test_approved_po_ignores_save_draft(self):
+    def test_approved_po_cannot_be_edited_in_place(self):
+        #ใบที่อนุมัติแล้วต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน บันทึก (รวมแบบร่าง) ไม่ได้
         po, item = self._create_po(with_item=True, approver_status_id=2)
         response = self._post_edit(po, item, save_draft=True)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
         po.refresh_from_db()
         self.assertFalse(po.is_draft)
+        self.assertEqual(po.approver_status_id, 2)
 
     def test_view_po_approve_excludes_draft(self):
         self._create_po(with_item=True, is_draft=True, amount=Decimal('107.00'))
@@ -282,12 +284,14 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
         self.assertFalse(po.is_draft)
         self.assertTrue(self._in_approver_queue(po))
 
-    def test_open_cancelled_po_for_re_approve_does_not_change_on_get(self):
+    def test_cancelled_po_re_approve_request_opens_revision(self):
+        #ใบที่ยกเลิกแล้ว เข้าฉบับแก้ไขผ่าน requestPOReApprove ยังยกเลิกอยู่จนกว่าจะบันทึกในหน้าแก้ไข
         po, item = self._approved_po(is_cancel=True, cancel_reason='x')
         po = self._open_re_approve(po)
         self.assertTrue(po.is_cancel)
-        self.assertEqual(po.approver_status_id, 2)
-        self.assertFalse(po.is_draft)
+        self.assertEqual(po.approver_status_id, 1)
+        self.assertTrue(po.is_re_approve)
+        self.assertTrue(po.is_draft)
 
     def test_re_approve_request_rejects_get(self):
         po, _ = self._approved_po()
@@ -298,9 +302,10 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
         self.assertFalse(po.is_draft)
 
     def test_opening_edit_page_with_get_does_not_change_po(self):
+        #isReApprove=True ใน URL ไม่ปลดล็อกใบที่อนุมัติแล้ว
         po, _ = self._approved_po()
         url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'True'})
-        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertEqual(self.client.get(url).status_code, 403)
         po.refresh_from_db()
         self.assertEqual(po.approver_status_id, 2)
         self.assertFalse(po.is_draft)
