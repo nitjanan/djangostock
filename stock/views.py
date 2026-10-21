@@ -3218,11 +3218,9 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
             locked_price_value[field] = getattr(po_data, field)
 
-    try:
-        rate_dist = RateDistributor.objects.get(po = po_id)
-    except RateDistributor.DoesNotExist:
-        rate_dist = None
-    
+    #ใบสั่งซื้อ 1 ใบอาจมีรายการประเมินร้านค้าซ้ำได้ ให้ใช้รายการล่าสุด
+    rate_dist = RateDistributor.objects.filter(po = po_id).order_by('-id').first()
+
     form = PurchaseOrderForm(instance=po_data)
     if request.method == "POST":
         formset = PurchaseOrderItemInlineFormset(request.POST, request.FILES, instance=po_data)
