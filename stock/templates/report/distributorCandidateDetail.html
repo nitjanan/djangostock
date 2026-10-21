@@ -129,10 +129,9 @@
               <label class="small mb-0" for="new-distributor-id">รหัส Supplier (รหัส Express) <span class="text-danger">*</span></label>
               <input type="text" id="new-distributor-id" name="distributor_id" class="form-control form-control-sm" maxlength="255" value="{{suggested_distributor_id|default:''}}" required>
               <input type="hidden" name="suggested_distributor_id" value="{{suggested_distributor_id|default:''}}">
-              <small class="text-muted d-block">
-                รูปแบบ XX Y ZZZ: XX = รหัสชนิดผู้จัดจำหน่าย, Y = ตัวอักษรตัวแรกของชื่อร้าน, ZZZ = เลขรันต่อ
-                {% if suggested_distributor_id %}(ระบบตั้งให้แล้ว แก้ได้ · ถ้าไม่แก้แล้วรหัสถูกใช้ไปก่อนกดอนุมัติ ระบบรันเลขถัดไปให้เอง{% if not candidate.type_id %} · ใบนี้ไม่ได้เลือกชนิดผู้จัดจำหน่าย ใช้ 01{% endif %}){% if suggested_from_english %}<span class="text-warning d-block">ชื่อภาษาอังกฤษ ระบบเดาตัวอักษรไทยตามเสียงอ่าน ตรวจสอบก่อนบันทึก</span>{% endif %}{% else %}— ตั้งให้อัตโนมัติไม่ได้ เพราะชื่อร้านไม่ขึ้นต้นด้วยตัวอักษรไทยหรืออังกฤษ{% endif %}
-              </small>
+              {% if not suggested_distributor_id %}
+                <small class="text-muted d-block">ตั้งให้อัตโนมัติไม่ได้ เพราะชื่อร้านไม่ขึ้นต้นด้วยตัวอักษรไทยหรืออังกฤษ</small>
+              {% endif %}
             </div>
             <div class="form-group mb-1">
               <label class="small mb-0" for="new-vat-type">ชนิดภาษี <span class="text-danger">*</span></label>

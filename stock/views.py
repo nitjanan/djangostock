@@ -13314,7 +13314,6 @@ def distributorApproveDetail(request, pk):
     context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
     context["vat_types"] = BaseVatType.objects.order_by("id")
     context["suggested_distributor_id"] = suggest_distributor_id(context["candidate"].type_id, context["candidate"].name)
-    context["suggested_from_english"] = supplier_name_is_english(context["candidate"].name)
     context.update(_vendor_menu("ap"))
     return render(request, "report/distributorCandidateDetail.html", context)
 
@@ -13348,11 +13347,6 @@ def _supplier_name_first_letter(name):
             continue
         return ch
     return None
-
-
-def supplier_name_is_english(name):
-    ch = _supplier_name_first_letter(name)
-    return bool(ch) and ch.upper() in _ENGLISH_TO_THAI_LETTER
 
 
 def supplier_code_letter(name):

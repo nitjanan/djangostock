@@ -900,16 +900,15 @@ class DistributorCandidateTestCase(TestCase):
         DistributorCandidate.objects.filter(pk=c.pk).update(type=None)
         response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
         self.assertEqual(response.context["suggested_distributor_id"], "01จ005")
-        self.assertContains(response, "ใบนี้ไม่ได้เลือกชนิดผู้จัดจำหน่าย ใช้ 01")
+        # คำอธิบายรูปแบบรหัส / คำเตือนชื่อภาษาอังกฤษ ไม่แสดงบนหน้าอนุมัติ
+        self.assertNotContains(response, "ใบนี้ไม่ได้เลือกชนิดผู้จัดจำหน่าย ใช้ 01")
+        self.assertNotContains(response, "รูปแบบ XX Y ZZZ")
 
-        self.assertFalse(response.context["suggested_from_english"])
-        self.assertNotContains(response, "ระบบเดาตัวอักษรไทยตามเสียงอ่าน")
-
-        # ชื่อภาษาอังกฤษ -> เดาตัวอักษรไทยตามเสียงอ่าน + เตือนให้ตรวจ
+        # ชื่อภาษาอังกฤษ -> เดาตัวอักษรไทยตามเสียงอ่าน
         DistributorCandidate.objects.filter(pk=c.pk).update(name="Siam Global")
         response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
         self.assertEqual(response.context["suggested_distributor_id"], "01ส001")
-        self.assertContains(response, "ระบบเดาตัวอักษรไทยตามเสียงอ่าน")
+        self.assertNotContains(response, "ระบบเดาตัวอักษรไทยตามเสียงอ่าน")
 
         # ชื่อขึ้นต้นด้วยตัวเลข -> ว่างไว้ให้กรอกเอง
         DistributorCandidate.objects.filter(pk=c.pk).update(name="3K Shop")
