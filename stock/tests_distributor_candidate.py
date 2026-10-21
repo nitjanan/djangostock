@@ -996,3 +996,53 @@ class DistributorCandidateTestCase(TestCase):
         self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
         self.assertFalse(Distributor.objects.filter(id="01จ006").exists())
         self.assertEqual(Distributor.objects.get(id="01จ005").name, "ร้านอื่น")
+
+    # ----- ต้นทางค้นหาผู้จัดจำหน่าย (เก็บใน DB เพิ่ม/ลบในหน้า admin) -----
+
+    def test_vendor_origins_seeded_by_migration(self):
+        from stock.models import BaseVendorOrigin
+        origins = list(BaseVendorOrigin.objects.all())
+        self.assertEqual(len(origins), 17)
+        self.assertEqual(origins[0].name, "ศิลาชัย 1")
+        self.assertEqual(origins[-1].name, "เหมืองคลองปราบ")
+        first = origins[0]
+        self.assertEqual((first.latitude, first.longitude), (Decimal("8.935915"), Decimal("98.960906")))
+        self.assertEqual(first.map_url, "https://maps.app.goo.gl/YhmoZ5KzpFvuNKvc9")
+
+    @patch("stock.views.fetch_vendors_from_openstreetmap", return_value=[])
+    def test_report_origin_presets(self, fetch):
+        from stock.models import BaseVendorOrigin
+        site = BaseVendorOrigin.objects.get(name="กงตาก 3")
+        BaseVendorOrigin.objects.filter(name="เหมืองคลองปราบ").update(is_active=False)
+        self.login(self.user)
+        response = self.client.get(reverse('viewExternalVendorReport'))
+        self.assertContains(response, f'<option value="{site.pk}" data-lat="8.956197" data-lng="99.471246" >กงตาก 3</option>', html=False)
+        self.assertNotContains(response, "เหมืองคลองปราบ")  # ปิดใช้งานแล้วไม่แสดง
+        self.assertIsNone(response.context["origin"])
+
+        # ต้นทางที่เลือกค้างไว้ในหน้า + ค้นตามพิกัดของต้นทางนั้น
+        response = self.client.get(reverse('viewExternalVendorReport') + f"?origin={site.pk}&lat=8.956197&lng=99.471246&source=osm")
+        self.assertEqual(response.context["origin"], site)
+        self.assertContains(response, f'<option value="{site.pk}" data-lat="8.956197" data-lng="99.471246" selected>', html=False)
+        self.assertContains(response, "ต้นทาง: กงตาก 3")
+        self.assertEqual(fetch.call_args[0][:2], (8.956197, 99.471246))
+
+        # ค่าที่ไม่รู้จักถูกตัดทิ้ง
+        response = self.client.get(reverse('viewExternalVendorReport') + "?origin=99999")
+        self.assertIsNone(response.context["origin"])
+
+    def test_vendor_origin_admin_accepts_pasted_coordinates(self):
+        from stock.admin import BaseVendorOriginAdminForm
+        form = BaseVendorOriginAdminForm(data={
+            "name": "ไซต์ใหม่", "coordinates": " 8.935915423841209 , 98.96090612019505 ", "order": 1, "is_active": True,
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        origin = form.save()
+        self.assertEqual((origin.latitude, origin.longitude), (Decimal("8.935915"), Decimal("98.960906")))
+        # เปิดแก้ไขแล้วเห็นพิกัดเดิมในช่องเดียว
+        self.assertEqual(BaseVendorOriginAdminForm(instance=origin).fields["coordinates"].initial, "8.935915, 98.960906")
+
+        for bad in ("8.93", "abc, 98.9", "8.9, 98.9, 1", "91, 98.9", "8.9, 181", "NaN, 98.9"):
+            form = BaseVendorOriginAdminForm(data={"name": "x", "coordinates": bad, "order": 1})
+            self.assertFalse(form.is_valid(), bad)
+            self.assertIn("coordinates", form.errors)
