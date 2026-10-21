@@ -14,7 +14,7 @@ from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
 from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
-from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType, BaseDistributorType, BaseDistributorGenre, PLACE_SOURCE_MANUAL, BasePrefix, BaseCredit
+from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType, BaseDistributorType, BaseDistributorGenre, PLACE_SOURCE_MANUAL, BasePrefix, BaseCredit, BaseVendorOrigin
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
 from django.contrib.auth.models import Group,User
 from django.contrib.auth.forms import AuthenticationForm
@@ -12719,7 +12719,13 @@ def externalVendorReport(request):
     ext_query.pop("ext_page", None)
     ext_query = ext_query.urlencode()
 
+    # ต้นทาง (ไซต์ของบริษัท) ที่เพิ่ม/ลบได้ในหน้า admin: เลือกแล้วใช้พิกัดของต้นทางนั้น
+    origin_presets = list(BaseVendorOrigin.objects.filter(is_active=True))
+    origin = next((o for o in origin_presets if str(o.pk) == request.GET.get("origin")), None)
+
     return render(request, "report/viewExternalVendor.html", {
+        "origin_presets": origin_presets,
+        "origin": origin,
         "external_vendors": external_page,
         "external_page_range": external_page_range,
         "ext_query": ext_query,

@@ -25,6 +25,15 @@
       <h5>รายการผู้จัดจำหน่ายอื่นๆ</h5>
       <form id="geo-form" class="form-row align-items-end mb-2">
         <div class="form-group col-md-3 mb-2">
+          <label for="geo-origin">ต้นทาง</label>
+          <select class="form-control" id="geo-origin" name="origin">
+            <option value="">— เลือกต้นทาง —</option>
+            {% for o in origin_presets %}
+              <option value="{{o.pk}}" data-lat="{{o.latitude}}" data-lng="{{o.longitude}}" {% if origin.pk == o.pk %}selected{% endif %}>{{o.name}}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group col-md-3 mb-2">
           <label for="geo-region">ภาค</label>
           <select class="form-control" id="geo-region" name="region">
             <option value="">— เลือกภาค —</option>
@@ -91,6 +100,7 @@
       <p id="geo-status" class="text-muted mb-2">
         {% if lat and lng %}
           {% if source == "tomtom" %}TomTom{% else %}OpenStreetMap{% endif %} ·
+          {% if origin %}ต้นทาง: {{origin.name}} ·{% endif %}
           {% for r in region_presets %}{% if r.value == region %}{{r.label}} (รอบ{{r.city}}) ·{% endif %}{% endfor %}
           ตำแหน่ง: {{lat}}, {{lng}} รัศมี {{radius_km}} กม.
           {% if category is not None %}หมวด: {% for opt in category_options %}{% if opt.value == category %}{{opt.label}}{% endif %}{% endfor %}{% endif %}
@@ -247,6 +257,11 @@
       } else {
         params.delete('region');
       }
+      if (form.origin.value) {
+        params.set('origin', form.origin.value);
+      } else {
+        params.delete('origin');
+      }
       if (form.category.disabled || form.category.value === '__all__') {
         params.delete('category');
       } else {
@@ -303,26 +318,31 @@
 
     document.getElementById('geo-current').addEventListener('click', function () {
       form.region.value = '';
+      form.origin.value = '';
       useCurrentLocation();
     });
 
-    // เลือกภาค -> ใช้พิกัดเมืองหลักของภาคนั้นแทนตำแหน่งปัจจุบัน แล้วค้นทันที
-    form.region.addEventListener('change', function () {
-      const opt = form.region.selectedOptions[0];
+    // เลือกต้นทาง / ภาค -> ใช้พิกัดของตัวที่เลือกแทนตำแหน่งปัจจุบัน แล้วค้นทันที (เลือกได้ทีละอย่าง)
+    function searchFromPreset(select, other) {
+      const opt = select.selectedOptions[0];
       if (!opt || !opt.value) {
         return;
       }
+      other.value = '';
       form.lat.value = opt.dataset.lat;
       form.lng.value = opt.dataset.lng;
       if (form.reportValidity()) {
         search(form.lat.value, form.lng.value, form.keyword.value.trim());
       }
-    });
+    }
+    form.origin.addEventListener('change', function () { searchFromPreset(form.origin, form.region); });
+    form.region.addEventListener('change', function () { searchFromPreset(form.region, form.origin); });
 
-    // แก้พิกัดเอง -> ไม่ใช่พิกัดของภาคที่เลือกไว้แล้ว
+    // แก้พิกัดเอง -> ไม่ใช่พิกัดของต้นทาง / ภาคที่เลือกไว้แล้ว
     [form.lat, form.lng].forEach(function (input) {
       input.addEventListener('input', function () {
         form.region.value = '';
+        form.origin.value = '';
       });
     });
 
