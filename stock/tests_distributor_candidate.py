@@ -524,18 +524,40 @@ class DistributorCandidateTestCase(TestCase):
     def test_report_region_presets(self, fetch):
         self.login(self.user)
         response = self.client.get(reverse('viewExternalVendorReport'))
-        self.assertContains(response, 'data-lat="9.138200" data-lng="99.321700"')
+        self.assertContains(response, '<option value="rsouth" data-lat="9.138200" data-lng="99.321700" >', html=False)
         self.assertIsNone(response.context["region"])
+        self.assertNotContains(response, 'id="geo-region"')  # dropdown ภาคแยก เอาออกแล้ว รวมอยู่ใน "ค้นหารอบ"
 
         # ภาคที่เลือกค้างไว้ในหน้า + ค้นตามพิกัดของภาคนั้น
-        response = self.client.get(reverse('viewExternalVendorReport') + "?region=south&lat=9.138200&lng=99.321700&source=osm")
-        self.assertEqual(response.context["region"], "south")
-        self.assertContains(response, '<option value="south" data-lat="9.138200" data-lng="99.321700" selected>', html=False)
+        response = self.client.get(reverse('viewExternalVendorReport') + "?place=rsouth&lat=9.138200&lng=99.321700&source=osm")
+        self.assertEqual(response.context["region"]["value"], "south")
+        self.assertContains(response, '<option value="rsouth" data-lat="9.138200" data-lng="99.321700" selected>', html=False)
+        self.assertContains(response, "ภาคใต้ (รอบสุราษฎร์ธานี)")
         self.assertEqual(fetch.call_args[0][:2], (9.1382, 99.3217))
 
         # ค่าที่ไม่รู้จักถูกตัดทิ้ง
-        response = self.client.get(reverse('viewExternalVendorReport') + "?region=mars")
+        response = self.client.get(reverse('viewExternalVendorReport') + "?place=rmars")
         self.assertIsNone(response.context["region"])
+        self.assertEqual(response.context["place"], "")
+
+    @patch("stock.views.fetch_vendors_from_openstreetmap", return_value=[])
+    def test_report_place_current_and_manual(self, fetch):
+        self.login(self.user)
+        # ยังไม่เลือก -> ช่องพิกัดซ่อนไว้
+        response = self.client.get(reverse('viewExternalVendorReport'))
+        self.assertEqual(response.context["place"], "")
+        self.assertContains(response, '<div class="form-group col-md-2 mb-2 geo-manual" hidden>', html=False)
+        self.assertNotContains(response, 'id="geo-current"')  # ปุ่มตำแหน่งปัจจุบัน ย้ายไปอยู่ใน dropdown
+
+        response = self.client.get(reverse('viewExternalVendorReport') + "?place=current&lat=13.7&lng=100.5&source=osm")
+        self.assertEqual(response.context["place"], "current")
+        self.assertContains(response, "รอบตำแหน่งปัจจุบัน")
+
+        # กรอกพิกัดเอง / ลิงก์เก่าที่มีแค่ lat lng -> เปิดช่องพิกัดให้เห็นค่า
+        for query in ("?place=manual&lat=13.7&lng=100.5&source=osm", "?lat=13.7&lng=100.5&source=osm"):
+            response = self.client.get(reverse('viewExternalVendorReport') + query)
+            self.assertEqual(response.context["place"], "manual")
+            self.assertContains(response, '<div class="form-group col-md-2 mb-2 geo-manual" >', html=False)
 
     def test_form_page_renders_rules(self):
         self.propose()
@@ -1016,19 +1038,21 @@ class DistributorCandidateTestCase(TestCase):
         BaseVendorOrigin.objects.filter(name="เหมืองคลองปราบ").update(is_active=False)
         self.login(self.user)
         response = self.client.get(reverse('viewExternalVendorReport'))
-        self.assertContains(response, f'<option value="{site.pk}" data-lat="8.956197" data-lng="99.471246" >กงตาก 3</option>', html=False)
+        self.assertContains(response, '<label for="geo-place">ค้นหารอบ</label>', html=False)
+        self.assertContains(response, '<optgroup label="ไซต์บริษัท">', html=False)
+        self.assertContains(response, f'<option value="o{site.pk}" data-lat="8.956197" data-lng="99.471246" >กงตาก 3</option>', html=False)
         self.assertNotContains(response, "เหมืองคลองปราบ")  # ปิดใช้งานแล้วไม่แสดง
         self.assertIsNone(response.context["origin"])
 
-        # ต้นทางที่เลือกค้างไว้ในหน้า + ค้นตามพิกัดของต้นทางนั้น
-        response = self.client.get(reverse('viewExternalVendorReport') + f"?origin={site.pk}&lat=8.956197&lng=99.471246&source=osm")
+        # ไซต์ที่เลือกค้างไว้ในหน้า + ค้นตามพิกัดของไซต์นั้น
+        response = self.client.get(reverse('viewExternalVendorReport') + f"?place=o{site.pk}&lat=8.956197&lng=99.471246&source=osm")
         self.assertEqual(response.context["origin"], site)
-        self.assertContains(response, f'<option value="{site.pk}" data-lat="8.956197" data-lng="99.471246" selected>', html=False)
-        self.assertContains(response, "ต้นทาง: กงตาก 3")
+        self.assertContains(response, f'<option value="o{site.pk}" data-lat="8.956197" data-lng="99.471246" selected>', html=False)
+        self.assertContains(response, "รอบ กงตาก 3")
         self.assertEqual(fetch.call_args[0][:2], (8.956197, 99.471246))
 
         # ค่าที่ไม่รู้จักถูกตัดทิ้ง
-        response = self.client.get(reverse('viewExternalVendorReport') + "?origin=99999")
+        response = self.client.get(reverse('viewExternalVendorReport') + "?place=o99999")
         self.assertIsNone(response.context["origin"])
 
     def test_vendor_origin_admin_accepts_pasted_coordinates(self):
