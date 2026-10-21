@@ -13260,6 +13260,74 @@ def _similar_vendor_names(name, exclude_candidate_pk=None):
     return found[:5]
 
 
+SIMILAR_VENDOR_LIMIT = 10
+
+
+def _vendor_match_score(key, other):
+    """ความใกล้ของชื่อ (ตัดคำนำหน้านิติบุคคลแล้ว): 3 = ตรงกัน, 2 = มีคำที่พิมพ์อยู่ในชื่อ, 1 = สะกดใกล้เคียง, 0 = ไม่เข้า"""
+    from difflib import SequenceMatcher
+    if not other:
+        return 0
+    if other == key:
+        return 3
+    if key in other or (len(other) >= 3 and other in key):
+        return 2
+    # พิมพ์ผิดตัวสองตัว เช่น "เคาไฟ" กับ "เตาไฟการช่าง": เทียบกับทุกช่วงของชื่อที่ยาวเท่ากัน
+    if len(key) >= 4:
+        n = len(key)
+        matcher = SequenceMatcher(None, "", key)  # seq2 = คำที่พิมพ์ คำนวณครั้งเดียว
+        for i in range(max(len(other) - n, 0) + 1):
+            matcher.set_seq1(other[i:i + n])
+            if matcher.quick_ratio() >= 0.8 and matcher.ratio() >= 0.8:
+                return 1
+    return 0
+
+
+def similar_vendors(name, exclude_candidate_pk=None, limit=SIMILAR_VENDOR_LIMIT):
+    """ร้านในระบบ + ใบขอเพิ่มที่ยังไม่อนุมัติ ที่ชื่อคล้ายกับที่พิมพ์ เรียงจากใกล้สุด -> (รายการ, จำนวนที่เจอทั้งหมด)"""
+    from urllib.parse import quote
+    key = _normalize_vendor_name(_BRANCH_SUFFIX.sub("", (name or "").strip()[:255]))
+    if len(key) < 2:
+        return [], 0
+    found = []
+    for pk, prefix, n in Distributor.objects.values_list("id", "prefix__name", "name"):
+        score = _vendor_match_score(key, _normalize_vendor_name(_BRANCH_SUFFIX.sub("", (n or "").strip())))
+        if score:
+            found.append((score, {
+                "name": f"{prefix} {n}" if prefix else (n or ""),
+                "kind": "distributor",
+                "label": f"ในระบบ · รหัส {pk}",
+                "url": f"{reverse('viewVendorReport')}?distributor_id_from={quote(pk)}&distributor_id_to={quote(pk)}",
+            }))
+    # ใบที่อนุมัติแล้วมีอยู่ใน Distributor แล้ว ไม่แสดงซ้ำ
+    candidates = (
+        DistributorCandidate.objects.exclude(pk=exclude_candidate_pk)
+        .exclude(status=DistributorCandidate.STATUS_APPROVED)
+        .values_list("pk", "prefix__name", "name", "status")
+    )
+    status_names = dict(DistributorCandidate.STATUS_CHOICES)
+    for pk, prefix, n, status in candidates:
+        score = _vendor_match_score(key, _normalize_vendor_name(_BRANCH_SUFFIX.sub("", (n or "").strip())))
+        if score:
+            found.append((score, {
+                "name": f"{prefix} {n}" if prefix else (n or ""),
+                "kind": "candidate",
+                "label": f"ใบขอเพิ่ม · {status_names.get(status, status)}",
+                "url": reverse("distributorCandidateDetail", args=[pk]),
+            }))
+    found.sort(key=lambda item: (-item[0], item[1]["name"]))
+    return [item for _, item in found[:limit]], len(found)
+
+
+@login_required(login_url='signIn')
+@_distributor_member_only
+def distributorCandidateSimilar(request):
+    """ค้นชื่อร้านที่คล้ายกันตอนพิมพ์ชื่อในฟอร์มขอเพิ่ม Supplier (แสดงให้ดูเฉยๆ ผู้ใช้ตัดสินใจเอง)"""
+    exclude = request.GET.get("exclude")
+    results, total = similar_vendors(request.GET.get("q"), exclude_candidate_pk=int(exclude) if (exclude or "").isdigit() else None)
+    return JsonResponse({"results": results, "total": total})
+
+
 def _approver_only(view):
     """หน้าของผู้อนุมัติ: เฉพาะกลุ่ม ApproveDistributor คนอื่นกลับไปหน้ารายการผู้จัดจำหน่าย"""
     from functools import wraps
