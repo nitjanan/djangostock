@@ -172,10 +172,21 @@ class ComparisonPriceSaveDraftTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         return response.context['isExaminer']
 
+    def _make_purchasing(self, user):
+        from django.contrib.auth.models import Group
+        from stock.models import UserProfile
+        user.groups.add(Group.objects.get_or_create(name='จัดซื้อ')[0])
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.branch_company.add(self.branch)
+
     def test_re_approve_makes_cp_draft_until_sent(self):
         self._approved_cp()
-        response = self.client.get(reverse('createComparePricePOItem', args=(self.cp.id, 'True')))
-        self.assertEqual(response.status_code, 200)
+        self._make_purchasing(self.organizer)
+        response = self.client.post(reverse('requestCPReApprove', args=(self.cp.id,)))
+        self.assertRedirects(
+            response, reverse('createComparePricePOItem', args=(self.cp.id, 'False')),
+            fetch_redirect_response=False,
+        )
 
         self.cp.refresh_from_db()
         self.assertTrue(self.cp.is_re_approve)
@@ -215,3 +226,53 @@ class ComparisonPriceSaveDraftTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         cp.refresh_from_db()
         self.assertFalse(cp.is_draft)
+
+    # ---------- ความปลอดภัย: ขอเปลี่ยนแปลงรายละเอียดรายการ ----------
+    def test_get_create_item_page_with_re_approve_flag_does_not_change_cp(self):
+        self._approved_cp()
+        response = self.client.get(reverse('createComparePricePOItem', args=(self.cp.id, 'True')))
+        self.assertEqual(response.status_code, 200)
+        self.cp.refresh_from_db()
+        self.assertEqual(self.cp.examiner_status_id, 2)
+        self.assertFalse(self.cp.is_draft)
+
+    def test_request_cp_re_approve_rejects_get(self):
+        self._approved_cp()
+        self._make_purchasing(self.organizer)
+        response = self.client.get(reverse('requestCPReApprove', args=(self.cp.id,)))
+        self.assertEqual(response.status_code, 405)
+        self.cp.refresh_from_db()
+        self.assertEqual(self.cp.approver_status_id, 2)
+
+    def test_request_cp_re_approve_requires_purchasing_in_company(self):
+        self._approved_cp()
+        #ไม่ใช่จัดซื้อ
+        response = self.client.post(reverse('requestCPReApprove', args=(self.cp.id,)))
+        self.assertEqual(response.status_code, 403)
+        #จัดซื้อ แต่ไม่อยู่บริษัทของใบ
+        from django.contrib.auth.models import Group
+        self.organizer.groups.add(Group.objects.get_or_create(name='จัดซื้อ')[0])
+        response = self.client.post(reverse('requestCPReApprove', args=(self.cp.id,)))
+        self.assertEqual(response.status_code, 403)
+        self.cp.refresh_from_db()
+        self.assertEqual(self.cp.approver_status_id, 2)
+        self.assertFalse(self.cp.is_draft)
+
+    def test_save_draft_rejected_on_examined_cp(self):
+        self._approved_cp()
+        data = self._post_data()
+        data['btnSaveDraft'] = ''
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 403)
+        self.cp.refresh_from_db()
+        self.assertFalse(self.cp.is_draft)
+        self.assertEqual(self.cp.approver_status_id, 2)
+
+    def test_draft_cp_never_auto_approves_po(self):
+        from stock.views import auto_approve_po_from_cp
+        from stock.models import PurchaseOrder
+        self._approved_cp()
+        self.cp.is_draft = True
+        po = PurchaseOrder(amount=Decimal('100.00'), approver_status_id=1)
+        self.assertFalse(auto_approve_po_from_cp(po, self.cp))
+        self.assertEqual(po.approver_status_id, 1)

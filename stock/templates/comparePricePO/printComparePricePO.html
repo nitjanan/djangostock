@@ -338,10 +338,12 @@
     </div>
     <div class="row my-2">
         <div class="col-6">
+            {% if cp.examiner_status_id == 1 %}
             <button type="submit" name="btnSaveDraft" class="btn btn-secondary hidden-print" formnovalidate>
                 <i class="fas fa-file-alt"></i>
                 บันทึกแบบร่าง
             </button>
+            {% endif %}
             <button type="submit" name="btnSaveAndSend" class="btn btn-primary hidden-print">
                 <i class="fas fa-paper-plane"></i>
                 บันทึกและส่งอนุมัติ

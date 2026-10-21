@@ -121,6 +121,7 @@ urlpatterns = [
     path('comparePricePO/show/<int:cp_id>/<int:mode>',views.showComparePricePO,name="showComparePricePO"),
 
     path('comparePricePOItem/create/<int:cp_id>/<str:isReApprove>',views.createComparePricePOItem,name="createComparePricePOItem"),
+    path('comparePricePO/requestReApprove/<int:cp_id>',views.requestCPReApprove,name="requestCPReApprove"),
     path('comparePricePOItem/edit/<int:cp_id>/<int:cpd_id>',views.editComparePricePOItem,name="editComparePricePOItem"),
     path('comparePricePOItem/editFromPR/<int:cp_id>/<int:cpd_id>',views.editComparePricePOItemFromPR,name="editComparePricePOItemFromPR"),
     path('comparePriceDistributor/remove/<int:cp_id>/<int:cpd_id>',views.removeComparePriceDistributor,name="removeComparePriceDistributor"),

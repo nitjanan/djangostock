@@ -61,7 +61,7 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
         # ใบเปรียบเทียบราคาที่อนุมัติแล้ว -> ใบสั่งซื้อที่ออกจากใบนี้อนุมัติอัตโนมัติตอนส่ง
         self.cp = ComparisonPrice.objects.create(
             organizer=self.user, select_bidder=self.distributor, address_company=self.address,
-            branch_company=self.branch, approver_user=self.approver, approver_status_id=2,
+            branch_company=self.branch, approver_user=self.approver, approver_status_id=2, is_draft=False,
         )
         ComparisonPriceDistributor.objects.create(
             cp=self.cp, distributor=self.distributor, credit=self.credit, vat_type=self.vat_type,
@@ -339,3 +339,24 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
         po.refresh_from_db()
         self.assertFalse(po.is_draft)
         self.assertTrue(self._in_approver_queue(po))
+
+    # ---------- ความปลอดภัย: ฉบับแก้ไขต้องไม่อนุมัติอัตโนมัติ แม้เปลี่ยน URL ----------
+    def test_re_approve_po_from_cp_sent_via_non_re_approve_url_is_not_auto_approved(self):
+        po, item = self._approved_po(cp=self.cp)
+        po = self._open_re_approve(po)
+        self.assertTrue(po.is_draft)
+        #ส่งผ่าน URL isReApprove=False (หลบเงื่อนไขเดิม) ต้องไม่อนุมัติอัตโนมัติ เพราะใบเป็นฉบับแก้ไข
+        response = self._post_edit(po, item, save_draft=False, re_approve='False')
+        self.assertEqual(response.status_code, 302)
+        po.refresh_from_db()
+        self.assertFalse(po.is_draft)
+        self.assertEqual(po.approver_status_id, 1)
+        self.assertTrue(self._in_approver_queue(po))
+
+    def test_edit_po_item_requires_login(self):
+        po, _ = self._create_po(with_item=True)
+        self.client.logout()
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'True', 'isReApprove': 'False'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('signIn'), response['Location'])

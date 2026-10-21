@@ -192,6 +192,7 @@ class AutoApprovePOFromCPHelperTestCase(TestCase):
         cp.is_special_approve_cm = is_special
         cp.approver_status_id = approver_status_id
         cp.special_approver_status_id = special_approver_status_id
+        cp.is_draft = False  #ใบเปรียบเทียบที่ส่งอนุมัติแล้ว (ค่าเริ่มต้นของ model เป็นแบบร่าง)
         return cp
 
     def _po(self, amount):

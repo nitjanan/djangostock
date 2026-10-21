@@ -3205,9 +3205,7 @@ def requestPOReApprove(request, po_id):
     ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ" ในหน้าแก้ไข
     รับเฉพาะ POST (มี CSRF) และเฉพาะจัดซื้อที่อยู่บริษัทของใบสั่งซื้อ"""
     po = get_object_or_404(PurchaseOrder, id = po_id)
-    in_company = po.branch_company is not None and BaseBranchCompany.objects.filter(
-        userprofile__user = request.user, code = po.branch_company.code).exists()
-    if not (is_purchasing(request.user) and in_company):
+    if not (is_purchasing(request.user) and user_in_branch_company(request.user, po.branch_company)):
         return HttpResponseForbidden('ไม่มีสิทธิขอเปลี่ยนแปลงรายละเอียดใบสั่งซื้อนี้')
 
     #ใบที่ส่งขออนุมัติใหม่ไปแล้ว (รอดำเนินการ) จะไม่ถูกดึงกลับเป็นแบบร่าง / ใบที่ยกเลิกแล้วคงไว้แบบเดิม
@@ -3219,6 +3217,7 @@ def requestPOReApprove(request, po_id):
         po.save()
     return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'True')
 
+@login_required(login_url='signIn')
 def editPOItem(request, po_id, isFromPR, isReApprove):
     active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
@@ -3264,6 +3263,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #บันทึกแบบร่างได้เฉพาะใบที่ยังไม่อนุมัติ หรือกำลังขออนุมัติใหม่
     canSaveDraft = po_data.approver_status_id == 1 or get_bool(isReApprove)
     wasDraft = po_data.is_draft
+    #ค่าในฐานข้อมูล (ตั้งโดย requestPOReApprove) ใช้ตัดสินการอนุมัติอัตโนมัติ ไม่ใช้ค่าจาก URL
+    wasReApprove = po_data.is_re_approve
 
     form = PurchaseOrderForm(instance=po_data)
     if request.method == "POST":
@@ -3300,7 +3301,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             if canSaveDraft:
                 price.is_draft = isDraft
             #ใบที่ออกจากใบเปรียบเทียบราคา (ที่อนุมัติแล้ว) ซึ่งเคยบันทึกแบบร่างไว้ ให้อนุมัติอัตโนมัติตอนส่ง
-            if wasDraft and not isDraft and price.cp_id and not get_bool(isReApprove):
+            #ฉบับแก้ไขต้องให้ผู้อนุมัติอนุมัติใหม่เสมอ
+            if wasDraft and not isDraft and price.cp_id and not wasReApprove and not get_bool(isReApprove):
                 auto_approve_po_from_cp(price, price.cp)
             price.save()
 
@@ -3691,6 +3693,45 @@ def prepareComparePricePO(request):
     cp.save()
     return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id, 'False')))
 
+def user_in_branch_company(user, branch_company):
+    """user อยู่ในบริษัท (BaseBranchCompany) ของเอกสารหรือไม่"""
+    return branch_company is not None and BaseBranchCompany.objects.filter(
+        userprofile__user = user, code = branch_company.code).exists()
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def requestCPReApprove(request, cp_id):
+    """ขอเปลี่ยนแปลงรายละเอียดรายการใบเปรียบเทียบราคา (ฉบับแก้ไข)
+    สถานะการอนุมัติกลับเป็นรอดำเนินการ และเป็นแบบร่างก่อน
+    ผู้ตรวจสอบ/ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ"
+    รับเฉพาะ POST (มี CSRF) และเฉพาะจัดซื้อที่อยู่บริษัทของใบเปรียบเทียบราคา"""
+    cp = get_object_or_404(ComparisonPrice, id = cp_id)
+    if not (is_purchasing(request.user) and user_in_branch_company(request.user, cp.branch_company)):
+        return HttpResponseForbidden('ไม่มีสิทธิขอเปลี่ยนแปลงรายละเอียดใบเปรียบเทียบราคานี้')
+
+    #เหมือนเงื่อนไขแสดงปุ่ม: ใบที่ตรวจสอบแล้ว หรือใบที่ยกเลิกแล้ว
+    if cp.examiner_status_id != 1 or cp.is_cancel:
+        cp.is_re_approve = True
+        cp.approver_status_id = 1
+        cp.approver_update = None
+
+        cp.examiner_status_id = 1
+        cp.examiner_update= None
+        #ถ้าเป็นแบบพิเศษยอดเกิน 200,000
+        if cp.is_special_approve_cm:
+            cp.special_approver_user = None
+            cp.special_approver_status_id = 1
+            cp.special_approver_update = None
+        else:
+            cp.special_approver_user = None
+            cp.special_approver_status_id = 4
+            cp.special_approver_update = None
+
+        #ฉบับแก้ไขต้องเป็นแบบร่างก่อน ผู้ตรวจสอบ/ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ"
+        cp.is_draft = True
+        cp.save()
+    return redirect('createComparePricePOItem', cp_id = cp.id, isReApprove = 'False')
+
 def createComparePricePOItem(request, cp_id, isReApprove):
     active = request.session.get('company_code', 'ALL')
     cp = ComparisonPrice.objects.get(id=cp_id)
@@ -3718,30 +3759,9 @@ def createComparePricePOItem(request, cp_id, isReApprove):
         bidder_have = None
 
     if request.method == 'GET':
+        #ขอเปลี่ยนแปลงรายละเอียดรายการ (re approve) ย้ายไปทำที่ requestCPReApprove (POST) แล้ว GET ไม่เปลี่ยนข้อมูล
         bookform = CPDModelForm(request.GET or None, initial={'cp': cp_id})
         formset = CPitemFormset(queryset=ComparisonPriceItem.objects.none())
-        're approve cp'
-        cp.is_re_approve = get_bool(isReApprove)
-        if get_bool(isReApprove) == True:
-            cp.approver_status_id = 1
-            cp.approver_update = None
-
-            cp.examiner_status_id = 1
-            cp.examiner_update= None
-            #ถ้าเป็นแบบพิเศษยอดเกิน 200,000
-            if cp.is_special_approve_cm:
-                cp.special_approver_user = None
-                cp.special_approver_status_id = 1
-                cp.special_approver_update = None
-            else:
-                cp.special_approver_user = None
-                cp.special_approver_status_id = 4
-                cp.special_approver_update = None
-
-            #ฉบับแก้ไขต้องเป็นแบบร่างก่อน ผู้ตรวจสอบ/ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ"
-            cp.is_draft = True
-
-            cp.save()
 
     elif request.method == 'POST':
         bookform = CPDModelForm(request.POST or None, request.FILES, initial={'cp': cp_id})
@@ -4128,7 +4148,10 @@ def printComparePricePO(request, cp_id):
     form = CPSelectBidderForm(instance=cp)
     if request.method == 'POST':
         #บันทึกแบบร่าง ไม่บังคับกรอกร้านค้า/ผู้ตรวจสอบ/ผู้อนุมัติ และยังไม่ส่งไปหาผู้อนุมัติ
+        #ได้เฉพาะใบที่ยังรอตรวจสอบ (ใบที่ตรวจสอบ/อนุมัติแล้ว ต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน)
         isDraft = 'btnSaveDraft' in request.POST
+        if isDraft and cp.examiner_status_id != 1:
+            return HttpResponseForbidden('บันทึกแบบร่างได้เฉพาะใบเปรียบเทียบราคาที่ยังรอตรวจสอบ')
         form = CPSelectBidderForm(request.POST, instance=cp)
         if isDraft:
             relax_required_for_draft(form)
@@ -4150,14 +4173,12 @@ def printComparePricePO(request, cp_id):
                 #save
                 select_bidder.save()
 
-            if isDraft:
-                return redirect('viewComparePricePO')
-
-            #เก็บวันที่เลือกร้านครั้งแรก
-            if f_cp.select_bidder and f_cp.select_bidder_update is None:
+            #เก็บวันที่เลือกร้านครั้งแรก (เฉพาะตอนส่งอนุมัติ)
+            if not isDraft and f_cp.select_bidder and f_cp.select_bidder_update is None:
                 f_cp.select_bidder_update = datetime.datetime.now()
 
             #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 2 คนหรือไม่ ถ้าเป็นให้ set special_approver_status เป็นรอดำเนินการ
+            #คำนวณทุกครั้งรวมถึงบันทึกแบบร่าง เพราะร้านที่เลือกอาจเปลี่ยน
             isSpecialCP = is_special_approver_cp(cp.id)
             if isSpecialCP:
                 f_cp.special_approver_status_id = 1
@@ -4290,6 +4311,8 @@ def set_readonly_po_item_and_price(formset, price_form):
 
 def auto_approve_po_from_cp(po, cp):
     """อนุมัติใบสั่งซื้ออัตโนมัติ ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และใบสั่งซื้อมียอดเงินมากกว่า 0"""
+    if cp.is_draft:
+        return False
     cp_approver_status_id = cp.special_approver_status_id if cp.is_special_approve_cm else cp.approver_status_id
     if cp_approver_status_id == 2 and po.amount and po.amount > 0:
         po.approver_status_id = 2
