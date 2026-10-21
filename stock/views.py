@@ -13411,6 +13411,9 @@ def approveDistributorCandidate(request, pk):
     if not distributor_id:
         messages.error(request, "กรุณากรอกรหัส Supplier")
         return redirect("distributorApproveDetail", pk)
+    # ใช้รหัสที่ระบบตั้งให้ (ไม่ได้แก้) -> ถ้ารหัสถูกใช้ไปก่อนกดอนุมัติ ให้รันเลขใหม่ได้ / รหัสที่พิมพ์เองต้องให้ผู้อนุมัติแก้เอง
+    auto_code = distributor_id == (request.POST.get("suggested_distributor_id") or "").strip()
+    renumbered_from = None
 
     try:
         with transaction.atomic():
@@ -13430,9 +13433,13 @@ def approveDistributorCandidate(request, pk):
                 messages.error(request, f"ร้านนี้ผูกกับผู้จัดจำหน่าย {taken.id} อยู่แล้ว")
                 return redirect("distributorApproveDetail", pk)
 
+            # check รหัสซ้ำอีกรอบตอนกดอนุมัติ (เปิดหน้าค้างไว้ คนอื่นอาจอนุมัติร้านอื่นด้วยรหัสเดียวกันไปแล้ว)
             if Distributor.objects.filter(id=distributor_id).exists():
-                messages.error(request, f"รหัส {distributor_id} มีอยู่แล้ว กรุณาใช้รหัสอื่น")
-                return redirect("distributorApproveDetail", pk)
+                new_id = suggest_distributor_id(candidate.type_id, candidate.name) if auto_code else None
+                if not new_id or new_id == distributor_id:
+                    messages.error(request, f"รหัส {distributor_id} มีอยู่แล้ว กรุณาใช้รหัสอื่น")
+                    return redirect("distributorApproveDetail", pk)
+                renumbered_from, distributor_id = distributor_id, new_id
             # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL (โมเดลเขียน null=True) ต้องใส่ทุกครั้ง
             vat_type = BaseVatType.objects.filter(pk=request.POST.get("vat_type")).first()
             if vat_type is None:
@@ -13457,7 +13464,8 @@ def approveDistributorCandidate(request, pk):
             distributor.place_id = candidate.place_id
             distributor.latitude = candidate.latitude
             distributor.longitude = candidate.longitude
-            distributor.save()
+            # force_insert: ถ้ามีคนบันทึกรหัสเดียวกันตัดหน้าในจังหวะเดียวกัน ให้ error แทนการเขียนทับร้านเดิม
+            distributor.save(force_insert=True)
 
             candidate.status = DistributorCandidate.STATUS_APPROVED
             candidate.approved_by = request.user
@@ -13472,6 +13480,13 @@ def approveDistributorCandidate(request, pk):
         messages.error(request, f"บันทึกไม่สำเร็จ: {e}")
         return redirect("distributorApproveDetail", pk)
 
+    if renumbered_from:
+        messages.warning(
+            request,
+            f"อนุมัติแล้ว: เพิ่มร้าน {candidate.name} เป็น Supplier รหัส {distributor.id} "
+            f"(รหัส {renumbered_from} ถูกใช้ไปแล้วก่อนกดอนุมัติ ระบบรันเลขใหม่ให้)",
+        )
+        return redirect("distributorApproveList")
     messages.success(request, f"อนุมัติแล้ว: เพิ่มร้าน {candidate.name} เป็น Supplier รหัส {distributor.id}")
     return redirect("distributorApproveList")
 
