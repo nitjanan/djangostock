@@ -1,0 +1,122 @@
+{% extends 'layouts.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load templatehelpers %}
+{% load humanize %}
+
+{% block css %}
+<style>
+  /* สไตล์เฉพาะหน้านี้ */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-3">
+  <h3 align="center">ผู้จัดจำหน่ายในระบบ</h3>
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
+  <!-- การ์ดฟอร์มกรอง -->
+  <div class="card my-3 bg-light div-shadow">
+    <div class="card-body">
+      <form method="get" action="{% url 'viewVendorReport' %}">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor_id_from|as_crispy_field}}
+          </div>
+          <div class="form-group col-md-3 mb-0">
+            {{filter.form.distributor|as_crispy_field}}
+          </div> 
+          <div class="form-group col-md-1 mb-0">
+            <label for=""></label>
+            <div class="my-2">
+              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- การ์ดตาราง -->
+  <div class="card div-shadow container my-3">
+    <div class="card-body"> 
+      <h5>รายการผู้จัดจำหน่ายในระบบ</h5>
+      <a class="btn btn-success" href="{% url 'exportExcelVendor' %}?{{vendor_query}}">ดาวโหลด excel <i class = "fas fa-file-excel"></i></a>
+      <div class="table-responsive">
+        <table class="table table-striped my-3">
+          <thead class="thead-dark g-4">
+            <tr>
+              <th scope="col">รหัส</th>
+              <th scope="col">ชื่อผู้จัดจำหน่าย</th>
+              <th scope="col">ที่อยู่</th>
+              <th scope="col">ชนิดผู้จัดจำหน่าย</th>
+              <th scope="col">ประเภทผู้จัดจำหน่าย</th>
+              <th scope="col">เบอร์โทร</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for v in vender %}
+            <tr>
+              <th scope="row">{{v.id}}</th>
+              <td>{{v.name|default:"-"}}</td>
+              {% comment %} <td class="px-1 text-nowrap align-middle" style="width:100px;">
+                <div class="d-flex justify-content-between">
+                  <button class="btn btn-primary">แก้ไข</button>
+                  <button class="btn btn-danger">ลบ</button>
+                </div>
+              </td> {% endcomment %}
+              <td>{{v.address|default:"-"}}</td>
+              <td>{{v.type.name|default:"-"}}</td>
+              <td>{{v.genre.name|default:"-"}}</td>
+              <td>{{v.tel|default:"-"}}</td>
+
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">ไม่พบข้อมูลผู้จัดจำหน่ายในระบบ</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if vender.paginator.num_pages > 1 %}
+      <nav aria-label="หน้าผู้จัดจำหน่ายในระบบ">
+        <p class="text-muted small mb-2">
+          แสดงรายการที่ {{vender.start_index|intcomma}}–{{vender.end_index|intcomma}}
+          จาก {{vendor_total|intcomma}} (หน้า {{vender.number}} / {{vender.paginator.num_pages|intcomma}})
+        </p>
+        <ul class="pagination flex-wrap">
+          {% if vender.has_previous %}
+            <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' vender.previous_page_number %}?{{vendor_query}}">&laquo; ก่อนหน้า</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo; ก่อนหน้า</span></li>
+          {% endif %}
+
+          {% for p in vendor_page_range %}
+            {% if p == vender.paginator.ELLIPSIS %}
+              <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% elif p == vender.number %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{p}}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' p %}?{{vendor_query}}">{{p}}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if vender.has_next %}
+            <li class="page-item"><a class="page-link" href="{% url 'viewVendorReport_pages' vender.next_page_number %}?{{vendor_query}}">ถัดไป &raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">ถัดไป &raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
