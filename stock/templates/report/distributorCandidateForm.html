@@ -49,6 +49,7 @@
             <label for="f-name">ชื่อบริษัท/ร้านค้า <span class="text-danger">*</span></label>
             <input type="text" class="form-control" id="f-name" name="name" value="{{candidate.name}}" maxlength="255" required>
             <small class="form-text text-muted" id="f-name-preview"></small>
+            <div id="f-name-similar" class="small mt-1" data-url="{% url 'distributorCandidateSimilar' %}" data-exclude="{{candidate.pk|default:''}}" hidden></div>
           </div>
           <div class="form-group col-md-12">
             <label for="f-address">ที่อยู่</label>
@@ -233,6 +234,57 @@
     nameInput.addEventListener('input', updateNamePreview);
     branchInput.addEventListener('input', updateNamePreview);
     updateNamePreview();
+
+    // พิมพ์ชื่อแล้วค้นร้านที่ชื่อคล้ายกันในระบบ (แค่แสดงให้ดู ผู้ใช้ตัดสินใจเองว่าซ้ำหรือไม่)
+    const similarBox = document.getElementById('f-name-similar');
+    let similarTimer = null;
+    let similarSeq = 0;
+    function showSimilar(data) {
+      similarBox.replaceChildren();
+      if (!data.results.length) {
+        similarBox.hidden = true;
+        return;
+      }
+      const head = document.createElement('div');
+      head.className = 'text-warning font-weight-bold';
+      head.textContent = 'พบชื่อคล้ายกัน ' + data.total + ' รายการ ตรวจสอบว่าไม่ใช่ร้านเดียวกัน' +
+        (data.total > data.results.length ? ' (แสดง ' + data.results.length + ' รายการที่ใกล้ที่สุด)' : '');
+      const list = document.createElement('ul');
+      list.className = 'mb-0 pl-3';
+      data.results.forEach(function (r) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = r.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = r.name;
+        const label = document.createElement('span');
+        label.className = 'text-muted';
+        label.textContent = ' — ' + r.label;
+        li.append(a, label);
+        list.append(li);
+      });
+      similarBox.append(head, list);
+      similarBox.hidden = false;
+    }
+    function searchSimilar() {
+      const q = nameInput.value.trim();
+      const seq = ++similarSeq;
+      if (q.length < 2) {
+        showSimilar({ results: [], total: 0 });
+        return;
+      }
+      const url = similarBox.dataset.url + '?' + new URLSearchParams({ q: q, exclude: similarBox.dataset.exclude });
+      fetch(url, { credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (data) { if (seq === similarSeq) showSimilar(data); })  // ทิ้งผลของคำเก่าที่ตอบกลับมาช้า
+        .catch(function () {});
+    }
+    nameInput.addEventListener('input', function () {
+      clearTimeout(similarTimer);
+      similarTimer = setTimeout(searchSimilar, 400);
+    });
+    searchSimilar();
 
     // ตอบข้อที่ไฮไลต์ไว้แล้ว -> เอาไฮไลต์ออก
     form.addEventListener('change', function (e) {
