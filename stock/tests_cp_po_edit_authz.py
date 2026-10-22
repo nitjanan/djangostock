@@ -173,6 +173,48 @@ class ComparisonPriceEditAuthzTestCase(EditAuthzBase):
         self.assertEqual(self.cp.select_bidder, self.distributor2)
         self.assertEqual(self.cp.approver_status_id, 1)
 
+    def _cancel_and_re_approve(self):
+        self._approve()
+        ComparisonPrice.objects.filter(id=self.cp.id).update(is_cancel=True, cancel_reason='x')
+        client = self._client(self.owner)
+        self.assertEqual(client.post(reverse('requestCPReApprove', args=(self.cp.id,))).status_code, 302)
+        self.cp.refresh_from_db()
+        return client
+
+    def test_cancelled_cp_stays_cancelled_until_sent(self):
+        client = self._cancel_and_re_approve()
+        self.assertTrue(self.cp.is_cancel)
+        self.assertTrue(self.cp.is_draft)
+        self.assertEqual(self.cp.examiner_status_id, 1)
+
+        data = self._select_bidder_data(self.distributor2)
+        del data['btnSaveAndSend']
+        data['btnSaveDraft'] = ''
+        self.assertEqual(client.post(self._print_url(), data).status_code, 302)
+        self.cp.refresh_from_db()
+        self.assertTrue(self.cp.is_cancel)
+
+    def test_cancelled_cp_uncancelled_when_sent_after_re_approve(self):
+        client = self._cancel_and_re_approve()
+        response = client.post(self._print_url(), self._select_bidder_data(self.distributor2))
+        self.assertEqual(response.status_code, 302)
+        self.cp.refresh_from_db()
+        self.assertFalse(self.cp.is_cancel)
+        self.assertIsNone(self.cp.cancel_reason)
+        self.assertFalse(self.cp.is_draft)
+        self.assertEqual(self.cp.approver_status_id, 1)
+        #กลับมาแสดงในหน้ารายการใบเปรียบเทียบราคา
+        listed = {cp.id for cp in client.get(reverse('viewComparePricePO')).context['cps']}
+        self.assertIn(self.cp.id, listed)
+
+    def test_send_without_re_approve_keeps_cancel(self):
+        #ใบรอตรวจสอบที่ยกเลิกแล้ว แต่ไม่ได้อยู่ในฉบับแก้ไข ส่งอนุมัติก็ไม่ปลดสถานะยกเลิก
+        ComparisonPrice.objects.filter(id=self.cp.id).update(is_cancel=True, cancel_reason='x')
+        response = self._client(self.owner).post(self._print_url(), self._select_bidder_data(self.distributor2))
+        self.assertEqual(response.status_code, 302)
+        self.cp.refresh_from_db()
+        self.assertTrue(self.cp.is_cancel)
+
     # ---------- createComparePricePOItem (เพิ่มร้านค้า) ----------
     def _create_url(self, cp=None):
         return reverse('createComparePricePOItem', args=((cp or self.cp).id, 'False'))

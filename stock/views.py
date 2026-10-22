@@ -3758,6 +3758,7 @@ def requestCPReApprove(request, cp_id):
     """ขอเปลี่ยนแปลงรายละเอียดรายการใบเปรียบเทียบราคา (ฉบับแก้ไข)
     สถานะการอนุมัติกลับเป็นรอดำเนินการ และเป็นแบบร่างก่อน
     ผู้ตรวจสอบ/ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ"
+    ใบที่ยกเลิกแล้ว จะกลับเป็นรายการปกติตอนกด "บันทึกและส่งอนุมัติ" (printComparePricePO)
     รับเฉพาะ POST (มี CSRF) และเฉพาะ can_request_cp_re_approve"""
     cp = get_object_or_404(ComparisonPrice, id = cp_id)
     if not can_request_cp_re_approve(request.user, cp):
@@ -4241,6 +4242,11 @@ def printComparePricePO(request, cp_id):
         if form.is_valid():
             f_cp = form.save(commit=False)
             f_cp.is_draft = isDraft
+            #ใบที่ยกเลิกแล้วซึ่งขอเปลี่ยนแปลงรายละเอียดรายการ (requestCPReApprove) กลับเป็นรายการปกติตอนส่งอนุมัติ
+            #บันทึกแบบร่างยังคงสถานะยกเลิกไว้ เหมือนใบสั่งซื้อ (editPOItem)
+            if not isDraft and f_cp.is_re_approve and f_cp.is_cancel:
+                f_cp.is_cancel = False
+                f_cp.cancel_reason = None
             f_cp.save()
 
             #เปลี่ยนทุกร้านค้าให้ไม่เลือกก่อน
