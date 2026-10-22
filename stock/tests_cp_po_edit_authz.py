@@ -264,28 +264,40 @@ class ComparisonPriceEditAuthzTestCase(EditAuthzBase):
         return reverse('removeComparePriceDistributor', args=(self.cp.id, cpd.id))
 
     def test_remove_requires_login(self):
-        self.assertRedirectsToSignIn(self._client().get(self._remove_url()))
+        self.assertRedirectsToSignIn(self._client().post(self._remove_url()))
         self.assertTrue(ComparisonPriceDistributor.objects.filter(id=self.cpd2.id).exists())
 
     def test_remove_owner_on_pending_cp(self):
-        self.assertEqual(self._client(self.owner).get(self._remove_url()).status_code, 302)
+        self.assertEqual(self._client(self.owner).post(self._remove_url()).status_code, 302)
         self.assertFalse(ComparisonPriceDistributor.objects.filter(id=self.cpd2.id).exists())
 
     def test_remove_superuser_on_pending_cp(self):
-        self.assertEqual(self._client(self.superuser).get(self._remove_url()).status_code, 302)
+        self.assertEqual(self._client(self.superuser).post(self._remove_url()).status_code, 302)
         self.assertFalse(ComparisonPriceDistributor.objects.filter(id=self.cpd2.id).exists())
 
     def test_remove_colleague_forbidden(self):
-        self.assertEqual(self._client(self.colleague).get(self._remove_url()).status_code, 403)
+        self.assertEqual(self._client(self.colleague).post(self._remove_url()).status_code, 403)
         self.assertTrue(ComparisonPriceDistributor.objects.filter(id=self.cpd2.id).exists())
 
     def test_remove_approved_cp_forbidden(self):
         self._approve()
-        self.assertEqual(self._client(self.superuser).get(self._remove_url()).status_code, 403)
+        self.assertEqual(self._client(self.superuser).post(self._remove_url()).status_code, 403)
         self.assertTrue(ComparisonPriceDistributor.objects.filter(id=self.cpd2.id).exists())
 
+    def test_remove_rejects_get(self):
+        #ลบด้วย GET (ลิงก์/รูปภาพจากเว็บอื่น) ไม่ได้ ต้องเป็น POST ที่มี CSRF
+        self.assertEqual(self._client(self.owner).get(self._remove_url()).status_code, 405)
+        self.assertTrue(ComparisonPriceDistributor.objects.filter(id=self.cpd2.id).exists())
+
+    def test_remove_buttons_are_post_forms(self):
+        for name, args in (('createComparePricePOItem', (self.cp.id, 'False')),
+                           ('editComparePricePOItem', (self.cp.id, self.cpd.id))):
+            html = self._client(self.owner).get(reverse(name, args=args)).content.decode('utf-8')
+            self.assertIn(f'<form method="post" action="{self._remove_url()}"', html, name)
+            self.assertNotIn(f'href="{self._remove_url()}"', html, name)
+
     def test_remove_distributor_of_other_cp_not_found(self):
-        self.assertEqual(self._client(self.owner).get(self._remove_url(self.other_cpd)).status_code, 404)
+        self.assertEqual(self._client(self.owner).post(self._remove_url(self.other_cpd)).status_code, 404)
         self.assertTrue(ComparisonPriceDistributor.objects.filter(id=self.other_cpd.id).exists())
 
     # ---------- requestCPReApprove ----------

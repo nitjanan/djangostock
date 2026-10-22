@@ -4143,7 +4143,9 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     return render(request, 'comparePricePOItem/editComparePricePOItem.html',context)
 
 @login_required(login_url='signIn')
+@require_http_methods(["POST"])
 def removeComparePriceDistributor(request, cp_id, cpd_id):
+    """ลบผู้จำหน่ายออกจากใบเปรียบเทียบราคา รับเฉพาะ POST (มี CSRF) และเฉพาะผู้ที่แก้ไขใบได้ (cp_edit_forbidden)"""
     cpd = get_cpd_of_cp(cp_id, cpd_id)
     cp = cpd.cp
     forbidden = cp_edit_forbidden(request.user, cp)
