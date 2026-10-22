@@ -366,6 +366,38 @@ class ComparisonPriceEditAuthzTestCase(EditAuthzBase):
         self.assertFalse(self._client(self.colleague).get(url).context['canRequestReApprove'])
 
 
+    # ---------- ขอยกเลิกรายการ (showComparePricePO) ----------
+    def _show_cp_url(self):
+        return reverse('showComparePricePO', kwargs={'cp_id': self.cp.id, 'mode': 1})
+
+    def test_cancel_cp_button_only_for_owner_and_superuser(self):
+        self._approve()
+        for user, expected in ((self.owner, True), (self.superuser, True), (self.colleague, False)):
+            response = self._client(user).get(self._show_cp_url())
+            self.assertEqual(response.context['canCancel'], expected, user.username)
+            self.assertEqual('data-target="#cancelCP"' in response.content.decode('utf-8'), expected, user.username)
+
+    def test_cancel_cp_button_hidden_while_pending(self):
+        self.assertFalse(self._client(self.owner).get(self._show_cp_url()).context['canCancel'])
+
+    def test_cancel_cp_colleague_forbidden(self):
+        self._approve()
+        response = self._client(self.colleague).post(
+            self._show_cp_url(), {'btnformCancelCP': '', 'cancel_reason': 'x'})
+        self.assertEqual(response.status_code, 403)
+        self.cp.refresh_from_db()
+        self.assertFalse(self.cp.is_cancel)
+
+    def test_cancel_cp_owner_and_superuser(self):
+        for user in (self.owner, self.superuser):
+            self._approve()
+            ComparisonPrice.objects.filter(id=self.cp.id).update(is_cancel=False, cancel_reason=None)
+            response = self._client(user).post(
+                self._show_cp_url(), {'btnformCancelCP': '', 'cancel_reason': 'x'})
+            self.assertEqual(response.status_code, 302, user.username)
+            self.cp.refresh_from_db()
+            self.assertTrue(self.cp.is_cancel, user.username)
+
     # ---------- สินค้าใน formset ต้องเป็นรายการในใบเปรียบเทียบราคานี้ ----------
     def _cp_items(self):
         """สินค้า 2 รายการ: in_cp อยู่ในใบนี้ / outside อยู่ในใบอื่นเท่านั้น"""
@@ -460,6 +492,27 @@ class ComparisonPriceEditAuthzTestCase(EditAuthzBase):
 
     def test_edit_item_rejects_item_outside_cp(self):
         self._check_edit_item_scope('editComparePricePOItem')
+
+    def test_edit_item_delete_row_with_other_item_rejected(self):
+        #ติ๊กลบแถวเดิมแต่เปลี่ยน item เป็นสินค้าของใบอื่น เดิมไม่ถูกตรวจ แล้ว view ไปคืนจำนวนให้สินค้านั้น
+        self._cp_items()
+        RequisitionItem.objects.filter(id=self.outside.id).update(is_used=True, quantity_used=5)
+        url = reverse('editComparePricePOItem', args=(self.cp.id, self.cpd.id))
+        data = self._inline_rows(self.outside)
+        data['comparisonpriceitem_set-0-DELETE'] = 'on'
+        self.assertEqual(self._client(self.owner).post(url, data).status_code, 400)
+        self.assertTrue(ComparisonPriceItem.objects.filter(id=self.cpi.id).exists())
+        self.outside.refresh_from_db()
+        self.assertTrue(self.outside.is_used)
+        self.assertEqual(self.outside.quantity_used, 5)
+
+    def test_edit_item_delete_own_row_allowed(self):
+        self._cp_items()
+        url = reverse('editComparePricePOItem', args=(self.cp.id, self.cpd.id))
+        data = self._inline_rows(self.in_cp)
+        data['comparisonpriceitem_set-0-DELETE'] = 'on'
+        self.assertEqual(self._client(self.owner).post(url, data).status_code, 302)
+        self.assertFalse(ComparisonPriceItem.objects.filter(id=self.cpi.id).exists())
 
     def test_edit_item_from_pr_rejects_item_outside_cp(self):
         self._check_edit_item_scope('editComparePricePOItemFromPR')
@@ -677,3 +730,54 @@ class PurchaseOrderEditAuthzTestCase(EditAuthzBase):
         self.assertEqual(response.status_code, 400)
         self.item.refresh_from_db()
         self.assertEqual(self.item.item, self.req_item)
+
+    def test_delete_row_with_item_outside_po_rejected(self):
+        outside = self._outside_item()
+        RequisitionItem.objects.filter(id=outside.id).update(is_used=True, quantity_used=5)
+        data = self._post_data()
+        data['purchaseorderitem_set-0-item'] = outside.id
+        data['purchaseorderitem_set-0-DELETE'] = 'on'
+        response = self._client(self.owner).post(self._url(), data)
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(PurchaseOrderItem.objects.filter(id=self.item.id).exists())
+        outside.refresh_from_db()
+        self.assertTrue(outside.is_used)
+        self.assertEqual(outside.quantity_used, 5)
+
+    # ---------- ขอยกเลิกรายการ (showPO) ----------
+    def _show_po_url(self):
+        return reverse('showPO', kwargs={'po_id': self.po.id, 'mode': 1})
+
+    def test_cancel_po_button_only_for_owner_and_superuser(self):
+        self._set(approver_status_id=2)
+        for user, expected in ((self.owner, True), (self.superuser, True), (self.colleague, False)):
+            response = self._client(user).get(self._show_po_url())
+            self.assertEqual(response.context['canCancel'], expected, user.username)
+            self.assertEqual('data-target="#cancelPO"' in response.content.decode('utf-8'), expected, user.username)
+
+    def test_cancel_po_button_for_re_approve_opens_po_modal(self):
+        #เดิมปุ่มของฉบับแก้ไขชี้ไป #cancelCP ซึ่งไม่มีในหน้าใบสั่งซื้อ กดแล้วไม่เกิดอะไร
+        self._set(is_re_approve=True, approver_status_id=1)
+        html = self._client(self.owner).get(self._show_po_url()).content.decode('utf-8')
+        self.assertIn('data-target="#cancelPO"', html)
+        self.assertNotIn('data-target="#cancelCP"', html)
+
+    def test_cancel_po_button_hidden_while_pending(self):
+        self.assertFalse(self._client(self.owner).get(self._show_po_url()).context['canCancel'])
+
+    def test_cancel_po_colleague_forbidden(self):
+        self._set(approver_status_id=2)
+        response = self._client(self.colleague).post(
+            self._show_po_url(), {'btnformCancelPO': '', 'cancel_reason': 'x'})
+        self.assertEqual(response.status_code, 403)
+        self.po.refresh_from_db()
+        self.assertFalse(self.po.is_cancel)
+
+    def test_cancel_po_owner_and_superuser(self):
+        for user in (self.owner, self.superuser):
+            self._set(approver_status_id=2, is_cancel=False, cancel_reason=None)
+            response = self._client(user).post(
+                self._show_po_url(), {'btnformCancelPO': '', 'cancel_reason': 'x'})
+            self.assertEqual(response.status_code, 302, user.username)
+            self.po.refresh_from_db()
+            self.assertTrue(self.po.is_cancel, user.username)

@@ -3063,6 +3063,8 @@ def showPO(request, po_id, mode):
 
     cancel_form = PurchaseOrderCancelForm(instance=po)
     if request.method == 'POST' and 'btnformCancelPO' in request.POST:
+        if not can_cancel_po(request.user, po):
+            return HttpResponseForbidden('ไม่มีสิทธิขอยกเลิกใบสั่งซื้อนี้')
         cancel_form = PurchaseOrderCancelForm(request.POST, instance=po)
         if cancel_form.is_valid():
             cc = cancel_form.save(commit=False)
@@ -3088,6 +3090,7 @@ def showPO(request, po_id, mode):
             'isUploadeReceipt':isUploadeReceipt,
             'isPurchasing':isPurchasing,
             'canRequestReApprove':can_request_po_re_approve(request.user, po),
+            'canCancel':can_cancel_po(request.user, po),
             'mode': mode,
             'poa_form':poa_form,
             'cancel_form':cancel_form,
@@ -3204,14 +3207,18 @@ def createPOItem(request, po_id):
     return render(request, template_name, context)
 
 def formset_has_item_outside(formset, allowed_item_ids):
-    """มีแถวใน formset (ที่ไม่ได้ติ๊กลบ) ที่ใช้สินค้า (RequisitionItem) นอกเหนือจากที่อยู่ในเอกสารหรือไม่
-    หน้าแก้ไขให้เลือกสินค้าได้เฉพาะรายการในเอกสาร (itemList) ค่าอื่นมาจากการแก้ POST เอง"""
+    """มีแถวใน formset ที่ใช้สินค้า (RequisitionItem) นอกเหนือจากที่อยู่ในเอกสารหรือไม่
+    หน้าแก้ไขให้เลือกสินค้าได้เฉพาะรายการในเอกสาร (itemList) ค่าอื่นมาจากการแก้ POST เอง
+    ตรวจแถวที่ติ๊กลบด้วย เพราะตอนลบ view คำนวณจำนวนที่ใช้ไปใหม่จาก obj.item ซึ่งเป็นค่าที่ส่งมา
+    และแถวเดิมที่ติ๊กลบต้องเป็นสินค้าเดิมที่บันทึกไว้"""
     for form in formset.forms:
         cleaned = getattr(form, 'cleaned_data', None) or {}
-        if cleaned.get('DELETE'):
-            continue
         item = cleaned.get('item')
-        if item is not None and item.id not in allowed_item_ids:
+        if item is None:
+            continue
+        if item.id not in allowed_item_ids:
+            return True
+        if cleaned.get('DELETE') and form.instance.pk and item.id != form.initial.get('item'):
             return True
     return False
 
@@ -3230,6 +3237,11 @@ def can_request_po_re_approve(user, po):
     """ขอเปลี่ยนแปลงรายละเอียดใบสั่งซื้อได้: superuser หรือจัดซื้อที่เป็นผู้จัดทำและอยู่บริษัทของใบสั่งซื้อ"""
     return user.is_superuser or (
         is_purchasing(user) and is_po_owner(user, po) and user_in_branch_company(user, po.branch_company))
+
+def can_cancel_po(user, po):
+    """ขอยกเลิกรายการใบสั่งซื้อได้: ผู้จัดทำ (stockman_user) หรือ superuser
+    เฉพาะใบที่ยังไม่ยกเลิก และผ่านการอนุมัติแล้ว หรืออยู่ในฉบับแก้ไข (เหมือนเงื่อนไขแสดงปุ่ม)"""
+    return is_po_owner(user, po) and not po.is_cancel and (po.approver_status_id != 1 or po.is_re_approve)
 
 def po_edit_forbidden(user, po):
     """หน้าแก้ไขใบสั่งซื้อ (editPOItem) คืน HttpResponseForbidden ถ้าแก้ไม่ได้ ไม่งั้นคืน None
@@ -3758,6 +3770,11 @@ def can_request_cp_re_approve(user, cp):
     """ขอเปลี่ยนแปลงรายละเอียดใบเปรียบเทียบราคาได้: superuser หรือจัดซื้อที่เป็นผู้จัดทำและอยู่บริษัทของใบ"""
     return user.is_superuser or (
         is_purchasing(user) and is_cp_owner(user, cp) and user_in_branch_company(user, cp.branch_company))
+
+def can_cancel_cp(user, cp):
+    """ขอยกเลิกรายการใบเปรียบเทียบราคาได้: ผู้จัดทำ (organizer) หรือ superuser
+    เฉพาะใบที่ยังไม่ยกเลิก และตรวจสอบแล้ว หรืออยู่ในฉบับแก้ไข (เหมือนเงื่อนไขแสดงปุ่ม)"""
+    return is_cp_owner(user, cp) and not cp.is_cancel and (cp.examiner_status_id != 1 or cp.is_re_approve)
 
 def cp_edit_forbidden(user, cp):
     """หน้าแก้ไขใบเปรียบเทียบราคา คืน HttpResponseForbidden ถ้าแก้ไม่ได้ ไม่งั้นคืน None
@@ -4386,6 +4403,8 @@ def showComparePricePO(request, cp_id, mode):
         
     cancel_form = CPCancelForm(instance=cp)
     if request.method == 'POST' and 'btnformCancelCP' in request.POST:
+        if not can_cancel_cp(request.user, cp):
+            return HttpResponseForbidden('ไม่มีสิทธิขอยกเลิกใบเปรียบเทียบราคานี้')
         cancel_form = CPCancelForm(request.POST, instance=cp)
         if cancel_form.is_valid():
             cc = cancel_form.save(commit=False)
@@ -4407,6 +4426,7 @@ def showComparePricePO(request, cp_id, mode):
             'new_pr': new_pr,
             'isPurchasing':isPurchasing,
             'canRequestReApprove':can_request_cp_re_approve(request.user, cp),
+            'canCancel':can_cancel_cp(request.user, cp),
             'isSpecialCP':isSpecialCP,
             'form':form,
             'cancel_form':cancel_form,
