@@ -231,7 +231,8 @@ class ComparisonPriceSaveDraftTestCase(TestCase):
     def test_get_create_item_page_with_re_approve_flag_does_not_change_cp(self):
         self._approved_cp()
         response = self.client.get(reverse('createComparePricePOItem', args=(self.cp.id, 'True')))
-        self.assertEqual(response.status_code, 200)
+        #ใบที่ตรวจสอบแล้วเปิดหน้าแก้ไขไม่ได้ ต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน
+        self.assertEqual(response.status_code, 403)
         self.cp.refresh_from_db()
         self.assertEqual(self.cp.examiner_status_id, 2)
         self.assertFalse(self.cp.is_draft)

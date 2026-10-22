@@ -115,7 +115,8 @@ class EditPOItemLockFromComparisonPriceTestCase(TestCase):
             branch_company=self.branch,
             address_company=self.address,
             po_type=self.po_type,
-            approver_status_id=2 if cp else 1,
+            #แก้ได้เฉพาะใบที่รออนุมัติ (ใบจากใบเปรียบเทียบราคาที่ยังเป็นแบบร่าง)
+            approver_status_id=1,
             total_price=Decimal('100.00'),
             discount=Decimal('0.00'),
             total_after_discount=Decimal('100.00'),
@@ -350,8 +351,22 @@ class EditPOItemLockFromComparisonPriceTestCase(TestCase):
 
     # ---------- ขอเปลี่ยนแปลงรายละเอียดรายการ (re approve): ไม่ล็อก ----------
 
+    def _mark_re_approve(self, po):
+        """สถานะหลัง requestPOReApprove: ฉบับแก้ไข รออนุมัติ"""
+        po.is_re_approve = True
+        po.approver_status_id = 1
+        po.save()
+
+    def test_re_approve_url_flag_alone_does_not_unlock(self):
+        po, item = self._create_po(self.cp)
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'True'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['isLockPOItem'])
+
     def test_re_approve_does_not_lock(self):
         po, item = self._create_po(self.cp)
+        self._mark_re_approve(po)
         url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'True'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -362,6 +377,7 @@ class EditPOItemLockFromComparisonPriceTestCase(TestCase):
 
     def test_re_approve_saves_item_and_price_changes(self):
         po, item = self._create_po(self.cp)
+        self._mark_re_approve(po)
         url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'True'})
         post_data = {
             'purchaseorderitem_set-TOTAL_FORMS': '1',

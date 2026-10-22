@@ -114,7 +114,9 @@
                       </div>
                     {% elif request.user.is_superuser %}
                       <div style="display: flex;">
-                        <a href="{% if po.is_re_approve and po.approver_status_id == 1 %}{%url 'editPOItem' po.id False True %}{% else %}{%url 'editPOItem' po.id False False %}{% endif %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+                        {% if po.approver_status_id == 1 %}
+                          <a href="{% if po.is_re_approve %}{%url 'editPOItem' po.id False True %}{% else %}{%url 'editPOItem' po.id False False %}{% endif %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+                        {% endif %}
                         <a onclick="return confirm('คุณต้องการลบใบสั่งซื้อนี้หรือไม่ ?')" href="{% url 'removePO' po.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>                    
                       </div>
                     {% else %}
