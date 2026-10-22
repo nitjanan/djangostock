@@ -12,7 +12,7 @@ from django import http
 from django.core import paginator
 from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
-from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse, HttpResponseForbidden
+from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import redirect, render, get_object_or_404
 from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
@@ -3203,6 +3203,25 @@ def createPOItem(request, po_id):
     }
     return render(request, template_name, context)
 
+def formset_has_item_outside(formset, allowed_item_ids):
+    """มีแถวใน formset (ที่ไม่ได้ติ๊กลบ) ที่ใช้สินค้า (RequisitionItem) นอกเหนือจากที่อยู่ในเอกสารหรือไม่
+    หน้าแก้ไขให้เลือกสินค้าได้เฉพาะรายการในเอกสาร (itemList) ค่าอื่นมาจากการแก้ POST เอง"""
+    for form in formset.forms:
+        cleaned = getattr(form, 'cleaned_data', None) or {}
+        if cleaned.get('DELETE'):
+            continue
+        item = cleaned.get('item')
+        if item is not None and item.id not in allowed_item_ids:
+            return True
+    return False
+
+def item_outside_response():
+    return HttpResponseBadRequest('รายการสินค้าไม่อยู่ในเอกสารนี้')
+
+def cp_item_ids(cp_id):
+    """สินค้า (RequisitionItem) ที่อยู่ในใบเปรียบเทียบราคา (ทุกร้านค้า)"""
+    return set(ComparisonPriceItem.objects.filter(cp = cp_id).values_list('item_id', flat = True))
+
 def is_po_owner(user, po):
     """ผู้จัดทำใบสั่งซื้อ (stockman_user) หรือ superuser"""
     return user.is_superuser or (po.stockman_user_id is not None and po.stockman_user_id == user.id)
@@ -3309,6 +3328,9 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             relax_required_for_draft(form)
             relax_required_for_draft(price_form)
         if formset.is_valid() and price_form.is_valid() and form.is_valid() and form_rate.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบสั่งซื้อนี้ (itemList)
+            if formset_has_item_outside(formset, set(po_items.values_list('item_id', flat = True))):
+                return item_outside_response()
             # save ราคาใบ po
             price = price_form.save(commit=False)
             #คงราคาเดิมไว้ ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
@@ -3824,8 +3846,12 @@ def createComparePricePOItem(request, cp_id, isReApprove):
 
     elif request.method == 'POST':
         bookform = CPDModelForm(request.POST or None, request.FILES, initial={'cp': cp_id})
-        formset = CPitemFormset(request.POST)
+        #queryset ว่าง: เพิ่มได้เฉพาะแถวใหม่ ไม่งั้น form-N-id ชี้ไปแก้แถวของใบอื่นได้
+        formset = CPitemFormset(request.POST, queryset=ComparisonPriceItem.objects.none())
         if bookform.is_valid() and formset.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบเปรียบเทียบราคานี้ (itemList)
+            if formset_has_item_outside(formset, cp_item_ids(cp.id)):
+                return item_outside_response()
             # first save this book, as its reference will be used in `Author`
             book = bookform.save(commit=False)
             #ไม่เชื่อค่า cp จาก form (hidden input) ผูกกับใบตาม URL ที่ตรวจสิทธิแล้ว
@@ -3956,6 +3982,9 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
         bookform = CPDModelForm(request.POST, request.FILES, instance=data)
 
         if formset.is_valid() and bookform.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบเปรียบเทียบราคานี้ (itemList)
+            if formset_has_item_outside(formset, cp_item_ids(cp.id)):
+                return item_outside_response()
             # save ราคาใบ po
             book = bookform.save(commit=False)
             #ไม่เชื่อค่า cp จาก form (hidden input) ผูกกับใบตาม URL ที่ตรวจสิทธิแล้ว
@@ -4055,6 +4084,9 @@ def editComparePricePOItem(request, cp_id , cpd_id):
         bookform = CPDModelForm(request.POST, request.FILES, instance=data)
 
         if formset.is_valid() and bookform.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบเปรียบเทียบราคานี้ (itemList)
+            if formset_has_item_outside(formset, cp_item_ids(cp.id)):
+                return item_outside_response()
             # save ราคาใบ po
             book = bookform.save(commit=False)
             #ไม่เชื่อค่า cp จาก form (hidden input) ผูกกับใบตาม URL ที่ตรวจสิทธิแล้ว

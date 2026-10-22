@@ -18,6 +18,7 @@ from stock.models import (
     BranchCompanyBaseAdress,
     ComparisonPrice,
     ComparisonPriceDistributor,
+    ComparisonPriceItem,
     Distributor,
     PurchaseOrder,
     PurchaseOrderItem,
@@ -365,6 +366,105 @@ class ComparisonPriceEditAuthzTestCase(EditAuthzBase):
         self.assertFalse(self._client(self.colleague).get(url).context['canRequestReApprove'])
 
 
+    # ---------- สินค้าใน formset ต้องเป็นรายการในใบเปรียบเทียบราคานี้ ----------
+    def _cp_items(self):
+        """สินค้า 2 รายการ: in_cp อยู่ในใบนี้ / outside อยู่ในใบอื่นเท่านั้น"""
+        self.unit = BaseUnit.objects.create(name="ชิ้น")
+        requisit = Requisition.objects.create(
+            purchase_requisition_id=1, pr_ref_no="PR-AUTHZ-CP", name=self.owner,
+            chief_approve_user_name=self.owner, supplies_approve_user_name=self.owner,
+            branch_company=self.branch,
+        )
+        PurchaseRequisition.objects.create(requisition=requisit, branch_company=self.branch)
+        self.in_cp = RequisitionItem.objects.create(
+            requisition_id=1, requisit=requisit, product_name="In CP", quantity=5, quantity_pr=5)
+        self.outside = RequisitionItem.objects.create(
+            requisition_id=1, requisit=requisit, product_name="Outside", quantity=5, quantity_pr=5)
+        self.cpi = self._cp_item(self.cpd, self.cp, self.in_cp)
+        self.other_cpi = self._cp_item(self.other_cpd, self.other_cp, self.outside)
+
+    def _cp_item(self, cpd, cp, item):
+        return ComparisonPriceItem.objects.create(
+            item=item, bidder=cpd, cp=cp.id, quantity=Decimal('5'), unit=self.unit,
+            unit_price=Decimal('10.0000'), price=Decimal('50.00'),
+        )
+
+    def _row(self, prefix, i, item, **extra):
+        row = {
+            f'{prefix}-{i}-item': item.id, f'{prefix}-{i}-quantity': '5', f'{prefix}-{i}-unit': self.unit.id,
+            f'{prefix}-{i}-brand': '', f'{prefix}-{i}-unit_price': '10.0000', f'{prefix}-{i}-discount': '',
+            f'{prefix}-{i}-price': '50.00', f'{prefix}-{i}-description': '',
+        }
+        row.update({f'{prefix}-{i}-{k}': v for k, v in extra.items()})
+        return row
+
+    def _create_rows(self, *rows):
+        data = self._bidder_data(self.cp.id)
+        data['form-TOTAL_FORMS'] = str(len(rows))
+        for i, (item, extra) in enumerate(rows):
+            data.update(self._row('form', i, item, **extra))
+        return data
+
+    def test_create_item_accepts_item_in_cp(self):
+        self._cp_items()
+        response = self._client(self.owner).post(self._create_url(), self._create_rows((self.in_cp, {})))
+        self.assertEqual(response.status_code, 302)
+        new_cpd = ComparisonPriceDistributor.objects.filter(cp=self.cp).order_by('-id').first()
+        self.assertTrue(ComparisonPriceItem.objects.filter(bidder=new_cpd, item=self.in_cp).exists())
+
+    def test_create_item_rejects_item_outside_cp(self):
+        self._cp_items()
+        response = self._client(self.owner).post(self._create_url(), self._create_rows((self.outside, {})))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(ComparisonPriceDistributor.objects.filter(cp=self.cp).count(), 2)
+        self.assertFalse(ComparisonPriceItem.objects.filter(cp=self.cp.id, item=self.outside).exists())
+
+    def test_create_item_cannot_overwrite_row_of_other_cp(self):
+        #เดิม CPitemFormset(request.POST) ไม่มี queryset ส่ง form-0-id ของใบอื่นไปแก้แถวนั้นได้
+        self._cp_items()
+        data = self._create_rows((self.in_cp, {'id': self.other_cpi.id, 'price': '999.00'}))
+        data['form-INITIAL_FORMS'] = '1'
+        self._client(self.owner).post(self._create_url(), data)
+        self.other_cpi.refresh_from_db()
+        self.assertEqual(self.other_cpi.price, Decimal('50.00'))
+        self.assertEqual(self.other_cpi.bidder_id, self.other_cpd.id)
+        self.assertEqual(self.other_cpi.cp, self.other_cp.id)
+
+    def _inline_rows(self, existing_item, new_item=None):
+        prefix = 'comparisonpriceitem_set'
+        data = self._edit_data(self.cp.id)
+        data.update(self._row(prefix, 0, existing_item, id=self.cpi.id, bidder=self.cpd.id))
+        data[f'{prefix}-INITIAL_FORMS'] = '1'
+        data[f'{prefix}-TOTAL_FORMS'] = '1'
+        if new_item is not None:
+            data.update(self._row(prefix, 1, new_item, bidder=self.cpd.id))
+            data[f'{prefix}-TOTAL_FORMS'] = '2'
+        return data
+
+    def _check_edit_item_scope(self, name):
+        self._cp_items()
+        url = reverse(name, args=(self.cp.id, self.cpd.id))
+        client = self._client(self.owner)
+
+        #แถวใหม่ใช้สินค้าของใบอื่น
+        self.assertEqual(client.post(url, self._inline_rows(self.in_cp, self.outside)).status_code, 400)
+        #เปลี่ยนสินค้าของแถวเดิมเป็นสินค้าของใบอื่น
+        self.assertEqual(client.post(url, self._inline_rows(self.outside)).status_code, 400)
+        self.cpi.refresh_from_db()
+        self.assertEqual(self.cpi.item, self.in_cp)
+        self.assertFalse(ComparisonPriceItem.objects.filter(cp=self.cp.id, item=self.outside).exists())
+
+        #สินค้าในใบนี้ บันทึกได้ตามปกติ
+        self.assertEqual(client.post(url, self._inline_rows(self.in_cp, self.in_cp)).status_code, 302)
+        self.assertEqual(ComparisonPriceItem.objects.filter(bidder=self.cpd, item=self.in_cp).count(), 2)
+
+    def test_edit_item_rejects_item_outside_cp(self):
+        self._check_edit_item_scope('editComparePricePOItem')
+
+    def test_edit_item_from_pr_rejects_item_outside_cp(self):
+        self._check_edit_item_scope('editComparePricePOItemFromPR')
+
+
 @override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class PurchaseOrderEditAuthzTestCase(EditAuthzBase):
     """editPOItem: แก้ได้เฉพาะผู้จัดทำ/superuser เฉพาะใบที่รออนุมัติ และตัดสินฉบับแก้ไขจากฐานข้อมูล ไม่ใช่ URL"""
@@ -548,3 +648,32 @@ class PurchaseOrderEditAuthzTestCase(EditAuthzBase):
                 self.assertEqual(response.status_code, 403, (fields, user.username))
         self.po.refresh_from_db()
         self.assertNotEqual(self.po.shipping, 'KERRY')
+
+    # ---------- สินค้าใน formset ต้องเป็นรายการในใบสั่งซื้อนี้ ----------
+    def _outside_item(self):
+        return RequisitionItem.objects.create(
+            requisition_id=1, requisit=self.requisit, product_name="Outside", quantity=5, quantity_pr=5)
+
+    def test_rejects_new_row_with_item_outside_po(self):
+        outside = self._outside_item()
+        data = self._post_data()
+        data.update({
+            'purchaseorderitem_set-TOTAL_FORMS': '2',
+            'purchaseorderitem_set-1-po': self.po.id, 'purchaseorderitem_set-1-item': outside.id,
+            'purchaseorderitem_set-1-quantity': '1.0000', 'purchaseorderitem_set-1-unit': self.unit.id,
+            'purchaseorderitem_set-1-unit_price': '1.0000', 'purchaseorderitem_set-1-price': '1.00',
+        })
+        response = self._client(self.owner).post(self._url(), data)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(PurchaseOrderItem.objects.filter(po=self.po, item=outside).exists())
+        self.po.refresh_from_db()
+        self.assertNotEqual(self.po.note, 'changed')
+
+    def test_rejects_existing_row_changed_to_item_outside_po(self):
+        outside = self._outside_item()
+        data = self._post_data()
+        data['purchaseorderitem_set-0-item'] = outside.id
+        response = self._client(self.owner).post(self._url(), data)
+        self.assertEqual(response.status_code, 400)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.item, self.req_item)
