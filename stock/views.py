@@ -2901,13 +2901,18 @@ def editPO(request, po_id):
 
     return render(request, "purchaseOrder/createPO.html", context)
 
+@login_required(login_url='signIn')
 def editPOFromPR(request, po_id):
+    #สิทธิเดียวกับ editPOItem (หน้าถัดไป): ผู้จัดทำหรือ superuser และเฉพาะใบที่รออนุมัติ
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    forbidden = po_edit_forbidden(request.user, po)
+    if forbidden:
+        return forbidden
+
     active = request.session.get('company_code', 'ALL')
     company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
-
-    po = PurchaseOrder.objects.get(id=po_id)
 
     #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
     isEditApproverUserPO = can_edit_approver_user_po(request.user, po.cp_id is not None)

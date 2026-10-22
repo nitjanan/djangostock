@@ -453,3 +453,44 @@ class PurchaseOrderEditAuthzTestCase(EditAuthzBase):
         html = self._client(self.owner).get(reverse('showPO', kwargs={'po_id': self.po.id, 'mode': 1})).content.decode('utf-8')
         self.assertIn(reverse('requestPOReApprove', kwargs={'po_id': self.po.id}), html)
         self.assertNotIn(f'href="{self._url("True")}"', html)
+
+    # ---------- editPOFromPR (หน้าข้อมูลหัวใบสั่งซื้อจากใบขอซื้อ ก่อนเข้า editPOItem) ----------
+    def _from_pr_url(self):
+        return reverse('editPOFromPR', args=(self.po.id,))
+
+    def _from_pr_data(self):
+        return {
+            'distributor': self.distributor.id, 'credit': self.credit.id, 'shipping': 'KERRY',
+            'vat_type': self.vat_type.id, 'address_company': self.address.id,
+            'approver_user': '', 'due_receive_update': '2026-08-25', 'po_type': self.po_type.id,
+        }
+
+    def test_from_pr_requires_login(self):
+        self.assertRedirectsToSignIn(self._client().get(self._from_pr_url()))
+
+    def test_from_pr_owner_and_superuser_edit_pending_po(self):
+        self.assertEqual(self._client(self.superuser).get(self._from_pr_url()).status_code, 200)
+        response = self._client(self.owner).post(self._from_pr_url(), self._from_pr_data())
+        self.assertRedirects(
+            response,
+            reverse('editPOItem', kwargs={'po_id': self.po.id, 'isFromPR': 'True', 'isReApprove': 'False'}),
+            fetch_redirect_response=False,
+        )
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.shipping, 'KERRY')
+
+    def test_from_pr_colleague_forbidden(self):
+        client = self._client(self.colleague)
+        self.assertEqual(client.get(self._from_pr_url()).status_code, 403)
+        self.assertEqual(client.post(self._from_pr_url(), self._from_pr_data()).status_code, 403)
+        self.po.refresh_from_db()
+        self.assertNotEqual(self.po.shipping, 'KERRY')
+
+    def test_from_pr_approved_or_cancelled_po_forbidden_even_for_superuser(self):
+        for fields in ({'approver_status_id': 2}, {'approver_status_id': 1, 'is_cancel': True, 'cancel_reason': 'x'}):
+            self._set(**fields)
+            for user in (self.owner, self.superuser):
+                response = self._client(user).post(self._from_pr_url(), self._from_pr_data())
+                self.assertEqual(response.status_code, 403, (fields, user.username))
+        self.po.refresh_from_db()
+        self.assertNotEqual(self.po.shipping, 'KERRY')
