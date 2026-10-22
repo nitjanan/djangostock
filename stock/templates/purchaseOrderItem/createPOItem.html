@@ -170,12 +170,16 @@
             </div>
             <div class="row spacer my-3">
                 <div class="col">
-                    <button type="submit" class="btn btn-primary hidden-print"><i class="fas fa-save"></i>
-                      บันทึก
+                    <input type="hidden" name="save_draft" id="id_save_draft" value="">
+                    <button type="submit" class="btn btn-secondary hidden-print" formnovalidate onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
+                      บันทึกแบบร่าง
+                    </button>
+                    <button type="submit" class="btn btn-primary hidden-print" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
+                      บันทึกและส่งอนุมัติ
                     </button>
                 </div>
                 <div>
-                  <button type="button" class="col btn btn-secondary pull-right hidden-print" onclick="scrollToTop();window.print();">
+                  <button type="button" class="col btn btn-outline-info pull-right hidden-print" onclick="scrollToTop();window.print();">
                       <i class="fas fa-print"></i>
                       ปริ้นใบสั่งซื้อ
                   </button>

@@ -60,6 +60,7 @@ class ViewPOEditLinkTestCase(TestCase):
             po_type=self.po_type,
             approver_status_id=approver_status_id,
             is_re_approve=is_re_approve,
+            is_draft=False,  #ใบที่ส่งอนุมัติแล้ว อยู่แท็ป กำลังดำเนินการ (ค่าเริ่มต้นของ model เป็นแบบร่าง)
             total_price=Decimal('100.00'),
             amount=Decimal('107.00'),
             due_receive_update=datetime.date(2026, 7, 20),

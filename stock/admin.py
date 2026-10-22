@@ -555,3 +555,48 @@ class UserAdmin(ImportExportModelAdmin, DjangoUserAdmin):
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
+
+from stock.models import DocumentChangeLog
+
+
+@admin.register(DocumentChangeLog)
+class DocumentChangeLogAdmin(admin.ModelAdmin):
+    """log การแก้ไขใบเปรียบเทียบราคา / ใบสั่งซื้อ ดูได้อย่างเดียว"""
+    list_display = ('created', 'doc_type', 'doc_ref_no', 'model_name', 'object_id', 'action', 'user', 'changed_fields')
+    list_filter = ('doc_type', 'action', 'model_name', 'created')
+    search_fields = ('doc_ref_no', '=doc_id', 'user__username', 'user__first_name', 'object_repr')
+    date_hierarchy = 'created'
+    list_select_related = ('user',)
+    readonly_fields = ('created', 'doc_type', 'doc_id', 'doc_ref_no', 'model_name', 'object_id', 'object_repr', 'action', 'user', 'path', 'changes_table')
+    exclude = ('changes',)
+
+    @admin.display(description='ช่องที่เปลี่ยน')
+    def changed_fields(self, obj):
+        return ', '.join((obj.changes or {}).keys())
+
+    @admin.display(description='ข้อมูลที่เปลี่ยน')
+    def changes_table(self, obj):
+        rows = []
+        for field, value in (obj.changes or {}).items():
+            if isinstance(value, dict) and 'old' in value:
+                rows.append((field, value.get('old'), value.get('new')))
+            elif obj.action == 'delete':
+                #ลบ: เก็บข้อมูลก่อนลบไว้เป็นค่าเดิม
+                rows.append((field, value, ''))
+            else:
+                rows.append((field, '', value))
+        if not rows:
+            return '-'
+        return format_html(
+            '<table><tr><th>ช่อง</th><th>ค่าเดิม</th><th>ค่าใหม่</th></tr>{}</table>',
+            format_html_join('', '<tr><td>{}</td><td>{}</td><td>{}</td></tr>', rows),
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

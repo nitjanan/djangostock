@@ -23,3 +23,19 @@ class RequireCompanyCodeMiddleware:
             return redirect(reverse('signIn'))
 
         return self.get_response(request)
+
+
+class AuditUserMiddleware:
+    """เก็บ user และ path ของ request ปัจจุบัน ให้ signals ใช้บันทึก DocumentChangeLog ว่าใครแก้ไข"""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from stock.audit import set_audit_request, reset_audit_request
+
+        token = set_audit_request(request)
+        try:
+            return self.get_response(request)
+        finally:
+            reset_audit_request(token)

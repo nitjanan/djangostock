@@ -4,6 +4,10 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_draft_tabs_style.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h3 align="center">ใบเปรียบเทียบราคา</h3>
@@ -11,6 +15,7 @@
         <div class="card-body">
           <form method="get">
             {% csrf_token %}
+            <input type="hidden" name="tab" value="{{ tab }}">
             <div class="form-row">
               <div class="form-group col-md-2 mb-0">
                 {{ filter.form.ref_no|as_crispy_field }}
@@ -55,6 +60,7 @@
         </div>
       </div>
     <div class="card div-shadow">
+        {% include '_draft_tabs.html' %}
         <div class="card-body">
             <!-- a class="btn btn-primary btn-block btn-sm" href="{%url 'prepareComparePricePO' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบเปรียบเทียบราคา</a-->
           <div class="table-responsive">
@@ -75,7 +81,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 1 %}">{{cp.ref_no}}</a></th>
+                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 1 %}">{{cp.ref_no}}</a>{% if cp.is_draft %} <span class="badge badge-secondary">แบบร่าง</span>{% endif %}</th>
                   <td>
                     {% for pr in prs %}
                         {% if cp.id == pr.cp %}
