@@ -16,10 +16,12 @@ from django.contrib.messages import constants as messages
 from datetime import timedelta
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ระบุไฟล์ .env ของโปรเจคตรงๆ: load_dotenv() เปล่าๆ จะหาจาก cwd แทนเมื่อรันใต้ debugger / shell แล้วไม่เจอไฟล์
+# (ค่าที่ตั้งใน environment ของเครื่องอยู่แล้ว เช่นบน server ยังใช้ค่านั้นก่อน ไม่โดน .env ทับ)
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
