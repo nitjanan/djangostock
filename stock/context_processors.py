@@ -220,7 +220,7 @@ def approvePOCounter(request):
     if isPermiss and in_company:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
@@ -235,7 +235,7 @@ def approvePOCounter(request):
     if request.user.is_authenticated:
         try:
             #ดึงข้อมูล PurchaseOrder
-            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user = request.user, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             cm_po_item = None
     
@@ -384,7 +384,7 @@ def approveCPAllCounter(request):
     #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
     ecm_item = []
     try:
-        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, examiner_user = request.user, branch_company__code__in = company_in)
+        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, is_draft = False, examiner_user = request.user, branch_company__code__in = company_in)
     except :
         ecm_item = None
 
@@ -400,7 +400,7 @@ def approveCPAllCounter(request):
     #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
     acm_item = []
     try:
-        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
+        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, is_draft = False, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
     except :
         acm_item = None
         
@@ -434,7 +434,7 @@ def approveCPAllCounter(request):
             for pm in pmAA:
                 try:
                     #ดึงข้อมูล PurchaseOrder
-                    obj = ComparisonPriceDistributor.objects.filter(cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter(cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, cp__is_draft = False, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
                     cpd_item.append(obj)
                 except ComparisonPriceDistributor.DoesNotExist:
                     pass
@@ -801,7 +801,7 @@ def findAllApproveAlert(request, tab):
     if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             po_item = None
 
@@ -816,7 +816,7 @@ def findAllApproveAlert(request, tab):
     if request.user.is_authenticated:
         try:
             #ดึงข้อมูล PurchaseOrder
-            cm_po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            cm_po_item = PurchaseOrder.objects.filter(approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user = request.user, branch_company__code__in = tab) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             cm_po_item = None
     
@@ -916,7 +916,7 @@ def findAllApproveAlert(request, tab):
     #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
     ecm_item = []
     try:
-        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, examiner_user = request.user, branch_company__code__in = tab)
+        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, is_draft = False, examiner_user = request.user, branch_company__code__in = tab)
     except ComparisonPrice.DoesNotExist:
         ecm_item = None
 
@@ -931,7 +931,7 @@ def findAllApproveAlert(request, tab):
     #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
     acm_item = []
     try:
-        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = tab)
+        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, is_draft = False, approver_status = 1, approver_user = request.user, branch_company__code__in = tab)
     except ComparisonPrice.DoesNotExist:
         acm_item = None
         
@@ -965,7 +965,7 @@ def findAllApproveAlert(request, tab):
             for pm in pmAA:
                 try:
                     #ดึงข้อมูล PurchaseOrder
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, cp__is_draft = False, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
                     cpd_item.append(obj)
                 except ComparisonPriceDistributor.DoesNotExist:
                     pass

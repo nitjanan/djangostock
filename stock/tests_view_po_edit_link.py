@@ -60,6 +60,7 @@ class ViewPOEditLinkTestCase(TestCase):
             po_type=self.po_type,
             approver_status_id=approver_status_id,
             is_re_approve=is_re_approve,
+            is_draft=False,  #ใบที่ส่งอนุมัติแล้ว อยู่แท็ป กำลังดำเนินการ (ค่าเริ่มต้นของ model เป็นแบบร่าง)
             total_price=Decimal('100.00'),
             amount=Decimal('107.00'),
             due_receive_update=datetime.date(2026, 7, 20),
@@ -98,7 +99,8 @@ class ViewPOEditLinkTestCase(TestCase):
         html = self._get_html()
         self.assertIn(f'href="{self._edit_url(po, True)}"', html)
 
-    def test_superuser_re_approve_approved_links_to_normal_edit(self):
+    def test_superuser_approved_po_has_no_edit_link(self):
+        #ใบที่อนุมัติแล้ว superuser ก็ต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน (editPOItem ตอบ 403)
         self.user.is_superuser = True
         self.user.save()
         other = User.objects.create_user(username='other_stockman', password='password')
@@ -106,5 +108,5 @@ class ViewPOEditLinkTestCase(TestCase):
         po.stockman_user = other
         po.save()
         html = self._get_html()
-        self.assertIn(f'href="{self._edit_url(po, False)}"', html)
+        self.assertNotIn(f'href="{self._edit_url(po, False)}"', html)
         self.assertNotIn(f'href="{self._edit_url(po, True)}"', html)

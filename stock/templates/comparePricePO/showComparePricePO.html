@@ -339,15 +339,21 @@
         </div>
       </div>
     <div class="row my-3 d-print-none">
-     {% if cp.examiner_status_id != 1 and isPurchasing and not cp.is_cancel%}
-        <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+     {% if cp.examiner_status_id != 1 and not cp.is_cancel and canRequestReApprove %}
+        <form method="post" action="{% url 'requestCPReApprove' cp.id %}" class="d-inline" onsubmit="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</button>
+        </form>
+     {% endif %}
+     {% if canCancel %}
+        <!-- ขอยกเลิกรายการ: เฉพาะผู้จัดทำ (organizer) หรือ superuser -->
         <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
      {% endif %}
-     {% if cp.is_re_approve and isPurchasing and not cp.is_cancel%}
-        <button type="button" class="btn btn-danger d-print-none ml-2" data-toggle="modal" data-target="#cancelCP"><i class="fas fa-window-close"></i> ขอยกเลิกรายการ</button>
-     {% endif %}
-     {% if cp.is_cancel and isPurchasing %}
-        <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'createComparePricePOItem' cp.id True %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
+     {% if cp.is_cancel and canRequestReApprove %}
+        <form method="post" action="{% url 'requestCPReApprove' cp.id %}" class="d-inline" onsubmit="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</button>
+        </form>
      {% endif %}
     </div>
     <form method="post" enctype="multipart/form-data">

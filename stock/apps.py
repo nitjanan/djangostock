@@ -3,3 +3,7 @@ from django.apps import AppConfig
 class StockConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'stock'
+
+    def ready(self):
+        #log การแก้ไขใบเปรียบเทียบราคา / ใบสั่งซื้อ
+        import stock.signals  # noqa: F401

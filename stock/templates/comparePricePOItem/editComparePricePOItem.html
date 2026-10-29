@@ -59,7 +59,11 @@
         <li class="list-group-item {%if link_cpd_id == d.id%}list-group-item-warning{%endif%} ">
             <h3 class="float-left">{{forloop.counter}}. {{d.distributor}}</h3>
             <a href="{% url 'editComparePricePOItem' d.cp.id d.id%}" class="btn btn-warning float-right"><i class="fas fa-pen"></i> แก้ไข</a>
-            <a onclick="return confirm('คุณต้องการลบผู้จำหน่าย {{d.distributor}} หรือไม่ ?')" href="{% url 'removeComparePriceDistributor' d.cp.id d.id%}" class="btn btn-danger float-right"><i class="fas fa-trash-alt"></i> ลบ</a>
+            <!-- ลบผู้จำหน่ายด้วย POST (มี CSRF) -->
+            <form method="post" action="{% url 'removeComparePriceDistributor' d.cp.id d.id%}" class="float-right" onsubmit="return confirm('คุณต้องการลบผู้จำหน่าย {{d.distributor}} หรือไม่ ?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</button>
+            </form>
         </li>
         <li class="list-group-item">
             <div class="row">

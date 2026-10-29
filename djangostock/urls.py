@@ -106,6 +106,7 @@ urlpatterns = [
 
     path('purchaseOrderItem/create/<int:po_id>',views.createPOItem,name="createPOItem"),
     path('purchaseOrderItem/edit/<int:po_id>/<str:isFromPR>/<str:isReApprove>',views.editPOItem,name="editPOItem"),
+    path('purchaseOrder/requestReApprove/<int:po_id>',views.requestPOReApprove,name="requestPOReApprove"),
     path('purchaseOrderItem/createFromComparisonPrice/<int:po_id>',views.createPOItemFromComparisonPrice,name="createPOItemFromComparisonPrice"),
 
     path('purchaseOrderApprove/',views.viewPOApprove,name="viewPOApprove"),
@@ -120,6 +121,7 @@ urlpatterns = [
     path('comparePricePO/show/<int:cp_id>/<int:mode>',views.showComparePricePO,name="showComparePricePO"),
 
     path('comparePricePOItem/create/<int:cp_id>/<str:isReApprove>',views.createComparePricePOItem,name="createComparePricePOItem"),
+    path('comparePricePO/requestReApprove/<int:cp_id>',views.requestCPReApprove,name="requestCPReApprove"),
     path('comparePricePOItem/edit/<int:cp_id>/<int:cpd_id>',views.editComparePricePOItem,name="editComparePricePOItem"),
     path('comparePricePOItem/editFromPR/<int:cp_id>/<int:cpd_id>',views.editComparePricePOItemFromPR,name="editComparePricePOItemFromPR"),
     path('comparePriceDistributor/remove/<int:cp_id>/<int:cpd_id>',views.removeComparePriceDistributor,name="removeComparePriceDistributor"),

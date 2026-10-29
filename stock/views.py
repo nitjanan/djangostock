@@ -12,7 +12,7 @@ from django import http
 from django.core import paginator
 from django.db.models.fields import NullBooleanField
 from django.db.models.query import QuerySet
-from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse
+from django.http import request, HttpResponseRedirect, HttpResponse ,JsonResponse, HttpResponseNotAllowed, StreamingHttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import redirect, render, get_object_or_404
 from stock.models import BaseAffiliatedCompany, BaseBranchCompany, BaseDepartment, BaseSparesType, BaseUnit, BaseUrgency, Category, Distributor, Position, Product, Cart, CartItem, Order, OrderItem, PurchaseOrder, PurchaseRequisition, Receive, ReceiveItem, Requisition, RequisitionItem, CrudUser, BaseApproveStatus, UserProfile,PositionBasePermission, PurchaseOrderItem,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, BasePermission, BaseVisible, BranchCompanyBaseAdress, RateDistributor, BasePOType, BaseCar, BaseRepairType, Invoice, InvoiceItem, BaseExpenseDepartment, ExOESTND, ExOESTNH, ExOEINVH, ExOEINVD, Maintenance, BaseMAType, CarLogbook, UserCarDepartment, BaseJobCarDep, ApproveCarDepartment, PmRoundItem, ExAPTRNH, BaseCarDepartment, BaseCarType , Distributor, DistributorCandidate, DistributorForm, BaseVatType, BaseDistributorType, BaseDistributorGenre, PLACE_SOURCE_MANUAL, BasePrefix, BaseCredit, BaseVendorOrigin
 from stock.forms import SignUpForm, RequisitionForm, RequisitionItemForm, PurchaseRequisitionForm, UserProfileForm, PurchaseOrderForm, PurchaseOrderPriceForm, ComparisonPriceForm, CPDModelForm, CPDForm, CPSelectBidderForm, PurchaseOrderFromComparisonPriceForm, ReceiveForm, ReceivePriceForm, PurchaseOrderReceiptForm, RequisitionMemorandumForm, PurchaseRequisitionAddressCompanyForm, ComparisonPriceAddressCompanyForm, PurchaseOrderAddressCompanyForm, PurchaseOrderCancelForm, RateDistributorForm, PurchaseRequisitionOrganizerForm, MaintenanceForm, CarLogbookForm, RoiCarLogbookForm, CrMaintenanceForm, CPCancelForm
@@ -38,6 +38,7 @@ from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_de
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
+from django.core.exceptions import FieldDoesNotExist
 import json
 from django.core.serializers import serialize
 from django.db.models import Count, Avg
@@ -585,7 +586,7 @@ def index(request, category_slug = None):
     if isPermiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = isPermiss_po) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
 
@@ -600,7 +601,7 @@ def index(request, category_slug = None):
     if request.user.is_authenticated:
         try:
             #ดึงข้อมูล PurchaseOrder
-            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user = request.user, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            cm_po_item = PurchaseOrder.objects.all().filter(approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user = request.user, branch_company__code__in = company_in) #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             cm_po_item = None
     
@@ -696,7 +697,7 @@ def index(request, category_slug = None):
     #ถ้าเป็นผู้ตรวจสอบ ใบเปรียบเทียบ
     ecm_item = []
     try:
-        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, examiner_user = request.user, branch_company__code__in = company_in)
+        ecm_item = ComparisonPrice.objects.filter(examiner_status = 1, is_draft = False, examiner_user = request.user, branch_company__code__in = company_in)
     except ComparisonPrice.DoesNotExist:
         ecm_item = None
 
@@ -713,7 +714,7 @@ def index(request, category_slug = None):
     #ถ้าเป็นผู้อนุมัติ ใบเปรียบเทียบ
     acm_item = []
     try:
-        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
+        acm_item = ComparisonPrice.objects.filter(examiner_status = 2, is_draft = False, approver_status = 1, approver_user = request.user, branch_company__code__in = company_in)
     except ComparisonPrice.DoesNotExist:
         acm_item = None
         
@@ -746,7 +747,7 @@ def index(request, category_slug = None):
             for pm in pmAA:
                 try:
                     #ดึงข้อมูล PurchaseOrder
-                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
+                    obj = ComparisonPriceDistributor.objects.filter( cp__examiner_status = 2,cp__approver_status = 2, cp__special_approver_status = 1, cp__is_draft = False, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code = aa['branch_company__code']).values("cp")
                     cpd_item.append(obj)
                 except ComparisonPriceDistributor.DoesNotExist:
                     pass
@@ -2832,6 +2833,9 @@ def viewPO(request):
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
     data = myFilter.qs
 
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง
+    data, tab_context = split_draft_tab(request, data)
+
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
@@ -2846,7 +2850,8 @@ def viewPO(request):
         'po_page': "tab-active",
         'po_show': "show",
         active :"active show",
-        "colorNav":"enableNav"
+        "colorNav":"enableNav",
+        **tab_context,
     }
     return render(request, "purchaseOrder/viewPO.html", context)
 
@@ -2898,13 +2903,18 @@ def editPO(request, po_id):
 
     return render(request, "purchaseOrder/createPO.html", context)
 
+@login_required(login_url='signIn')
 def editPOFromPR(request, po_id):
+    #สิทธิเดียวกับ editPOItem (หน้าถัดไป): ผู้จัดทำหรือ superuser และเฉพาะใบที่รออนุมัติ
+    po = get_object_or_404(PurchaseOrder, id=po_id)
+    forbidden = po_edit_forbidden(request.user, po)
+    if forbidden:
+        return forbidden
+
     active = request.session.get('company_code', 'ALL')
     company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
-
-    po = PurchaseOrder.objects.get(id=po_id)
 
     #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
     isEditApproverUserPO = can_edit_approver_user_po(request.user, po.cp_id is not None)
@@ -3055,6 +3065,8 @@ def showPO(request, po_id, mode):
 
     cancel_form = PurchaseOrderCancelForm(instance=po)
     if request.method == 'POST' and 'btnformCancelPO' in request.POST:
+        if not can_cancel_po(request.user, po):
+            return HttpResponseForbidden('ไม่มีสิทธิขอยกเลิกใบสั่งซื้อนี้')
         cancel_form = PurchaseOrderCancelForm(request.POST, instance=po)
         if cancel_form.is_valid():
             cc = cancel_form.save(commit=False)
@@ -3079,6 +3091,8 @@ def showPO(request, po_id, mode):
             'form': form,
             'isUploadeReceipt':isUploadeReceipt,
             'isPurchasing':isPurchasing,
+            'canRequestReApprove':can_request_po_re_approve(request.user, po),
+            'canCancel':can_cancel_po(request.user, po),
             'mode': mode,
             'poa_form':poa_form,
             'cancel_form':cancel_form,
@@ -3126,6 +3140,19 @@ def rePOItemIsUse(po_id):
         except RequisitionItem.DoesNotExist:
             pass
 
+def relax_required_for_draft(form):
+    """บันทึกแบบร่าง: ไม่บังคับกรอกช่องที่ในฐานข้อมูลเว้นว่างได้ (null=True)"""
+    for name, field in form.fields.items():
+        try:
+            if form._meta.model._meta.get_field(name).null:
+                field.required = False
+        except FieldDoesNotExist:
+            pass
+
+def is_save_draft(request):
+    """กดปุ่มบันทึกแบบร่าง (ส่งค่าผ่าน hidden input เพราะปุ่ม submit ถูก disable ตอนกดบันทึก)"""
+    return request.POST.get('save_draft') == '1'
+
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
@@ -3154,6 +3181,8 @@ def createPOItem(request, po_id):
                 price.discount = 0.00
             if not price.freight:
                 price.freight = 0.00
+            #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้อนุมัติ
+            price.is_draft = is_save_draft(request)
             price.save()
 
             # save po item
@@ -3179,7 +3208,85 @@ def createPOItem(request, po_id):
     }
     return render(request, template_name, context)
 
+def formset_has_item_outside(formset, allowed_item_ids):
+    """มีแถวใน formset ที่ใช้สินค้า (RequisitionItem) นอกเหนือจากที่อยู่ในเอกสารหรือไม่
+    หน้าแก้ไขให้เลือกสินค้าได้เฉพาะรายการในเอกสาร (itemList) ค่าอื่นมาจากการแก้ POST เอง
+    ตรวจแถวที่ติ๊กลบด้วย เพราะตอนลบ view คำนวณจำนวนที่ใช้ไปใหม่จาก obj.item ซึ่งเป็นค่าที่ส่งมา
+    และแถวเดิมที่ติ๊กลบต้องเป็นสินค้าเดิมที่บันทึกไว้"""
+    for form in formset.forms:
+        cleaned = getattr(form, 'cleaned_data', None) or {}
+        item = cleaned.get('item')
+        if item is None:
+            continue
+        if item.id not in allowed_item_ids:
+            return True
+        if cleaned.get('DELETE') and form.instance.pk and item.id != form.initial.get('item'):
+            return True
+    return False
+
+def item_outside_response():
+    return HttpResponseBadRequest('รายการสินค้าไม่อยู่ในเอกสารนี้')
+
+def cp_item_ids(cp_id):
+    """สินค้า (RequisitionItem) ที่อยู่ในใบเปรียบเทียบราคา (ทุกร้านค้า)"""
+    return set(ComparisonPriceItem.objects.filter(cp = cp_id).values_list('item_id', flat = True))
+
+def is_po_owner(user, po):
+    """ผู้จัดทำใบสั่งซื้อ (stockman_user) หรือ superuser"""
+    return user.is_superuser or (po.stockman_user_id is not None and po.stockman_user_id == user.id)
+
+def can_request_po_re_approve(user, po):
+    """ขอเปลี่ยนแปลงรายละเอียดใบสั่งซื้อได้: superuser หรือจัดซื้อที่เป็นผู้จัดทำและอยู่บริษัทของใบสั่งซื้อ"""
+    return user.is_superuser or (
+        is_purchasing(user) and is_po_owner(user, po) and user_in_branch_company(user, po.branch_company))
+
+def can_cancel_po(user, po):
+    """ขอยกเลิกรายการใบสั่งซื้อได้: ผู้จัดทำ (stockman_user) หรือ superuser
+    เฉพาะใบที่ยังไม่ยกเลิก และผ่านการอนุมัติแล้ว หรืออยู่ในฉบับแก้ไข (เหมือนเงื่อนไขแสดงปุ่ม)"""
+    return is_po_owner(user, po) and not po.is_cancel and (po.approver_status_id != 1 or po.is_re_approve)
+
+def po_edit_forbidden(user, po):
+    """หน้าแก้ไขใบสั่งซื้อ (editPOItem) คืน HttpResponseForbidden ถ้าแก้ไม่ได้ ไม่งั้นคืน None
+    - แก้ได้เฉพาะผู้จัดทำ (stockman_user) หรือ superuser
+    - แก้ได้เฉพาะใบที่รออนุมัติ ใบที่ยกเลิกแล้วต้องขอเปลี่ยนแปลงรายละเอียดรายการ (requestPOReApprove) ก่อน
+      ใบที่อนุมัติ/ไม่อนุมัติแล้วก็เช่นกัน (รวมถึง superuser)"""
+    if not is_po_owner(user, po):
+        return HttpResponseForbidden('ไม่มีสิทธิแก้ไขใบสั่งซื้อนี้')
+    if po.approver_status_id != 1 or (po.is_cancel and not po.is_re_approve):
+        return HttpResponseForbidden('แก้ไขได้เฉพาะใบสั่งซื้อที่รออนุมัติ กรุณาขอเปลี่ยนแปลงรายละเอียดรายการก่อน')
+    return None
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def requestPOReApprove(request, po_id):
+    """ขอเปลี่ยนแปลงรายละเอียดรายการใบสั่งซื้อ (ฉบับแก้ไข)
+    ใบที่อนุมัติ/ไม่อนุมัติ/ยกเลิกแล้ว กลับเป็นรอดำเนินการ และเป็นแบบร่างก่อน
+    ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ" ในหน้าแก้ไข
+    ใบที่ยกเลิกแล้ว จะกลับเป็นรายการปกติตอนบันทึกในหน้าแก้ไข
+    รับเฉพาะ POST (มี CSRF) และเฉพาะ can_request_po_re_approve"""
+    po = get_object_or_404(PurchaseOrder, id = po_id)
+    if not can_request_po_re_approve(request.user, po):
+        return HttpResponseForbidden('ไม่มีสิทธิขอเปลี่ยนแปลงรายละเอียดใบสั่งซื้อนี้')
+
+    #ใบที่ส่งขออนุมัติใหม่ไปแล้ว (รอดำเนินการ) จะไม่ถูกดึงกลับเป็นแบบร่าง
+    if po.approver_status_id != 1 or po.is_cancel:
+        po.approver_status_id = 1
+        po.approver_update = None
+        po.is_re_approve = True
+        po.is_draft = True
+        po.save()
+    return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'True')
+
+@login_required(login_url='signIn')
 def editPOItem(request, po_id, isFromPR, isReApprove):
+    #isReApprove ใน URL ไม่ใช้ตัดสินสิทธิ ใช้สถานะในฐานข้อมูล (po.is_re_approve ตั้งโดย requestPOReApprove) แทน
+    po_data = get_object_or_404(PurchaseOrder, id = po_id)
+    forbidden = po_edit_forbidden(request.user, po_data)
+    if forbidden:
+        return forbidden
+    #กำลังขอเปลี่ยนแปลงรายละเอียดรายการ (ฉบับแก้ไข) ที่ยังรออนุมัติ
+    inReApprove = po_data.is_re_approve
+
     active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
@@ -3207,12 +3314,11 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
-    po_data = PurchaseOrder.objects.get(id = po_id)
     po_items = PurchaseOrderItem.objects.filter(po = po_id)
 
     #ใบสั่งซื้อที่สร้างจากใบเปรียบเทียบราคา ล็อกไม่ให้แก้ไขรายการสินค้าและราคา
     #ยกเว้นกรณีขอเปลี่ยนแปลงรายละเอียดรายการ (re approve) ให้แก้ไขได้
-    isLockPOItem = po_data.cp_id is not None and not get_bool(isReApprove)
+    isLockPOItem = po_data.cp_id is not None and not inReApprove
     locked_price_value = {}
     if isLockPOItem:
         for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
@@ -3221,13 +3327,24 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #ใบสั่งซื้อ 1 ใบอาจมีรายการประเมินร้านค้าซ้ำได้ ให้ใช้รายการล่าสุด
     rate_dist = RateDistributor.objects.filter(po = po_id).order_by('-id').first()
 
+    #บันทึกแบบร่างได้เฉพาะใบที่ยังไม่อนุมัติ (ฉบับแก้ไขถูกตั้งเป็นรอดำเนินการแล้ว)
+    canSaveDraft = po_data.approver_status_id == 1
+    wasDraft = po_data.is_draft
+
     form = PurchaseOrderForm(instance=po_data)
     if request.method == "POST":
+        isDraft = canSaveDraft and is_save_draft(request)
         formset = PurchaseOrderItemInlineFormset(request.POST, request.FILES, instance=po_data)
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         form = PurchaseOrderForm(request.POST, request.FILES, instance=po_data)
         form_rate = RateDistributorForm(request.POST, request.FILES, instance=rate_dist)
+        if isDraft:
+            relax_required_for_draft(form)
+            relax_required_for_draft(price_form)
         if formset.is_valid() and price_form.is_valid() and form.is_valid() and form_rate.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบสั่งซื้อนี้ (itemList)
+            if formset_has_item_outside(formset, set(po_items.values_list('item_id', flat = True))):
+                return item_outside_response()
             # save ราคาใบ po
             price = price_form.save(commit=False)
             #คงราคาเดิมไว้ ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
@@ -3239,15 +3356,20 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 price.freight = 0.00
 
             're approve po'
-            if price.is_re_approve == False:
-                price.is_re_approve = get_bool(isReApprove)
-            if get_bool(isReApprove) == True:
+            if inReApprove:
                 #เปิดให้ผู้อนุมัติ อนุมัติรายการใหม่
                 price.approver_status_id = 1
                 price.approver_update = None
                 #เปลี่ยนสถานะยกเลิก เป็นรายการปกติ
                 price.is_cancel = False
                 price.cancel_reason = None
+            #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้อนุมัติ / บันทึกและส่งอนุมัติ
+            if canSaveDraft:
+                price.is_draft = isDraft
+            #ใบที่ออกจากใบเปรียบเทียบราคา (ที่อนุมัติแล้ว) ซึ่งเคยบันทึกแบบร่างไว้ ให้อนุมัติอัตโนมัติตอนส่ง
+            #ฉบับแก้ไขต้องให้ผู้อนุมัติอนุมัติใหม่เสมอ
+            if wasDraft and not isDraft and price.cp_id and not inReApprove:
+                auto_approve_po_from_cp(price, price.cp)
             price.save()
 
             #ประเมินร้านค้า
@@ -3361,6 +3483,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'form_rate': form_rate,
         'isFromPR':isFromPR,
         'isLockPOItem':isLockPOItem,
+        'canSaveDraft':canSaveDraft,
         'itemList':itemList,
         'new_pr':new_pr,
         'isEditPO':isEditPO,
@@ -3379,7 +3502,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
 def viewPOApprove(request):
     active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
-    data = PurchaseOrder.objects.filter(approver_status_id = 1, amount__isnull = False, amount__gt = 0, branch_company__code__in = company_in)
+    data = PurchaseOrder.objects.filter(approver_status_id = 1, amount__isnull = False, amount__gt = 0, is_draft = False, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
@@ -3447,7 +3570,7 @@ def editPOApprove(request, po_id, isFromHome):
     if request.user.is_authenticated:
         try:
             #ดึงข้อมูล PurchaseOrder
-            isPermiss_po1 = PurchaseOrder.objects.filter(id = po_id, approver_user = request.user, branch_company__code__in = company_in).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            isPermiss_po1 = PurchaseOrder.objects.filter(id = po_id, approver_user = request.user, is_draft = False, branch_company__code__in = company_in).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
 
@@ -3455,7 +3578,7 @@ def editPOApprove(request, po_id, isFromHome):
     if permiss_po:
         try:
             #ดึงข้อมูล PurchaseOrder
-            isPermiss_po2 = PurchaseOrder.objects.filter(id = po_id, approver_status = 1, amount__isnull = False, amount__gt = 0, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = permiss_po).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            isPermiss_po2 = PurchaseOrder.objects.filter(id = po_id, approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False, approver_user__isnull = True, cp__isnull = True, branch_company__code__in = permiss_po).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseOrder.DoesNotExist:
             pass
 
@@ -3499,6 +3622,25 @@ def editPOApprove(request, po_id, isFromHome):
     }
     return render(request, 'purchaseOrderApprove/editPOApprove.html',context)
 
+def split_draft_tab(request, data):
+    """แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง ของหน้ารายการ
+    คืน queryset เฉพาะแท็ปที่เลือก และ context สำหรับ _draft_tabs.html"""
+    tab = 'draft' if request.GET.get('tab') == 'draft' else 'process'
+    count_draft = data.filter(is_draft = True).count()
+    count_process = data.filter(is_draft = False).count()
+
+    #query string ของตัวกรอง (ไม่รวม tab และ page) ใช้ต่อท้ายลิงก์แท็ป
+    tab_qs = request.GET.copy()
+    for key in ('tab', 'page'):
+        tab_qs.pop(key, None)
+
+    return data.filter(is_draft = (tab == 'draft')), {
+        'tab': tab,
+        'tab_qs': tab_qs.urlencode(),
+        'count_draft': count_draft,
+        'count_process': count_process,
+    }
+
 @login_required(login_url='signIn')
 def viewComparePricePO(request):
     active = request.session.get('company_code', 'ALL')
@@ -3511,6 +3653,9 @@ def viewComparePricePO(request):
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
+
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง
+    data, tab_context = split_draft_tab(request, data)
 
     bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
@@ -3526,6 +3671,7 @@ def viewComparePricePO(request):
         'cp_show': "show",
         active :"active show",
         "colorNav":"enableNav",
+        **tab_context,
     }
 
     return render(request, 'comparePricePO/viewComparePricePO.html',context)
@@ -3613,9 +3759,82 @@ def prepareComparePricePO(request):
     cp.save()
     return HttpResponseRedirect(reverse('createComparePricePOItem', args=(cp.id, 'False')))
 
+def user_in_branch_company(user, branch_company):
+    """user อยู่ในบริษัท (BaseBranchCompany) ของเอกสารหรือไม่"""
+    return branch_company is not None and BaseBranchCompany.objects.filter(
+        userprofile__user = user, code = branch_company.code).exists()
+
+def is_cp_owner(user, cp):
+    """ผู้จัดทำใบเปรียบเทียบราคา (organizer) หรือ superuser"""
+    return user.is_superuser or (cp.organizer_id is not None and cp.organizer_id == user.id)
+
+def can_request_cp_re_approve(user, cp):
+    """ขอเปลี่ยนแปลงรายละเอียดใบเปรียบเทียบราคาได้: superuser หรือจัดซื้อที่เป็นผู้จัดทำและอยู่บริษัทของใบ"""
+    return user.is_superuser or (
+        is_purchasing(user) and is_cp_owner(user, cp) and user_in_branch_company(user, cp.branch_company))
+
+def can_cancel_cp(user, cp):
+    """ขอยกเลิกรายการใบเปรียบเทียบราคาได้: ผู้จัดทำ (organizer) หรือ superuser
+    เฉพาะใบที่ยังไม่ยกเลิก และตรวจสอบแล้ว หรืออยู่ในฉบับแก้ไข (เหมือนเงื่อนไขแสดงปุ่ม)"""
+    return is_cp_owner(user, cp) and not cp.is_cancel and (cp.examiner_status_id != 1 or cp.is_re_approve)
+
+def cp_edit_forbidden(user, cp):
+    """หน้าแก้ไขใบเปรียบเทียบราคา คืน HttpResponseForbidden ถ้าแก้ไม่ได้ ไม่งั้นคืน None
+    - แก้ได้เฉพาะผู้จัดทำ (organizer) หรือ superuser
+    - แก้ได้เฉพาะใบที่ยังรอตรวจสอบ (รวมฉบับแก้ไขที่ requestCPReApprove ตั้งกลับเป็นรอตรวจสอบ)
+      ใบที่ตรวจสอบ/อนุมัติแล้ว ต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน (รวมถึง superuser)"""
+    if not is_cp_owner(user, cp):
+        return HttpResponseForbidden('ไม่มีสิทธิแก้ไขใบเปรียบเทียบราคานี้')
+    if cp.examiner_status_id != 1:
+        return HttpResponseForbidden('แก้ไขได้เฉพาะใบเปรียบเทียบราคาที่ยังรอตรวจสอบ กรุณาขอเปลี่ยนแปลงรายละเอียดรายการก่อน')
+    return None
+
+def get_cpd_of_cp(cp_id, cpd_id):
+    """ร้านค้า (ComparisonPriceDistributor) ต้องอยู่ในใบเปรียบเทียบราคาตาม URL"""
+    return get_object_or_404(ComparisonPriceDistributor, id = cpd_id, cp_id = cp_id)
+
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
+def requestCPReApprove(request, cp_id):
+    """ขอเปลี่ยนแปลงรายละเอียดรายการใบเปรียบเทียบราคา (ฉบับแก้ไข)
+    สถานะการอนุมัติกลับเป็นรอดำเนินการ และเป็นแบบร่างก่อน
+    ผู้ตรวจสอบ/ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ"
+    ใบที่ยกเลิกแล้ว จะกลับเป็นรายการปกติตอนกด "บันทึกและส่งอนุมัติ" (printComparePricePO)
+    รับเฉพาะ POST (มี CSRF) และเฉพาะ can_request_cp_re_approve"""
+    cp = get_object_or_404(ComparisonPrice, id = cp_id)
+    if not can_request_cp_re_approve(request.user, cp):
+        return HttpResponseForbidden('ไม่มีสิทธิขอเปลี่ยนแปลงรายละเอียดใบเปรียบเทียบราคานี้')
+
+    #เหมือนเงื่อนไขแสดงปุ่ม: ใบที่ตรวจสอบแล้ว หรือใบที่ยกเลิกแล้ว
+    if cp.examiner_status_id != 1 or cp.is_cancel:
+        cp.is_re_approve = True
+        cp.approver_status_id = 1
+        cp.approver_update = None
+
+        cp.examiner_status_id = 1
+        cp.examiner_update= None
+        #ถ้าเป็นแบบพิเศษยอดเกิน 200,000
+        if cp.is_special_approve_cm:
+            cp.special_approver_user = None
+            cp.special_approver_status_id = 1
+            cp.special_approver_update = None
+        else:
+            cp.special_approver_user = None
+            cp.special_approver_status_id = 4
+            cp.special_approver_update = None
+
+        #ฉบับแก้ไขต้องเป็นแบบร่างก่อน ผู้ตรวจสอบ/ผู้อนุมัติจะอนุมัติได้หลังกด "บันทึกและส่งอนุมัติ"
+        cp.is_draft = True
+        cp.save()
+    return redirect('createComparePricePOItem', cp_id = cp.id, isReApprove = 'False')
+
+@login_required(login_url='signIn')
 def createComparePricePOItem(request, cp_id, isReApprove):
     active = request.session.get('company_code', 'ALL')
-    cp = ComparisonPrice.objects.get(id=cp_id)
+    cp = get_object_or_404(ComparisonPrice, id=cp_id)
+    forbidden = cp_edit_forbidden(request.user, cp)
+    if forbidden:
+        return forbidden
 
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
@@ -3640,34 +3859,22 @@ def createComparePricePOItem(request, cp_id, isReApprove):
         bidder_have = None
 
     if request.method == 'GET':
+        #ขอเปลี่ยนแปลงรายละเอียดรายการ (re approve) ย้ายไปทำที่ requestCPReApprove (POST) แล้ว GET ไม่เปลี่ยนข้อมูล
         bookform = CPDModelForm(request.GET or None, initial={'cp': cp_id})
         formset = CPitemFormset(queryset=ComparisonPriceItem.objects.none())
-        're approve cp'
-        cp.is_re_approve = get_bool(isReApprove)
-        if get_bool(isReApprove) == True:
-            cp.approver_status_id = 1
-            cp.approver_update = None
-
-            cp.examiner_status_id = 1
-            cp.examiner_update= None
-            #ถ้าเป็นแบบพิเศษยอดเกิน 200,000
-            if cp.is_special_approve_cm:
-                cp.special_approver_user = None
-                cp.special_approver_status_id = 1
-                cp.special_approver_update = None
-            else:
-                cp.special_approver_user = None
-                cp.special_approver_status_id = 4
-                cp.special_approver_update = None
-
-            cp.save()
 
     elif request.method == 'POST':
         bookform = CPDModelForm(request.POST or None, request.FILES, initial={'cp': cp_id})
-        formset = CPitemFormset(request.POST)
+        #queryset ว่าง: เพิ่มได้เฉพาะแถวใหม่ ไม่งั้น form-N-id ชี้ไปแก้แถวของใบอื่นได้
+        formset = CPitemFormset(request.POST, queryset=ComparisonPriceItem.objects.none())
         if bookform.is_valid() and formset.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบเปรียบเทียบราคานี้ (itemList)
+            if formset_has_item_outside(formset, cp_item_ids(cp.id)):
+                return item_outside_response()
             # first save this book, as its reference will be used in `Author`
             book = bookform.save(commit=False)
+            #ไม่เชื่อค่า cp จาก form (hidden input) ผูกกับใบตาม URL ที่ตรวจสิทธิแล้ว
+            book.cp = cp
             if not book.discount:
                 book.discount = 0.00
             if not book.freight:
@@ -3771,8 +3978,14 @@ def setDataDistributor(request):
     }
     return JsonResponse(data)
 
+@login_required(login_url='signIn')
 def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     active = request.session.get('company_code', 'ALL')
+    data = get_cpd_of_cp(cp_id, cpd_id)
+    cp = data.cp
+    forbidden = cp_edit_forbidden(request.user, cp)
+    if forbidden:
+        return forbidden
 
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
@@ -3783,14 +3996,18 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
-    data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
         bookform = CPDModelForm(request.POST, request.FILES, instance=data)
 
         if formset.is_valid() and bookform.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบเปรียบเทียบราคานี้ (itemList)
+            if formset_has_item_outside(formset, cp_item_ids(cp.id)):
+                return item_outside_response()
             # save ราคาใบ po
             book = bookform.save(commit=False)
+            #ไม่เชื่อค่า cp จาก form (hidden input) ผูกกับใบตาม URL ที่ตรวจสิทธิแล้ว
+            book.cp = cp
             if not book.discount:
                 book.discount = 0.00
             if not book.freight:
@@ -3862,9 +4079,14 @@ def editComparePricePOItemFromPR(request, cp_id , cpd_id):
     }
     return render(request, 'comparePricePOItem/editComparePricePOItemFromPR.html',context)
 
+@login_required(login_url='signIn')
 def editComparePricePOItem(request, cp_id , cpd_id):
     active = request.session.get('company_code', 'ALL')
-    cp = ComparisonPrice.objects.get(id=cp_id)
+    data = get_cpd_of_cp(cp_id, cpd_id)
+    cp = data.cp
+    forbidden = cp_edit_forbidden(request.user, cp)
+    if forbidden:
+        return forbidden
 
     #ดึง item ที่ทำใบ po แล้ว
     #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
@@ -3875,15 +4097,19 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
     #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
 
-    data = ComparisonPriceDistributor.objects.get(id = cpd_id)
     numDistributor = ComparisonPriceDistributor.objects.filter(cp = cp_id).count()
     if request.method == "POST":
         formset = CPitemInlineFormset(request.POST, request.FILES, instance=data)
         bookform = CPDModelForm(request.POST, request.FILES, instance=data)
 
         if formset.is_valid() and bookform.is_valid():
+            #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบเปรียบเทียบราคานี้ (itemList)
+            if formset_has_item_outside(formset, cp_item_ids(cp.id)):
+                return item_outside_response()
             # save ราคาใบ po
             book = bookform.save(commit=False)
+            #ไม่เชื่อค่า cp จาก form (hidden input) ผูกกับใบตาม URL ที่ตรวจสิทธิแล้ว
+            book.cp = cp
             if not book.discount:
                 book.discount = 0.00
             book.save()
@@ -3968,13 +4194,19 @@ def editComparePricePOItem(request, cp_id , cpd_id):
     }
     return render(request, 'comparePricePOItem/editComparePricePOItem.html',context)
 
+@login_required(login_url='signIn')
+@require_http_methods(["POST"])
 def removeComparePriceDistributor(request, cp_id, cpd_id):
+    """ลบผู้จำหน่ายออกจากใบเปรียบเทียบราคา รับเฉพาะ POST (มี CSRF) และเฉพาะผู้ที่แก้ไขใบได้ (cp_edit_forbidden)"""
+    cpd = get_cpd_of_cp(cp_id, cpd_id)
+    cp = cpd.cp
+    forbidden = cp_edit_forbidden(request.user, cp)
+    if forbidden:
+        return forbidden
+
     numDistributor = ComparisonPriceDistributor.objects.filter(cp = cp_id).count()
-    cpd = ComparisonPriceDistributor.objects.get(id = cpd_id)
     #ลบ item ใน PurchaseOrder ด้วย
     items = ComparisonPriceItem.objects.filter(bidder = cpd)
-
-    cp = ComparisonPrice.objects.get(id  = cpd.cp.id)
     if numDistributor == 1:
         if cp.is_re_approve:
             messages.warning(request, "ไม่สามารถลบรายการได้ เนื่องจากเป็นใบเปรียบเทียบราคาฉบับแก้ไข\nกรุณายกเลิกรายการพร้อมใส่เหตุผลการยกเลิก")
@@ -4017,7 +4249,14 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
 
     return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
+@login_required(login_url='signIn')
 def printComparePricePO(request, cp_id):
+    cp = get_object_or_404(ComparisonPrice, id=cp_id)
+    #ใบที่ตรวจสอบ/อนุมัติแล้ว เปลี่ยนร้านค้าที่เลือก (select_bidder) ไม่ได้ ต้องขอเปลี่ยนแปลงรายละเอียดรายการก่อน
+    forbidden = cp_edit_forbidden(request.user, cp)
+    if forbidden:
+        return forbidden
+
     active = request.session.get('company_code', 'ALL')
     bc = BaseBranchCompany.objects.get(code = active)
 
@@ -4043,13 +4282,24 @@ def printComparePricePO(request, cp_id):
         except PurchaseRequisition.DoesNotExist:
             pass 
 
-    cp = ComparisonPrice.objects.get(id=cp_id)
     form = CPSelectBidderForm(instance=cp)
     if request.method == 'POST':
+        #บันทึกแบบร่าง ไม่บังคับกรอกร้านค้า/ผู้ตรวจสอบ/ผู้อนุมัติ และยังไม่ส่งไปหาผู้อนุมัติ
+        #ใบที่ยังรอตรวจสอบเท่านั้นที่มาถึงตรงนี้ได้ (ตรวจใน cp_edit_forbidden)
+        isDraft = 'btnSaveDraft' in request.POST
         form = CPSelectBidderForm(request.POST, instance=cp)
+        if isDraft:
+            relax_required_for_draft(form)
         if form.is_valid():
-            f_cp = form.save()
-            
+            f_cp = form.save(commit=False)
+            f_cp.is_draft = isDraft
+            #ใบที่ยกเลิกแล้วซึ่งขอเปลี่ยนแปลงรายละเอียดรายการ (requestCPReApprove) กลับเป็นรายการปกติตอนส่งอนุมัติ
+            #บันทึกแบบร่างยังคงสถานะยกเลิกไว้ เหมือนใบสั่งซื้อ (editPOItem)
+            if not isDraft and f_cp.is_re_approve and f_cp.is_cancel:
+                f_cp.is_cancel = False
+                f_cp.cancel_reason = None
+            f_cp.save()
+
             #เปลี่ยนทุกร้านค้าให้ไม่เลือกก่อน
             all_bidder = ComparisonPriceDistributor.objects.filter(cp = f_cp)
             for bd in all_bidder:
@@ -4057,16 +4307,18 @@ def printComparePricePO(request, cp_id):
                 bd.save()
 
             #set ร้านค้าที่เลือก
-            select_bidder = ComparisonPriceDistributor.objects.get(cp = f_cp, distributor = f_cp.select_bidder)
-            select_bidder.is_select = True
-            #save
-            select_bidder.save()
+            select_bidder = ComparisonPriceDistributor.objects.filter(cp = f_cp, distributor = f_cp.select_bidder).first() if f_cp.select_bidder else None
+            if select_bidder:
+                select_bidder.is_select = True
+                #save
+                select_bidder.save()
 
-            #เก็บวันที่เลือกร้านครั้งแรก
-            if f_cp.select_bidder and f_cp.select_bidder_update is None:
+            #เก็บวันที่เลือกร้านครั้งแรก (เฉพาะตอนส่งอนุมัติ)
+            if not isDraft and f_cp.select_bidder and f_cp.select_bidder_update is None:
                 f_cp.select_bidder_update = datetime.datetime.now()
 
             #หาว่าเป็นใบเปรียบเทียบ(ยอดเกิน 200,000) แบบอนุมัติ 2 คนหรือไม่ ถ้าเป็นให้ set special_approver_status เป็นรอดำเนินการ
+            #คำนวณทุกครั้งรวมถึงบันทึกแบบร่าง เพราะร้านที่เลือกอาจเปลี่ยน
             isSpecialCP = is_special_approver_cp(cp.id)
             if isSpecialCP:
                 f_cp.special_approver_status_id = 1
@@ -4153,6 +4405,8 @@ def showComparePricePO(request, cp_id, mode):
         
     cancel_form = CPCancelForm(instance=cp)
     if request.method == 'POST' and 'btnformCancelCP' in request.POST:
+        if not can_cancel_cp(request.user, cp):
+            return HttpResponseForbidden('ไม่มีสิทธิขอยกเลิกใบเปรียบเทียบราคานี้')
         cancel_form = CPCancelForm(request.POST, instance=cp)
         if cancel_form.is_valid():
             cc = cancel_form.save(commit=False)
@@ -4173,6 +4427,8 @@ def showComparePricePO(request, cp_id, mode):
             'pr_ref_no': pr_ref_no,
             'new_pr': new_pr,
             'isPurchasing':isPurchasing,
+            'canRequestReApprove':can_request_cp_re_approve(request.user, cp),
+            'canCancel':can_cancel_cp(request.user, cp),
             'isSpecialCP':isSpecialCP,
             'form':form,
             'cancel_form':cancel_form,
@@ -4199,6 +4455,8 @@ def set_readonly_po_item_and_price(formset, price_form):
 
 def auto_approve_po_from_cp(po, cp):
     """อนุมัติใบสั่งซื้ออัตโนมัติ ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และใบสั่งซื้อมียอดเงินมากกว่า 0"""
+    if cp.is_draft:
+        return False
     cp_approver_status_id = cp.special_approver_status_id if cp.is_special_approve_cm else cp.approver_status_id
     if cp_approver_status_id == 2 and po.amount and po.amount > 0:
         po.approver_status_id = 2
@@ -4315,11 +4573,13 @@ def createPOItemFromComparisonPrice(request, po_id):
                 return redirect('viewPO')
 
             # save ราคาใบ po
-            price_form.save()
-
-            #รู้ยอดเงินแล้ว เช็คอนุมัติใบสั่งซื้ออัตโนมัติอีกครั้ง
-            if auto_approve_po_from_cp(po_data, cp):
-                po_data.save()
+            price = price_form.save(commit=False)
+            #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้อนุมัติ และยังไม่อนุมัติอัตโนมัติ
+            price.is_draft = is_save_draft(request)
+            if not price.is_draft:
+                #รู้ยอดเงินแล้ว เช็คอนุมัติใบสั่งซื้ออัตโนมัติอีกครั้ง
+                auto_approve_po_from_cp(price, cp)
+            price.save()
             # save po item
             for form in formset:
                 # only save if name is present
@@ -4373,7 +4633,7 @@ def createPOItemFromComparisonPrice(request, po_id):
 def viewCPApprove(request):
     active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
-    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3), select_bidder_id__isnull = False, branch_company__code__in = company_in)
+    data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1) & ~Q(examiner_status_id = 3), select_bidder_id__isnull = False, is_draft = False, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
@@ -4434,14 +4694,14 @@ def printCPApprove(request, cp_id, isFromHome):
 
 
     try:
-        ex_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, examiner_status = 1, examiner_user = request.user)
+        ex_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, examiner_status = 1, examiner_user = request.user, is_draft = False)
         if(ex_item):
             isExaminer = True
     except ComparisonPrice.DoesNotExist:
         ex_item = None
 
     try:
-        ap_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, approver_status = 1, approver_user = request.user)
+        ap_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, approver_status = 1, approver_user = request.user, is_draft = False)
         if(ap_item):
             isApprover = True
     except ComparisonPrice.DoesNotExist:
@@ -4468,7 +4728,7 @@ def printCPApprove(request, cp_id, isFromHome):
     if permiss_cm and in_company:
         try:
             #ดึงข้อมูล PurchaseOrder
-            isApproverSpecial = ComparisonPrice.objects.filter(id = cp_id, examiner_status = 2, approver_status = 2, special_approver_status = 1, is_special_approve_cm = True, branch_company__code__in = permiss_cm).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            isApproverSpecial = ComparisonPrice.objects.filter(id = cp_id, examiner_status = 2, approver_status = 2, special_approver_status = 1, is_special_approve_cm = True, is_draft = False, branch_company__code__in = permiss_cm).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
         except ComparisonPrice.DoesNotExist:
             pass
 
