@@ -22,6 +22,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.contrib.auth.decorators import login_required, permission_required 
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
@@ -2043,6 +2044,18 @@ def is_special_approver_cp(cp_id):
     bp = BasePermission.objects.get(codename='CASCP')
     return ComparisonPriceDistributor.objects.filter(cp = cp_id, is_select = True, amount__range=(bp.ap_amount_min, bp.ap_amount_max), cp__cm_type_id__isnull = True).exists()
 
+def cp_special_approver_users(cp):
+    """ผู้ที่อนุมัติคนที่ 2 (CASCP) ของใบเปรียบเทียบนี้ได้ เงื่อนไขเดียวกับตอนอนุมัติ:
+    ตำแหน่งมีสิทธิ CASCP ของบริษัทของใบ และผู้ใช้อยู่ในบริษัทนั้น"""
+    if not cp.branch_company_id:
+        return User.objects.none()
+    position_ids = PositionBasePermission.objects.filter(
+        base_permission__codename = 'CASCP', branch_company = cp.branch_company_id,
+    ).values('position_id')
+    return User.objects.filter(
+        userprofile__position_id__in = position_ids, userprofile__branch_company = cp.branch_company_id, is_active = True,
+    ).distinct().order_by('first_name')
+
 def searchExaminerAndApproverUser(request):
     if 'select_bidder_id' in request.GET and 'cp_id' in request.GET:
         select_bidder_id = request.GET.get('select_bidder_id')
@@ -2455,7 +2468,8 @@ def createCMorPO(request, pr_id):
 
         #check สินค้าว่าดึงไปทำหมดไหม
         checkRequisitionItemAllUsed(pr.requisition)
-        return HttpResponseRedirect(reverse('editPOFromPR', args=(po.id,)))
+        #กรอกข้อมูลผู้จำหน่าย ประเมินร้านค้า และรายการสินค้าในหน้าเดียว (editPOItem)
+        return redirect('editPOItem', po_id = po.id, isFromPR = 'True', isReApprove = 'False')
 
     context = {
         'items':items,
@@ -2903,48 +2917,13 @@ def editPO(request, po_id):
 
 @login_required(login_url='signIn')
 def editPOFromPR(request, po_id):
-    #สิทธิเดียวกับ editPOItem (หน้าถัดไป): ผู้จัดทำหรือ superuser และเฉพาะใบที่รออนุมัติ
+    #รวมเข้ากับหน้า editPOItem แล้ว (ข้อมูลผู้จำหน่าย ประเมินร้านค้า และรายการสินค้าอยู่หน้าเดียวกัน)
+    #คง URL ไว้ให้ลิงก์เดิมใช้ได้ สิทธิเดียวกับ editPOItem: ผู้จัดทำหรือ superuser และเฉพาะใบที่รออนุมัติ
     po = get_object_or_404(PurchaseOrder, id=po_id)
     forbidden = po_edit_forbidden(request.user, po)
     if forbidden:
         return forbidden
-
-    active = request.session.get('company_code', 'ALL')
-    company = BaseBranchCompany.objects.get(code = request.session.get('company_code', 'ALL'))
-    #distributorList = Distributor.objects.filter(affiliated = company.affiliated)
-    #distributorList = Distributor.objects.all().values('id','name','credit__id','vat_type__id')
-
-    #ถ้า user login แก้ไขผู้อนุมัติบสั่งซื้อได้
-    isEditApproverUserPO = can_edit_approver_user_po(request.user, po.cp_id is not None)
-
-    form = PurchaseOrderForm(instance=po)
-    form_rate = RateDistributorForm()
-
-    if request.method == 'POST':
-        form = PurchaseOrderForm(request.POST, request.FILES, instance=po)
-        form_rate = RateDistributorForm(request.POST or None)
-        if form.is_valid() and form_rate.is_valid():
-            form.save()
-            rate_contact = form_rate.save(commit=False)
-            rate_contact.po = po
-            rate_contact.organizer_user = po.stockman_user
-            if rate_contact.price_rate and rate_contact.quantity_rate and rate_contact.service_rate and rate_contact.safety_rate:
-                rate_contact.save()
-            return redirect('editPOItem', po_id = po_id, isFromPR = 'True', isReApprove = 'False')
-        
-    #'distributorList': distributorList,
-    context = {
-        'form':form,
-        'form_rate':form_rate,
-        'isEditApproverUserPO': isEditApproverUserPO,
-        'po_page': "tab-active",
-        'po_show': "show",
-        active :"active show",
-		"disableTab":"disableTab",
-		"colorNav":"disableNav"
-    }
-
-    return render(request, "purchaseOrder/createPO.html", context)
+    return redirect('editPOItem', po_id = po_id, isFromPR = 'True', isReApprove = 'False')
 
 def editPOFromComparison(request, po_id):
     po = PurchaseOrder.objects.get(id=po_id)
@@ -3021,6 +3000,8 @@ def removePO(request, po_id):
     po.delete()
     return redirect('viewPO')
 
+#หน้าแก้ไขใบสั่งซื้อ (editPOItem) โหลดหน้านี้ใน iframe เพื่อปริ้น อนุญาตเฉพาะเว็บเดียวกัน
+@xframe_options_sameorigin
 def showPO(request, po_id, mode):
     active = request.session.get('company_code', 'ALL')
 
@@ -3146,6 +3127,12 @@ def relax_required_for_draft(form):
                 field.required = False
         except FieldDoesNotExist:
             pass
+
+def require_approver_user_po(form):
+    """ผู้ที่เลือกผู้อนุมัติได้ (can_edit_approver_user_po) ต้องเลือกผู้อนุมัติใบสั่งซื้อก่อนส่ง
+    บันทึกแบบร่างยังเว้นว่างได้ (relax_required_for_draft)"""
+    if 'approver_user' in form.fields:
+        form.fields['approver_user'].required = True
 
 def is_save_draft(request):
     """กดปุ่มบันทึกแบบร่าง (ส่งค่าผ่าน hidden input เพราะปุ่ม submit ถูก disable ตอนกดบันทึก)"""
@@ -3336,6 +3323,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         form = PurchaseOrderForm(request.POST, request.FILES, instance=po_data)
         form_rate = RateDistributorForm(request.POST, request.FILES, instance=rate_dist)
+        if isEditApproverUserPO:
+            require_approver_user_po(form)
         if isDraft:
             relax_required_for_draft(form)
             relax_required_for_draft(price_form)
@@ -3447,6 +3436,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         price_form = PurchaseOrderPriceForm(instance=po_data)
         form = PurchaseOrderForm(instance=po_data)
         form_rate = RateDistributorForm(instance=rate_dist)
+        if isEditApproverUserPO:
+            require_approver_user_po(form)
 
     #ตั้งค่า readonly ให้ช่องรายการสินค้าและราคา ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
     if isLockPOItem:
@@ -3469,10 +3460,17 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         except PurchaseRequisition.DoesNotExist:
             pass
 
+    #รายละเอียดที่อยู่ตามจดทะเบียน ใช้เปลี่ยนหัวเอกสารเมื่อเลือกที่อยู่ใหม่
+    address_company_info = {
+        str(a.id): {'name_th': a.name_th or '', 'address': a.address or '', 'tel': a.tel or '', 'tex': a.tex or '', 'branch': a.branch or ''}
+        for a in form.fields['address_company'].queryset
+    }
+
     #'distributorList': distributorList,
     context = {
         'po':po,
         'po_items':po_items,
+        'address_company_info': address_company_info,
         'po_page': "tab-active",
         'po_show': "show",
         'formset': formset,
@@ -3947,6 +3945,12 @@ def searchDataDistributor(request):
     data = {
         'credit': qs.credit.id,
         'vat_type': qs.vat_type.id,
+        #ใช้แสดงผู้จำหน่ายที่หัวเอกสารหน้าแก้ไขใบสั่งซื้อ (editPOItem)
+        'id': qs.id,
+        'prefix': str(qs.prefix) if qs.prefix else '',
+        'name': qs.name or '',
+        'address': qs.address or '',
+        'tel': qs.tel or '',
     }
     return JsonResponse(data)
 
@@ -4335,8 +4339,19 @@ def printComparePricePO(request, cp_id):
     itemName = ComparisonPriceItem.objects.filter(cp = cp_id).order_by('bidder__amount', 'bidder__total_after_discount', 'bidder__id', 'id')
 
     baseSparesType = BaseSparesType.objects.all()
+
+    #ใช้แสดงช่องผู้อนุมัติ 2 เมื่อร้านที่เลือกมียอดอยู่ในช่วงสิทธิ CASCP (เหมือน is_special_approver_cp)
+    cascp = BasePermission.objects.filter(codename = 'CASCP').first()
+    cascp_info = {
+        'min': str(cascp.ap_amount_min) if cascp and cascp.ap_amount_min is not None else None,
+        'max': str(cascp.ap_amount_max) if cascp and cascp.ap_amount_max is not None else None,
+    }
+    special_approver_users = cp_special_approver_users(cp)
+
     context = {
         'cp':cp,
+        'cascp_info': cascp_info,
+        'special_approver_users': special_approver_users,
         'bidder' : bidder,
         'items_oldest' : items_oldest,
         'itemName':itemName,
@@ -4353,6 +4368,8 @@ def printComparePricePO(request, cp_id):
     }
     return render(request, 'comparePricePO/printComparePricePO.html',context)
 
+#หน้าเลือกร้านค้า (printComparePricePO) โหลดหน้านี้ใน iframe เพื่อปริ้น อนุญาตเฉพาะเว็บเดียวกัน
+@xframe_options_sameorigin
 def showComparePricePO(request, cp_id, mode):
     active = request.session.get('company_code', 'ALL')
     try:

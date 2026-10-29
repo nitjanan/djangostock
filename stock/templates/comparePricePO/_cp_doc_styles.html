@@ -1,0 +1,153 @@
+{% comment %}หน้าตาเอกสารใบเปรียบเทียบราคา (.cp-print): กระดาษ หัวเอกสาร สรุปผล ช่องลงชื่อ แถบปุ่มด้านล่าง
+ใช้ร่วมกันระหว่างหน้าเลือกร้านค้า (printComparePricePO) และหน้าอนุมัติ (printCPApprove){% endcomment %}
+<style>
+  /* ตารางเปรียบเทียบหลายร้านกว้าง ให้หน้านี้กว้างกว่าหน้าอื่น */
+  .container.cp-print {
+    width: 96vw;
+    max-width: 96vw;
+  }
+  .cp-print .cp-paper {
+    background: #fff;
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+    padding: 1.25rem 1.5rem;
+  }
+  .cp-print .cp-doc-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: 1.25rem;
+    padding-bottom: .75rem;
+    margin-bottom: .75rem;
+    border-bottom: 2px solid #343a40;
+  }
+  .cp-print .cp-doc-title {
+    text-align: center;
+  }
+  .cp-print .cp-doc-address {
+    font-size: .85rem;
+    color: #495057;
+  }
+  .cp-print .cp-doc-meta {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: .75rem;
+    row-gap: .1rem;
+    margin: 0;
+    font-size: .88rem;
+  }
+  .cp-print .cp-doc-meta dt {
+    font-weight: normal;
+    color: #6c757d;
+    text-align: right;
+  }
+  .cp-print .cp-doc-meta dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  /* สรุปส่วนต่างราคา / ร้านที่ขออนุมัติ */
+  .cp-print .cp-conclusion {
+    border-top: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    padding: .4rem 0;
+    margin-bottom: .5rem;
+  }
+  .cp-print .cp-conclusion b:empty {
+    display: none;
+  }
+  .cp-print .cp-less:empty,
+  .cp-print .cp-less:not(:has(b:not(:empty))) {
+    display: none;
+  }
+  .cp-print .cp-select-line {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 2rem;
+  }
+  .cp-print #txtSelectBidderPrice {
+    color: #0056b3;
+  }
+
+  /* ลงชื่อ */
+  /* ช่องลงชื่อแบ่งเท่ากันตามจำนวนช่องที่แสดง (3 หรือ 4 เมื่อมีผู้อนุมัติ 2) */
+  .cp-print .cp-signatures {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+  }
+  .cp-print .cp-sign {
+    padding: .5rem .75rem;
+    text-align: center;
+  }
+  .cp-print .cp-sign + .cp-sign {
+    border-left: 1px solid #dee2e6;
+  }
+  .cp-print .cp-sign-title {
+    font-weight: 600;
+    margin-bottom: .25rem;
+  }
+  /* ลายเซ็น สถานะ ปุ่มอนุมัติ คำอธิบายไอคอน */
+  .cp-print .cp-sign-img {
+    border-bottom: 1px dashed #999;
+  }
+  .cp-print .cp-status {
+    font-size: .8rem;
+    margin-top: .25rem;
+  }
+  .cp-print .cp-approve-buttons {
+    display: flex;
+    justify-content: center;
+    gap: .5rem;
+    margin-top: .5rem;
+  }
+  .cp-print .cp-approve-buttons .btn {
+    min-width: 100px;
+  }
+  .cp-print .cp-legend {
+    font-size: .85rem;
+    color: #6c757d;
+  }
+
+  /* แถบปุ่มบันทึก/ปริ้น ติดด้านล่าง */
+  .cp-print .cp-actions-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin: 0 -1.5rem -1.25rem;
+    padding: .75rem 1.5rem;
+    background: #fff;
+    border-top: 1px solid #e3e6ea;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .05);
+  }
+
+  @media print {
+    .cp-print .cp-paper {
+      border: 0;
+      box-shadow: none;
+      padding: 0;
+    }
+    .cp-print .cp-doc-head {
+      border-bottom-width: 1px;
+    }
+    .cp-print .cp-signatures {
+      border-color: #000;
+    }
+    .cp-print .cp-sign + .cp-sign {
+      border-left-color: #000;
+    }
+    /* display:flex ของแถบปุ่มชนะ .hidden-print จึงต้องซ่อนตรงนี้ */
+    .cp-print .cp-actions-bar {
+      display: none !important;
+    }
+  }
+</style>

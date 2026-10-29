@@ -63,345 +63,697 @@
     line-height: 37px !important;
   }
 
+  /* ---------- layout หน้าแก้ไขใบสั่งซื้อ ---------- */
+  .po-edit .po-card {
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+  }
+  .po-edit .po-card > .card-header {
+    background: #f8f9fb;
+    border-bottom: 1px solid #e3e6ea;
+  }
+  .po-edit .po-card > .card-header h5 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .po-edit .po-section-label {
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: .35rem;
+  }
+  .po-edit .po-meta dt {
+    font-weight: normal;
+    color: #6c757d;
+  }
+  .po-edit .po-meta dt,
+  .po-edit .po-meta dd {
+    margin-bottom: .25rem;
+  }
+
+  /* ตารางรายการสินค้า: หัวคอลัมน์กับช่องกรอกใช้ความกว้างชุดเดียวกัน */
+  .po-items-scroll {
+    overflow-x: auto;
+  }
+  .po-items {
+    min-width: 1140px;
+  }
+  .po-items-head {
+    display: flex;
+    padding: .5rem 0;
+    margin-bottom: .25rem;
+    border-bottom: 2px solid #dee2e6;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #495057;
+  }
+  .po-items-head > div {
+    padding: 0 .75rem;
+  }
+  .po-items .form-row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .po-items .form-row > .col {
+    padding: 0;
+  }
+  /* คอลัมน์ "ที่" ลำดับรายการ (renumberPOItems) */
+  .po-items .c-no,
+  .po-items .input-group > .po-no { flex: 0 0 40px; max-width: 40px; }
+  .po-items-head > .c-no {
+    padding: 0;
+    text-align: center;
+  }
+  .po-items .input-group > .po-no {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f3f5;
+    border: 1px solid #ced4da;
+    border-right: 0;
+    border-radius: .25rem 0 0 .25rem;
+    font-weight: 600;
+    color: #495057;
+  }
+  .po-items .c-code,
+  .po-items .input-group > .express { flex: 0 0 300px; max-width: 300px; }
+  .po-items .c-desc,
+  .po-items .input-group > .description { flex: 1 1 auto; min-width: 160px; }
+  .po-items .c-qty,
+  .po-items .input-group > .quantity { flex: 0 0 105px; max-width: 105px; }
+  .po-items .c-unit,
+  .po-items .input-group > select[id$="-unit"] { flex: 0 0 110px; max-width: 110px; }
+  .po-items .c-uprice,
+  .po-items .input-group > .unit-price { flex: 0 0 150px; max-width: 150px; }
+  .po-items .c-disc,
+  .po-items .input-group > .discount { flex: 0 0 100px; max-width: 100px; }
+  .po-items .c-price,
+  .po-items .input-group > .price { flex: 0 0 160px; max-width: 160px; }
+  .po-items .c-act,
+  .po-items .input-group > .input-group-append { flex: 0 0 40px; max-width: 40px; }
+  .po-items .input-group > .input-group-append .btn {
+    width: 40px;
+  }
+  .po-items .input-group > .description {
+    resize: vertical;
+    min-height: calc(2.25rem + 2px);
+  }
+  .po-items .input-group > .price {
+    font-weight: 600;
+  }
+
+  /* สรุปยอดเงิน */
+  .po-totals {
+    background: #f8f9fb;
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    padding: .75rem 1rem;
+  }
+  .po-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .2rem 0;
+  }
+  .po-total-row label {
+    margin: 0 1rem 0 0;
+    color: #495057;
+  }
+  .po-total-row .form-control {
+    flex: 0 0 180px;
+    max-width: 180px;
+  }
+  .po-total-grand {
+    margin-top: .5rem;
+    padding-top: .6rem;
+    border-top: 2px solid #dee2e6;
+  }
+  .po-total-grand label {
+    font-weight: 600;
+    color: #212529;
+  }
+  .po-total-grand .form-control {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #0056b3;
+  }
+  .po-total-spell {
+    text-align: right;
+    font-size: .9rem;
+    color: #6c757d;
+    margin: .35rem 0 0;
+  }
+
+  /* ฟอร์มข้อมูลผู้จำหน่าย: grid 3 คอลัมน์ (dense เติมช่องว่าง) */
+  .po-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    column-gap: 1rem;
+  }
+  .po-form-grid > *,
+  .po-form-grid .select2-container {
+    min-width: 0;
+  }
+  .po-form-grid .form-group {
+    margin-bottom: .65rem;
+  }
+  /* เน้นช่องผู้อนุมัติใบสั่งซื้อ และวันที่กำหนดรับของ */
+  .po-form-grid #div_id_vat_type > label,
+  .po-form-grid #div_id_approver_user > label,
+  .po-form-grid #div_id_due_receive_update > label {
+    font-weight: 600;
+    color: #212529;
+  }
+  .po-form-grid #div_id_vat_type > label::after,
+  .po-form-grid #div_id_approver_user > label::after,
+  .po-form-grid #div_id_due_receive_update > label::after {
+    content: "สำคัญ";
+    display: inline-block;
+    margin-left: .4rem;
+    padding: 0 .45rem;
+    border-radius: 4px;
+    background: #e7f1ff;
+    color: #0056b3;
+    font-size: .72rem;
+    font-weight: 600;
+    line-height: 1.5;
+    vertical-align: middle;
+  }
+  .po-form-grid #div_id_vat_type .form-control,
+  .po-form-grid #div_id_approver_user .form-control,
+  .po-form-grid #div_id_due_receive_update .form-control {
+    border: 2px solid #007bff;
+    font-weight: 600;
+  }
+  .po-form-grid #div_id_vat_type .form-control:focus,
+  .po-form-grid #div_id_approver_user .form-control:focus,
+  .po-form-grid #div_id_due_receive_update .form-control:focus {
+    box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .2);
+  }
+  /* span ว่างของ select2 ทำให้มีบรรทัดเกินใต้ช่องเครดิต */
+  .po-form-grid .select2-container .dropdown-wrapper {
+    display: none;
+  }
+  .po-form-grid .form-group > label {
+    margin-bottom: .2rem;
+    font-size: .9rem;
+    color: #495057;
+  }
+  .po-form-grid #div-form-distributor,
+  .po-form-grid #div_id_address_company,
+  .po-form-grid #div_id_po_type {
+    grid-column: span 2;
+  }
+  /* ชนิดภาษีใช้สีเหลือง (ทับสีฟ้าด้านบน) */
+  .po-form-grid #div_id_vat_type > label::after {
+    background: #fff3cd;
+    color: #856404;
+  }
+  .po-form-grid #div_id_vat_type .form-control {
+    border-color: #ffc107;
+  }
+  .po-form-grid #div_id_vat_type .form-control:focus {
+    box-shadow: 0 0 0 .2rem rgba(255, 193, 7, .3);
+  }
+  /* สลับชนิดภาษีขึ้นไปแทนที่เครดิต: ผู้จำหน่าย, ชนิดภาษี, ขนส่งโดย, เครดิต, ... */
+  .po-form-grid #div-form-distributor { order: -3; }
+  .po-form-grid #div_id_vat_type { order: -2; }
+  .po-form-grid #div_id_shipping { order: -1; }
+  .po-form-grid #div_id_quotation_pdf .form-control-file {
+    font-size: .85rem;
+  }
+  /* ประเภทใบสั่งซื้อ: radio เรียงแนวนอน */
+  .po-form-grid #div_id_po_type > div {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1rem;
+    padding-top: .35rem;
+  }
+  @media (max-width: 991.98px) {
+    .po-form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 575.98px) {
+    .po-form-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .po-form-grid > * {
+      grid-column: auto !important;
+    }
+  }
+
+  /* การ์ดประเมินผู้จำหน่าย (ปรับ .con จาก rate.css ให้พอดีการ์ด) */
+  .rate-card > .card-header {
+    background: #fff8e1 !important;
+  }
+  .rate-card .con {
+    width: 100%;
+    height: auto;
+    padding: 0;
+    border: 0;
+    align-items: stretch;
+  }
+  /* หัวข้ออยู่ซ้าย ดาวอยู่ขวาในบรรทัดเดียวกัน */
+  .rate-card .rate-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: .4rem 0;
+    border-top: 1px solid #f1f1f1;
+  }
+  .rate-card .rate-item h6 {
+    flex: 1 1 auto;
+    margin: .3rem .5rem 0 0;
+    font-size: .9rem;
+    font-weight: 600;
+  }
+  .rate-card .star-widget {
+    flex: 0 0 auto;
+    display: inline-block;
+  }
+  .rate-card .star-widget label {
+    font-size: 26px;
+    padding: 1px 3px;
+    color: #c9ccd1;
+  }
+  .rate-card .star-widget [class^="text-rate-"] {
+    clear: both;
+    font-size: .78rem;
+    text-align: right;
+    color: #d39e00;
+  }
+  .rate-card #f-rate h6 {
+    margin: 0;
+  }
+
+  /* แถบปุ่มบันทึกติดด้านล่าง */
+  .po-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    background: #fff;
+    border-top: 1px solid #e3e6ea;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .05);
+  }
+
+  /* แจ้งเตือนช่องที่ต้องกรอก (required) ตอนกดบันทึก */
+  .po-edit .form-control.req-invalid,
+  .po-edit .req-invalid + .select2-container .select2-selection {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+  }
+  .po-edit .req-msg {
+    margin-top: .2rem;
+    font-size: .8rem;
+    color: #dc3545;
+  }
+  .po-edit .rate-card.req-invalid {
+    border: 2px solid #dc3545 !important;
+  }
+  .po-edit .rate-item.req-invalid h6 {
+    color: #dc3545;
+  }
+  .po-required-summary {
+    flex: 1 1 260px;
+    padding: .35rem .75rem;
+    border-radius: 6px;
+    background: #fdecea;
+    color: #a71d2a;
+    font-size: .88rem;
+  }
+
+  @media print {
+    .po-edit .po-card {
+      border: 0;
+      box-shadow: none;
+    }
+    .po-edit .po-card > .card-header {
+      background: none;
+    }
+  }
+
 </style>
 {% endblock %}
 {% block content %}
 <link rel="stylesheet" type='text/css' href="{% static '/css/rate.css' %}">
-<div class="container">
-    <div class="row my-2">
-        <div class="col-md-12">
-          <div class="row">
-            <div class="col">
-              <description>
-                <h4>{{po.address_company.name_th}}</h4>
-		                {{po.address_company.address}}
-                    {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
-                    {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}{% if po.address_company.branch %} สาขา{{po.address_company.branch}}{%endif%}
-              </description>
-            </div>
-            <!-- QR Code 17-05-2024 เอาออกก่อน -->
-            <div class="col-4 float-right" style="display: flex; align-items: center;">
-              {% if po.qr_code %}
-                  <img src="{{ po.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
-              <ul class="list-unstyled my-3 text-left">
-                  {% for bp in base_po_type %}
-                      <li>
-                          {% if bp == po.po_type %}
-                              <i class="fas fa-square"></i>
-                          {% else %}
-                              <i class="far fa-square"></i>
-                          {% endif %}
-                          {{ bp.name }}
-                      </li>
-                  {% endfor %}
-              </ul>
-              {% endif %}
-            </div>
+<div class="container po-edit my-3">
+    <!-- หัวเอกสาร -->
+    <div class="card po-card mb-3">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-7">
+            <description>
+              <h4 class="mb-1" id="hd-company-name">{{po.address_company.name_th|default_if_none:""}}</h4>
+              <div class="text-muted" id="hd-company-detail">
+                {{po.address_company.address|default_if_none:""}}
+                {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
+                {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}{% if po.address_company.branch %} สาขา{{po.address_company.branch}}{%endif%}
+              </div>
+            </description>
           </div>
+          <!-- QR Code 17-05-2024 เอาออกก่อน -->
+          <div class="col-md-5 d-flex align-items-center justify-content-md-end mt-3 mt-md-0">
+            {% if po.qr_code %}
+              <img src="{{ po.qr_code.url }}" width="120" height="120" class="mr-3">
+              <ul class="list-unstyled mb-0 text-left">
+                {% for bp in base_po_type %}
+                  <li data-po-type="{{ bp.id }}">
+                    {% if bp == po.po_type %}
+                      <i class="fas fa-square"></i>
+                    {% else %}
+                      <i class="far fa-square"></i>
+                    {% endif %}
+                    {{ bp.name }}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </div>
         <hr>
         <div class="row">
-          <div class="col">
-            <address>
-            <strong>ผู้จำหน่าย: {{po.distributor.id}}</strong><br>
-              {% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor}}<br>
-              {{po.distributor.address}}<br>
-              โทร : {{po.distributor.tel}}<br>
-              <h6 style="font-size:8pt">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <div class="po-section-label">ผู้จำหน่าย</div>
+            <address class="mb-2">
+              <strong id="hd-dist-name">{% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor|default_if_none:"-"}}</strong>
+              <span class="text-muted" id="hd-dist-id">{% if po.distributor %}({{po.distributor.id}}){% endif %}</span><br>
+              <span id="hd-dist-address">{{po.distributor.address|default_if_none:""}}</span><br>
+              โทร : <span id="hd-dist-tel">{{po.distributor.tel|default_if_none:""}}</span>
+            </address>
+            <div class="small">
               {% if po.cp %}
-                รหัสใบเปรียบเทียบ :
-                <b><u><a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
+                <span class="text-muted">รหัสใบเปรียบเทียบ :</span>
+                <a class="font-weight-bold {% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>
               {% else %}
-                รหัสใบขอซื้อ :
+                <span class="text-muted">รหัสใบขอซื้อ :</span>
                 {% for i in new_pr %}
-                  <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
+                  <a class="font-weight-bold" href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a>{% if not forloop.last %}, {% endif %}
                 {% endfor %}
               {%endif%}
-              </h6>
-            </address>
+            </div>
           </div>
-          <div class="col text-right">
-            <address>
-              <strong>ใบสั่งซื้อ
-                {% if po.is_re_approve == True %}
-                  <b class="text-danger">***ฉบับแก้ไข</b>
+          <div class="col-md-6">
+            <div class="d-flex flex-wrap align-items-center mb-2">
+              <h5 class="mb-0 mr-2">ใบสั่งซื้อ</h5>
+              {% if po.is_re_approve == True %}
+                <span class="badge badge-danger mr-2">ฉบับแก้ไข</span>
+              {% endif %}
+              {% for item in po_items %}
+                {% if item.item.requisit.memorandum_pdf %}
+                  {% ifchanged item.item.requisit.memorandum_pdf %}
+                    <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print mr-1"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+                  {% endifchanged %}
                 {% endif %}
-                {% for item in po_items %}
-                  {% if item.item.requisit.memorandum_pdf %}
-                    {% ifchanged item.item.requisit.memorandum_pdf %}
-                      <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-                    {% endifchanged %}
-                  {% endif %}
-                {% endfor %}
-              </strong><br>
-              เลขที่ใบสั่งซื้อ : {{po.ref_no}}<br>
-              วันที่ : {{po.created}}<br>
-              เครดิต : {{po.credit}}<br>
-              วันที่กำหนดรับของ : {{po.due_receive_update}} ขนส่งโดย : {{po.shipping}}
-            </address>
+              {% endfor %}
+            </div>
+            <dl class="row po-meta mb-0">
+              <dt class="col-5">เลขที่ใบสั่งซื้อ</dt>
+              <dd class="col-7 font-weight-bold">{{po.ref_no}}</dd>
+              <dt class="col-5">วันที่</dt>
+              <dd class="col-7">{{po.created}}</dd>
+              <dt class="col-5">เครดิต</dt>
+              <dd class="col-7" id="hd-credit">{{po.credit|default_if_none:"-"}}</dd>
+              <dt class="col-5">วันที่กำหนดรับของ</dt>
+              <dd class="col-7" id="hd-due">{{po.due_receive_update|default_if_none:"-"}}</dd>
+              <dt class="col-5">ขนส่งโดย</dt>
+              <dd class="col-7" id="hd-shipping">{{po.shipping|default_if_none:"-"}}</dd>
+            </dl>
           </div>
         </div>
       </div>
     </div>
-    
-    <div class="row">
-      <div class="col-md-12">
-        <div class="panel panel-default">
-          <div class="panel-heading">
-            <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
+
+    <form class="form-horizontal" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <!-- ข้อมูลผู้จำหน่าย / ประเมินผู้จำหน่าย -->
+      <div class="row hidden-print">
+        <div class="col-lg-8 order-lg-2 mb-3">
+          <div class="card po-card h-100">
+            <div class="card-header">
+              <h5><i class="fas fa-store text-primary mr-2"></i>ข้อมูลผู้จำหน่ายและใบสั่งซื้อ</h5>
+            </div>
+            <div class="card-body">
+              {% if form.quotation_pdf.errors %}
+              <div class="alert alert-warning" role="alert">
+                  {{ form.quotation_pdf.errors }}
+              </div>
+              {% endif %}
+              <div class="po-form-grid">
+                <div class="form-group" id="div-form-distributor">
+                  <label for="id-form-distributor">{{ form.distributor.label }}</label>
+                  <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor();getRateDistributor();" required>
+                  <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                  <datalist-- id="idDistributorList">
+                  {% for results in distributorList %}
+                      <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
+                  {% endfor %}
+                  </datalist-->
+                </div>
+                {{ form | crispy}}
+              </div>
+            </div>
           </div>
-          <div class="panel-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <form class="form-inline ml-3" id="search" method="GET">
-                          <th scope="col" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-                            รหัสสินค้า <i class="fas fa-list text-danger d-print-none"></i>
-                          </th>
-                        </form>
-                        <th scope="col">รายละเอียด</th>
-                        <th scope="col">จำนวน</th>
-                        <th scope="col">หน่วย</th>
-                        <th scope="col" class="text-right">หน่วยละ</th>
-                        <th scope="col" class="text-right">ส่วนลด</th>
-                        <th scope="col" class="text-right">จำนวนเงิน</th>
-                        <th scope="col" class="w-10"></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+        </div>
+        <div class="col-lg-4 order-lg-1 mb-3">
+          <div class="card po-card rate-card border-warning h-100">
+            <div class="card-header">
+              <h5><i class="fas fa-star text-warning mr-2"></i>ประเมินผู้จำหน่าย</h5>
             </div>
-            <form class="form-horizontal" method="POST" enctype="multipart/form-data">
-              {% csrf_token %}
-            {{ formset.management_form }}
-            {% for form in formset %}
-            <div class="row form-row spacer my-2" id="div-{% if form.id.value %}{{form.id.value}}{% else %}None{% endif %}">
-                <div class="col">
-                    <div class="input-group">
-                        {{form.id}} 
-                        {{form.item}}
-                        <input id="id_purchaseorderitem_set-{{forloop.counter0}}-oldquantity" name="comparisonpriceitem_set-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
-                        <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control{% if isLockPOItem %} lock-po-item{% endif %}" Placeholder="ค้นหารหัส express..." autocomplete="off"{% if isLockPOItem %} readonly="readonly"{% endif %}>
-                        <!--datalist id="idExpressList">
-                          {% for results in itemList %}
-                            <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
-                          {% endfor %}
-                        </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
-                        <datalist id="idExpressList">
-                          {% for results in itemList %}
-                            <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.unit__id}}" data-remain="{{results.q_remain}}" data-used="{{results.item__quantity_used}}" data-cp="{{results.po__cp}}"></option>
-                          {% endfor %}
-                        </datalist>
-                        {{form.description|add_class:"form-control description"}} {{form.quantity }} {{form.unit| add_class:"form-control" |attr:"required:true"}} {{form.unit_price}}  {{form.discount}} {{form.price}} {{ form.DELETE| add_class:"del"}}
-                        {% if form.id.value %}
-                          <div class="input-group-append text-right">
-                            <button type="button" class="btn btn-danger hidden-print" onclick="hideDiv('{{form.id.value}}')">-</button>
-                         </div>
-                        {% else %}
-                          <div class="input-group-append text-right">
-                              <button class="btn btn-success add-form-row hidden-print">+</button>
-                          </div>
-                        {% endif %}
-                    </div>
+            <div class="card-body">
+              <h6 id="name_distributor" class="mb-1 font-weight-bold">{{cp.select_bidder}}</h6>
+              <div class="d-flex align-items-baseline flex-wrap mb-1">
+                <span class="avg mr-1">0.0</span> OUT OF 100
+                <!-- Button trigger modal help -->
+                <a data-toggle="modal" style="cursor: pointer;" data-target="#helpModalCenter" class="ml-1">
+                  <i class="fas fa-question-circle text-danger"></i>
+                </a>
+                <span id="num_ratings" class="text-muted small ml-auto">{{num_grade_all}} ratings</span>
+              </div>
+              <div class="con">
+                <div class="rate-item">
+                  <h6>ราคา</h6>
+                  <div class="star-widget">
+                      <input type="radio" name="rate-price" id="rate-price-4" value="4">
+                      <label for="rate-price-4" class="fas fa-star"></label>
+                      <input type="radio" name="rate-price" id="rate-price-3" value="3">
+                      <label for="rate-price-3" class="fas fa-star"></label>
+                      <input type="radio" name="rate-price" id="rate-price-2" value="2">
+                      <label for="rate-price-2" class="fas fa-star"></label>
+                      <input type="radio" name="rate-price" id="rate-price-1" value="1">
+                      <label for="rate-price-1" class="fas fa-star"></label>
+                      <input type="radio" name="rate-price" id="rate-price-0" value="0">
+                      <span class="text-rate-price"></span>
+                  </div>
                 </div>
-            </div>
-            {% endfor %}
-            <hr>
-            <div class="row">
-              <div class="col-7">
-                <p>ทะเบียนรถ/เครื่องจักร/หน่วยงาน&nbsp;&nbsp;{% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% endif %}</p>
-              </div>
-              <div class="col-3">
-                <p class="text-right">รวมเป็นเงิน</p>
-              </div>
-              <div class="col-2">
-                {{price_form.total_price | add_class:"text-right"}}
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-2">
-                <p>{{price_form.note.label}}</p>
-                <br>
-                <br>
-                <p>{{price_form.delivery.label}}</p>
-                <br>
-                <br>
-              </div>
-              <div class="col-5">
-                {{price_form.note | add_class:"form-control"}}
-                {{price_form.delivery | add_class:"form-control my-2"}}
-                <br>
-              </div>
-              <div class="col-3">
-                <p class="text-right">หักส่วนลด</p>
-                <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
-                <p class="text-right">ค่าขนส่ง</p>
-                <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
-                <p id="vat-type" hidden>{{po.vat_type.id}}</p>
-              </div>
-              <div class="col-2">
-                {{price_form.discount | add_class:"text-right"}}
-                <p class="text-right" id="tempTotal" hidden>{{po.total_price}}</p>
-                {{price_form.total_after_discount | add_class:"text-right my-2"}}
-                {{price_form.freight | add_class:"text-right my-2"}}
-                {{price_form.vat | add_class:"text-right my-2"}}
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-7">
-                <p id="total-spell"></p>
-              </div>
-              <div class="col-3">
-                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
-              </div>
-              <div class="col-2">
-                {{price_form.amount | add_class:"text-right" }}
-              </div>
-            </div>
-            <hr class="ln {%if isFromPR == 'True'%}d-none{%endif%} d-print-none">
-            <div class="row">
-              <div class="col-8 card div-shadow hidden-print my-2 {%if isFromPR == 'True'%}d-none{%endif%}">
-                <div class="card-body">
-                  {% if form.quotation_pdf.errors %}
-                  <div class="alert alert-warning" role="alert">
-                      {{ form.quotation_pdf.errors }}
+                <div class="rate-item">
+                  <h6>คุณภาพงาน</h6>
+                  <div class="star-widget">
+                      <input type="radio" name="rate-quantity" id="rate-quantity-4" value="4">
+                      <label for="rate-quantity-4" class="fas fa-star"></label>
+                      <input type="radio" name="rate-quantity" id="rate-quantity-3" value="3">
+                      <label for="rate-quantity-3" class="fas fa-star"></label>
+                      <input type="radio" name="rate-quantity" id="rate-quantity-2" value="2">
+                      <label for="rate-quantity-2" class="fas fa-star"></label>
+                      <input type="radio" name="rate-quantity" id="rate-quantity-1" value="1">
+                      <label for="rate-quantity-1" class="fas fa-star"></label>
+                      <input type="radio" name="rate-quantity" id="rate-quantity-0" value="0">
+                      <span class="text-rate-quantity"></span>
                   </div>
-                  {% endif %}
-                  <label>{{ form.distributor.label }}</label>
-                  <div>
-                      <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor();getRateDistributor();" required>
-                      <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
-                      <datalist-- id="idDistributorList">
-                      {% for results in distributorList %}
-                          <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
-                      {% endfor %}
-                      </datalist-->
+                </div>
+                <div class="rate-item">
+                  <h6>การบริการ</h6>
+                  <div class="star-widget">
+                      <input type="radio" name="rate-service" id="rate-service-4" value="4">
+                      <label for="rate-service-4" class="fas fa-star"></label>
+                      <input type="radio" name="rate-service" id="rate-service-3" value="3">
+                      <label for="rate-service-3" class="fas fa-star"></label>
+                      <input type="radio" name="rate-service" id="rate-service-2" value="2">
+                      <label for="rate-service-2" class="fas fa-star"></label>
+                      <input type="radio" name="rate-service" id="rate-service-1" value="1">
+                      <label for="rate-service-1" class="fas fa-star"></label>
+                      <input type="radio" name="rate-service" id="rate-service-0" value="0">
+                      <span class="text-rate-service"></span>
                   </div>
-                  <p>{{ form | crispy}}</p>
-                  {% csrf_token %}
+                </div>
+                <div class="rate-item">
+                  <h6>การจัดการสิ่งแวดล้อม/ความปลอดภัย</h6>
+                  <div class="star-widget">
+                      <input type="radio" name="rate-safety" id="rate-safety-4" value="4">
+                      <label for="rate-safety-4" class="fas fa-star"></label>
+                      <input type="radio" name="rate-safety" id="rate-safety-3" value="3">
+                      <label for="rate-safety-3" class="fas fa-star"></label>
+                      <input type="radio" name="rate-safety" id="rate-safety-2" value="2">
+                      <label for="rate-safety-2" class="fas fa-star"></label>
+                      <input type="radio" name="rate-safety" id="rate-safety-1" value="1">
+                      <label for="rate-safety-1" class="fas fa-star"></label>
+                      <input type="radio" name="rate-safety" id="rate-safety-0" value="0">
+                      <span class="text-rate-safety"></span>
+                  </div>
                 </div>
               </div>
-              <div class="col-4 card bg-light border-warning my-2 {%if isFromPR == 'True'%}d-none{%endif%} d-print-none">
-                <div class="card-body">
-                    <h3 id="name_distributor">{{cp.select_bidder}}</h3>
-                        <div class="row">
-                          <div class="col"><span class="avg">0.0</span> OUT OF 100 
-                            <!-- Button trigger modal help -->
-                            <a data-toggle="modal" style="cursor: pointer;" data-target="#helpModalCenter">
-                              <i class="fas fa-question-circle text-danger"></i>
-                            </a>
-                          </div>               
-                        </div>
-                        <div class="row">
-                          <div class="col">
-                            <p id="num_ratings">{{num_grade_all}} ratings</p>
-                          </div>
-                        </div>
-                        <div class="row">
-                            <div class="con">
-                                <h5>ราคา</h5>
-                                <div class="star-widget">
-                                    <input type="radio" name="rate-price" id="rate-price-4" value="4">
-                                    <label for="rate-price-4" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-price" id="rate-price-3" value="3">
-                                    <label for="rate-price-3" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-price" id="rate-price-2" value="2">
-                                    <label for="rate-price-2" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-price" id="rate-price-1" value="1">
-                                    <label for="rate-price-1" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-price" id="rate-price-0" value="0">
-                                    <span class="text-rate-price"></span>
-                                </div>
-                                <br><br>
-                                <h5>คุณภาพงาน</h5>
-                                <div class="star-widget">
-                                    <input type="radio" name="rate-quantity" id="rate-quantity-4" value="4">
-                                    <label for="rate-quantity-4" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-quantity" id="rate-quantity-3" value="3">
-                                    <label for="rate-quantity-3" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-quantity" id="rate-quantity-2" value="2">
-                                    <label for="rate-quantity-2" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-quantity" id="rate-quantity-1" value="1">
-                                    <label for="rate-quantity-1" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-quantity" id="rate-quantity-0" value="0">
-                                    <span class="text-rate-quantity"></span>
-                                </div>
-                                <br><br>
-                                <h5>การบริการ</h5>
-                                <div class="star-widget">
-                                    <input type="radio" name="rate-service" id="rate-service-4" value="4">
-                                    <label for="rate-service-4" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-service" id="rate-service-3" value="3">
-                                    <label for="rate-service-3" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-service" id="rate-service-2" value="2">
-                                    <label for="rate-service-2" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-service" id="rate-service-1" value="1">
-                                    <label for="rate-service-1" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-service" id="rate-service-0" value="0">
-                                    <span class="text-rate-service"></span>
-                                </div>
-                                <br><br>
-                                <h5>การจัดการสิ่งแวดล้อม/ความปลอดภัย</h5>
-                                <div class="star-widget">
-                                    <input type="radio" name="rate-safety" id="rate-safety-4" value="4">
-                                    <label for="rate-safety-4" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-safety" id="rate-safety-3" value="3">
-                                    <label for="rate-safety-3" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-safety" id="rate-safety-2" value="2">
-                                    <label for="rate-safety-2" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-safety" id="rate-safety-1" value="1">
-                                    <label for="rate-safety-1" class="fas fa-star"></label>
-                                    <input type="radio" name="rate-safety" id="rate-safety-0" value="0">
-                                    <span class="text-rate-safety"></span>
-                                </div>
+              <div id="f-rate">
+                <h6 class="text-primary">{{ form_rate | crispy}}</h6>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- รายการสั่งซื้อ -->
+      <div class="card po-card mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5><i class="fas fa-list-ul text-primary mr-2"></i>รายการสั่งซื้อ</h5>
+          <button type="button" class="btn btn-outline-danger btn-sm hidden-print" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+            <i class="fas fa-history"></i> ราคาที่ซื้อล่าสุด
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="po-items-scroll">
+            <div class="po-items">
+              <div class="po-items-head">
+                <div class="c-no">ที่</div>
+                <div class="c-code">รหัสสินค้า</div>
+                <div class="c-desc">รายละเอียด</div>
+                <div class="c-qty">จำนวน</div>
+                <div class="c-unit">หน่วย</div>
+                <div class="c-uprice text-right">หน่วยละ</div>
+                <div class="c-disc text-right">ส่วนลด</div>
+                <div class="c-price text-right">จำนวนเงิน</div>
+                <div class="c-act"></div>
+              </div>
+              {{ formset.management_form }}
+              {% for form in formset %}
+              <div class="row form-row spacer my-2" id="div-{% if form.id.value %}{{form.id.value}}{% else %}None{% endif %}">
+                  <div class="col">
+                      <div class="input-group">
+                          <b class="po-no">{{ forloop.counter }}</b>
+                          {{form.id}}
+                          {{form.item}}
+                          <input id="id_purchaseorderitem_set-{{forloop.counter0}}-oldquantity" name="comparisonpriceitem_set-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
+                          <input id="id_purchaseorderitem_set-{{forloop.counter0}}-express" name="purchaseorderitem_set-{{forloop.counter0}}-express" type="text" list="idExpressList" class="express form-control{% if isLockPOItem %} lock-po-item{% endif %}" Placeholder="ค้นหารหัส express..." autocomplete="off"{% if isLockPOItem %} readonly="readonly"{% endif %}>
+                          <!--datalist id="idExpressList">
+                            {% for results in itemList %}
+                              <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
+                            {% endfor %}
+                          </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
+                          <datalist id="idExpressList">
+                            {% for results in itemList %}
+                              <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.unit__id}}" data-remain="{{results.q_remain}}" data-used="{{results.item__quantity_used}}" data-cp="{{results.po__cp}}"></option>
+                            {% endfor %}
+                          </datalist>
+                          {{form.description|add_class:"form-control description"}} {{form.quantity }} {{form.unit| add_class:"form-control" |attr:"required:true"}} {{form.unit_price}}  {{form.discount}} {{form.price}} {{ form.DELETE| add_class:"del"}}
+                          {% if form.id.value %}
+                            <div class="input-group-append text-right">
+                              <button type="button" class="btn btn-danger hidden-print" onclick="hideDiv('{{form.id.value}}')" title="ลบรายการ">-</button>
+                           </div>
+                          {% else %}
+                            <div class="input-group-append text-right">
+                                <button class="btn btn-success add-form-row hidden-print" title="เพิ่มรายการ">+</button>
                             </div>
-                    </div>
-                    <div id="f-rate">
-                      <h6 class="text-primary">{{ form_rate | crispy}}</h6>
-                    </div>
+                          {% endif %}
+                      </div>
                   </div>
               </div>
+              {% endfor %}
             </div>
-            <hr>
-            <div class="row">
-              <div class="col text-right">
-                <h6>{{bc.affiliated.iso_code.po_code|safe}}</h6>
-                <description id="dt_print"></description>
+          </div>
+
+          <!-- สรุปยอดเงิน -->
+          <div class="row mt-4">
+            <div class="col-lg-7 mb-3 mb-lg-0">
+              <p class="mb-3">
+                <span class="text-muted">ทะเบียนรถ/เครื่องจักร/หน่วยงาน</span>&nbsp;
+                <strong>{% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% else %}-{% endif %}</strong>
+              </p>
+              <div class="form-group">
+                <label for="{{price_form.note.id_for_label}}">{{price_form.note.label}}</label>
+                {{price_form.note | add_class:"form-control"}}
+              </div>
+              <div class="form-group mb-0">
+                <label for="{{price_form.delivery.id_for_label}}">{{price_form.delivery.label}}</label>
+                {{price_form.delivery | add_class:"form-control"}}
               </div>
             </div>
-            <div class="row spacer my-3">
-                <div class="col">
-                    {% if canSaveDraft %}
-                    <input type="hidden" name="save_draft" id="id_save_draft" value="">
-                    <button type="submit" class="btn btn-secondary hidden-print" formnovalidate onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
-                      บันทึกแบบร่าง
-                    </button>
-                    <button id="submit" type="submit" class="btn btn-primary hidden-print" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
-                      บันทึกและส่งอนุมัติ
-                    </button>
-                    {% else %}
-                    <button id="submit" type="submit" class="btn {% if isFromPR == 'True'%}btn-primary{% else %}btn-warning{% endif %} hidden-print"><i class="fas fa-save"></i>
-                      {% if isFromPR  == 'True'%}
-                        บันทึก
-                      {% else %}
-                        บันทึกการแก้ไข
-                      {% endif %}
-                    </button>
-                    {% endif %}
+            <div class="col-lg-5">
+              <div class="po-totals">
+                <p id="vat-type" hidden>{{po.vat_type.id}}</p>
+                <p class="text-right" id="tempTotal" hidden>{{po.total_price|default:0}}</p>
+                <div class="po-total-row">
+                  <label for="id_total_price">รวมเป็นเงิน</label>
+                  {{price_form.total_price | add_class:"text-right"}}
                 </div>
-                <div>
-                  <button type="button" class="col btn btn-outline-info pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
-                      <i class="fas fa-print"></i>
-                      ปริ้นใบสั่งซื้อ
-                  </button>
+                <div class="po-total-row">
+                  <label for="id_discount">หักส่วนลด</label>
+                  {{price_form.discount | add_class:"text-right"}}
                 </div>
+                <div class="po-total-row">
+                  <label for="id_total_after_discount">จำนวนเงินหลังหักส่วนลด</label>
+                  {{price_form.total_after_discount | add_class:"text-right"}}
+                </div>
+                <div class="po-total-row">
+                  <label for="id_freight">ค่าขนส่ง</label>
+                  {{price_form.freight | add_class:"text-right"}}
+                </div>
+                <div class="po-total-row">
+                  <label for="id_vat">จำนวนภาษีมูลค่าเพิ่ม 7%</label>
+                  {{price_form.vat | add_class:"text-right"}}
+                </div>
+                <div class="po-total-row po-total-grand">
+                  <label for="id_amount">จำนวนเงินรวมทั้งสิ้น</label>
+                  {{price_form.amount | add_class:"text-right" }}
+                </div>
+                <p id="total-spell" class="po-total-spell"></p>
+              </div>
             </div>
-          </form>
           </div>
         </div>
       </div>
-    </div>
+
+      <div class="text-right mb-3">
+        <h6>{{bc.affiliated.iso_code.po_code|safe}}</h6>
+        <description id="dt_print"></description>
+      </div>
+
+      <!-- ปุ่มบันทึก -->
+      <div class="po-actions hidden-print mb-3">
+        <div>
+          {% if canSaveDraft %}
+          <input type="hidden" name="save_draft" id="id_save_draft" value="">
+          <button type="submit" class="btn btn-secondary hidden-print" formnovalidate onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
+            บันทึกแบบร่าง
+          </button>
+          <button id="submit" type="submit" class="btn btn-primary hidden-print" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
+            บันทึกและส่งอนุมัติ
+          </button>
+          {% else %}
+          <button id="submit" type="submit" class="btn {% if isFromPR == 'True'%}btn-primary{% else %}btn-warning{% endif %} hidden-print"><i class="fas fa-save"></i>
+            {% if isFromPR  == 'True'%}
+              บันทึก
+            {% else %}
+              บันทึกการแก้ไข
+            {% endif %}
+          </button>
+          {% endif %}
+        </div>
+        <div id="required-summary" class="po-required-summary d-none" role="alert"></div>
+        <button type="button" class="btn btn-outline-info hidden-print" onclick="printPOFromShowPage();">
+            <i class="fas fa-print"></i>
+            ปริ้นใบสั่งซื้อ
+        </button>
+      </div>
+    </form>
     <!-- Modal Search-->
     <div class="modal fade" id="myEdit" role="dialog">
       <div class="modal-dialog modal-lg verybigmodal">
@@ -480,6 +832,7 @@
 </div>
 {% endblock%}
 {% block javascript %}
+{{ address_company_info|json_script:"address-company-info" }}
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
 <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
@@ -662,11 +1015,13 @@ function deleteForm(prefix, btn) {
 $(document).on('click', '.add-form-row', function(e){
     e.preventDefault();
     cloneMore('.form-row:last', 'purchaseorderitem_set');
+    renumberPOItems();
     return false;
 });
 $(document).on('click', '.remove-form-row', function(e){
     e.preventDefault();
     deleteForm('purchaseorderitem_set', $(this));
+    renumberPOItems();
     //คำนวน รวมเป็นเงิน
     calculateAll();
     return false;
@@ -882,6 +1237,13 @@ function hideDiv(id){
     //คำนวน รวมเป็นเงิน
     calculateAll();
     $("#div-"+id).hide();
+    renumberPOItems();
+}
+
+//เลขลำดับ "ที่" นับเฉพาะแถวที่แสดงอยู่ (แถวที่กดลบถูกซ่อนไว้)
+function renumberPOItems(){
+    $('.po-items .form-row').filter(function () { return $(this).css('display') != 'none'; })
+      .each(function (i) { $(this).find('.po-no').text(i + 1); });
 }
 $(".express" ).change(function() {
     // get data id ของ option data list
@@ -962,7 +1324,13 @@ function searchDataDistributor(){
                     //set id_credit , id_vat_type
                     $('#id_credit').val(data.credit).trigger('change');
                     $("#id_vat_type").val(data.vat_type);
+                    {% if not isLockPOItem %}
+                    //ชนิดภาษีเปลี่ยนตามผู้จำหน่าย คำนวณยอดเงินใหม่
+                    document.getElementById("vat-type").innerHTML = data.vat_type;
+                    calculateAll();
+                    {% endif %}
                 }
+                updateHeaderDistributor(data);
                 //ถ้าเป็นการเปลี่ยนแปลงร้านค้า ให้ประเมินใหม่
                 if(tmp_dist != idInput){
                   resetRate();
@@ -1176,6 +1544,189 @@ function setDateTimePrint(){
       $('input[name="rate-service"][value="0"]').prop('checked', true).trigger('change');
       $('input[name="rate-safety"][value="0"]').prop('checked', true).trigger('change');
       $('#id_counsel').val('{{rate_dist.counsel}}');
+    }
+
+    //---------- แก้ข้อมูลผู้จำหน่ายและใบสั่งซื้อ แล้วเปลี่ยนหัวเอกสารด้านบนตาม ----------
+    var addressCompanyInfo = JSON.parse(document.getElementById('address-company-info').textContent);
+
+    function updateHeaderDistributor(data) {
+      $('#hd-dist-name').text(((data.prefix ? data.prefix + ' ' : '') + (data.name || '')).trim() || '-');
+      $('#hd-dist-id').text(data.id ? '(' + data.id + ')' : '');
+      $('#hd-dist-address').text(data.address || '');
+      $('#hd-dist-tel').text(data.tel || '');
+    }
+
+    function selectedText(select) {
+      var opt = $(select).find('option:selected');
+      return opt.val() ? opt.text().trim() : '-';
+    }
+
+    //แสดงวันที่แบบเดียวกับ Django เช่น 25 ตุลาคม 2026
+    function formatThaiDate(value) {
+      if (!value) return '-';
+      var d = new Date(value + 'T00:00:00');
+      if (isNaN(d)) return value;
+      return d.toLocaleDateString('th-TH-u-ca-gregory', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    $('#id_credit').on('change', function () {
+      $('#hd-credit').text(selectedText(this));
+    });
+    $('#id_shipping').on('input change', function () {
+      $('#hd-shipping').text($(this).val().trim() || '-');
+    });
+    $('#id_due_receive_update').on('change', function () {
+      $('#hd-due').text(formatThaiDate($(this).val()));
+    });
+    $('#id_address_company').on('change', function () {
+      var info = addressCompanyInfo[$(this).val()];
+      var detail = $('#hd-company-detail').empty();
+      $('#hd-company-name').text(info ? info.name_th : '');
+      if (!info) return;
+      detail.append(document.createTextNode(info.address));
+      if (info.tel) detail.append('<br>', document.createTextNode('โทร ' + info.tel));
+      if (info.tex) detail.append('<br>', document.createTextNode('เลขที่ผู้เสียภาษี ' + info.tex));
+      if (info.branch) detail.append(document.createTextNode(' สาขา' + info.branch));
+    });
+    $('input[name=po_type]').on('change', function () {
+      var value = $('input[name=po_type]:checked').val();
+      $('li[data-po-type]').each(function () {
+        var checked = $(this).attr('data-po-type') == value;
+        $(this).find('i').toggleClass('fas', checked).toggleClass('far', !checked);
+      });
+    });
+
+    //---------- แจ้งเตือนช่องที่ต้องกรอก (required) ตอนกดบันทึก/ส่งอนุมัติ ----------
+    var itemColumnNames = {
+      'express': 'รหัสสินค้า', 'description': 'รายละเอียด', 'quantity': 'จำนวน',
+      'unit-price': 'หน่วยละ', 'discount': 'ส่วนลด', 'price': 'จำนวนเงิน'
+    };
+    var rateNames = { 'rate-price': 'ราคา', 'rate-quantity': 'คุณภาพงาน', 'rate-service': 'การบริการ', 'rate-safety': 'การจัดการสิ่งแวดล้อม/ความปลอดภัย' };
+
+    //ชื่อช่องสำหรับข้อความแจ้งเตือน
+    function requiredFieldName(el) {
+      var row = $(el).closest('.po-items .form-row');
+      if (row.length) {
+        var col = /-unit$/.test(el.id) ? 'หน่วย' : '';
+        for (var cls in itemColumnNames) {
+          if ($(el).hasClass(cls)) col = itemColumnNames[cls];
+        }
+        return 'รายการที่ ' + ($('.po-items .form-row:visible').index(row) + 1) + ' ' + col;
+      }
+      var label = $(el).closest('.form-group, .po-total-row').find('label').first().clone();
+      label.find('.asteriskField').remove();
+      return label.text().trim() || el.name;
+    }
+
+    function clearRequiredMark(el) {
+      $(el).removeClass('req-invalid');
+      $(el).closest('.form-group').find('.req-msg').remove();
+    }
+
+    //คืน true ถ้ากรอกครบ ไม่ครบจะทำเครื่องหมายช่องที่ขาด และแสดงรายการที่แถบปุ่มบันทึก
+    function validateRequired(scroll) {
+      var form = $('#submit').closest('form')[0];
+      var missing = [];
+      var first = null;
+      $(form).find('.req-invalid').each(function () { clearRequiredMark(this); });
+
+      $(form).find('input, select, textarea').each(function () {
+        //ข้ามแถวรายการที่กดลบ (ซ่อนไว้) และช่องที่ไม่ได้แสดง
+        if (this.disabled || this.type == 'hidden' || $(this).closest('.form-row').is(':hidden')) return;
+        if (this.checkValidity()) return;
+        var target = $(this).hasClass('select2-hidden-accessible') ? $(this).next('.select2-container') : $(this);
+        if (!target.is(':visible')) return;
+        var name = requiredFieldName(this);
+        $(this).addClass('req-invalid');
+        if (!$(this).closest('.po-items').length) {
+          var group = $(this).closest('.form-group');
+          if (!group.find('.req-msg').length) {
+            group.append($('<div class="req-msg"></div>').text((this.tagName == 'SELECT' ? 'กรุณาเลือก' : 'กรุณากรอก') + name));
+          }
+        }
+        missing.push(name);
+        first = first || target[0];
+      });
+
+      //ประเมินร้านค้าครบทุกหัวข้อ
+      $('.rate-card, .rate-item').removeClass('req-invalid');
+      var rateMissing = [];
+      for (var rate in rateNames) {
+        if (parseInt($('input[name=' + rate + ']:checked').val() || 0) <= 0) {
+          rateMissing.push(rateNames[rate]);
+          $('input[name=' + rate + ']').closest('.rate-item').addClass('req-invalid');
+        }
+      }
+      if (rateMissing.length) {
+        $('.rate-card').addClass('req-invalid');
+        missing.push('ประเมินผู้จำหน่าย (' + rateMissing.join(', ') + ')');
+        first = first || $('.rate-card')[0];
+      }
+
+      var summary = $('#required-summary');
+      if (!missing.length) {
+        summary.addClass('d-none').empty();
+        return true;
+      }
+      summary.removeClass('d-none').empty()
+        .append('<i class="fas fa-exclamation-circle mr-1"></i>', document.createTextNode('กรุณากรอกให้ครบ: ' + missing.join(', ')));
+      if (scroll) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+
+    //ปุ่มบันทึกแบบร่าง (formnovalidate) ไม่ตรวจ
+    $('#submit').on('click', function (e) {
+      if (!validateRequired(true)) {
+        e.preventDefault();
+      }
+    });
+    //กรอกแล้วเอาเครื่องหมายออก ถ้าแจ้งเตือนอยู่ให้ตรวจใหม่
+    $(document).on('input change', '.po-edit input, .po-edit select, .po-edit textarea', function () {
+      if ($(this).hasClass('req-invalid') && this.checkValidity()) clearRequiredMark(this);
+      if (!$('#required-summary').hasClass('d-none') && !$(this).is('[name^=rate-]')) {
+        var stillMissing = $('.po-edit .req-invalid').length;
+        if (!stillMissing) $('#required-summary').addClass('d-none').empty();
+      }
+    });
+    $('input[name^=rate-]').on('change', function () {
+      if (!$('#required-summary').hasClass('d-none')) validateRequired();
+    });
+
+    //---------- ปริ้นใบสั่งซื้อ: ใช้หน้าตาเดียวกับตอนปริ้นจากหน้า showPO ----------
+    //ช่องค้นหาผู้จำหน่ายถูกเติมค่าทีหลังด้วย ajax จึงไม่นับเป็นการแก้ไข
+    function poFormSnapshot() {
+      return $('#submit').closest('form').find(':input').not('[name=form-distributor], [name=save_draft]').serialize();
+    }
+    var poFormAtLoad = null;
+    //เก็บค่าหลัง $(function) ด้านบนเติมข้อมูลตอนเปิดหน้าเสร็จแล้ว (ready ทำงานตามลำดับที่ลงทะเบียน)
+    $(function () { poFormAtLoad = poFormSnapshot(); });
+
+    function printPOFromShowPage() {
+      if (poFormAtLoad !== null && poFormSnapshot() !== poFormAtLoad
+          && !confirm('มีข้อมูลที่ยังไม่ได้บันทึก ใบสั่งซื้อที่ปริ้นจะเป็นข้อมูลที่บันทึกไว้ล่าสุด\nต้องการปริ้นต่อหรือไม่?')) {
+        return;
+      }
+      var frame = $('#po-print-frame');
+      if (!frame.length) {
+        //ซ่อนไว้นอกจอ (ไม่ใช้ display:none เพราะบางเบราว์เซอร์จะไม่ render หน้าใน iframe)
+        frame = $('<iframe id="po-print-frame" title="ปริ้นใบสั่งซื้อ" aria-hidden="true" tabindex="-1"></iframe>')
+          .css({ position: 'fixed', left: '-10000px', top: 0, width: '1200px', height: '800px', border: 0 })
+          .appendTo('body');
+      }
+      var url = '{% url "showPO" po.id 1 %}';
+      frame.off('load').on('load', function () {
+        try {
+          var w = this.contentWindow;
+          if (typeof w.setDateTimePrint !== 'function') throw new Error('showPO not loaded');
+          w.setDateTimePrint();
+          w.focus();
+          w.print();
+        } catch (e) {
+          //โหลดใน iframe ไม่ได้ (เช่นถูกบล็อก) ให้เปิดหน้าใบสั่งซื้อในแท็บใหม่แทน
+          window.open(url, '_blank');
+        }
+      });
+      frame.attr('src', url + '?print=' + Date.now());
     }
 
     {% if isLockPOItem %}

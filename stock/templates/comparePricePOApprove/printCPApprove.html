@@ -70,287 +70,134 @@
   .verybigmodal {
     max-width: 80%;
   }
+
 </style>
+{% include 'comparePricePO/_cp_doc_styles.html' %}
+{% include 'comparePricePO/_cp_compare_table_styles.html' %}
 {% endblock %}
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-2 offset-1">
-            <img src="/media/company/STG_logo.png" class="rounded float-right" width="90" height="60"/>
+<div class="container cp-print cp-approve my-3">
+    <div class="cp-paper">
+        {% include 'comparePricePO/_cp_doc_head.html' %}
+        {% include 'comparePricePO/_cp_compare_table.html' with show_last_price=True %}
+
+        {% if cp.select_bidder %}
+        <div class="cp-conclusion">
+            <div class="cp-less less"><b id="txtLess"></b></div>
+            <div class="cp-select-line"><b id="txtSelectBidder"></b></div>
         </div>
-        <div class="col-4 text-center">
-            <h6 style="display: inline-block;align-items: center;">ใบเปรียบเทียบราคา</h6>
-            {% if cp.is_re_approve %}
-                <b class="text-danger">***ฉบับแก้ไข</b>
-            {% endif %}
-            {% if cp.cm_type %}
-                &emsp;<p style="font-size:6px;display: inline-block;align-items: center;">({{cp.cm_type}})</p>
-            {%endif%}
-            <h6>{{cp.address_company.name_th}}</h6>
-            <p style="font-size:12px">{{cp.address_company.address}}</p>
-         </div>
-        <div class="col-2">
-            <img src="/media/{{cp.address_company.logo}}" class="rounded float-left" width="60" height="60"/>
-        </div>
-        <div class="col-3 text-center">
-            <b style="font-size:9pt">รหัส {{cp.ref_no}}
-                {% for oldest in items_oldest %}
-                    {% if oldest.item.requisit.memorandum_pdf %}
-                        {% ifchanged oldest.item.requisit.memorandum_pdf %}
-                            <a href="/media/{{oldest.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
-                        {% endifchanged %}
-                    {% endif %}
-                {% endfor %}
-            </b>
-            <h6 style="font-size:9pt">รหัสใบขอซื้อ
-                {% for i in new_pr %}
-                    <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
-                {% endfor %}
-            </h6>
-            <p style="font-size:9pt">วันที่&emsp;{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</p>
-        </div>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-sm">
-        <thead class="text-center">
-            <tr>
-                <td scope="col" rowspan="4">ลำดับ</td>
-                <form class="form-inline ml-3" id="search" method="GET">
-                    <td scope="col" rowspan="4" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-                      <strong>รายการ <i class="fas fa-list text-danger d-print-none"></i></strong>
-                    </td>
-                </form>
-                <td scope="col" rowspan="4">จำนวน</td>
-                <td scope="col" rowspan="4">หน่วย</td>
-                {% for bd in bidder %}
-                    <td scope="col" colspan="4">{{bd.distributor.name}}
-                        {% if bd.quotation_pdf %}
-                            <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
+        {% endif %}
+
+        <form action="{% url 'printCPApprove' cp.id isFromHome %}" method="post" class="mb-0">
+            {% csrf_token %}
+            <!-- ======== ลงชื่อ / อนุมัติ ======== -->
+            <div class="cp-signatures my-3">
+                <div class="cp-sign">
+                    <div class="cp-sign-title">ผู้จัดทำ</div>
+                    <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" class="cp-sign-img"/>
+                    <div>( {{cp.organizer}} )</div>
+                    <div class="text-muted small">{{cp.organizer.userprofile.position}}</div>
+                </div>
+
+                {% if cp.examiner_status.id == 1 and isExaminer and cp.select_bidder %}
+                <div class="cp-sign cp-sign-action">
+                {% else %}
+                <div class="cp-sign">
+                {% endif %}
+                    <div class="cp-sign-title">ผู้ตรวจสอบ</div>
+                    {% if cp.examiner_status.id == 3 %}
+                        <span class="badge badge-danger cp-status">{{cp.examiner_status.name}}</span>
+                    {% elif cp.select_bidder %}
+                        {% if cp.examiner_status.id == 2 %}
+                            <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" class="cp-sign-img"/>
+                            <div>( {{cp.examiner_user}} )</div>
+                            <div class="text-muted small">{{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| format_datetime }}</div>
+                        {% elif cp.examiner_status.id == 1 %}
+                            {% if cp.examiner_user %}<div>{{cp.examiner_user}}</div>{% endif %}
                         {% endif %}
-                    </td>
-                {% endfor %}
-                <td scope="col" rowspan="4">
-                    <ul class="list-unstyled my-3 text-left">
-                        {% for bst in baseSparesType %}
-                            <li>
-                                {% if bst == cp.base_spares_type%}
-                                <i class="fas fa-square"></i>
-                                {% else %}
-                                <i class="far fa-square"></i>
-                                {% endif %}
-                                 {{bst.name}}
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                {% for bd in bidder %}
-                    <td scope="col" colspan="4">โทร. {{bd.distributor.tel}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                {% for bd in bidder %}
-                    <td scope="col">เกรด</td>
-                    <td scope="col" colspan="3">เครดิต {{bd.credit}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                {% for bd in bidder %}
-                    <td scope="col">ยี่ห้อ</td>
-                    <td scope="col">ราคา/หน่วย</td>
-                    <td scope="col">ส่วนลด</td>
-                    <td scope="col">รวม</td>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for oldest in items_oldest %}
-                <tr>
-                    <th scope="row" class="text-center">{{forloop.counter}}</th>
-                    <td>{{oldest.item.product_name}} <b class="text-success" style="white-space: pre-line;">{{oldest.description|linebreaksbr}}</b></td>
-                    <td class="text-right">{{oldest.quantity |floatformat:"-4"}}</td>
-                    <td class="text-center">{{oldest.unit}}</td>
-                        {% comment %}
-                        วนตามคอลัมน์ร้านค้า (bidder) แล้วจับคู่เฉพาะรายการของร้านค้านั้น ๆ ด้วย it.bidder_id == bd.id
-                        เพื่อไม่ให้ราคา/สินค้าไปแสดงผิดคอลัมน์เวลาลำดับ queryset ไม่ตรงกัน
-                        {% endcomment %}
-                        {% for bd in bidder %}
-                            {% for it in itemName %}
-                                {% if it.bidder_id == bd.id and oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
-                                <td>{{it.brand}}</td>
-                                <td class="text-right">{% if it.unit_price %}{{it.unit_price | intcomma}}{%else%}{%endif%}</td>
-                                <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
-                                <td class="text-right">{% if it.price %}{{it.price | intcomma}}{%else%}{%endif%}</td>
-                                {% endif %}
-                            {% endfor %}
-                        {% endfor %}
-                    <td><!-- * --></td>
-                </tr>
-            {% endfor %}
-            <tr style="visibility:hidden;"><td colspan="100%">.</td></tr>
-            <tr>
-                <td colspan="2" class="text-right">รวม</td>
-                <td rowspan="6"></td>
-                <td rowspan="6"></td>
-                {% for bd in bidder %}
-                    <td rowspan="6"></td>
-                    <td rowspan="6"></td>
-                    <td rowspan="6"></td>
-                    <td class="text-right">{{bd.total_price | intcomma}}</td>
-                {% endfor %}
-                <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note|truncatechars:450}}</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">หักส่วนลด</td>
-                {% for bd in bidder %}
-                    <td class="text-right">{{bd.discount | intcomma}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
-                {% for bd in bidder %}
-                    <td class="text-right">{{bd.total_after_discount | intcomma}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">ค่าขนส่ง</td>
-                {% for bd in bidder %}
-                    <td class="text-right">{{bd.freight | intcomma}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td>
-                {% for bd in bidder %}
-                    <td class="text-right"><u>{{bd.vat | intcomma}}</u></td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">รวมเป็นเงินทั้งสิ้น</td>
-                {% for bd in bidder %}
-                    <td class="text-right"><b class="dblUnderlined">{{bd.amount | intcomma}}</b></td>
-                {% endfor %}
-            </tr>           
-        </tbody>
-        </table>
-    </div>
-    {% if cp.select_bidder %}
-    <div class="container">
-        <div class="row pd-3 less" style="height: 4px;">
-            <div class="col-xs">
-                <b id="txtLess"></b>
-            </div>
-        </div>
-        <hr class="less">
-        <div class="row pd-3" style="height: 4px;">
-            <div class="col-xs">
-                <b id="txtSelectBidder"></b>
-            </div>
-        </div>
-        <hr>        
-    </div>
-    {% endif %}           
-    <form action="{% url 'printCPApprove' cp.id isFromHome %}" method="post">
-        {% csrf_token %}
-        <div class="row my-4">
-            <div class="card-group col">
-                    <div class="card" style="max-width: 13rem; max-height:10rem;">
-                        <div class="card-body text-center pt-1 pb-1">
-                        ผู้จัดทำ <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                        ( {{cp.organizer}} )<br>
-                        {{cp.organizer.userprofile.position}}
-                        </div>
-                    </div>
-                    <div class="card" style="max-height:10rem;">
-                        <div class="card-body text-center pt-1 pb-1">
-                            ผู้ตรวจสอบ
-                            {% if cp.examiner_status.id == 3 %}
-                                <br>{{cp.examiner_status.name}}
-                            {% elif cp.select_bidder %}
-                                {% if cp.examiner_status.id == 2 %}
-                                <img src="/media/{{cp.examiner_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                                    ( {{cp.examiner_user}} )<br>
-                                    {{cp.examiner_user.userprofile.position}} วันที่ {{cp.examiner_update| format_datetime }}
-                                {% endif %}
-                                {% if cp.examiner_status.id == 1 and isExaminer %}
-                                    <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="card" style="max-height:10rem;">
-                        <div class="card-body text-center pt-1 pb-1">
-                            ผู้อนุมัติ
-                            {% if cp.approver_status.id == 3 %}
-                                <br>{{cp.approver_status.name}}
-                            {% else %}
-                                {% if cp.approver_status.id == 2 %}
-                                <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                                    ( {{cp.approver_user}} )<br>
-                                    {{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| format_datetime }}
-                                {% endif %}
-                                {% if isApprover and isExaminer and cp.examiner_status.id == 1%}
-                                    <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                {% elif cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
-                                    <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                {% endif %}                           
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% if isSpecialCP %}
-                        <div class="card">
-                            <div class="card-body text-center pt-1 pb-1">
-                                ผู้อนุมัติ
-                                {% if cp.special_approver_status.id == 3 %}
-                                    <br>{{cp.special_approver_status.name}}
-                                {% elif cp.special_approver_status.id == 2 %}
-                                    {% if cp.special_approver_user %}
-                                    <img src="/media/{{cp.special_approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                                        ( {{cp.special_approver_user}} )<br>
-                                        {{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| format_datetime }}
-                                    {% endif %}
-                                {% elif cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 1 and isApproverSpecial%}
-                                    <br>
-                                    <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                    <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                {% endif %}
+                        {% if cp.examiner_status.id == 1 and isExaminer %}
+                            <div class="cp-approve-buttons hidden-print">
+                                <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                             </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                {% if isApprover and isExaminer and cp.examiner_status.id == 1 or cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
+                <div class="cp-sign cp-sign-action">
+                {% else %}
+                <div class="cp-sign">
+                {% endif %}
+                    <div class="cp-sign-title">ผู้อนุมัติ</div>
+                    {% if cp.approver_status.id == 3 %}
+                        <span class="badge badge-danger cp-status">{{cp.approver_status.name}}</span>
+                    {% else %}
+                        {% if cp.approver_status.id == 2 %}
+                            <img src="/media/{{cp.approver_user.userprofile.signature}}" width="100" height="40" class="cp-sign-img"/>
+                            <div>( {{cp.approver_user}} )</div>
+                            <div class="text-muted small">{{cp.approver_user.userprofile.position}} วันที่ {{cp.approver_update| format_datetime }}</div>
+                        {% elif cp.approver_status.id == 1 %}
+                            {% if cp.approver_user %}<div>{{cp.approver_user}}</div>{% endif %}
+                        {% endif %}
+                        {% if isApprover and isExaminer and cp.examiner_status.id == 1%}
+                            <div class="cp-approve-buttons hidden-print">
+                                <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                            </div>
+                        {% elif cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
+                            <div class="cp-approve-buttons hidden-print">
+                                <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                {% if isSpecialCP %}
+                {% if cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 1 and isApproverSpecial %}
+                <div class="cp-sign cp-sign-approver2 cp-sign-action">
+                {% else %}
+                <div class="cp-sign cp-sign-approver2">
+                {% endif %}
+                    <div class="cp-sign-title">ผู้อนุมัติ 2</div>
+                    {% if cp.special_approver_status.id == 3 %}
+                        <span class="badge badge-danger cp-status">{{cp.special_approver_status.name}}</span>
+                    {% elif cp.special_approver_status.id == 2 %}
+                        {% if cp.special_approver_user %}
+                            <img src="/media/{{cp.special_approver_user.userprofile.signature}}" width="100" height="40" class="cp-sign-img"/>
+                            <div>( {{cp.special_approver_user}} )</div>
+                            <div class="text-muted small">{{cp.special_approver_user.userprofile.position}} วันที่ {{cp.special_approver_update| format_datetime }}</div>
+                        {% endif %}
+                    {% elif cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 1 and isApproverSpecial%}
+                        <div class="cp-approve-buttons hidden-print">
+                            <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                            <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
                         </div>
-                    {%endif%}
-            </div>        
-        </div>
-    </form>
-    <div class="row">
-        <div class="col d-print-none">
-            <a href="" class="btn btn-outline-success btn-sm d-print-none"><i class="fas fa-file-download"></i></a> = ใบบันทึก &emsp;
-            <a href="" class="btn btn-outline-primary btn-sm d-print-none"><i class="fas fa-file-download"></i></a> = ใบเสนอราคา
-        </div>
-        <div class="col text-right">{{bc.affiliated.iso_code.cm_code|safe}}</div>
-    </div>
-    <div class="text-right my-2">
-        <description id="dt_print"></description>
-    </div>
-    <div class="row my-2">
-        <div class="col d-print-none">
+                    {% elif cp.special_approver_status.id == 1 %}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </form>
+
+        {% include 'comparePricePO/_cp_doc_footer.html' %}
+
+        <!-- ======== แถบปุ่มกลับ/ปริ้น ติดด้านล่าง (ไม่ปริ้น) ======== -->
+        <div class="cp-actions-bar hidden-print mt-3">
             {% if isFromHome == 'True' %}
-                <a href="{% url 'home' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+                <a href="{% url 'home' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
             {% elif isFromHome == 'False' %}
-                <a href="{% url 'viewCPApprove' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+                <a href="{% url 'viewCPApprove' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
+            {% else %}
+                <span></span>
             {% endif %}
+            <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
+                <i class="fas fa-print"></i>
+                ปริ้นใบเปรียบเทียบราคา
+            </button>
         </div>
-        <div class="col-6 text-right">
-          <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
-            <i class="fas fa-print"></i>
-            ปริ้นใบเปรียบเทียบราคา
-          </button>
-        </div>
-      </div>
+    </div>
 </div>
 <!-- Modal Search-->
 <div class="modal fade" id="myEdit" role="dialog">

@@ -1,0 +1,74 @@
+{% load humanize %}
+{% comment %}ร้านค้าที่เพิ่มในใบเปรียบเทียบราคาแล้ว (cpd, cp_item) ร้านที่กำลังแก้ไข (link_cpd_id) เน้นสีเหลือง{% endcomment %}
+{% for d in cpd %}
+<div class="card cp-card mb-3 {% if link_cpd_id == d.id %}cp-card-current{% endif %}">
+  <div class="card-header d-flex flex-wrap align-items-center justify-content-between">
+    <h5 class="mr-2">
+      <span class="badge badge-secondary mr-1">{{forloop.counter}}</span>
+      {{d.distributor}}
+      {% if link_cpd_id == d.id %}<span class="badge badge-warning ml-1">กำลังแก้ไข</span>{% endif %}
+    </h5>
+    <div class="d-flex align-items-center">
+      {% if d.quotation_pdf %}
+        <a href="/media/{{d.quotation_pdf}}" class="btn btn-outline-success btn-sm mr-2"><i class="fas fa-file-download"></i> ใบเสนอราคา</a>
+      {% endif %}
+      <a href="{% url 'editComparePricePOItem' d.cp.id d.id%}" class="btn btn-warning btn-sm mr-2"><i class="fas fa-pen"></i> แก้ไข</a>
+      <!-- ลบผู้จำหน่ายด้วย POST (มี CSRF) -->
+      <form method="post" action="{% url 'removeComparePriceDistributor' d.cp.id d.id%}" class="mb-0" onsubmit="return confirm('คุณต้องการลบผู้จำหน่าย {{d.distributor}} หรือไม่ ?')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body py-2">
+    <div class="table-responsive">
+      <table class="table table-sm cp-bidder-table">
+        <thead>
+          <tr>
+            <th>สินค้า</th>
+            <th>รายละเอียด</th>
+            <th class="text-right">จำนวน</th>
+            <th>หน่วย</th>
+            <th>เกรด/ยี่ห้อ</th>
+            <th class="text-right">ราคาหน่วยละ</th>
+            <th class="text-right">ส่วนลด</th>
+            <th class="text-right">รวม</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in cp_item %}
+            {% if d.id == it.bidder.id %}
+            <tr>
+              <td>{% if it.item %}{{it.item.product_name}}{% endif %}</td>
+              <td>{% if it.description %}{{it.description|linebreaksbr}}{% endif %}</td>
+              <td class="text-right">{% if it.quantity %}{{it.quantity}}{% endif %}</td>
+              <td>{% if it.unit %}{{it.unit}}{% endif %}</td>
+              <td>{% if it.brand %}{{it.brand}}{% endif %}</td>
+              <td class="text-right">{% if it.unit_price %}{{it.unit_price|intcomma}}{% endif %}</td>
+              <td class="text-right">{% if it.discount %}{{it.discount|intcomma}}{% else %}0.00{% endif %}</td>
+              <td class="text-right font-weight-bold">{% if it.price %}{{it.price|intcomma}}{% endif %}</td>
+            </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-end">
+      <dl class="row cp-bidder-summary mb-1 mx-0" style="width: 100%; max-width: 380px;">
+        <dt class="col-7 text-right">รวม</dt>
+        <dd class="col-5 text-right">{{d.total_price|intcomma}}</dd>
+        <dt class="col-7 text-right">หักส่วนลด</dt>
+        <dd class="col-5 text-right">{{d.discount|intcomma}}</dd>
+        <dt class="col-7 text-right">จำนวนเงินหลังหักส่วนลด</dt>
+        <dd class="col-5 text-right">{{d.total_after_discount|intcomma}}</dd>
+        <dt class="col-7 text-right">ค่าขนส่ง</dt>
+        <dd class="col-5 text-right">{{d.freight|intcomma}}</dd>
+        <dt class="col-7 text-right">ภาษีมูลค่าเพิ่ม 7%</dt>
+        <dd class="col-5 text-right">{{d.vat|intcomma}}</dd>
+        <dt class="col-7 text-right cp-grand">รวมเป็นเงินทั้งสิ้น</dt>
+        <dd class="col-5 text-right cp-grand">{{d.amount|intcomma}}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endfor %}

@@ -1,0 +1,128 @@
+<style>
+  /* ตารางเปรียบเทียบราคา */
+  .cp-compare-table {
+    font-size: .88rem;
+  }
+  .cp-compare-table thead th,
+  .cp-compare-table thead td {
+    vertical-align: middle;
+    background: #f8f9fb;
+  }
+  .cp-compare-table .cp-bidder-name {
+    font-weight: 700;
+    background: #f1f3f5;
+  }
+  /* ร้านที่เลือก: สีน้ำเงิน */
+  .cp-compare-table .cp-bidder-name.cp-selected {
+    background: #cfe2ff;
+    color: #0056b3;
+    box-shadow: inset 0 -3px 0 #007bff;
+  }
+  .cp-compare-table .cp-sub {
+    font-size: .8rem;
+    color: #495057;
+  }
+  .cp-compare-table .cp-col-heads th {
+    font-size: .8rem;
+    white-space: nowrap;
+  }
+  .cp-compare-table .cp-col-item {
+    min-width: 200px;
+  }
+  .cp-compare-table .cp-col-spares {
+    font-weight: normal;
+    font-size: .8rem;
+    white-space: nowrap;
+  }
+  .cp-compare-table tbody tr:not(.cp-sum):not(.cp-gap):hover {
+    background: #fafbfc;
+  }
+  .cp-compare-table .cp-gap td {
+    height: .5rem;
+    padding: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  .cp-compare-table .cp-sum td {
+    background: #fbfbfc;
+  }
+  .cp-compare-table .cp-sum-grand td {
+    font-size: .95rem;
+  }
+  .cp-compare-table .cp-note {
+    font-size: .8rem;
+    min-width: 140px;
+  }
+
+  @media print {
+    .cp-compare-table thead th,
+    .cp-compare-table thead td,
+    .cp-compare-table .cp-bidder-name,
+    .cp-compare-table .cp-sum td {
+      background: none !important;
+      box-shadow: none !important;
+    }
+    .cp-compare-table .cp-bidder-name {
+      color: #000 !important;
+    }
+
+    /* ให้ตารางพอดีความกว้างกระดาษ A4 แนวนอน */
+    @page {
+      size: A4 landscape;
+      margin: 6mm;
+    }
+    /* layouts.css ใส่ padding 20px ให้ #content / เดิม .container กว้าง 98vw ซึ่งกว้างกว่าพื้นที่พิมพ์เมื่อมีขอบกระดาษ */
+    #content {
+      padding: 0 !important;
+    }
+    .container {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .cp-compare-wrap {
+      overflow: visible !important;
+    }
+    .cp-compare-table {
+      width: 100% !important;
+      max-width: 100% !important;
+      font-size: 7.5pt !important;
+    }
+    .cp-compare-table th,
+    .cp-compare-table td {
+      padding: 1px 3px !important;
+    }
+    .cp-compare-table .cp-col-item,
+    .cp-compare-table .cp-note {
+      min-width: 0 !important;
+    }
+    .cp-compare-table .cp-col-heads th,
+    .cp-compare-table .cp-col-spares {
+      white-space: normal !important;
+    }
+    .cp-compare-table .cp-sub,
+    .cp-compare-table .cp-col-heads th,
+    .cp-compare-table .cp-col-spares,
+    .cp-compare-table .cp-note {
+      font-size: 6.5pt !important;
+    }
+    /* ร้านค้าเยอะ ตัวอักษรเล็กลงเพื่อให้พอดีหน้า */
+    .cp-compare-table.cp-bidders-4 {
+      font-size: 6.8pt !important;
+    }
+    .cp-compare-table.cp-bidders-5 {
+      font-size: 5.8pt !important;
+    }
+    .cp-compare-table.cp-bidders-5 th,
+    .cp-compare-table.cp-bidders-5 td {
+      padding: 1px 2px !important;
+    }
+    .cp-compare-table.cp-bidders-5 .cp-sub,
+    .cp-compare-table.cp-bidders-5 .cp-col-heads th,
+    .cp-compare-table.cp-bidders-5 .cp-col-spares,
+    .cp-compare-table.cp-bidders-5 .cp-note {
+      font-size: 5.5pt !important;
+    }
+  }
+</style>

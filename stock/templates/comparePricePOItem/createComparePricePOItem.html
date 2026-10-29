@@ -50,11 +50,14 @@
 }
 
 </style>
+{% include 'comparePricePOItem/_cp_styles.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <h3 align="center">ใบเปรียบเทียบราคา</h3>
+<div class="container cp-edit my-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+        <h3 class="mb-0"><i class="fas fa-balance-scale text-primary mr-2"></i>ใบเปรียบเทียบราคา</h3>
+    </div>
     {% if messages %}
         {% for message in messages %}
             <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
@@ -63,258 +66,108 @@
             </div>
         {% endfor %}
     {% endif %}
-    {% for d in cpd%}
-    <ul class="list-group list-group-horizontal-sm my-2">
-        <li class="list-group-item">
-            <h3 class="float-left">{{forloop.counter}}. {{d.distributor}}</h3>
-            <a href="{% url 'editComparePricePOItem' d.cp.id d.id%}" class="btn btn-warning float-right"><i class="fas fa-pen"></i> แก้ไข</a>
-            <!-- ลบผู้จำหน่ายด้วย POST (มี CSRF) -->
-            <form method="post" action="{% url 'removeComparePriceDistributor' d.cp.id d.id%}" class="float-right" onsubmit="return confirm('คุณต้องการลบผู้จำหน่าย {{d.distributor}} หรือไม่ ?')">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt"></i> ลบ</button>
-            </form>
-        </li>
-        <li class="list-group-item">
-            <div class="row">
-                <div class="col-2">สินค้า</div>
-                <div class="col">รายละเอียด</div>
-                <div class="col">จำนวน</div>
-                <div class="col">หน่วย</div>
-                <div class="col">เกรด/ยี่ห้อ</div>
-                <div class="col text-right">ราคาหน่วยละ</div>
-                <div class="col text-right">ส่วนลด</div>
-                <div class="col text-right">รวม</div>
-            </div>
-        </li>
-        {% for it in cp_item %}
-            {% if d.id == it.bidder.id%}
-                <li class="list-group-item">
-                    <div class="row">
-                        <div class="col-2">{% if it.item %}{{it.item.product_name}}{% endif %}</div>
-                        <div class="col">{% if it.description %}{{it.description|linebreaksbr}}{% endif %}</div>
-                        <div class="col">{% if it.quantity %}{{it.quantity}}{% endif %}</div>
-                        <div class="col">{% if it.unit %}{{it.unit}}{% endif %}</div>
-                        <div class="col">{% if it.brand %}{{it.brand}}{% endif %}</div>
-                        <div class="col text-right">{% if it.unit_price %}{{it.unit_price| intcomma}}{% endif %}</div>
-                        <div class="col text-right">{% if it.discount %}{{it.discount| intcomma}}{%else%}0.00{% endif %}</div>
-                        <div class="col text-right">{% if it.price %}{{it.price | intcomma}}{% endif %}</div>
-                    </div>
-                </li>
-            {% endif %}
-        {% endfor %}
-        <li class="list-group-item">
-            <div class="row spacer">
-                <div class="col-2">
-                    {% if d.quotation_pdf %}
-                        ใบเสนอราคา<br>
-                        <a href="/media/{{d.quotation_pdf}}" class="btn btn-outline-success btn-sm"><i class="fas fa-file-download"></i> Download</a>
-                    {% endif %}
-                </div>
-                <div class="col">
-                    <div class="row spacer my-2">
-                        <div class="col-3 offset-7 text-right">รวม</div>
-                        <div class="col-2 text-right">{{d.total_price| intcomma}}</div>
-                    </div>
-                    <div class="row spacer my-2">
-                        <div class="col-3 offset-7 text-right">หักส่วนลด</div>
-                        <div class="col-2 text-right">{{d.discount | intcomma}}</div>
-                    </div>
-                    <div class="row spacer my-2">
-                        <div class="col-3 offset-7 text-right">จำนวนเงินหลังหักส่วนลด</div>
-                        <div class="col-2 text-right">{{d.total_after_discount | intcomma}}</div>
-                    </div>
-                    <div class="row spacer my-2">
-                        <div class="col-3 offset-7 text-right">ค่าขนส่ง</div>
-                        <div class="col-2 text-right">{{d.freight | intcomma}}</div>
-                    </div>
-                    <div class="row spacer my-2">
-                        <div class="col-3 offset-7 text-right">ภาษีมูลค่าเพิ่ม 7%</div>
-                        <div class="col-2 text-right">{{d.vat | intcomma}}</div>
-                    </div>
-                    <div class="row spacer my-2">
-                        <div class="col-3 offset-7 text-right">รวมเป็นเงินทั้งสิ้น</div>
-                        <div class="col-2 text-right">{{d.amount | intcomma}}</div>
-                    </div>
-                </div>
-            </div>
-        </li>
-    </ul>  
-    {% endfor %}
-    <h4><span class="my-4 badge badge-pill badge-primary">เพิ่มร้านค้า</span></h4>
-    <div class="card my-2 div-shadow border-primary" id="card">
-        <form class="form-horizontal" method="POST" action="" enctype="multipart/form-data">
+
+    {% if cpd %}
+    <h5 class="text-muted mb-2">ร้านค้าที่เพิ่มแล้ว ({{ cpd|length }})</h5>
+    {% include 'comparePricePOItem/_cp_distributor_list.html' %}
+    {% endif %}
+
+    <div class="card cp-card cp-form-card border-primary my-3" id="card">
+        <form class="form-horizontal mb-0" method="POST" action="" enctype="multipart/form-data">
             {% csrf_token %}
-            <div class="card-header text-primary">
-                    <div class="row spacer">
-                        <div class="col-5">
-                            <div class="input-group">
-                                <label>{{bookform.distributor.label}}</label>&ensp;
-                                {{bookform.cp}}
-                                {{bookform.distributor}}
-                                <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">
-                                <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
-                                <datalist-- id="idDistributorList">
-                                {% for results in distributorList %}
-                                    <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
-                                {% endfor %}
-                                </datalist-->
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="input-group">
-                                <label>{{bookform.credit.label}}</label>&ensp;
-                                {{bookform.credit | add_class:"form-control"}}
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="input-group">
-                                <label>{{bookform.vat_type.label}}</label>&ensp;
-                                {{bookform.vat_type | add_class:"form-control"}}
-                            </div>
-                        </div>
+            <div class="card-header">
+                <div class="cp-head-grid">
+                    <h5 class="text-primary cp-head-title"><i class="fas fa-plus-circle mr-2"></i>เพิ่มร้านค้า</h5>
+                    <div class="form-group">
+                        <label for="id-form-distributor">{{bookform.distributor.label}}</label>
+                        {{bookform.cp}}
+                        {{bookform.distributor}}
+                        <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor()">
+                        <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
+                        <datalist-- id="idDistributorList">
+                        {% for results in distributorList %}
+                            <option data-id="{{results.id}}" data-show="{{results.name}}" value="{{results.id}}-{{results.name}}" data-credit="{{results.credit__id}}" data-vat_type="{{results.vat_type__id}}"></option>
+                        {% endfor %}
+                        </datalist-->
                     </div>
+                    <div class="form-group">
+                        <label for="id_credit">{{bookform.credit.label}}</label>
+                        {{bookform.credit | add_class:"form-control"}}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_vat_type">{{bookform.vat_type.label}}</label>
+                        {{bookform.vat_type | add_class:"form-control"}}
+                    </div>
+                    <div class="cp-head-actions">
+                        <button type="button" class="btn btn-outline-danger" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal" title="รายการสินค้าที่ซื้อล่าสุด">
+                            <i class="fas fa-history"></i> ราคาที่ซื้อล่าสุด
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
-                <div class="row form-row spacer">
-                    <div style="width: 20px;">ที่</div>
-                    <form class="form-inline ml-3" id="search" method="GET">
-                        <div class="col" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-                            สินค้า <i class="fas fa-list text-danger d-print-none"></i>
+                <div class="cp-items-scroll">
+                    <div class="cp-items">
+                        <div class="cp-items-head">
+                            <div class="c-no">ที่</div>
+                            <div class="c-code">สินค้า</div>
+                            <div class="c-desc">รายละเอียด</div>
+                            <div class="c-qty">จำนวน</div>
+                            <div class="c-unit">หน่วย</div>
+                            <div class="c-brand">เกรด/ยี่ห้อ</div>
+                            <div class="c-uprice text-right">ราคาหน่วยละ</div>
+                            <div class="c-disc text-right">ส่วนลด</div>
+                            <div class="c-price text-right">รวม</div>
+                            <div class="c-act"></div>
                         </div>
-                    </form>
-                    <div class="col">รายละเอียด</div>
-                    <div class="col">จำนวน</div>
-                    <div class="col">หน่วย</div>
-                    <div class="col">เกรด/ยี่ห้อ</div>
-                    <div class="col">ราคาหน่วยละ</div>
-                    <div class="col">ส่วนลด</div>
-                    <div class="col">รวม</div>
-                </div>
-                {{ formset.management_form }}
-                {% for form in formset %}
-                <div class="row form-row spacer my-2">
-                    <div class="col-12">
-                        <div class="input-group">
-                            <b id="id_form-0-lb" name="form-0-lb" class="lb">1&nbsp;</b>
-                            <input id="id_form-{{forloop.counter0}}-oldquantity" name="form-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
-                            {{form.item | add_class:"item"}}
-                            <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
-                            <!--datalist id="idExpressList">
-                              {% for results in itemList %}
-                                <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
-                              {% endfor %}
-                            </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
-                            <datalist id="idExpressList">
-                                {% for results in itemList %}
-                                  <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.item__product__unit__id}}"></option>
-                                {% endfor %}
-                            </datalist>
-                            {{form.description | add_class:"form-control description"}}
-                            {{form.quantity | add_class:"form-control quantity"}}
-                            {{form.unit | add_class:"form-control unit"|attr:"required:true"}}
-                            {{form.brand | add_class:"form-control"}}
-                            {{form.unit_price | add_class:"form-control unit-price text-right"}}
-                            {{form.discount | add_class:"form-control discount text-right"}}
-                            {{form.price | add_class:"form-control price text-right"}}
-                            <div class="input-group-append">
-                                <button class="btn btn-success add-form-row">+</button>
+                        {{ formset.management_form }}
+                        {% for form in formset %}
+                        <div class="row form-row spacer my-2">
+                            <div class="col-12">
+                                <div class="input-group">
+                                    <b id="id_form-0-lb" name="form-0-lb" class="lb">1&nbsp;</b>
+                                    <input id="id_form-{{forloop.counter0}}-oldquantity" name="form-{{forloop.counter0}}-oldquantity" type="number" class="form-control d-none" step="0.0001"><!-- เช็คปริมาณว่าเบิกเกินไหม -->
+                                    {{form.item | add_class:"item"}}
+                                    <input id="id_form-0-express" name="form-0-express" type="text" list="idExpressList" class="express form-control" Placeholder="ค้นหาสินค้า ..." class="form-control" autocomplete="off">
+                                    <!--datalist id="idExpressList">
+                                      {% for results in itemList %}
+                                        <option data-id="{{results.id}}" data-show="{{results.product.id}} {{results.product}}" data-refno = "{{results.requisit.pr_ref_no}}{{results.product.id}}" value="{{results.product.id}}: {{results.product}} เลขที่ {{results.requisit.pr_ref_no}}" data-quantity="{{results.quantity_pr}}" data-unit="{{results.product.unit.id}}"></option>
+                                      {% endfor %}
+                                    </datalist เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022 -->
+                                    <datalist id="idExpressList">
+                                        {% for results in itemList %}
+                                          <option data-id="{{results.item__id}}" data-show="{{results.item__product__id}} {{results.item__product_name}}" data-refno = "{{results.item__requisit__pr_ref_no}}{{results.item__product__id}}" value="{{results.item__product__id}}: {{results.item__product_name}} เลขที่ {{results.item__requisit__pr_ref_no}}" data-quantity="{{results.item__quantity_pr}}" data-unit="{{results.item__product__unit__id}}"></option>
+                                        {% endfor %}
+                                    </datalist>
+                                    {{form.description | add_class:"form-control description"}}
+                                    {{form.quantity | add_class:"form-control quantity"}}
+                                    {{form.unit | add_class:"form-control unit"|attr:"required:true"}}
+                                    {{form.brand | add_class:"form-control"}}
+                                    {{form.unit_price | add_class:"form-control unit-price text-right"}}
+                                    {{form.discount | add_class:"form-control discount text-right"}}
+                                    {{form.price | add_class:"form-control price text-right"}}
+                                    <div class="input-group-append">
+                                        <button class="btn btn-success add-form-row" title="เพิ่มรายการ">+</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
-                <div class="row spacer">
-                    <div class="col-4 pdf">
-                        <div class="row spacer ml-2">
-                            ใบเสนอราคา {{bookform.quotation_pdf | add_class:"form-control text-right"}}
-                        </div>
-                        <div class="row spacer ml-2">
-                            {% if bookform.quotation_pdf.errors %}
-                            <div class="alert alert-warning" role="alert">
-                                {{ bookform.quotation_pdf.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="row spacer">
-                            <div class="col-8">
-                                <label class="float-right">{{bookform.total_price.label}}</label>
-                            </div>
-                            <div class="col-4">
-                                <div class="input-group float-right">
-                                    {{bookform.total_price | add_class:"form-control text-right"}}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row spacer my-2">
-                            <div class="col-8">
-                                <label class="float-right">{{bookform.discount.label}}</label>
-                            </div>
-                            <div class="col-4">
-                                <div class="input-group float-right">
-                                    {{bookform.discount  | add_class:"form-control text-right"}}
-                                    <p class="text-right" id="tempTotal" hidden></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row spacer my-2">
-                            <div class="col-8">
-                                <label class="float-right">{{bookform.total_after_discount.label}}</label>
-                            </div>
-                            <div class="col-4">
-                                <div class="input-group float-right">
-                                    {{bookform.total_after_discount | add_class:"form-control text-right"}}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row spacer my-2">
-                            <div class="col-8">
-                                <label class="float-right">{{bookform.freight.label}}</label>
-                            </div>
-                            <div class="col-4">
-                                <div class="input-group float-right">
-                                    {{bookform.freight | add_class:"form-control text-right"}}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row spacer my-2">
-                            <div class="col-8">
-                                <label class="float-right">{{bookform.vat.label}}</label>
-                            </div>
-                            <div class="col-4">
-                                <div class="input-group float-right">
-                                    {{bookform.vat | add_class:"form-control text-right"}}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row spacer my-2">
-                            <div class="col-8">
-                                <label class="float-right">{{bookform.amount.label}}</label>
-                            </div>
-                            <div class="col-4">
-                                <div class="input-group float-right">
-                                    {{bookform.amount | add_class:"form-control text-right"}}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row spacer my-2">
-                    <div class="col-3">
-                        <button type="submit" class="btn btn-block btn-primary"><i class="fas fa-plus-circle"></i> เพิ่มร้านค้า</button>
-                    </div>
-                    {% for results in itemList %}
-                        {{results.name}}
-                    {%endfor%}
-                </div>
+
+                {% include 'comparePricePOItem/_cp_totals.html' with show_spell=True submit_label='เพิ่มร้านค้า' submit_class='btn-primary' submit_icon='fa-plus-circle' %}
+
             </div>
         </form>
     </div>
-    <div class="row my-4">
-        <div class="col">
-            <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn bg-success text-white float-right">Next <i class="fas fa-arrow-right"></i></a>
-        </div>
+    <!-- แถบปุ่มถัดไปติดด้านล่าง -->
+    <div class="cp-actions-bar mb-3">
+        <span class="text-muted">
+            <i class="fas fa-store mr-1"></i>ร้านค้าที่เพิ่มแล้ว <strong>{{ cpd|length }}</strong> ร้าน
+            <span class="d-none d-md-inline">· กด "ถัดไป" เพื่อไปหน้าสรุปใบเปรียบเทียบราคา</span>
+        </span>
+        <a href="{% url 'printComparePricePO' link_cp_id %}" class="btn btn-success px-4">ถัดไป <i class="fas fa-arrow-right"></i></a>
     </div>
     <!-- Modal Search-->
     <div class="modal fade" id="myEdit" role="dialog">

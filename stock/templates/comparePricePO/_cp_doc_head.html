@@ -1,0 +1,40 @@
+{% comment %}หัวเอกสารใบเปรียบเทียบราคา: โลโก้ ชื่อ/ที่อยู่บริษัท รหัส รหัสใบขอซื้อ วันที่ (ใช้ร่วม printComparePricePO / printCPApprove / showComparePricePO)
+show_address_edit: ปุ่มแก้ไขที่อยู่ตามจดทะเบียน (modal #addressCompany){% endcomment %}
+<div class="cp-doc-head">
+    <div class="cp-doc-logos">
+        <img src="/media/company/STG_logo.png" class="rounded" width="90" height="60"/>
+    </div>
+    <div class="cp-doc-title">
+        <h5 class="mb-1">
+            ใบเปรียบเทียบราคา
+            {% if cp.is_re_approve %}<b class="text-danger">***ฉบับแก้ไข</b>{% endif %}
+            {% if cp.cm_type %}<small class="text-muted">({{cp.cm_type}})</small>{% endif %}
+        </h5>
+        <div class="font-weight-bold">{{cp.address_company.name_th}}{% if show_address_edit %} <button type="button" class="btn btn-outline-dark btn-sm py-0 d-print-none" data-toggle="modal" data-target="#addressCompany" title="แก้ไขที่อยู่ตามจดทะเบียน"><i class="fas fa-cog"></i></button>{% endif %}</div>
+        <div class="cp-doc-address">{{cp.address_company.address}}</div>
+    </div>
+    <div class="cp-doc-logos">
+        <img src="/media/{{cp.address_company.logo}}" class="rounded" width="60" height="60"/>
+    </div>
+    <dl class="cp-doc-meta">
+        <dt>รหัส</dt>
+        <dd>
+            {{cp.ref_no}}
+            {% for oldest in items_oldest %}
+                {% if oldest.item.requisit.memorandum_pdf %}
+                    {% ifchanged oldest.item.requisit.memorandum_pdf %}
+                        <a href="/media/{{oldest.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm py-0 hidden-print" title="เอกสารแนบ"><i class="fas fa-file-download"></i></a>
+                    {% endifchanged %}
+                {% endif %}
+            {% endfor %}
+        </dd>
+        <dt>รหัสใบขอซื้อ</dt>
+        <dd>
+            {% for i in new_pr %}
+                <a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </dd>
+        <dt>วันที่</dt>
+        <dd>{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</dd>
+    </dl>
+</div>
