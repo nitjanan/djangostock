@@ -1,0 +1,178 @@
+{% extends 'layouts.html' %}
+{% load static %}
+
+{% block css %}
+<style>
+  .choice { display: flex; gap: .6rem; align-items: flex-start; border: 1px solid #dee2e6; border-radius: .4rem; padding: .6rem .8rem; margin-bottom: .5rem; cursor: pointer; }
+  .choice.active { border-color: #17a2b8; background: #e8f6f8; }
+  .choice.disabled { opacity: .55; cursor: not-allowed; }
+  .choice input { margin-top: .3rem; }
+  .choice small { display: block; color: #6c757d; }
+  .step-no { display: inline-block; width: 1.6rem; height: 1.6rem; line-height: 1.6rem; text-align: center; border-radius: 50%; background: #17a2b8; color: #fff; font-size: .85rem; margin-right: .4rem; }
+  .step { border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem; }
+  .alt-list label { margin-right: 1.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% with kind=form.kind.value requirement=form.requirement.value %}
+<div class="container my-3" style="max-width: 760px;">
+  <h3 align="center">{{title}}</h3>
+  <div class="card div-shadow my-3">
+    <div class="card-body">
+      <form method="post" id="rule-form" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{form.non_field_errors|join:" "}}</div>{% endif %}
+
+        {# 1. ข้อหลัก / ข้อย่อย #}
+        <h5><span class="step-no">1</span>ข้อนี้เป็นแบบไหน</h5>
+        <label class="choice" data-kind="main">
+          <input type="radio" name="kind" value="main" {% if kind == "main" %}checked{% endif %}>
+          <span>ข้อหลัก<small>ขึ้นเป็นข้อใหม่ในฟอร์ม เช่น ข้อ {{next_main_code}}</small></span>
+        </label>
+        <label class="choice {% if form.has_children %}disabled{% endif %}" data-kind="child">
+          <input type="radio" name="kind" value="child" {% if kind == "child" %}checked{% endif %} {% if form.has_children %}disabled{% endif %}>
+          <span>ข้อย่อยของข้ออื่น
+            <small>{% if form.has_children %}ข้อนี้มีข้อย่อยอยู่แล้ว จึงเปลี่ยนเป็นข้อย่อยไม่ได้{% else %}เช่น 1.1 อยู่ใต้ข้อ 1 ผลจะนับรวมไปที่ข้อหลัก{% endif %}</small>
+          </span>
+        </label>
+        {% if form.kind.errors %}<div class="text-danger small">{{form.kind.errors|join:" "}}</div>{% endif %}
+
+        {# 2. (ข้อย่อย) อยู่ใต้ข้อไหน #}
+        <div class="step" id="sec-parent" {% if kind != "child" %}hidden{% endif %}>
+          <h5><span class="step-no">2</span>อยู่ใต้ข้อไหน</h5>
+          <select name="parent" id="f-parent" class="form-control">
+            {% for r, next_code in parent_options %}
+              <option value="{{r.pk}}" data-code="{{next_code}}"
+                {% if form.parent.value|stringformat:"s" == r.pk|stringformat:"s" %}selected{% endif %}>{{r}}</option>
+            {% endfor %}
+          </select>
+          {% if form.parent.errors %}<div class="text-danger small">{{form.parent.errors|join:" "}}</div>{% endif %}
+        </div>
+
+        {# เลขข้อ + ชื่อ #}
+        <div class="step">
+          <h5><span class="step-no" data-step-name>{% if kind == "child" %}3{% else %}2{% endif %}</span>ข้อความหลักเกณฑ์</h5>
+          <div class="form-row">
+            <div class="form-group col-3 col-md-2 mb-1">
+              <label for="f-code" class="small mb-0">เลขข้อ</label>
+              <input type="text" name="code" id="f-code" class="form-control {% if form.code.errors %}is-invalid{% endif %}" value="{{form.code.value|default:''}}" maxlength="20" required>
+            </div>
+            <div class="form-group col-9 col-md-10 mb-1">
+              <label for="f-name" class="small mb-0">หลักเกณฑ์</label>
+              <input type="text" name="name" id="f-name" class="form-control {% if form.name.errors %}is-invalid{% endif %}" value="{{form.name.value|default:''}}" maxlength="255" required placeholder="เช่น มีใบรับรองมาตรฐานผลิตภัณฑ์">
+            </div>
+          </div>
+          {% for e in form.code.errors %}<div class="text-danger small">{{e}}</div>{% endfor %}
+          {% for e in form.name.errors %}<div class="text-danger small">{{e}}</div>{% endfor %}
+          <small class="text-muted">เลขข้อเติมให้อัตโนมัติ แก้ได้</small>
+          <div class="mt-2">
+            <a href="#" id="toggle-desc" class="small" {% if form.description.value %}hidden{% endif %}>+ เพิ่มรายละเอียด</a>
+            <div id="sec-desc" {% if not form.description.value %}hidden{% endif %}>
+              <label for="f-desc" class="small mb-0">รายละเอียด (แสดงตัวเล็กใต้หลักเกณฑ์)</label>
+              <textarea name="description" id="f-desc" class="form-control" rows="2">{{form.description.value|default:''}}</textarea>
+            </div>
+          </div>
+        </div>
+
+        {# (ข้อหลัก) ต้องผ่านไหม #}
+        <div class="step" id="sec-requirement" {% if kind == "child" %}hidden{% endif %}>
+          <h5><span class="step-no">3</span>ต้องผ่านข้อนี้ถึงจะอนุมัติได้ไหม</h5>
+          <label class="choice" data-req="no">
+            <input type="radio" name="requirement" value="no" {% if requirement == "no" %}checked{% endif %}>
+            <span>ไม่บังคับ<small>เกณฑ์เพิ่มเติม ไม่ผ่านก็ยังอนุมัติได้</small></span>
+          </label>
+          <label class="choice" data-req="yes">
+            <input type="radio" name="requirement" value="yes" {% if requirement == "yes" %}checked{% endif %}>
+            <span>บังคับ ต้องผ่านข้อนี้<small>ไม่ผ่านข้อนี้ = อนุมัติไม่ได้</small></span>
+          </label>
+          <label class="choice" data-req="or">
+            <input type="radio" name="requirement" value="or" {% if requirement == "or" %}checked{% endif %}>
+            <span>บังคับ แต่ใช้ข้ออื่นแทนได้<small>ผ่านข้อนี้ หรือข้อที่เลือก ข้อใดข้อหนึ่งก็พอ (เช่น ข้อ 8 หรือ ข้อ 9)</small></span>
+          </label>
+          {% if form.requirement.errors %}<div class="text-danger small">{{form.requirement.errors|join:" "}}</div>{% endif %}
+          <div id="sec-alternatives" class="alt-list ml-4" {% if requirement != "or" %}hidden{% endif %}>
+            <div class="small text-muted mb-1">ใช้ข้อไหนแทนได้</div>
+            {% for r in form.fields.alternatives.queryset %}
+              <label class="small"><input type="checkbox" name="alternatives" value="{{r.pk}}"
+                {% for v in form.alternatives.value %}{% if v|stringformat:"s" == r.pk|stringformat:"s" %}checked{% endif %}{% endfor %}> ข้อ {{r.code}}</label>
+            {% endfor %}
+            {% if form.alternatives.errors %}<div class="text-danger small">{{form.alternatives.errors|join:" "}}</div>{% endif %}
+          </div>
+        </div>
+
+        {# ข้อที่มีข้อย่อย: ผลคำนวณจากข้อย่อยยังไง #}
+        {% if form.has_children %}
+        <div class="step">
+          <h5><span class="step-no">4</span>ข้อย่อยต้องผ่านแค่ไหน</h5>
+          <p class="small text-muted mb-1">ข้อย่อยของข้อนี้: {% for c in children %}ข้อ {{c.code}}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+          {% for value, label in form.fields.children_mode.choices %}
+            <label class="choice" data-mode="{{value}}">
+              <input type="radio" name="children_mode" value="{{value}}" {% if form.children_mode.value == value %}checked{% endif %}>
+              <span>{{label}}</span>
+            </label>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between mt-4">
+          <a class="btn btn-outline-secondary" href="{% url 'distributorRuleList' %}">ยกเลิก</a>
+          <button type="submit" class="btn btn-success">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block javascript %}
+<script>
+  (function () {
+    const form = document.getElementById('rule-form');
+    const code = document.getElementById('f-code');
+    const parent = document.getElementById('f-parent');
+    const isNew = {% if rule.pk %}false{% else %}true{% endif %};
+    const nextMainCode = '{{next_main_code|escapejs}}';
+    let lastSuggestion = code.value;
+
+    function checked(name) {
+      const el = form.querySelector('input[name="' + name + '"]:checked');
+      return el ? el.value : '';
+    }
+
+    function suggestCode() {
+      // เติมเลขข้อให้เฉพาะตอนเพิ่มข้อใหม่ และผู้ใช้ยังไม่ได้แก้เลขเอง
+      if (!isNew || code.value !== lastSuggestion) return;
+      const opt = parent.selectedOptions[0];
+      lastSuggestion = checked('kind') === 'child' ? (opt ? opt.dataset.code : '') : nextMainCode;
+      code.value = lastSuggestion;
+    }
+
+    function sync() {
+      const kind = checked('kind');
+      const req = checked('requirement');
+      document.getElementById('sec-parent').hidden = kind !== 'child';
+      document.getElementById('sec-requirement').hidden = kind === 'child';
+      document.getElementById('sec-alternatives').hidden = req !== 'or';
+      form.querySelector('[data-step-name]').textContent = kind === 'child' ? '3' : '2';
+      form.querySelectorAll('.choice').forEach(function (el) {
+        const input = el.querySelector('input');
+        el.classList.toggle('active', input.checked);
+      });
+    }
+
+    form.addEventListener('change', function (e) {
+      if (e.target.name === 'kind' || e.target === parent) suggestCode();
+      sync();
+    });
+    document.getElementById('toggle-desc').addEventListener('click', function (e) {
+      e.preventDefault();
+      this.hidden = true;
+      document.getElementById('sec-desc').hidden = false;
+      document.getElementById('f-desc').focus();
+    });
+    sync();
+  })();
+</script>
+{% endblock javascript %}

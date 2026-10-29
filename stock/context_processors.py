@@ -992,3 +992,17 @@ def document(request):
         document = None
 
     return dict(document = document)
+
+#จำนวนใบขอเพิ่ม Supplier ที่รออนุมัติ แสดงเป็น badge ในเมนู "ผู้จัดจำหน่าย" เฉพาะกลุ่ม ApproveDistributor
+def distributorApproveCounter(request):
+    # can_vendor_menu: เห็นเมนู "ผู้จัดจำหน่าย" (แท็บการใช้งาน Distributor ใน UserProfile / กลุ่ม ApproveDistributor)
+    # dist_ap_count: เฉพาะกลุ่ม ApproveDistributor (เมนูอนุมัติ + badge)
+    if 'admin' in request.path or not request.user.is_authenticated:
+        return {}
+    is_approver = request.user.groups.filter(name='ApproveDistributor').exists()
+    has_tab = BaseVisible.objects.filter(userprofile__user=request.user, name='Distributor').exists()
+    context = dict(can_vendor_menu = is_approver or has_tab)
+    if is_approver:
+        from stock.models import DistributorCandidate
+        context['dist_ap_count'] = DistributorCandidate.objects.filter(status=DistributorCandidate.STATUS_SUBMITTED).count()
+    return context

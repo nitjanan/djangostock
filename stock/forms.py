@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models.fields.related import ManyToManyField
 from django.forms import fields, widgets, CheckboxSelectMultiple
 from django.contrib.auth.forms import UserCreationForm
-from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance, CarLogbook, BaseJobCarDep, BaseOrigSta
+from stock.models import  BaseUrgency, Distributor, PurchaseOrder, PurchaseOrderItem, PurchaseRequisition, Requisition, RequisitionItem, PurchaseRequisition,UserProfile,ComparisonPrice, ComparisonPriceItem, ComparisonPriceDistributor, Receive, ReceiveItem, BaseVisible, BranchCompanyBaseAdress, BaseAddress, PositionBasePermission, RateDistributor, Product, BasePOType, BaseRequisitionType, BaseExpenseDepartment, BaseRepairType, BaseCar, BaseBrokeType, BaseExpenses, BaseAgency, BaseCar, Maintenance, CarLogbook, BaseJobCarDep, BaseOrigSta, DistributorRule, DistributorRuleGroup
 from django.utils.translation import gettext_lazy as _
 from django.forms import (formset_factory, modelformset_factory, inlineformset_factory)
 from django.forms.widgets import ClearableFileInput
@@ -983,3 +983,168 @@ class PositionBasePermissionAdminForm(forms.ModelForm):
             # ฝั่งเซร์ฟเป็นผู้ตัดสิน: บังคับใช้ตำแหน่งจากโปรไฟล์ของผู้ใช้เสมอ
             cleaned_data["position"] = profile.position
         return cleaned_data
+
+
+class DistributorRuleForm(forms.Form):
+    """ฟอร์มเพิ่ม/แก้หลักเกณฑ์ FM-PU-005 แบบถามทีละเรื่อง
+
+    ผู้ใช้ไม่เห็น "กลุ่มเกณฑ์บังคับ" ตอบแค่ว่าข้อนี้ต้องผ่านไหม / ใช้ข้อไหนแทนได้
+    แล้ว save() จัดกลุ่มใน DistributorRuleGroup ให้เอง (ข้อย่อยซ้อนได้ชั้นเดียว)
+    """
+    KIND_MAIN = 'main'
+    KIND_CHILD = 'child'
+    REQ_NO = 'no'
+    REQ_YES = 'yes'
+    REQ_OR = 'or'
+
+    kind = forms.ChoiceField(choices=[(KIND_MAIN, 'ข้อหลัก'), (KIND_CHILD, 'ข้อย่อยของข้ออื่น')], widget=forms.RadioSelect)
+    parent = forms.ModelChoiceField(queryset=DistributorRule.objects.none(), required=False, empty_label=None)
+    code = forms.CharField(max_length=20)
+    name = forms.CharField(max_length=255)
+    description = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2}))
+    requirement = forms.ChoiceField(
+        choices=[(REQ_NO, 'ไม่บังคับ'), (REQ_YES, 'บังคับ ต้องผ่านข้อนี้'), (REQ_OR, 'บังคับ แต่ใช้ข้ออื่นแทนได้')],
+        widget=forms.RadioSelect, required=False,
+    )
+    alternatives = forms.ModelMultipleChoiceField(
+        queryset=DistributorRule.objects.none(), required=False, widget=forms.CheckboxSelectMultiple,
+    )
+    children_mode = forms.ChoiceField(choices=DistributorRule.CHILDREN_MODE_CHOICES, widget=forms.RadioSelect, required=False)
+
+    def __init__(self, *args, instance=None, **kwargs):
+        self.instance = instance or DistributorRule()
+        self.has_children = bool(self.instance.pk) and self.instance.children.exists()
+        initial = kwargs.setdefault('initial', {})
+        if self.instance.pk:
+            group = self.instance.mandatory_group
+            others = list(group.rules.exclude(pk=self.instance.pk)) if group else []
+            initial.update({
+                'kind': self.KIND_CHILD if self.instance.parent_id else self.KIND_MAIN,
+                'parent': self.instance.parent_id,
+                'code': self.instance.code,
+                'name': self.instance.name,
+                'description': self.instance.description,
+                'requirement': self.REQ_OR if others else (self.REQ_YES if group else self.REQ_NO),
+                'alternatives': [r.pk for r in others],
+                'children_mode': self.instance.children_mode,
+            })
+        else:
+            initial.setdefault('kind', self.KIND_CHILD if self.instance.parent_id else self.KIND_MAIN)
+            initial.setdefault('parent', self.instance.parent_id)
+            initial.setdefault('requirement', self.REQ_NO)
+            initial.setdefault('code', self.suggest_code(self.instance.parent))
+        super().__init__(*args, **kwargs)
+
+        top_level = DistributorRule.objects.filter(parent__isnull=True)
+        if self.instance.pk:
+            top_level = top_level.exclude(pk=self.instance.pk)
+        self.fields['parent'].queryset = top_level
+        self.fields['alternatives'].queryset = top_level
+        self.fields['parent'].label_from_instance = str
+        self.fields['alternatives'].label_from_instance = lambda r: f"ข้อ {r.code}"
+
+    @staticmethod
+    def suggest_code(parent=None):
+        """ข้อหลัก: เลขจำนวนเต็มถัดไป / ข้อย่อย: <ข้อหลัก>.<ลำดับถัดไป>"""
+        if parent is not None:
+            return f"{parent.code}.{parent.children.count() + 1}"
+        numbers = [int(c) for c in DistributorRule.objects.filter(parent__isnull=True).values_list('code', flat=True) if c.isdigit()]
+        return str(max(numbers, default=0) + 1)
+
+    def parent_options(self):
+        """ข้อหลักที่เลือกได้ + เลขข้อย่อยถัดไปของแต่ละข้อ (ให้ JS เติมช่องเลขข้อ)"""
+        return [(r, self.suggest_code(r)) for r in self.fields['parent'].queryset]
+
+    def clean(self):
+        data = super().clean()
+        kind = data.get('kind')
+        if kind == self.KIND_CHILD:
+            if self.has_children:
+                self.add_error('kind', 'ข้อนี้มีข้อย่อยอยู่แล้ว เปลี่ยนเป็นข้อย่อยไม่ได้')
+            if not data.get('parent'):
+                self.add_error('parent', 'เลือกข้อหลักที่ข้อนี้อยู่ใต้')
+        elif kind == self.KIND_MAIN:
+            if not data.get('requirement'):
+                self.add_error('requirement', 'เลือกว่าต้องผ่านข้อนี้ไหม')
+            elif data['requirement'] == self.REQ_OR and not data.get('alternatives'):
+                self.add_error('alternatives', 'เลือกข้อที่ใช้แทนได้อย่างน้อย 1 ข้อ')
+
+        code = data.get('code', '').strip()
+        duplicate = DistributorRule.objects.filter(code=code, is_active=True).exclude(pk=self.instance.pk).first()
+        if code and duplicate:
+            self.add_error('code', f'เลขข้อ {code} ซ้ำกับ "{duplicate.name}"')
+        data['code'] = code
+        return data
+
+    def save(self):
+        from django.db import transaction
+        from django.db.models import Max
+
+        data = self.cleaned_data
+        rule = self.instance
+        is_child = data['kind'] == self.KIND_CHILD
+        new_parent = data['parent'] if is_child else None
+
+        with transaction.atomic():
+            if rule.pk is None or rule.parent_id != (new_parent.pk if new_parent else None):
+                # ข้อใหม่ / ย้ายไปอยู่ใต้ข้ออื่น -> ต่อท้ายพี่น้องชุดใหม่
+                siblings = DistributorRule.objects.filter(parent=new_parent).exclude(pk=rule.pk)
+                rule.order = (siblings.aggregate(m=Max('order'))['m'] or 0) + 10
+            rule.parent = new_parent
+            rule.code = data['code']
+            rule.name = data['name']
+            rule.description = data['description'] or None
+            if self.has_children and data.get('children_mode'):
+                rule.children_mode = data['children_mode']
+
+            old_group = rule.mandatory_group
+            if is_child or data['requirement'] == self.REQ_NO:
+                rule.mandatory_group = None
+                rule.save()
+            elif data['requirement'] == self.REQ_YES:
+                if old_group is None or old_group.rules.exclude(pk=rule.pk).exists():
+                    rule.mandatory_group = DistributorRuleGroup.objects.create(name='')
+                rule.save()
+            else:
+                self._save_or_group(rule, list(data['alternatives']))
+            sync_rule_groups()
+        return rule
+
+    @staticmethod
+    def _save_or_group(rule, alternatives):
+        """ข้อนี้ + ข้อที่ใช้แทนได้ อยู่กลุ่มเดียวกัน
+
+        - ข้อที่เลือกมีคู่ของมันอยู่แล้ว (เช่น เลือกข้อ 8 ที่อยู่กับข้อ 9) -> รวมทั้งกลุ่มเข้ามา
+        - ข้อที่เคยอยู่กลุ่มเดียวกับข้อนี้ แต่ถูกเอาติ๊กออก -> ยังบังคับอยู่ แต่แยกไปกลุ่มของตัวเอง
+        """
+        old_group = rule.mandatory_group
+        group = old_group or next((r.mandatory_group for r in alternatives if r.mandatory_group), None)
+        if group is None:
+            group = DistributorRuleGroup.objects.create(name='')
+        if old_group is not None:
+            chosen = [r.pk for r in alternatives] + [rule.pk]
+            for leftover in old_group.rules.exclude(pk__in=chosen):
+                leftover.mandatory_group = DistributorRuleGroup.objects.create(name='')
+                leftover.save(update_fields=['mandatory_group'])
+        for alt in alternatives:
+            if alt.mandatory_group_id and alt.mandatory_group_id != group.pk:
+                alt.mandatory_group.rules.update(mandatory_group=group)
+        for member in [rule] + alternatives:
+            member.mandatory_group = group
+            member.save()
+
+
+def sync_rule_groups():
+    """ลบกลุ่มที่ไม่มีข้อแล้ว และตั้งชื่อ / ลำดับกลุ่มใหม่จากข้อในกลุ่ม (เช่น "ข้อ 8 หรือ ข้อ 9")"""
+    # ข้อย่อยไม่อยู่ในกลุ่มบังคับ ผลนับรวมไปที่ข้อหลักแทน (แก้ข้อมูลเก่าที่ตั้งไว้ผ่าน admin)
+    DistributorRule.objects.filter(parent__isnull=False, mandatory_group__isnull=False).update(mandatory_group=None)
+    for group in DistributorRuleGroup.objects.prefetch_related('rules'):
+        rules = sorted(group.rules.all(), key=lambda r: (r.order, r.pk))
+        if not rules:
+            group.delete()
+            continue
+        name = f"ข้อ {rules[0].code} {rules[0].name}" if len(rules) == 1 else " หรือ ".join(f"ข้อ {r.code}" for r in rules)
+        name, order = name[:255], rules[0].order
+        if (group.name, group.order) != (name, order):
+            group.name, group.order = name, order
+            group.save(update_fields=['name', 'order'])

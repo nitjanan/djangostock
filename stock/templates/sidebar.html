@@ -196,6 +196,37 @@
                 </li>
             </ul>
         </li>
+        {% if can_vendor_menu %}
+        <li class="">
+            <a href="{% if request.user.is_authenticated %}#vendorSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if vd_show %}true{% else %}false{% endif %}" class="dropdown-toggle">
+                <i class="fas fa-store"></i>
+                ผู้จัดจำหน่าย
+                {% if dist_ap_count %}
+                    <span class="float-right badge badge-pill badge-warning notification mr-5">{{dist_ap_count}}</span>
+                {% endif %}
+            </a>
+            <ul class="collapse list-unstyled {{vd_show}}" id="vendorSubmenu">
+                <li>
+                    <a class="{{vd_in_page}}" href="{% url 'viewVendorReport' %}">ผู้จัดจำหน่ายในระบบ</a>
+                </li>
+                <li>
+                    <a class="{{vd_ext_page}}" href="{% url 'viewExternalVendorReport' %}">ค้นหาผู้จัดจำหน่ายอื่นๆ</a>
+                </li>
+                <li>
+                    <a class="{{vd_cand_page}}" href="{% url 'distributorCandidateList' %}">ใบขอเพิ่ม Supplier</a>
+                </li>
+                {% if dist_ap_count is not None %}
+                <li>
+                    <a class="{{vd_ap_page}}" href="{% url 'distributorApproveList' %}">อนุมัติผู้จัดจำหน่าย
+                        {% if dist_ap_count %}
+                            <span class="float-right badge badge-pill badge-warning notification mr-5">{{dist_ap_count}}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </li>
+        {% endif %}
         <li class="">
             <a href="{% if request.user.is_authenticated %}#reportSubmenu{% endif %}" data-toggle="collapse" aria-expanded="{% if rp_po_page or rp_poi_page or rp_rd_page or rp_cl_page or rp_all_page %}true{% else %}false{% endif %}" class="dropdown-toggle">
                 <i class="fas fa-file-pdf"></i> Report
