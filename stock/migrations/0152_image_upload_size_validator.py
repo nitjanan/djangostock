@@ -6,8 +6,11 @@ import stock.formatChecker
 
 class Migration(migrations.Migration):
 
+    # เปลี่ยนชื่อจาก 0147_image_upload_size_validator ตอนเรียง migration ให้เป็นเส้นตรง
+    replaces = [('stock', '0147_image_upload_size_validator')]
+
     dependencies = [
-        ('stock', '0146_positionbasepermission_user'),
+        ('stock', '0151_basevisible_distributor'),
     ]
 
     operations = [

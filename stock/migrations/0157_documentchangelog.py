@@ -7,9 +7,12 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
 
+    # เปลี่ยนชื่อจาก 0151_documentchangelog ตอนเรียง migration ให้เป็นเส้นตรง
+    replaces = [('stock', '0151_documentchangelog')]
+
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('stock', '0150_purchaseorder_is_draft'),
+        ('stock', '0156_purchaseorder_is_draft'),
     ]
 
     operations = [

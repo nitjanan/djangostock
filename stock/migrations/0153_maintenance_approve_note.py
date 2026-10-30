@@ -5,8 +5,11 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # เปลี่ยนชื่อจาก 0148_maintenance_approve_note ตอนเรียง migration ให้เป็นเส้นตรง
+    replaces = [('stock', '0148_maintenance_approve_note')]
+
     dependencies = [
-        ('stock', '0147_image_upload_size_validator'),
+        ('stock', '0152_image_upload_size_validator'),
     ]
 
     operations = [

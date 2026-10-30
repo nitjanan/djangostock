@@ -12939,10 +12939,6 @@ def venderReport(request, pages=None):
     vendor_page_range = vender.paginator.get_elided_page_range(vender.number, on_each_side=2, on_ends=1)
     vendor_total = vender.paginator.count
 
-    print(len(vender))
-    for v in vender :
-        print(v.id , v.name)
-
     content = {
         "vender":vender,
         "filter": myFilter,
