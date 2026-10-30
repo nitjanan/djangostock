@@ -65,8 +65,11 @@ def add_origins(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
+    # เปลี่ยนชื่อจาก 0153_basevendororigin ตอนเรียง migration ให้เป็นเส้นตรง
+    replaces = [('stock', '0153_basevendororigin')]
+
     dependencies = [
-        ('stock', '0152_merge_20261019_1547'),
+        ('stock', '0153_maintenance_approve_note'),
     ]
 
     operations = [

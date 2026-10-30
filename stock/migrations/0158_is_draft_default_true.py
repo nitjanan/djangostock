@@ -5,8 +5,11 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # เปลี่ยนชื่อจาก 0152_is_draft_default_true ตอนเรียง migration ให้เป็นเส้นตรง
+    replaces = [('stock', '0152_is_draft_default_true')]
+
     dependencies = [
-        ('stock', '0151_documentchangelog'),
+        ('stock', '0157_documentchangelog'),
     ]
 
     operations = [

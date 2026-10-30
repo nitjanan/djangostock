@@ -5,8 +5,11 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # เปลี่ยนชื่อจาก 0149_comparisonprice_is_draft ตอนเรียง migration ให้เป็นเส้นตรง
+    replaces = [('stock', '0149_comparisonprice_is_draft')]
+
     dependencies = [
-        ('stock', '0148_maintenance_approve_note'),
+        ('stock', '0154_basevendororigin'),
     ]
 
     operations = [
