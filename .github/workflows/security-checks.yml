@@ -111,7 +111,8 @@ jobs:
 
   django-deploy:
     name: django check --deploy
-    runs-on: ubuntu-latest
+    # ล็อก ubuntu-24.04 : ubuntu-latest เป็น 26.04 แล้ว ซึ่ง setup-python ไม่มี Python 3.9 ให้
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       mysql:
