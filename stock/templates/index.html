@@ -117,7 +117,10 @@
           </div>
           <div class="form-group">
             <label for="new_product_id" class="col-form-label">รหัสสินค้าใหม่:</label>
-            <input id="new_product_id" name="new_product_id" type="text" class="form-control" >
+            <input id="new_product_id" name="new_product_id" type="text" class="form-control text-uppercase" autocomplete="off" required
+                   pattern="[A-Z0-9\-]+" title="ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษตัวพิมพ์ใหญ่ A-Z ตัวเลข 0-9 และขีด -"
+                   oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')">
+            <small class="form-text text-muted">ภาษาอังกฤษตัวพิมพ์ใหญ่ A-Z ตัวเลข 0-9 และขีด - เท่านั้น (พิมพ์ตัวเล็กระบบเปลี่ยนเป็นตัวใหญ่ให้)</small>
           </div>
       </div>
       <div class="modal-footer">

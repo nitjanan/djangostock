@@ -142,73 +142,79 @@ def has_only_en(name):
     char_set = string.ascii_letters + string.digits + "-"
     return all((True if x in char_set else False for x in name))
 
+def _transfer_product(old_product, new_product_id, keep_qr_code=False):
+    """สร้างรหัสสินค้าใหม่จากรหัสเก่า ย้ายรายการในใบขอเบิกไปรหัสใหม่ แล้วลบรหัสเก่า -> สินค้ารหัสใหม่"""
+    new_product = Product.objects.create(
+        id = new_product_id,
+        name = old_product.name + "(*)",
+        unit = old_product.unit,
+        slug = new_product_id.replace('-', "I"),
+        description = old_product.description,
+        price = old_product.price,
+        category = old_product.category,
+        image = old_product.image,
+        stock = old_product.stock,
+        available = old_product.available,
+        created = old_product.created,
+        update = old_product.update,
+        affiliated = old_product.affiliated,
+        # รหัสชั่วคราว: ใช้ QR เดิมไปก่อน ไม่ต้องสร้างไฟล์ QR ของรหัสที่จะลบทิ้ง
+        qr_code = old_product.qr_code if keep_qr_code else None,
+    )
+    #ย้ายสินค้าในใบขอเบิกไปรหัสสินค้าใหม่
+    for i in RequisitionItem.objects.filter(product = old_product):
+        i.product = new_product
+        i.save()
+    old_product.delete()
+    #แก้ชื่อ new_product
+    new_product.name = new_product.name[:-3]
+    new_product.save()
+    return new_product
+
 #button New โอน 23-05-2023
 def newOld(old_product_id, new_product_id):
     alertStr = None
     alertType = None
+    old_product_id = (old_product_id or "").strip()
+    new_product_id = (new_product_id or "").strip().upper()  # รหัสสินค้าใหม่เป็นตัวพิมพ์ใหญ่เสมอ
 
-    if not has_only_en(new_product_id): #เช็คตัวอักษรภาษาไทยในรหัส
-        alertStr = "รหัสสินค้าใหม่ ("+ str(new_product_id) +") มีตัวอักษรภาษาไทย ไม่สามารถ new โอนได้"
+    if not new_product_id:
+        alertStr = "กรุณากรอกรหัสสินค้าใหม่"
+        alertType = messages.WARNING
+    elif not has_only_en(new_product_id): #เช็คตัวอักษรภาษาไทยในรหัส
+        alertStr = "รหัสสินค้าใหม่ ("+ str(new_product_id) +") ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ A-Z ตัวเลข 0-9 และขีด - เท่านั้น ไม่สามารถ new โอนได้"
         alertType = messages.WARNING
     elif new_product_id.find('O-') != -1 : #เช็ค O- ในรหัส
         alertStr = "รหัสสินค้าใหม่ XX-XO-001 ต้องเป็น XX-X0-001 (ขีดเอ็กซ์โอ ต้องเป็น ขีดเอ็กซ์ศูนย์) ไม่สามารถ new โอนได้"
         alertType = messages.WARNING
     else:
-        try:
-            #หารหัสใหม่
-            have_new_product_id = Product.objects.get(id = new_product_id)
-            if have_new_product_id:
-                alertStr = "มีรหัสสินค้าใหม่อยู่แล้ว '" +str(new_product_id)+ "' ไม่สามารถ new โอนได้"
-                alertType = messages.WARNING
-        except Product.DoesNotExist:
-            try:
-                old_product = Product.objects.get(id = old_product_id)
-                #สร้างรหัสสินค้าใหม่
-                if old_product and new_product_id:
-                    obj = Product.objects.create(
-                        id = new_product_id,
-                        name = old_product.name + "(*)",
-                        unit = old_product.unit,
-                        slug = new_product_id.replace('-', "I"),
-                        description = old_product.description,
-                        price = old_product.price,
-                        category = old_product.category,
-                        image = old_product.image,
-                        stock = old_product.stock,
-                        available = old_product.available,
-                        created = old_product.created,
-                        update = old_product.update,
-                        affiliated = old_product.affiliated
-                    )
-                    obj.save()
+        # DB เทียบรหัสแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ (collation *_ci): "nt-g0-151" กับ "NT-G0-151" คือแถวเดียวกัน
+        old_product = Product.objects.filter(id = old_product_id).first()
+        if old_product is None:
+            alertStr = "ไม่มีรหัสสินค้าเก่าในระบบ ไม่สามารถ new โอนได้"
+            alertType = messages.WARNING
+        elif old_product.id == new_product_id:
+            alertStr = "รหัสสินค้า '" + str(new_product_id) + "' เป็นตัวพิมพ์ใหญ่อยู่แล้ว ไม่ต้อง new โอน"
+            alertType = messages.INFO
+        elif old_product.id.upper() != new_product_id and Product.objects.filter(id = new_product_id).exists():
+            alertStr = "มีรหัสสินค้าใหม่อยู่แล้ว '" +str(new_product_id)+ "' ไม่สามารถ new โอนได้"
+            alertType = messages.WARNING
+        else:
+            from django.db import transaction
+            with transaction.atomic():
+                if old_product.id.upper() == new_product_id:
+                    # เปลี่ยนแค่ตัวเล็กเป็นตัวใหญ่: DB มองว่าเป็นรหัสเดียวกัน สร้างรหัสใหม่ทับไม่ได้
+                    # จึงโอนไปรหัสชั่วคราวก่อน แล้วค่อยโอนกลับมาเป็นรหัสตัวใหญ่
+                    import uuid
+                    temp_product = _transfer_product(old_product, f"TMP-{uuid.uuid4().hex}", keep_qr_code=True)
+                    new_product = _transfer_product(temp_product, new_product_id)
+                else:
+                    new_product = _transfer_product(old_product, new_product_id)
+            # Create product QR code
+            create_product_qr(new_product)
 
-                    try:
-                        #ย้ายสินค้าในใบขอเบิกไปรหัสสินค้าใหม่
-                        r_item = RequisitionItem.objects.filter(product__id = old_product.id)
-                        new_product = Product.objects.get(id = new_product_id)
-                        for i in r_item:
-                            i.product = new_product
-                            i.save()
-                        #หลังจากย้ายสินค้าไปรหัสใหม่
-                        af_item = RequisitionItem.objects.filter(product__id = old_product.id).count()
-                        if af_item < 1:
-                            old_product.delete()
-                            #แก้ชื่อ new_product
-                            new_product.name =  new_product.name[:-3]
-                            new_product.save()
-
-                            # Create product QR code
-                            create_product_qr(new_product)
-
-                            alertStr = "new โอน รหัสสินค้า '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
-                            alertType = messages.SUCCESS
-                    except RequisitionItem.DoesNotExist:
-                        pass
-                    
-            except Product.DoesNotExist:
-                alertStr = "ไม่มีรหัสสินค้าเก่าในระบบ ไม่สามารถ new โอนได้"
-                alertType = messages.WARNING
-                pass
+            alertStr = "new โอน รหัสสินค้า '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
+            alertType = messages.SUCCESS
     return alertType,alertStr
 
 #button Change Exist 23-05-2023
