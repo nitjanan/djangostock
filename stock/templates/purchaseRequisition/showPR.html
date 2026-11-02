@@ -43,12 +43,141 @@ u.dotted {
 .verybigmodal {
     max-width: 80%;
 }
+
+/* ---------- มือถือ (เฉพาะ screen ไม่กระทบหน้าตาตอนปริ้น) ---------- */
+@media screen and (max-width: 767.98px) {
+  #content {
+    padding: 8px;
+  }
+  .pr-show p {
+    font-size: .95rem;
+    line-height: 1.5;
+  }
+  /* หัวเอกสาร: โลโก้เล็กลง ที่อยู่อยู่ข้างโลโก้ */
+  .pr-show .ps-head > .col-md-2 {
+    flex: 0 0 auto;
+    max-width: none;
+  }
+  .pr-show .ps-head img {
+    width: 56px;
+    height: 56px;
+  }
+  .pr-show .ps-head description {
+    font-size: .85rem;
+  }
+  .pr-show .ps-head > form {
+    flex: 0 0 100%;
+  }
+  .pr-show .ps-title > .col-2 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .pr-show .ps-title h3 {
+    font-size: 1.25rem;
+    margin: .5rem 0;
+  }
+  .pr-show .ps-refs > .col,
+  .pr-show .ps-meta > .col-4,
+  .pr-show .ps-organizer > * {
+    flex: 0 0 100%;
+    max-width: 100%;
+    text-align: left !important;
+  }
+  .pr-show .ps-refs h5 {
+    font-size: 1rem;
+    margin-bottom: .25rem;
+  }
+  .pr-show .ps-meta br {
+    display: none;
+  }
+
+  /* ตารางรายการ -> การ์ดทีละรายการ */
+  .pr-show .ps-items-wrap {
+    overflow: visible;
+  }
+  .pr-show .ps-items,
+  .pr-show .ps-items tbody,
+  .pr-show .ps-items tr,
+  .pr-show .ps-items td {
+    display: block;
+    width: 100%;
+  }
+  .pr-show .ps-items {
+    border: 0;
+  }
+  .pr-show .ps-items thead,
+  .pr-show .ps-items .ps-hide-m {
+    display: none;
+  }
+  .pr-show .ps-items tbody tr {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: .4rem .6rem;
+    margin-bottom: .5rem;
+  }
+  .pr-show .ps-items td {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    border: 0;
+    padding: .1rem 0;
+    text-align: right !important;
+  }
+  .pr-show .ps-items td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: #6c757d;
+    text-align: left;
+  }
+  .pr-show .ps-items td.ps-cell-title {
+    display: block;
+    text-align: left !important;
+    font-weight: 600;
+    padding-bottom: .25rem;
+  }
+  .pr-show .ps-items td.ps-cell-title::before {
+    content: none;
+  }
+
+  /* หมายเหตุ / ระดับความเร่งด่วน / ลงชื่อ: เรียงลงมา */
+  .pr-show .ps-cards .card-group {
+    flex-direction: column;
+  }
+  .pr-show .ps-cards .card {
+    flex: 1 1 auto;
+    max-width: 100%;
+    border-radius: 6px !important;
+    margin-bottom: .5rem;
+  }
+  .pr-show .ps-signs .card-title {
+    font-size: 1rem;
+  }
+
+  /* ปุ่ม: เต็มแถว */
+  .pr-show .ps-actions > .col-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    text-align: left !important;
+  }
+  .pr-show .ps-actions .btn {
+    width: 100%;
+    margin: 0 0 .5rem 0 !important;
+  }
+
+  .verybigmodal {
+    max-width: none;
+    margin: .5rem;
+  }
+  #pShowSearch {
+    overflow-x: auto;
+  }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container my-3">
-    <div class="row my-2">
+<div class="container my-3 pr-show">
+    <div class="row my-2 ps-head">
       <div class="col col-md-2">
         <img src="/media/{{pr.address_company.logo}}" class="rounded float-left" width="120" height="120"/>
       </div>
@@ -99,7 +228,7 @@ u.dotted {
         </div>
       </form>
     </div>
-    <div class="row">
+    <div class="row ps-title">
       <div class="col-2">
         {% if pr.is_re_approve == True %}
           <b class="text-danger"><h5>***ฉบับแก้ไข</h5></b>
@@ -109,7 +238,7 @@ u.dotted {
         <h3>ใบขอซื้อ/ใบขอซ่อม</h3>
       </div>
     </div>
-    <div class="row">
+    <div class="row ps-refs">
       <div class="col invoice-title text-left">
         <h5>รหัสใบขอเบิก # <u><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></u></h5>
       </div>
@@ -126,7 +255,7 @@ u.dotted {
     <hr>
     <div class="row">
       <div class="col-md-12">
-      <div class="row">
+      <div class="row ps-meta">
         <div class="col-4">
           <description>
           <strong>ผู้ขอซื้อ/ขอซ่อม: </strong>{{requisition.chief_approve_user_name}}
@@ -164,8 +293,8 @@ u.dotted {
                 </h3>
             </div-->
         <div class="panel-body">
-          <div class="table-responsive">
-            <table id="userTable" class="table table-bordered">
+          <div class="table-responsive ps-items-wrap">
+            <table id="userTable" class="table table-bordered ps-items">
               <thead>
                 <tr>
                     <td class="text-center"><strong>ลำดับที่</strong></td>
@@ -187,20 +316,20 @@ u.dotted {
               <tbody>
                 {% for item in items %}
                 <tr>
-                    <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center">{{item.product.id}}</td>
-                    <td name="name">{{item.product_name}}</td>
-                    <td name="description">{{item.description}}</td>
-                    <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
-                    <td class="text-center text-success" name="used">
+                    <td class="text-center ps-hide-m">{{ forloop.counter }}</td>
+                    <td class="text-center" data-label="รหัสวัสดุ/อุปกรณ์">{{item.product.id}}</td>
+                    <td name="name" class="ps-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{item.product_name}}</td>
+                    <td name="description" data-label="รายละเอียด">{{item.description}}</td>
+                    <td class="text-center" name="quantity" data-label="จำนวน"><span>{{item.quantity_pr |floatformat:"-4"}} <span class="d-md-none d-print-none">{{item.unit}}</span></span></td>
+                    <td class="text-center text-success" name="used" data-label="ซื้อแล้ว">
                       {{item.quantity_used |floatformat:"-4"}}
                     </td>
-                    <td class="text-center" name="unit">
+                    <td class="text-center ps-hide-m" name="unit">
                       {{item.unit}}
                     </td>
-                    <td name="machine">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
-                    <td name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
-                    <td class="text-center" name="urgency">
+                    <td name="machine" data-label="ทะเบียนรถ/เครื่องจักร">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
+                    <td name="desireddate" data-label="วันที่ต้องการ">{{item.desired_date | date:"d/m/Y"}}</td>
+                    <td class="text-center" name="urgency" data-label="ความเร่งด่วน">
                       {% for bu in baseUrgency %}
                         {% if item.urgency == bu.id %}
                           {{bu.name}}
@@ -210,14 +339,14 @@ u.dotted {
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="10" class="text-center">
+                  <td colspan="10" class="text-center ps-cell-title">
                     <div class="alert alert-warning" role="alert">
                       ไม่มีสินค้า
                     </div>
                   </td>
                 </tr>
                 {% endfor %}
-                <tr>
+                <tr class="ps-hide-m">
                   <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
                   <td class="text-center">{{items | length}}</td>
                   <td class="text-center">รายการ</td>
@@ -229,12 +358,12 @@ u.dotted {
           <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             {% if is_staff and not pr.is_complete %}
-              <div class="row my-2 d-print-none">
+              <div class="row my-2 d-print-none ps-organizer">
                 <div class="col-2 text-success">{{ pro_form.organizer.label}}</div>
                 <div class="col">{{ pro_form.organizer | add_class:"form-control is-valid" }}</div>
               </div>
             {%endif%}
-          <div class="row">
+          <div class="row ps-cards">
             <div class="card-group col">
               <div class="card col">
                 <div class="card-body">
@@ -252,7 +381,7 @@ u.dotted {
               </div>
             </div>
           </div>
-          <div class="row">
+          <div class="row ps-cards ps-signs">
             <div class="card-group col">
               <div class="card">
                 <div class="card-body">
@@ -319,7 +448,7 @@ u.dotted {
           <div class="text-right my-2">
             <description id="dt_print"></description>
           </div>
-          <div class="row my-2">
+          <div class="row my-2 ps-actions">
             <div class="col-6">
               {%if isEditPR and isSupplies and pr.approver_status.id == 2 %}<!-- 03/07/2025 ถ้าอยู่ในกลุ่ม edit pr สามารถ re approve pr ได้ -->
                 <a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>

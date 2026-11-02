@@ -84,9 +84,10 @@
 </style>
 {% include 'comparePricePO/_cp_doc_styles.html' %}
 {% include 'comparePricePO/_cp_compare_table_styles.html' %}
+{% include 'comparePricePO/_cp_mobile_styles.html' %}
 {% endblock %}
 {% block content %}
-<div class="container cp-print cp-show my-3">
+<div class="container cp-print cp-show cp-mobile my-3">
     {% if cp.is_cancel %}
     <div class="cp-cancel-banner">
         <i class="fas fa-ban mr-1"></i>*ยกเลิก <span>({{cp.cancel_reason}})</span>
@@ -94,6 +95,7 @@
     {% endif %}
     <div class="cp-paper">
         {% include 'comparePricePO/_cp_doc_head.html' with show_address_edit=isPurchasing %}
+        {% include 'comparePricePO/_cp_mobile_bidders.html' %}
         {% include 'comparePricePO/_cp_compare_table.html' with show_last_price=True %}
 
         {% if cp.select_bidder %}
@@ -179,7 +181,7 @@
             </div>
             <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
                 <i class="fas fa-print"></i>
-                ปริ้นใบเปรียบเทียบราคา
+                ปริ้น<span class="d-none d-sm-inline">ใบเปรียบเทียบราคา</span>
             </button>
         </div>
     </div>

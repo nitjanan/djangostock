@@ -42,13 +42,146 @@
     flex: 0 0 62.5%;
     max-width: 62.5%;
   }
+
+  /* ---------- มือถือ (เฉพาะ screen ไม่กระทบหน้าตาตอนปริ้น) ---------- */
+  @media screen and (max-width: 767.98px) {
+    #content {
+      padding: 8px;
+    }
+    .po-show p {
+      font-size: .95rem;
+      line-height: 1.5;
+    }
+    .po-show h4 {
+      font-size: 1.1rem;
+    }
+    /* หัวเอกสาร / ผู้จำหน่าย-ใบสั่งซื้อ: เรียงลงมา */
+    .po-show .ps-head > *,
+    .po-show .ps-parties > .col {
+      flex: 0 0 100%;
+      max-width: 100%;
+      float: none !important;
+    }
+    .po-show .ps-head > .col-4 {
+      margin-top: .5rem;
+    }
+    .po-show .ps-parties > .col.text-right {
+      text-align: left !important;
+      padding-top: .5rem;
+      border-top: 1px dashed #dee2e6;
+    }
+
+    /* ตารางรายการ -> การ์ดทีละรายการ */
+    .po-show .ps-items-wrap {
+      overflow: visible;
+    }
+    .po-show .ps-items,
+    .po-show .ps-items tbody,
+    .po-show .ps-items tr,
+    .po-show .ps-items td {
+      display: block;
+      width: 100%;
+    }
+    .po-show .ps-items thead,
+    .po-show .ps-items .ps-hide-m {
+      display: none;
+    }
+    .po-show .ps-items tbody tr {
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: .4rem .6rem;
+      margin-bottom: .5rem;
+    }
+    .po-show .ps-items td {
+      display: flex;
+      justify-content: space-between;
+      gap: .75rem;
+      border: 0;
+      padding: .1rem 0;
+      text-align: right !important;
+    }
+    .po-show .ps-items td::before {
+      content: attr(data-label);
+      flex: 0 0 auto;
+      color: #6c757d;
+      text-align: left;
+    }
+    .po-show .ps-items td.ps-cell-title {
+      display: block;
+      text-align: left !important;
+      font-weight: 600;
+      padding-bottom: .25rem;
+    }
+    .po-show .ps-items td.ps-cell-title::before {
+      content: none;
+    }
+
+    /* สรุปยอดเงิน: หมายเหตุเต็มแถว / ชื่อรายการ-จำนวนเงิน ครึ่งต่อครึ่ง */
+    .po-show .ps-summary > .col-7-5 {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+    .po-show .ps-summary > .col-2-25 {
+      flex: 0 0 50%;
+      max-width: 50%;
+    }
+    .po-show .ps-summary > .col-2-25:nth-child(2) p {
+      text-align: left !important;
+      color: #495057;
+    }
+    .po-show .ps-summary p {
+      margin-bottom: .3rem;
+    }
+    /* .row ซ้อนใน .col-2-25 มี margin ติดลบ ทำให้ล้นขอบจอ */
+    .po-show .ps-summary .row {
+      margin-left: 0;
+      margin-right: 0;
+    }
+    .po-show .ps-summary .row > .col {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    /* ลงชื่อ: เรียงลงมา */
+    .po-show .ps-signs > * {
+      flex: 0 0 100%;
+      max-width: 100%;
+      float: none !important;
+    }
+    .po-show .ps-signs > .col + .col {
+      border-top: 1px dashed #dee2e6;
+      padding-top: .5rem;
+    }
+
+    /* ปุ่ม: เต็มแถว */
+    .po-show .ps-actions > .col {
+      flex: 0 0 100%;
+      max-width: 100%;
+      text-align: left !important;
+    }
+    .po-show .ps-actions .btn {
+      width: 100%;
+      margin: 0 0 .5rem 0 !important;
+    }
+    .po-show .ps-actions form {
+      display: block !important;
+    }
+
+    .verybigmodal {
+      max-width: none;
+      margin: .5rem;
+    }
+    #pShowSearch {
+      overflow-x: auto;
+    }
+  }
 </style>
 {% endblock %}
 {% block content %}
-<div class="container">
+<div class="container po-show">
     <div class="row my-2">
         <div class="col-md-12">
-        <div class="row">
+        <div class="row ps-head">
           <div class="col">
             <description>
               {% if po.is_cancel %}
@@ -121,7 +254,7 @@
           </div>
         </div>
         <hr>
-        <div class="row">
+        <div class="row ps-parties">
           <div class="col">
             <address>
             <strong>ผู้จำหน่าย: {{po.distributor.id}}</strong><br>
@@ -172,8 +305,8 @@
             <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
           </div>
           <div class="panel-body">
-            <div class="table-responsive">
-                <table class="table">
+            <div class="table-responsive ps-items-wrap">
+                <table class="table ps-items">
                     <thead>
                     <tr>
                         <th scope="col" class="text-center">No.</th>
@@ -192,13 +325,13 @@
                     <tbody>
                         {% for item in items %}
                         <tr>
-                            <td class="text-center">{{ forloop.counter }}</td>
-                            <td>{{ item.item.product.id }} {{ item.item.product_name }} <b class="text-success" style="white-space: pre-line;">{{ item.description|linebreaksbr }}</b></td>
-                            <td class="text-right">{{ item.quantity |floatformat:"-4"}}</td>
-                            <td class="text-center">{{ item.unit}}</td>
-                            <td class="text-right">{{ item.unit_price | intcomma}}</td>
-                            <td class="text-right">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
-                            <td class="text-right">{{ item.price | intcomma}}</td>
+                            <td class="text-center ps-hide-m">{{ forloop.counter }}</td>
+                            <td class="ps-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{ item.item.product.id }} {{ item.item.product_name }} <b class="text-success" style="white-space: pre-line;">{{ item.description|linebreaksbr }}</b></td>
+                            <td class="text-right" data-label="จำนวน"><span>{{ item.quantity |floatformat:"-4"}} <span class="d-md-none d-print-none">{{ item.unit}}</span></span></td>
+                            <td class="text-center ps-hide-m">{{ item.unit}}</td>
+                            <td class="text-right" data-label="หน่วยละ">{{ item.unit_price | intcomma}}</td>
+                            <td class="text-right" data-label="ส่วนลด">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
+                            <td class="text-right" data-label="จำนวนเงิน">{{ item.price | intcomma}}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -266,7 +399,7 @@
             -->
 
             <!-- New **************** -->
-            <div class="row">
+            <div class="row ps-summary">
               <div class="col-7-5">
                 <div class="row">
                   <div class="col">
@@ -324,7 +457,7 @@
               </div>
             </div>
 
-            <div class="row">
+            <div class="row ps-summary">
               <div class="col-7-5">
                 <p id="total-spell"></p>
               </div>
@@ -337,7 +470,7 @@
             </div>
 
             <hr>
-            <div class="row spacer my-3">
+            <div class="row spacer my-3 ps-signs">
                 <div class="col">
                   <p>ผู้สั่งสินค้า</p>
                   <p><img src="/media/{{po.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/></p>
@@ -361,7 +494,7 @@
                   <description id="dt_print"></description>
                 </div>
               </div>
-              <div class="row my-3 d-print-none">
+              <div class="row my-3 d-print-none ps-actions">
                 <div class="col">
                   {% if po.approver_status_id != 1 and not po.is_cancel and canRequestReApprove %}
                     <!-- ขอเปลี่ยนแปลงรายละเอียกรายการ -->

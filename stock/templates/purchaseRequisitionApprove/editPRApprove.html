@@ -31,270 +31,207 @@ u.dotted {
 }
 
 </style>
+{% include '_approve_doc_styles.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="container my-3">
-    <div class="row my-2">
-      <div class="col col-md-2">
-        <img src="/media/{{pr.address_company.logo}}" class="rounded float-left" width="120" height="120"/>
+<div class="container ad-doc my-3">
+  <div class="ad-paper">
+    <!-- ======== หัวเอกสาร ======== -->
+    <div class="ad-head">
+      <div class="ad-company">
+        <img src="/media/{{pr.address_company.logo}}" class="rounded ad-company-logo"/>
+        <div>
+          <div class="ad-company-name">{{pr.address_company.name_eng}}</div>
+          <div>{{pr.address_company.name_th}}</div>
+          <div class="ad-company-address">
+            {{pr.address_company.address}}
+            <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
+          </div>
+        </div>
       </div>
-      <div class="text-left col">
-        <description>
-          <strong>{{pr.address_company.name_eng}}</strong>
-          <br>{{pr.address_company.name_th}}
-          <br>{{pr.address_company.address}}
-          <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
-        </description>
+      <div class="ad-title">
+        <h4>
+          ใบขอซื้อ/ใบขอซ่อม
+          {% if pr.is_re_approve == True %}<b class="text-danger">***ฉบับแก้ไข</b>{% endif %}
+        </h4>
+        <dl class="ad-meta">
+          <dt>รหัสใบขอซื้อ</dt>
+          <dd>
+            {{pr.ref_no}}
+            {% if requisition.memorandum_pdf %}
+              {% ifchanged requisition.memorandum_pdf %}
+                <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm py-0 hidden-print" title="เอกสารแนบ"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+              {% endifchanged %}
+            {% endif %}
+          </dd>
+          <dt>รหัสใบขอเบิก</dt><dd><u><a href="{% url 'showRequisition' requisition.id 2 %}">{{requisition.ref_no}}</a></u></dd>
+          <dt>วันที่ขอซื้อ</dt><dd>{{pr.created | date:"d/m/Y"}}</dd>
+        </dl>
       </div>
     </div>
-    <div class="row">
-      <div class="col-2">
-        {% if pr.is_re_approve == True %}
-          <b class="text-danger"><h5>***ฉบับแก้ไข</h5></b>
-        {% endif %}
+
+    <div class="ad-info">
+      <div>
+        <div class="ad-label">ผู้ขอซื้อ/ขอซ่อม</div>
+        <div class="font-weight-bold">{{pr.purchase_user}}</div>
       </div>
-      <div class="col text-center">
-        <h3>ใบขอซื้อ/ใบขอซ่อม</h3>
+      <div>
+        <div class="ad-label">แผนก</div>
+        <div class="font-weight-bold">{{requisition.section}}</div>
       </div>
     </div>
-    <div class="row">
-      <div class="col invoice-title text-left">
-        <h5>รหัสใบขอเบิก # <u><a href="{% url 'showRequisition' requisition.id 2 %}">{{requisition.ref_no}}</a></u></h5>
+
+    <!-- ======== รายการขอซื้อ ======== -->
+    <div class="ad-section-title">รายการขอซื้อ ({{ items|length }} รายการ)</div>
+    <div class="table-responsive ad-items-wrap">
+      <table id="userTable" class="table table-bordered table-sm ad-items">
+        <thead>
+          <tr>
+            <th class="text-center">ลำดับที่</th>
+            <th class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+              รหัสวัสดุ/อุปกรณ์ <i class="fas fa-list text-danger d-print-none"></i>
+            </th>
+            <th class="text-center">รายการ</th>
+            <th class="text-center">รายละเอียด/ประเภทการซ่อม</th>
+            <th class="text-center">จำนวน</th>
+            <th class="text-center">หน่วย</th>
+            <th class="text-center">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</th>
+            <th class="text-center">วันที่ต้องการ</th>
+            <th class="text-center">ระดับความเร่งด่วน</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
+            <td class="text-center" data-label="รหัสวัสดุ/อุปกรณ์">{{item.product.id}}</td>
+            <td name="name" class="ad-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{item.product_name}}</td>
+            <td name="description" data-label="รายละเอียด">{{item.description}}</td>
+            <td class="text-center" name="quantity" data-label="จำนวน"><span>{{item.quantity_pr |floatformat:"-4"}} <span class="d-md-none d-print-none">{{item.unit}}</span></span></td>
+            <td class="text-center ad-hide-m" name="unit">{{item.unit}}</td>
+            <td name="machine" data-label="ทะเบียนรถ/เครื่องจักร">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
+            <td class="text-center" name="desireddate" data-label="วันที่ต้องการ">{{item.desired_date | date:"d/m/Y"}}</td>
+            <td class="text-center" name="urgency" data-label="ความเร่งด่วน">{% for bu in baseUrgency %}{% if item.urgency == bu.id %}{{bu.name}}{% endif %}{% endfor %}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center ad-cell-title">
+              <div class="alert alert-warning mb-0" role="alert">
+                ไม่มีสินค้า
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="ad-hide-m">
+          <tr>
+            <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
+            <td class="text-center">{{items | length}}</td>
+            <td class="text-center">รายการ</td>
+            <td colspan="3" class="text-center"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="ad-summary">
+      <div class="ad-notes">
+        <p><span class="ad-label">หมายเหตุ :</span> <u class="dotted">{{pr.note|truncatechars:450}}</u></p>
       </div>
-      <div class="col invoice-title text-right">
-        <h5>รหัสใบขอซื้อ # {{pr.ref_no}}
-          {% if requisition.memorandum_pdf %}
-            {% ifchanged requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-            {% endifchanged %}
+      <div class="small">
+        <div class="font-weight-bold">ระดับความเร่งด่วน</div>
+        A = ภายใน 48 ชม.&emsp;B = 3-5 วัน&emsp;C = 7 วัน&emsp;D = 15 วัน
+      </div>
+    </div>
+
+    <!-- ======== ลงชื่อ / อนุมัติ ======== -->
+    <form action="{% url 'editPRApprove' pr.id isFromHome %}" method="post" class="mb-0">
+      {% csrf_token %}
+      <div class="ad-signatures">
+        <div class="ad-sign">
+          <div class="ad-sign-title">เจ้าหน้าที่พัสดุ</div>
+          <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+          <div>{{pr.stockman_user.first_name}}</div>
+          <div class="text-muted small">{{pr.stockman_user.userprofile.position}} วันที่ {{pr.stockman_update | format_datetime }}</div>
+        </div>
+
+        <div class="ad-sign{% if pr.purchase_status.id == 1 and request.user == pr.purchase_user %} ad-sign-action{% endif %}">
+          <div class="ad-sign-title">ผู้ขอซื้อ/ขอซ่อม</div>
+          <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
+          {% if pr.purchase_status_id == 2 %}
+            <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+          {% elif pr.purchase_status_id == 3 %}
+            <span class="badge badge-danger ad-status">{{pr.purchase_status}}</span>
           {% endif %}
-        </h5>
-      </div>
-    </div>
-    <hr>
-    <div class="row">
-      <div class="col-md-12">
-      <div class="row">
-        <div class="col-4">
-          <description>
-          <strong>ผู้ขอซื้อ/ขอซ่อม: </strong>{{pr.purchase_user}}
-          <br>
-          <br>
-          </description>
+          <div>{{pr.purchase_user.first_name}}</div>
+          <div class="text-muted small">{{pr.purchase_user.userprofile.position}}{% if pr.purchase_update %} วันที่ {{pr.purchase_update | format_datetime }}{% endif %}</div>
+          {% if pr.purchase_status.id == 1 and request.user == pr.purchase_user %}
+          <div class="ad-approve-buttons hidden-print">
+            <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
+            <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
+          </div>
+          {% endif %}
         </div>
-        <div class="col-4 text-center">
-            <description>
-              <strong>แผนก: </strong>{{requisition.section}}<br>
-              <br>
-            </description>
-          </div>
-        <div class="col-4 text-right">
-          <description>
-            <strong>วันที่ขอซื้อ: </strong>{{pr.created | date:"d/m/Y"}}<br>
-            <br>
-          </description>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-12">
-      <div class="panel panel-default">
-            <!-- div class="panel-heading">
-                <h3 class="panel-title">
-                  <strong>รายการใบขอซื้อ</strong>
-                </h3>
-            </div-->
-        <div class="panel-body">
-          <div class="table-responsive">
-            <table id="userTable" class="table table-bordered">
-              <thead>
-                <tr>
-                    <td class="text-center"><strong>ลำดับที่</strong></td>
-                    <form class="form-inline ml-3" id="search" method="GET">
-                      <td class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-                        <strong>รหัสวัสดุ/อุปกรณ์ <i class="fas fa-list text-danger d-print-none"></i></strong>
-                      </td>
-                    </form>
-                    <td class="text-center"><strong>รายการ</strong></td>
-                    <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
-                    <td class="text-center"><strong>จำนวน</strong></td>
-                    <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
-                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
-                    <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in items %}
-                <tr>
-                    <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center" >{{item.product.id}}</td>
-                    <td name="name">{{item.product_name}}</td>
-                    <td name="description">{{item.description}}</td>
-                    <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
-                    <td class="text-center" name="unit">
-                      {{item.unit}}
-                    </td>
-                    <td name="machine">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
-                    <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
-                    <td class="text-center" name="urgency">
-                      {% for bu in baseUrgency %}
-                        {% if item.urgency == bu.id %}
-                          {{bu.name}}
-                        {% endif %}
-                      {% endfor %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="9" class="text-center">
-                    <div class="alert alert-warning" role="alert">
-                      ไม่มีสินค้า
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-                <tr>
-                  <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
-                  <td class="text-center">{{items | length}}</td>
-                  <td class="text-center">รายการ</td>
-                  <td colspan="3" class="text-center"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <!-- form Apporve -->
-          <form action="{% url 'editPRApprove' pr.id isFromHome %}" method="post">
-            {% csrf_token %}
-            <div class="row">
-              <div class="card-group col">
-                <div class="card col-md-8">
-                  <div class="card-body">
-                    <strong>หมายเหตุ: </strong>
-                    <u class="dotted">
-                      {{pr.note|truncatechars:450}}
-                    </u>
-                  </div>
-                </div>
-                <div class="card col-md-4">
-                  <div class="card-body">
-                    <h5 class="card-title">ระดับความเร่งด่วน</h5>
-                    <p class="card-text">A = ภายใน 48 ชม.&emsp;B = 3-5 วัน<br>C = 7 วัน&emsp;&emsp;&emsp;&emsp;&emsp;D = 15 วัน</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="card-group col">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">เจ้าหน้าที่พัสดุ
-                        <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;" />
-                      </h5>
-                      <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
-                      <div class="row">
-                        <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.stockman_update | format_datetime }}</p>
-                        </div>
-                      </div>  
-                    </div>
-                  </div>
-                  <div class="card">
-                    <div class="card-body">
-                      <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                      {% if pr.purchase_status_id == 2 %}
-                        <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                          <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                        </h5>
-                      {% else %}
-                        <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                            #{{pr.purchase_status}}
-                        </h5>
-                      {% endif %}
-                      <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
-                      <div class="row">
-                        <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.purchase_update | format_datetime }}</p>
-                        </div>
-                        <div class="col float-right">
-                          {% if pr.purchase_status.id == 1 and request.user == pr.purchase_user %}
-                            <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
-                            <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
-                          {% endif %}
-                        </div>
-                      </div>  
-                    </div>
-                  </div>
-                  <div class="card h-100">
-                    <div class="card-body">
-                      <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                      {% if pr.approver_status_id == 2 %}
-                        <h5 class="card-title">ผู้อนุมัติ
-                          <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                        </h5>
-                      {% else %}
-                        <h5 class="card-title">ผู้อนุมัติ
-                          #{{pr.approver_status}}
-                        </h5>
-                      {% endif %}
-                      {% if pr.approver_user %}
-                        <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
-                      {% else %}
-                          {% if pr.approver_status.id == 1 and isPermiss %}
-                            {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
-                              <p class="card-text">{{request.user.first_name}} ตำแหน่ง {{request.user.userprofile.position}}</p>
-                            {% endif %}
-                          {% endif %}
-                      {% endif %}
-                      <div class="row">
-                        {% if pr.approver_update %}
-                          <div class="col">
-                            <p class="card-text">วันที่ {{pr.approver_update | format_datetime }}</p>
-                          </div>
-                        {% else %}
-                          <div class="col text-center">
-                            {% if pr.approver_status.id == 1 and isPermiss %}
-                              {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
-                                <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
-                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
-                              {% endif %}
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                      </div>  
-                    </div>
-                </div>
-              </div>
-            </div>
-          </form>
-          <div class="invoice-title text-right my-1">
-            <h6>{{bc.affiliated.iso_code.pr_code|safe}}</h6>
-          </div>
-          <div class="text-right my-2">
-            <description id="dt_print"></description>
-          </div>
-          <div class="row my-2">
-            <div class="col">
-              {% if isFromHome == 'True' %}
-                <a href="{% url 'home' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
-              {% elif isFromHome == 'False' %}
-                <a href="{% url 'viewPRApprove' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
+
+        <div class="ad-sign{% if not pr.approver_update and pr.approver_status.id == 1 and isPermiss %}{% if request.user == pr.purchase_user or pr.purchase_status.id == 2 %} ad-sign-action{% endif %}{% endif %}">
+          <div class="ad-sign-title">ผู้อนุมัติ</div>
+          <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
+          {% if pr.approver_status_id == 2 %}
+            <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+          {% elif pr.approver_status_id == 3 %}
+            <span class="badge badge-danger ad-status">{{pr.approver_status}}</span>
+          {% endif %}
+          {% if pr.approver_user %}
+            <div>{{pr.approver_user.first_name}}</div>
+            <div class="text-muted small">{{pr.approver_user.userprofile.position}}</div>
+          {% else %}
+            {% if pr.approver_status.id == 1 and isPermiss %}
+              {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
+                <div>{{request.user.first_name}}</div>
+                <div class="text-muted small">{{request.user.userprofile.position}}</div>
               {% endif %}
-            </div>
-            <div class="col-6 col-md-2 text-right">
-              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
-                <i class="fas fa-print"></i>
-                ปริ้นใบขอซื้อ
-              </button>
-            </div>
-          </div>
+            {% endif %}
+          {% endif %}
+          {% if pr.approver_update %}
+            <div class="text-muted small">วันที่ {{pr.approver_update | format_datetime }}</div>
+          {% else %}
+            {% if pr.approver_status.id == 1 and isPermiss %}
+              {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
+              <div class="ad-approve-buttons hidden-print">
+                <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
+                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
+              </div>
+              {% endif %}
+            {% endif %}
+          {% endif %}
         </div>
       </div>
+    </form>
+
+    <div class="ad-footer">
+      <div>
+        <div>{{bc.affiliated.iso_code.pr_code|safe}}</div>
+        <description id="dt_print"></description>
+      </div>
+    </div>
+
+    <!-- ======== แถบปุ่มกลับ/ปริ้น ติดด้านล่าง (ไม่ปริ้น) ======== -->
+    <div class="ad-actions-bar hidden-print">
+      {% if isFromHome == 'True' %}
+        <a href="{% url 'home' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
+      {% elif isFromHome == 'False' %}
+        <a href="{% url 'viewPRApprove' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
+      {% else %}
+        <span></span>
+      {% endif %}
+      <button type="button" class="btn btn-outline-info" onclick="printFromShowPage();">
+        <i class="fas fa-print"></i>
+        ปริ้น<span class="d-none d-sm-inline">ใบขอซื้อ</span>
+      </button>
     </div>
   </div>
-  </div>
+</div>
   	<!-- Modal Search-->
     <div class="modal fade" id="myEdit" role="dialog">
       <div class="modal-dialog modal-lg verybigmodal">
@@ -311,6 +248,8 @@ u.dotted {
     </div>
 {% endblock %}
 {% block javascript %}
+{% url 'showPR' pr.id 2 as print_url %}
+{% include '_print_from_show_page.html' with print_url=print_url print_title='ปริ้นใบขอซื้อ' %}
 <script type="text/javascript">
 //ค้นหา 5 รายการล่าสุด
 function searchLastPoItem(){

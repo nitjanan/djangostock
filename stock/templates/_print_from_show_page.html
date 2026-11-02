@@ -1,0 +1,27 @@
+{% comment %}ปุ่มปริ้นที่ใช้หน้าตาเดียวกับตอนปริ้นจากหน้า show: โหลด print_url ใน iframe ที่ซ่อนไว้ แล้วสั่งปริ้นหน้านั้น
+print_url: หน้า show (ต้องอนุญาต X-Frame-Options SAMEORIGIN และมีฟังก์ชัน setDateTimePrint) / print_title: ชื่อ iframe{% endcomment %}
+<script>
+  function printFromShowPage() {
+    var frame = $('#show-print-frame');
+    if (!frame.length) {
+      //ซ่อนไว้นอกจอ (ไม่ใช้ display:none เพราะบางเบราว์เซอร์จะไม่ render หน้าใน iframe)
+      frame = $('<iframe id="show-print-frame" title="{{ print_title }}" aria-hidden="true" tabindex="-1"></iframe>')
+        .css({ position: 'fixed', left: '-10000px', top: 0, width: '1200px', height: '800px', border: 0 })
+        .appendTo('body');
+    }
+    var url = '{{ print_url }}';
+    frame.off('load').on('load', function () {
+      try {
+        var w = this.contentWindow;
+        if (typeof w.setDateTimePrint !== 'function') throw new Error('show page not loaded');
+        w.setDateTimePrint();
+        w.focus();
+        w.print();
+      } catch (e) {
+        //โหลดใน iframe ไม่ได้ (เช่นถูกบล็อก) ให้เปิดหน้า show ในแท็บใหม่แทน
+        window.open(url, '_blank');
+      }
+    });
+    frame.attr('src', url + '?print=' + Date.now());
+  }
+</script>

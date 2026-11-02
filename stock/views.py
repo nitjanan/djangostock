@@ -2577,6 +2577,8 @@ def editPR(request, pr_id):
     }
     return render(request, "purchaseRequisition/createPR.html", context)
 
+#หน้าอนุมัติใบขอซื้อ (editPRApprove) โหลดหน้านี้ใน iframe เพื่อปริ้น อนุญาตเฉพาะเว็บเดียวกัน
+@xframe_options_sameorigin
 def showPR(request, pr_id, mode):
     active = request.session.get('company_code', 'ALL')
 
@@ -3000,7 +3002,7 @@ def removePO(request, po_id):
     po.delete()
     return redirect('viewPO')
 
-#หน้าแก้ไขใบสั่งซื้อ (editPOItem) โหลดหน้านี้ใน iframe เพื่อปริ้น อนุญาตเฉพาะเว็บเดียวกัน
+#หน้าแก้ไขใบสั่งซื้อ (editPOItem) และหน้าอนุมัติ (editPOApprove) โหลดหน้านี้ใน iframe เพื่อปริ้น อนุญาตเฉพาะเว็บเดียวกัน
 @xframe_options_sameorigin
 def showPO(request, po_id, mode):
     active = request.session.get('company_code', 'ALL')

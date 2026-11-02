@@ -1,0 +1,190 @@
+{% comment %}ใบเปรียบเทียบราคาบนมือถือ (< 768px) สำหรับหน้าที่ใส่ class cp-mobile (printCPApprove / showComparePricePO)
+ใช้เฉพาะ screen จึงไม่กระทบหน้าตาตอนปริ้น{% endcomment %}
+<style>
+  @media screen and (max-width: 767.98px) {
+    #content {
+      padding: 8px;
+    }
+    .cp-print.cp-mobile.my-3 {
+      margin-top: .5rem !important;
+    }
+    .cp-print.cp-mobile .cp-paper {
+      padding: .75rem;
+      border-radius: 6px;
+    }
+
+    /* หัวเอกสาร: โลโก้ 2 ข้าง / ชื่อเอกสาร / รหัส-วันที่ เรียงลงมา */
+    .cp-print.cp-mobile .cp-doc-head {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "l1 l2" "title title" "meta meta";
+      row-gap: .5rem;
+    }
+    .cp-print.cp-mobile .cp-doc-head > .cp-doc-logos:first-child { grid-area: l1; }
+    .cp-print.cp-mobile .cp-doc-head > .cp-doc-logos:nth-child(3) { grid-area: l2; justify-self: end; }
+    .cp-print.cp-mobile .cp-doc-title { grid-area: title; }
+    .cp-print.cp-mobile .cp-doc-meta {
+      grid-area: meta;
+      grid-template-columns: auto minmax(0, 1fr);
+      padding-top: .4rem;
+      border-top: 1px dashed #dee2e6;
+    }
+    .cp-print.cp-mobile .cp-doc-meta dt { text-align: left; }
+    .cp-print.cp-mobile .cp-doc-meta dd { word-break: break-word; }
+    .cp-print.cp-mobile .cp-doc-logos img {
+      height: 44px;
+      width: auto;
+    }
+    .cp-print.cp-mobile .cp-doc-title h5 { font-size: 1.05rem; }
+    .cp-print.cp-mobile .cp-doc-address { font-size: .78rem; }
+
+    /* การ์ดสรุปราคาแต่ละร้าน */
+    .cp-m-heading {
+      font-weight: 600;
+      margin-bottom: .4rem;
+    }
+    .cp-m-bidder {
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: .5rem .65rem;
+      margin-bottom: .5rem;
+    }
+    .cp-m-bidder.cp-selected {
+      border-color: #007bff;
+      background: #f0f6ff;
+      box-shadow: inset 4px 0 0 #007bff;
+    }
+    .cp-m-bidder-head {
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+      margin-bottom: .35rem;
+    }
+    .cp-m-no {
+      flex: 0 0 auto;
+      width: 1.6rem;
+      height: 1.6rem;
+      line-height: 1.6rem;
+      border-radius: 50%;
+      text-align: center;
+      font-size: .8rem;
+      background: #e9ecef;
+    }
+    .cp-m-bidder.cp-selected .cp-m-no {
+      background: #007bff;
+      color: #fff;
+    }
+    .cp-m-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-weight: 700;
+      word-break: break-word;
+    }
+    .cp-m-bidder.cp-selected .cp-m-name { color: #0056b3; }
+    .cp-m-amounts {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: .75rem;
+      margin: 0;
+      font-size: .85rem;
+    }
+    .cp-m-amounts dt {
+      font-weight: normal;
+      color: #6c757d;
+    }
+    .cp-m-amounts dd {
+      margin: 0;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .cp-m-amounts .cp-m-grand {
+      margin-top: .2rem;
+      padding-top: .2rem;
+      border-top: 1px solid #dee2e6;
+      font-size: .95rem;
+      font-weight: 700;
+      color: #212529;
+    }
+    .cp-m-sub {
+      margin-top: .3rem;
+      font-size: .78rem;
+      color: #6c757d;
+    }
+    .cp-m-scroll-hint {
+      font-size: .78rem;
+      color: #6c757d;
+      margin: .25rem 0 .35rem;
+    }
+
+    /* ตารางเปรียบเทียบ: เลื่อนแนวนอน */
+    .cp-print.cp-mobile .cp-compare-wrap {
+      -webkit-overflow-scrolling: touch;
+    }
+    .cp-print.cp-mobile .cp-compare-table {
+      font-size: .78rem;
+    }
+    .cp-print.cp-mobile .cp-compare-table .cp-col-item {
+      min-width: 150px;
+    }
+
+    .cp-print.cp-mobile .cp-conclusion {
+      font-size: .88rem;
+    }
+
+    /* ช่องลงชื่อ: เรียง 1 คอลัมน์ ช่องที่ต้องกดอนุมัติขึ้นก่อน */
+    .cp-print.cp-mobile .cp-signatures {
+      grid-auto-flow: row;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cp-print.cp-mobile .cp-sign + .cp-sign {
+      border-left: 0;
+      border-top: 1px solid #dee2e6;
+    }
+    .cp-print.cp-mobile .cp-sign-action {
+      order: -1;
+      border-top: 0 !important;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .cp-print.cp-mobile .cp-sign-img {
+      height: 36px;
+      width: auto;
+    }
+    .cp-print.cp-mobile .cp-approve-buttons .btn {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: .6rem .5rem;
+      font-size: 1rem;
+    }
+
+    /* แถบปุ่มด้านล่าง */
+    .cp-print.cp-mobile .cp-actions-bar {
+      margin: 0 -.75rem -.75rem;
+      padding: .5rem .75rem;
+      border-radius: 0 0 6px 6px;
+    }
+    .cp-print.cp-mobile .cp-actions-bar .btn {
+      flex: 1 1 0;
+    }
+    /* หน้าแสดง: ปุ่มขอเปลี่ยนแปลง/ขอยกเลิก เต็มแถว */
+    .cp-print.cp-mobile .cp-actions-bar > div {
+      flex: 1 1 100%;
+    }
+    .cp-print.cp-mobile .cp-actions-bar > div > *,
+    .cp-print.cp-mobile .cp-actions-bar form .btn {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+    .cp-print.cp-mobile .cp-cancel-banner {
+      font-size: .9rem;
+    }
+    .cp-print.cp-mobile .cp-legend { font-size: .75rem; }
+
+    /* modal รายการที่ซื้อล่าสุด */
+    .verybigmodal {
+      max-width: none;
+      margin: .5rem;
+    }
+    #pShowSearch {
+      overflow-x: auto;
+    }
+  }
+</style>
