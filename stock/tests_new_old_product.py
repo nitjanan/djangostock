@@ -37,7 +37,7 @@ class NewOldProductTestCase(TestCase):
 
     def test_lowercase_to_uppercase_same_code(self):
         alert_type, text = newOld("nt-g0-151", "NT-G0-151")
-        self.assertIn("สำเร็จ", text)
+        self.assertEqual(text, "new โอน รหัสสินค้า 'nt-g0-151' เป็น 'NT-G0-151' สำเร็จแล้ว")
         self.assertEqual(self.ids(), ["NT-G0-151"])
         product = Product.objects.get(id="NT-G0-151")
         self.assertEqual((product.name, product.slug), ("น็อตทดสอบ", "NTIG0I151"))
@@ -60,6 +60,18 @@ class NewOldProductTestCase(TestCase):
         _, text = newOld("nt-g0-151", "   ")
         self.assertEqual(text, "กรุณากรอกรหัสสินค้าใหม่")
         self.assertEqual(self.ids(), ["nt-g0-151"])  # ไม่มีอะไรเปลี่ยน
+
+    def test_old_code_accepts_lowercase_or_uppercase(self):
+        Product.objects.create(id="el-g0-987654321", name="สายไฟทดสอบ", slug="elIg0I987654321")
+        # พิมพ์รหัสเก่าเป็นตัวเล็กตามที่เก็บในระบบ
+        _, text = newOld("el-g0-987654321", "EL-G0-987654321")
+        self.assertEqual(text, "new โอน รหัสสินค้า 'el-g0-987654321' เป็น 'EL-G0-987654321' สำเร็จแล้ว")
+        product = Product.objects.get(id="EL-G0-987654321")
+        self.assertEqual((product.id, product.slug, product.name), ("EL-G0-987654321", "ELIG0I987654321", "สายไฟทดสอบ"))
+        # พิมพ์รหัสเก่าเป็นตัวใหญ่ ก็หารหัสตัวเล็กในระบบเจอ
+        _, text = newOld("NT-G0-151", "nt-g0-151")
+        self.assertEqual(text, "new โอน รหัสสินค้า 'nt-g0-151' เป็น 'NT-G0-151' สำเร็จแล้ว")
+        self.assertEqual(self.ids(), ["EL-G0-987654321", "NT-G0-151"])
 
     def test_xo_check_also_catches_lowercase(self):
         _, text = newOld("nt-g0-151", "nt-go-151")
@@ -110,5 +122,7 @@ class NewOldProductTestCase(TestCase):
         member.groups.add(Group.objects.get_or_create(name="NewOld")[0])
         self.login(member)
         response = self.client.get(reverse("home"))
-        self.assertContains(response, 'pattern="[A-Z0-9\\-]+"', html=False)
-        self.assertContains(response, "this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')", html=False)
+        self.assertContains(response, '<h5 class="modal-title" id="newOldModalTitle">New โอน รหัสสินค้า</h5>', html=False)
+        # บังคับเฉพาะช่องรหัสสินค้าใหม่ ช่องรหัสเก่าพิมพ์ตัวเล็กได้เหมือนเดิม
+        self.assertContains(response, 'pattern="[A-Z0-9\\-]+"', count=1, html=False)
+        self.assertContains(response, "this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')", count=1, html=False)

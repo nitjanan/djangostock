@@ -200,6 +200,7 @@ def newOld(old_product_id, new_product_id):
             alertStr = "มีรหัสสินค้าใหม่อยู่แล้ว '" +str(new_product_id)+ "' ไม่สามารถ new โอนได้"
             alertType = messages.WARNING
         else:
+            stored_old_id = old_product.id  # รหัสตามที่เก็บใน DB (อาจเป็นตัวเล็ก) delete() จะล้าง id ทิ้ง
             from django.db import transaction
             with transaction.atomic():
                 if old_product.id.upper() == new_product_id:
@@ -213,7 +214,7 @@ def newOld(old_product_id, new_product_id):
             # Create product QR code
             create_product_qr(new_product)
 
-            alertStr = "new โอน รหัสสินค้า '"+ str(old_product_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
+            alertStr = "new โอน รหัสสินค้า '"+ str(stored_old_id) + "' เป็น '"+ str(new_product_id)+ "' สำเร็จแล้ว"
             alertType = messages.SUCCESS
     return alertType,alertStr
 
