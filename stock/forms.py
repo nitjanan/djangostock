@@ -589,6 +589,18 @@ class ProductAdminForm(forms.ModelForm):
         model = Product
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # ช่องรหัสสินค้าพิมพ์ได้แค่ A-Z ตัวพิมพ์ใหญ่ 0-9 และขีด - (พิมพ์ตัวเล็กเปลี่ยนเป็นตัวใหญ่ให้) ฝั่ง server เช็คซ้ำใน clean()
+        if 'id' in self.fields:
+            self.fields['id'].widget.attrs.update({
+                'pattern': r'[A-Z0-9\-]+',
+                'title': 'ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษตัวพิมพ์ใหญ่ A-Z ตัวเลข 0-9 และขีด -',
+                'oninput': "this.value = this.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')",
+                'autocomplete': 'off',
+            })
+            self.fields['id'].help_text = 'ภาษาอังกฤษตัวพิมพ์ใหญ่ A-Z ตัวเลข 0-9 และขีด - เท่านั้น (พิมพ์ตัวเล็กระบบเปลี่ยนเป็นตัวใหญ่ให้)'
+
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
 
