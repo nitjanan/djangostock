@@ -487,6 +487,10 @@ def index(request, category_slug = None):
 
     # button New โอน
     if request.method == 'POST' and 'btnformNewOld' in request.POST:
+        # ปุ่มซ่อนไว้สำหรับคนนอกกลุ่ม แต่ต้องเช็คสิทธิที่ server ด้วย ไม่งั้นส่ง POST ตรงๆ ก็โอนรหัสได้
+        if not is_edit_new_old(request.user):
+            messages.error(request, "คุณไม่มีสิทธิ์ new โอน รหัสสินค้า (ต้องอยู่ในกลุ่ม NewOld)")
+            return redirect('home')
         old_product_id = request.POST.get('old_product_id', False)
         new_product_id = request.POST.get('new_product_id', False)
         mess = newOld(old_product_id, new_product_id)
@@ -495,6 +499,9 @@ def index(request, category_slug = None):
     
     # button Change Exist
     if request.method == 'POST' and 'btnformChangeExist' in request.POST:
+        if not is_edit_change_exist(request.user):
+            messages.error(request, "คุณไม่มีสิทธิ์ Change Exist รหัสสินค้า (ต้องอยู่ในกลุ่ม ChangeExist)")
+            return redirect('home')
         ce_old_product_id = request.POST.get('ce_old_product_id', False)
         ce_new_product_id = request.POST.get('ce_new_product_id', False)
         mess = changeExist(ce_old_product_id, ce_new_product_id)
@@ -503,6 +510,9 @@ def index(request, category_slug = None):
     
     # button New โอน
     if request.method == 'POST' and 'btnformNewOldDistributor' in request.POST:
+        if not is_edit_new_old_distributor(request.user):
+            messages.error(request, "คุณไม่มีสิทธิ์ new โอน รหัสผู้จัดจำหน่าย (ต้องอยู่ในกลุ่ม NewOldDistributor)")
+            return redirect('home')
         old_distributor_id = request.POST.get('old_distributor_id', False)
         new_distributor_id = request.POST.get('new_distributor_id', False)
         mess = newOldDistributor(old_distributor_id, new_distributor_id)
