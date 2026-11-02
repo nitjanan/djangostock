@@ -3,205 +3,352 @@
 
 {% block css %}
 <style>
-body {
-  --table-width: 100%; /* Or any value, this will change dinamically */
-}
-tbody {
-  display:block;
-  max-height:500px;
-  overflow-y:auto;
-}
-thead, tbody tr {
-  display:table;
-  width: var(--table-width);
-  table-layout:fixed;
-}
-#total-orders{
-	background-color: #4cb4c7;
-}
+  .fp-dash {
+    --fp-pr: #4cb4c7;
+    --fp-po: #5aa9bb;
+    --fp-cp: #46b39d;
+  }
 
-#orders-delivered{
-	background-color: #7abecc;
-}
+  /* หัวหน้า + ปุ่มแจ้งซ่อม */
+  .fp-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1rem;
+  }
+  .fp-top h4 {
+    margin: 0;
+    font-weight: 700;
+  }
+  .fp-top .fp-hello {
+    font-size: .9rem;
+    color: #6c757d;
+  }
+  .fp-repair {
+    background: #ff7518;
+    border-color: #ff7518;
+    color: #fff;
+    border-radius: 999px;
+    padding: .45rem 1.1rem;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .15);
+  }
+  .fp-repair:hover,
+  .fp-repair:focus {
+    background: #e8650f;
+    border-color: #e8650f;
+    color: #fff;
+  }
 
-#orders-pending{
-	background-color: #7CD1C0;
-}
+  /* การ์ดจำนวนรออนุมัติ */
+  .fp-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .fp-stat {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    padding: 1rem 1.15rem;
+    border-radius: 10px;
+    color: #fff;
+    background: var(--fp-color);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .fp-stat:hover,
+  .fp-stat:focus {
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, .12);
+  }
+  .fp-stat-icon {
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    background: rgba(255, 255, 255, .22);
+  }
+  .fp-stat-text {
+    min-width: 0;
+    line-height: 1.3;
+  }
+  .fp-stat-label,
+  .fp-stat-sub {
+    display: block;
+  }
+  .fp-stat-label {
+    font-weight: 600;
+  }
+  .fp-stat-sub {
+    font-size: .8rem;
+    opacity: .9;
+  }
+  .fp-stat-count {
+    margin-left: auto;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .fp-pr { --fp-color: var(--fp-pr); }
+  .fp-po { --fp-color: var(--fp-po); }
+  .fp-cp { --fp-color: var(--fp-cp); }
 
+  /* รายการแต่ละประเภท */
+  .fp-panels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+  .fp-panel {
+    background: #fff;
+    border: 1px solid #e3e6ea;
+    border-top: 4px solid var(--fp-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+    overflow: hidden;
+    scroll-margin-top: 1rem;
+  }
+  .fp-panel-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .7rem 1rem;
+    border-bottom: 1px solid #eef0f2;
+    font-weight: 700;
+  }
+  .fp-panel-head i {
+    color: var(--fp-color);
+  }
+  .fp-panel-head .badge {
+    margin-left: auto;
+    background: var(--fp-color);
+    color: #fff;
+    font-size: .8rem;
+  }
+  .fp-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  .fp-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .55rem 1rem;
+    border-bottom: 1px solid #f1f3f5;
+  }
+  .fp-row:last-child {
+    border-bottom: 0;
+  }
+  .fp-row:hover {
+    background: #fafbfc;
+  }
+  .fp-row-main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .fp-ref {
+    font-weight: 600;
+    word-break: break-all;
+  }
+  .fp-date {
+    font-size: .8rem;
+    color: #6c757d;
+  }
+  .fp-approve {
+    flex: 0 0 auto;
+    min-width: 76px;
+  }
+  .fp-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: #6c757d;
+  }
+  .fp-empty i {
+    display: block;
+    font-size: 1.6rem;
+    margin-bottom: .35rem;
+    color: #b8c2cc;
+  }
+
+  /* แท็บเล็ต: รายการเรียงลงมา */
+  @media (max-width: 991.98px) {
+    .fp-panels {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .fp-list {
+      max-height: none;
+    }
+  }
+
+  /* มือถือ */
+  @media (max-width: 767.98px) {
+    #content {
+      padding: 8px;
+    }
+    .fp-dash.my-3 {
+      margin-top: .5rem !important;
+    }
+    .fp-top h4 {
+      font-size: 1.15rem;
+    }
+    .fp-stats {
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+    .fp-stat {
+      flex-direction: column;
+      align-items: center;
+      gap: .3rem;
+      padding: .7rem .4rem;
+      text-align: center;
+    }
+    .fp-stat-label {
+      font-size: .82rem;
+    }
+    .fp-stat-sub {
+      display: none;
+    }
+    .fp-stat-count {
+      margin-left: 0;
+      font-size: 1.5rem;
+      order: -1;
+    }
+    .fp-stat-icon {
+      display: none;
+    }
+    .fp-row {
+      padding: .6rem .75rem;
+    }
+    .fp-approve {
+      padding: .4rem .9rem;
+      font-size: .95rem;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  {% if isMobile %}
-    <div class="text-right my-3">
-      <h4>
-        <a style="background-color: #FF7518; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.2);" class="badge badge-pill badge-danger notification mr-2" href="{% url 'mobileMenu' %}" style="background-color: #FF7518 ;color:white;">
-          <i class="fas fa-tools"></i> แจ้งซ่อม
-        </a>
-      </h4>
+<div class="container fp-dash my-3">
+  <div class="fp-top">
+    <div>
+      <h4>รายการรออนุมัติ</h4>
+      <!--div class="fp-hello">สวัสดี {{ request.user.first_name|default:request.user.username }}</div-->
     </div>
-  {%endif%}
-    <div class="row">
-        <div class="col-md-4 col">
-                <div class="card text-center text-white mb-3" id="total-orders">
-                      <div class="card-header">
-                          <h5 class="card-title">ใบขอซื้อที่ต้องอนุมัติ</h5><br>
-                      </div>
-                      <div class="card-body">
-                        <h3 class="card-title">{{all_pr_ap}}</h3>
-                      </div>
-                </div>
-        </div>
+    {% if isMobile %}
+      <a class="btn fp-repair" href="{% url 'mobileMenu' %}"><i class="fas fa-tools"></i> แจ้งซ่อม</a>
+    {% endif %}
+  </div>
 
-        <div class="col-md-4 col">
-                <div class="card text-center text-white mb-3" id="orders-delivered">
-                      <div class="card-header">
-                          <h5 class="card-title">ใบสั่งซื้อที่ต้องอนุมัติ</h5><br>
-                      </div>
-                      <div class="card-body">
-                        <h3 class="card-title">{{all_po_ap}}</h3>
-                      </div>
-                </div>
-        </div>
-    
-        <div class="col-md-4 col">
-                <div class="card text-center text-white mb-3" id="orders-pending">
-                      <div class="card-header">
-                          <h5 class="card-title">ใบเปรียบเทียบที่ต้องตรวจสอบหรืออนุมัติ</h5>
-                      </div>
-                      <div class="card-body">
-                        <h3 class="card-title">{{all_cp_ap}}</h3>
-                      </div>
-                </div>
-        </div>
-    </div>
-      <hr>
-      <div class="row">
-        <div class="col-sm-4">
-            <h5>ใบขอซื้อ</h5>
-        </div>
-        <div class="col-sm-4">
-            <h5>ใบสั่งซื้อ</h5>
-        </div>
-        <div class="col-sm-4">
-            <h5>ใบเปรียบเทียบ</h5>
-        </div>
+  <!-- ======== จำนวนที่ต้องอนุมัติ (กดเพื่อเลื่อนไปที่รายการ) ======== -->
+  <div class="fp-stats">
+    <a href="#fp-pr-list" class="fp-stat fp-pr">
+      <span class="fp-stat-icon"><i class="fas fa-file-alt"></i></span>
+      <span class="fp-stat-text">
+        <span class="fp-stat-label">ใบขอซื้อ</span>
+        <span class="fp-stat-sub">ที่ต้องอนุมัติ</span>
+      </span>
+      <span class="fp-stat-count">{{all_pr_ap}}</span>
+    </a>
+    <a href="#fp-po-list" class="fp-stat fp-po">
+      <span class="fp-stat-icon"><i class="fas fa-shopping-cart"></i></span>
+      <span class="fp-stat-text">
+        <span class="fp-stat-label">ใบสั่งซื้อ</span>
+        <span class="fp-stat-sub">ที่ต้องอนุมัติ</span>
+      </span>
+      <span class="fp-stat-count">{{all_po_ap}}</span>
+    </a>
+    <a href="#fp-cp-list" class="fp-stat fp-cp">
+      <span class="fp-stat-icon"><i class="fas fa-balance-scale"></i></span>
+      <span class="fp-stat-text">
+        <span class="fp-stat-label">ใบเปรียบเทียบ</span>
+        <span class="fp-stat-sub">ที่ต้องตรวจสอบหรืออนุมัติ</span>
+      </span>
+      <span class="fp-stat-count">{{all_cp_ap}}</span>
+    </a>
+  </div>
+
+  <!-- ======== รายการรออนุมัติ ======== -->
+  <div class="fp-panels">
+    <section id="fp-pr-list" class="fp-panel fp-pr">
+      <div class="fp-panel-head">
+        <i class="fas fa-file-alt"></i> ใบขอซื้อ
+        <span class="badge badge-pill">{{ prs|length }}</span>
       </div>
-      <hr>
-      <div class="row">
-        <div class="col-sm-4">
-          <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped table-bordered" style="margin-bottom: 0">
-                        <thead>
-                          <tr>
-                            <th scope="col">รหัส PR</th>
-                            <th scope="col">วันที่สร้าง</th>
-                            <th scope="col">ทำรายการ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                            {% for pr in prs%}
-                                <tr>
-                                    <th scope="row"><a class="{% if pr.is_re_approve %}text-danger{%endif%}" href="{% url 'showPR' pr.id 2 %}">{{pr.ref_no}}</a></th>
-                                    <td>{{pr.created |date:"d/m/Y" }}</td>
-                                      <td>
-                                        {% if pr.purchase_status.id == 1 or pr.approver_status.id == 1 %}
-                                        <a href="{%url 'editPRApprove' pr.id True %}" class="btn btn-primary btn-block btn-sm">อนุมัติ</a>
-                                        {%endif%}
-                                      </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                  <th scope="row" colspan="2" class="text-center">
-                                    <div class="alert alert-warning" role="alert">
-                                      ไม่มีรายการ
-                                    </div>
-                                  </th>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                      </table>
-                </div>
+      <ul class="fp-list">
+        {% for pr in prs %}
+          <li class="fp-row">
+            <div class="fp-row-main">
+              <a class="fp-ref {% if pr.is_re_approve %}text-danger{%endif%}" href="{% url 'showPR' pr.id 2 %}">{{pr.ref_no}}</a>
+              {% if pr.is_re_approve %}<span class="badge badge-danger">ฉบับแก้ไข</span>{% endif %}
+              <div class="fp-date"><i class="far fa-calendar-alt"></i> {{pr.created |date:"d/m/Y" }}</div>
             </div>
-          </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="card">
-              <div class="card-body">
-                  <div class="table-responsive">
-                      <table class="table table-sm table-striped table-bordered" style="margin-bottom: 0">
-                          <thead>
-                            <tr>
-                              <th scope="col">รหัส PO</th>
-                              <th scope="col">วันที่สร้าง</th>
-                              <th scope="col">ทำรายการ</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for po in pos%}
-                                <tr>
-                                    <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{% url 'showPO' po.id 2 %}">{{po.ref_no}}</a></th>
-                                    <td>{{po.created |date:"d/m/Y" }}</td>
-                                      <td>
-                                        {% if po.approver_status.id == 1 %}
-                                        <a href="{%url 'editPOApprove' po.id True%}" class="btn btn-primary btn-block btn-sm">อนุมัติ</a>
-                                        {%endif%}
-                                      </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                  <th scope="row" colspan="2" class="text-center">
-                                    <div class="alert alert-warning" role="alert">
-                                      ไม่มีรายการ
-                                    </div>
-                                  </th>
-                                </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                  </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-4">
-            <div class="card">
-              <div class="card-body">
-                  <div class="table-responsive">
-                    <table class="table table-sm table-striped table-bordered" style="margin-bottom: 0">
-                          <thead>
-                            <tr>
-                              <th scope="col">รหัส CM</th>
-                              <th scope="col">วันที่สร้าง</th>
-                              <th scope="col">ทำรายการ</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for cm in cms%}
-                                <tr>
-                                    <th scope="row"><a class="{% if cm.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cm.id 2 %}">{{cm.ref_no}}</a></th>
-                                    <td>{% if cm.select_bidder_update %}{{cm.select_bidder_update | date:"d/m/Y"}}{% else %}{{cm.created | date:"d/m/Y"}}{% endif %}</td>
-                                    <td>
-                                        <a href="{% url 'printCPApprove' cm.id True %}" class="btn btn-primary btn-block btn-sm">อนุมัติ</a>
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                  <th scope="row" colspan="2" class="text-center">
-                                    <div class="alert alert-warning" role="alert">
-                                      ไม่มีรายการ
-                                    </div>
-                                  </th>
-                                </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
-                  </div>
-              </div>
-            </div>
-          </div>
+            {% if pr.purchase_status.id == 1 or pr.approver_status.id == 1 %}
+              <a href="{%url 'editPRApprove' pr.id True %}" class="btn btn-primary btn-sm fp-approve">อนุมัติ</a>
+            {%endif%}
+          </li>
+        {% empty %}
+          <li class="fp-empty"><i class="far fa-check-circle"></i> ไม่มีรายการ</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section id="fp-po-list" class="fp-panel fp-po">
+      <div class="fp-panel-head">
+        <i class="fas fa-shopping-cart"></i> ใบสั่งซื้อ
+        <span class="badge badge-pill">{{ pos|length }}</span>
       </div>
+      <ul class="fp-list">
+        {% for po in pos %}
+          <li class="fp-row">
+            <div class="fp-row-main">
+              <a class="fp-ref {% if po.is_re_approve %}text-danger{%endif%}" href="{% url 'showPO' po.id 2 %}">{{po.ref_no}}</a>
+              {% if po.is_re_approve %}<span class="badge badge-danger">ฉบับแก้ไข</span>{% endif %}
+              <div class="fp-date"><i class="far fa-calendar-alt"></i> {{po.created |date:"d/m/Y" }}</div>
+            </div>
+            {% if po.approver_status.id == 1 %}
+              <a href="{%url 'editPOApprove' po.id True%}" class="btn btn-primary btn-sm fp-approve">อนุมัติ</a>
+            {%endif%}
+          </li>
+        {% empty %}
+          <li class="fp-empty"><i class="far fa-check-circle"></i> ไม่มีรายการ</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section id="fp-cp-list" class="fp-panel fp-cp">
+      <div class="fp-panel-head">
+        <i class="fas fa-balance-scale"></i> ใบเปรียบเทียบ
+        <span class="badge badge-pill">{{ cms|length }}</span>
+      </div>
+      <ul class="fp-list">
+        {% for cm in cms %}
+          <li class="fp-row">
+            <div class="fp-row-main">
+              <a class="fp-ref {% if cm.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cm.id 2 %}">{{cm.ref_no}}</a>
+              {% if cm.is_re_approve %}<span class="badge badge-danger">ฉบับแก้ไข</span>{% endif %}
+              <div class="fp-date"><i class="far fa-calendar-alt"></i> {% if cm.select_bidder_update %}{{cm.select_bidder_update | date:"d/m/Y"}}{% else %}{{cm.created | date:"d/m/Y"}}{% endif %}</div>
+            </div>
+            <a href="{% url 'printCPApprove' cm.id True %}" class="btn btn-primary btn-sm fp-approve">อนุมัติ</a>
+          </li>
+        {% empty %}
+          <li class="fp-empty"><i class="far fa-check-circle"></i> ไม่มีรายการ</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
 </div>
 {% endblock%}
