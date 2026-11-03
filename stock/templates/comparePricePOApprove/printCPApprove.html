@@ -195,10 +195,16 @@
             {% else %}
                 <span></span>
             {% endif %}
+            {% if next_cp %}
+            <a href="{% url 'printCPApprove' next_cp.id isFromHome %}" class="btn btn-primary">
+                รายการถัดไป <i class="fas fa-arrow-right"></i>
+            </a>
+            {% else %}
             <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
                 <i class="fas fa-print"></i>
                 ปริ้น<span class="d-none d-sm-inline">ใบเปรียบเทียบราคา</span>
             </button>
+            {% endif %}
         </div>
     </div>
 </div>

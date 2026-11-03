@@ -198,10 +198,16 @@
       {% else %}
         <span></span>
       {% endif %}
+      {% if next_po %}
+      <a href="{% url 'editPOApprove' next_po.id isFromHome %}" class="btn btn-primary">
+        รายการถัดไป <i class="fas fa-arrow-right"></i>
+      </a>
+      {% else %}
       <button type="button" class="btn btn-outline-info" onclick="printFromShowPage();">
         <i class="fas fa-print"></i>
         ปริ้น<span class="d-none d-sm-inline">ใบสั่งซื้อ</span>
       </button>
+      {% endif %}
     </div>
   </div>
 </div>

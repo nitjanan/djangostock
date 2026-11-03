@@ -2745,6 +2745,12 @@ def viewPRApprove(request):
 
     return render(request,'purchaseRequisitionApprove/viewPRApprove.html',context)
 
+#ใบขอซื้อถัดไปที่รออนุมัติของ user (เงื่อนไขเดียวกับหน้า home)
+def next_pr_approve(request, permiss_pr, exclude_id):
+    if not permiss_pr:
+        return None
+    return PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = permiss_pr).exclude(id = exclude_id).first()
+
 def editPRApprove(request, pr_id, isFromHome):
     active = request.session.get('company_code', 'ALL')
 
@@ -2791,6 +2797,10 @@ def editPRApprove(request, pr_id, isFromHome):
         except PurchaseRequisition.DoesNotExist:
             isPermiss = False
 
+    #อนุมัติแล้ว แสดงปุ่มรายการถัดไปแทนปุ่มปริ้น
+    next_pr = None
+    if request.user.is_authenticated and pr.approver_user_id == request.user.id and pr.approver_status_id != 1:
+        next_pr = next_pr_approve(request, permiss_pr, pr.id)
 
     context = {
         'items':items,
@@ -2801,6 +2811,7 @@ def editPRApprove(request, pr_id, isFromHome):
         'pr':pr,
         'isPermiss':isPermiss,
         'isFromHome':isFromHome,
+        'next_pr':next_pr,
         'bc':bc,
         'ap_pr_page': "tab-active",
         'ap_pr_show': "show",
@@ -3522,6 +3533,13 @@ def viewPOApprove(request):
 
     return render(request,'purchaseOrderApprove/viewPOApprove.html',context)
 
+#ใบสั่งซื้อถัดไปที่รออนุมัติของ user (เงื่อนไขเดียวกับหน้า home)
+def next_po_approve(request, company_in, permiss_po, exclude_id):
+    q = Q(approver_user = request.user, branch_company__code__in = company_in)
+    if permiss_po:
+        q |= Q(approver_user__isnull = True, cp__isnull = True, branch_company__code__in = permiss_po)
+    return PurchaseOrder.objects.filter(q, approver_status = 1, amount__isnull = False, amount__gt = 0, is_draft = False).exclude(id = exclude_id).first()
+
 def editPOApprove(request, po_id, isFromHome):
     active = request.session.get('company_code', 'ALL')
 
@@ -3604,11 +3622,17 @@ def editPOApprove(request, po_id, isFromHome):
         obj.save()
         return redirect('editPOApprove', po_id = po_id, isFromHome = isFromHome)
 
+    #อนุมัติแล้ว แสดงปุ่มรายการถัดไปแทนปุ่มปริ้น
+    next_po = None
+    if request.user.is_authenticated and po.approver_user_id == request.user.id and po.approver_status_id != 1:
+        next_po = next_po_approve(request, company_in, permiss_po, po.id)
+
     context = {
                 'po':po,
                 'items':items,
                 'isPermiss':isPermiss,
                 'isFromHome':isFromHome,
+                'next_po':next_po,
                 'new_pr':new_pr,
                 'bc':bc,
                 'base_po_type':base_po_type,
@@ -4672,6 +4696,16 @@ def viewCPApprove(request):
     }
     return render(request, "comparePricePOApprove/viewCPApprove.html",context)
 
+#ใบเปรียบเทียบถัดไปที่รอตรวจสอบ/อนุมัติ/อนุมัติพิเศษของ user (เงื่อนไขเดียวกับหน้า home)
+def next_cp_approve(request, company_in, permiss_cm, exclude_id):
+    q = Q(examiner_status = 1, examiner_user = request.user) | Q(examiner_status = 2, approver_status = 1, approver_user = request.user)
+    if permiss_cm:
+        pm = BasePermission.objects.filter(codename = 'CASCP').first()
+        if pm:
+            special_cp = ComparisonPriceDistributor.objects.filter(cp__examiner_status = 2, cp__approver_status = 2, cp__special_approver_status = 1, cp__is_draft = False, is_select = True, amount__range=(pm.ap_amount_min, pm.ap_amount_max), cp__cm_type_id__isnull = True, cp__branch_company__code__in = permiss_cm).values("cp")
+            q |= Q(pk__in = special_cp)
+    return ComparisonPrice.objects.filter(q, is_draft = False, branch_company__code__in = company_in).exclude(id = exclude_id).first()
+
 def printCPApprove(request, cp_id, isFromHome):
     active = request.session.get('company_code', 'ALL')
 
@@ -4710,19 +4744,21 @@ def printCPApprove(request, cp_id, isFromHome):
         cpd_select = None
 
 
-    try:
-        ex_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, examiner_status = 1, examiner_user = request.user, is_draft = False)
-        if(ex_item):
-            isExaminer = True
-    except ComparisonPrice.DoesNotExist:
-        ex_item = None
+    #ยังไม่ได้เลือกร้านค้า (cpd_select เป็น None) ตรวจสอบ/อนุมัติไม่ได้
+    if cpd_select:
+        try:
+            ex_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, examiner_status = 1, examiner_user = request.user, is_draft = False)
+            if(ex_item):
+                isExaminer = True
+        except ComparisonPrice.DoesNotExist:
+            ex_item = None
 
-    try:
-        ap_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, approver_status = 1, approver_user = request.user, is_draft = False)
-        if(ap_item):
-            isApprover = True
-    except ComparisonPrice.DoesNotExist:
-        ap_item = None
+        try:
+            ap_item = ComparisonPrice.objects.get(id = cp_id, select_bidder = cpd_select.distributor, approver_status = 1, approver_user = request.user, is_draft = False)
+            if(ap_item):
+                isApprover = True
+        except ComparisonPrice.DoesNotExist:
+            ap_item = None
 
     #หาว่าเป็นคนที่มีสิทธิอนุมัติคนที่ 2 ในใบเปรียบเทียบนี้หรือไม่
     #get permission with position login
@@ -4856,6 +4892,13 @@ def printCPApprove(request, cp_id, isFromHome):
         obj.save()
         return redirect('printCPApprove', cp_id = cp_id, isFromHome = isFromHome)
 
+    #อนุมัติแล้ว (ไม่เหลือขั้นที่ต้องอนุมัติ) แสดงปุ่มรายการถัดไปแทนปุ่มปริ้น
+    next_cp = None
+    if request.user.is_authenticated and not (isExaminer or isApprover or isApproverSpecial):
+        uid = request.user.id
+        if (cp.examiner_user_id == uid and cp.examiner_status_id != 1) or (cp.approver_user_id == uid and cp.approver_status_id != 1) or (cp.special_approver_user_id == uid and cp.special_approver_status_id != 1):
+            next_cp = next_cp_approve(request, company_in, permiss_cm, cp.id)
+
     context = {
         'cp':cp,
         'bidder' : bidder,
@@ -4869,6 +4912,7 @@ def printCPApprove(request, cp_id, isFromHome):
         'isFromHome': isFromHome,
         'isApproverSpecial': isApproverSpecial,
         'isSpecialCP':isSpecialCP,
+        'next_cp':next_cp,
         'bc':bc,
         'ap_cp_page': "tab-active",
         'ap_cp_show': "show",

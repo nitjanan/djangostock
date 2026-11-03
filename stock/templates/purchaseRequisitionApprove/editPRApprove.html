@@ -225,10 +225,16 @@ u.dotted {
       {% else %}
         <span></span>
       {% endif %}
+      {% if next_pr %}
+      <a href="{% url 'editPRApprove' next_pr.id isFromHome %}" class="btn btn-primary">
+        รายการถัดไป <i class="fas fa-arrow-right"></i>
+      </a>
+      {% else %}
       <button type="button" class="btn btn-outline-info" onclick="printFromShowPage();">
         <i class="fas fa-print"></i>
         ปริ้น<span class="d-none d-sm-inline">ใบขอซื้อ</span>
       </button>
+      {% endif %}
     </div>
   </div>
 </div>
