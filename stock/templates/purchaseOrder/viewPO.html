@@ -76,14 +76,14 @@
                   <th scope="col">ราคา</th>
                   <th scope="col">ผู้อนุมัติ</th>
                   <th scope="col" style="width:150px;">รายการสั่งซื้อ</th>
-                  <th scope="col">รับสินค้า</th>
+                  <th scope="col">{% if tab == 'reject' %}ขอเปลี่ยนแปลง{% else %}รับสินค้า{% endif %}</th>
                   <th scope="col">ใบเสนอราคา</th>
                 </tr>
               </thead>
               <tbody>
               {% for po in pos %}
                 <tr>
-                  <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 1 %}">{{po.ref_no}}</a>{% if po.is_draft %} <span class="badge badge-secondary">แบบร่าง</span>{% endif %}</th>
+                  <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 1 %}">{{po.ref_no}}</a>{% if po.is_draft %} <span class="badge badge-secondary">แบบร่าง</span>{% endif %}{% if tab == 'reject' and po.reject_reason %}<div class="small text-danger">เหตุผล: {{po.reject_reason}}</div>{% endif %}</th>
                   <td>
                     {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 1 %}">{{po.cp.ref_no}}</a>{%endif%}
                     {%if po.pr %}
@@ -133,6 +133,14 @@
                     {% endif %}
                   </td>
                   <td>
+                    {% if tab == 'reject' %}
+                      {% if po.can_re_approve %}
+                      <form method="post" action="{% url 'requestPOReApprove' po.id %}" class="mb-0" onsubmit="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning btn-sm text-nowrap"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียด</button>
+                      </form>
+                      {% endif %}
+                    {% else %}
                     <button type="button"
                     class="btn btn-sm btn-block
                     {% if po.is_receive == True %}
@@ -141,6 +149,7 @@
                       btn-outline-warning
                     {% endif %}"
                     >{% if po.is_receive == True %}รับแล้ว{% elif po.is_receive == False%}ยังไม่รับ{%endif%}</button>
+                    {% endif %}
                   </td>
                   <td>
                     {% if po.quotation_pdf %}

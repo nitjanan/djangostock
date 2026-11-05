@@ -1,5 +1,5 @@
 {# แท็ป กำลังดำเนินการ / แบบร่าง วางไว้บนสุดของ card รายการ ต้องใส่ _draft_tabs_style.html ใน block css ด้วย #}
-{# context: tab ('process' / 'draft'), tab_qs, count_process, count_draft #}
+{# context: tab ('process' / 'draft' / 'reject'), tab_qs, count_process, count_draft, count_reject (None = ไม่แสดงแท็ปไม่อนุมัติ) #}
         <div class="card-header cp-tab-header">
           <nav class="cp-tabs" role="tablist">
             <a class="cp-tab cp-tab-process {% if tab == 'process' %}is-active{% endif %}" role="tab"
@@ -16,5 +16,14 @@
               <span class="cp-tab-label">แบบร่าง</span>
               <span class="cp-tab-count">{{ count_draft }}</span>
             </a>
+            {% if count_reject is not None %}
+            <a class="cp-tab cp-tab-reject {% if tab == 'reject' %}is-active{% endif %}" role="tab"
+               aria-selected="{% if tab == 'reject' %}true{% else %}false{% endif %}"
+               href="?tab=reject{% if tab_qs %}&{{ tab_qs }}{% endif %}">
+              <span class="cp-tab-icon"><i class="fas fa-times"></i></span>
+              <span class="cp-tab-label">ไม่อนุมัติ</span>
+              <span class="cp-tab-count">{{ count_reject }}</span>
+            </a>
+            {% endif %}
           </nav>
         </div>

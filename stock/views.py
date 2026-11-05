@@ -55,7 +55,7 @@ from openpyxl.styles import Border, Side, Alignment
 from django.db.models import Avg
 from datetime import date, timedelta
 from django.utils.timezone import is_aware, make_naive, make_aware
-from django.db import models, connections
+from django.db import models, connections, transaction
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.views import APIView
@@ -547,7 +547,7 @@ def index(request, category_slug = None):
     if(isPermiss_pr and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
+            pr_item_ap = PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, is_draft = False, approver_user = request.user, branch_company__code__in = isPermiss_pr) #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseRequisition.DoesNotExist:
             pass
@@ -1938,9 +1938,20 @@ def viewPR(request):
         #requisit = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), is_complete = 0).values("requisition")
         #ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).defer('requisition_id', 'product_name', 'urgency')
 
+    rejected = PurchaseRequisition.objects.filter(Q(purchase_status_id = 3) | Q(approver_status_id = 3), branch_company__code = active)
+
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
     data = myFilter.qs
+    rejected = PurchaseRequisitionFilter(request.GET, queryset = rejected).qs
+
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ เห็นเฉพาะกลุ่มพัสดุ
+    #กลุ่มอื่นเห็นแค่รายการกำลังดำเนินการ (ไม่รวมแบบร่าง)
+    isSupplies = is_supplies(request.user)
+    if isSupplies:
+        data, tab_context = split_draft_tab(request, data, rejected)
+    else:
+        data, tab_context = data.filter(is_draft = False), {'tab': 'process'}
 
     baseUrgency = BaseUrgency.objects.all()
     #สร้าง page
@@ -1952,11 +1963,13 @@ def viewPR(request):
                 'prs':dataPage,
                 'filter':myFilter,
                 'isPurchasing':isPurchasing,
+                'isSupplies':isSupplies,
                 'baseUrgency':baseUrgency,
                 'pr_page': "tab-active",
                 'pr_show': "show",
                 active :"active show",
-                "colorNav":"enableNav"
+                "colorNav":"enableNav",
+                **tab_context,
               }
 
     return render(request,'purchaseRequisition/viewPR.html',context)
@@ -2312,6 +2325,8 @@ def createPR(request, requisition_id):
             #พัสดุ
             new_contact.stockman_user_id = request.user.id
             new_contact.stockman_update = datetime.datetime.now()
+            #แบบร่างยังไม่ส่งไปหาผู้อนุมัติ
+            new_contact.is_draft = is_save_draft(request)
 
             new_contact.save()
 
@@ -2322,9 +2337,14 @@ def createPR(request, requisition_id):
             obj.pr_ref_no = new_contact.ref_no
             obj.save()
 
-            messages.info(request, "สร้างใบขอซื้อ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
+            if new_contact.is_draft:
+                messages.info(request, "บันทึกแบบร่างใบขอซื้อ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
+            else:
+                messages.info(request, "สร้างใบขอซื้อ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
             if iv:
                 messages.success(request, "สร้างใบจ่ายสินค้าภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
+            if new_contact.is_draft:
+                return HttpResponseRedirect(reverse('viewPR') + '?tab=draft')
             return HttpResponseRedirect(reverse('viewPR'))
         else:
             return HttpResponseRedirect(reverse('createPR', args=(requisition_id,)))
@@ -2552,10 +2572,16 @@ def editPR(request, pr_id):
     if request.method == 'POST':
         form = PurchaseRequisitionForm(request, request.POST, instance=pr)
         if form.is_valid():
-            new_contact = form.save()
+            new_contact = form.save(commit = False)
+            #บันทึกแบบร่าง หรือ บันทึกและส่งอนุมัติ ได้เฉพาะใบที่ยังรออนุมัติ (อนุมัติ/ไม่อนุมัติแล้วไม่เปลี่ยน)
+            if new_contact.approver_status_id == 1:
+                new_contact.is_draft = is_save_draft(request)
+            new_contact.save()
             #save id express
             saveIdExpressPR(request)
-            
+
+            if new_contact.is_draft:
+                return HttpResponseRedirect(reverse('viewPR') + '?tab=draft')
             return redirect('viewPR')
 
     context = {
@@ -2723,7 +2749,7 @@ def saveIdExpressPR(request):
 def viewPRApprove(request):
     active = request.session.get('company_code', 'ALL')
     company_in = findCompanyIn(request)
-    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1)| Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), branch_company__code__in = company_in)
+    data = PurchaseRequisition.objects.filter(Q(purchase_status_id = 1)| Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), is_draft = False, branch_company__code__in = company_in)
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
@@ -2745,11 +2771,21 @@ def viewPRApprove(request):
 
     return render(request,'purchaseRequisitionApprove/viewPRApprove.html',context)
 
+#ไม่อนุมัติต้องกรอกเหตุผล: คืนเหตุผล, None ถ้าไม่ใช่การไม่อนุมัติ, False ถ้าไม่ได้กรอก (แจ้ง error แล้ว)
+def get_reject_reason(request, status):
+    if status.id != 3:
+        return None
+    reject_reason = (request.POST.get('reject_reason') or '').strip()
+    if not reject_reason:
+        messages.error(request, 'กรุณากรอกเหตุผลการไม่อนุมัติ')
+        return False
+    return reject_reason
+
 #ใบขอซื้อถัดไปที่รออนุมัติของ user (เงื่อนไขเดียวกับหน้า home)
 def next_pr_approve(request, permiss_pr, exclude_id):
     if not permiss_pr:
         return None
-    return PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, approver_user = request.user, branch_company__code__in = permiss_pr).exclude(id = exclude_id).first()
+    return PurchaseRequisition.objects.filter(purchase_status = 2, approver_status = 1, is_draft = False, approver_user = request.user, branch_company__code__in = permiss_pr).exclude(id = exclude_id).first()
 
 def editPRApprove(request, pr_id, isFromHome):
     active = request.session.get('company_code', 'ALL')
@@ -2792,7 +2828,7 @@ def editPRApprove(request, pr_id, isFromHome):
     if(permiss_pr and in_company):
         try:
             #ดึงข้อมูล PurchaseRequisition
-            isPermiss = PurchaseRequisition.objects.filter(id = pr_id, approver_user = request.user, branch_company__code__in = permiss_pr).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
+            isPermiss = PurchaseRequisition.objects.filter(id = pr_id, approver_user = request.user, is_draft = False, branch_company__code__in = permiss_pr).exists() #หาสถานะรอดำเนินการของผู้อนุมัติ
             #หาความยาวของ index PurchaseRequisition ที่มี สถานะรอดำเนินการของผู้อนุมัติ
         except PurchaseRequisition.DoesNotExist:
             isPermiss = False
@@ -2824,16 +2860,24 @@ def editPRApprove(request, pr_id, isFromHome):
         post_status = request.POST['status'] or None
         status = BaseApproveStatus.objects.get(name = post_status)
 
+        reject_reason = get_reject_reason(request, status)
+        if reject_reason is False:
+            return redirect('editPRApprove', pr_id = pr_id, isFromHome = isFromHome)
+
         obj = PurchaseRequisition.objects.get(id = pr_id)
         #ผู้ขอซื้อ
         if(obj.purchase_user_id == request.user.id):
             obj.purchase_status = status
             obj.purchase_update = datetime.datetime.now()
+            if reject_reason:
+                obj.reject_reason = reject_reason
         #ผู้อนุมัติ
         if(isPermiss):
             obj.approver_status = status
             obj.approver_user_id = request.user.id
             obj.approver_update = datetime.datetime.now()
+            if reject_reason:
+                obj.reject_reason = reject_reason
         #หากอนุมัติแล้วแก้ใบขอเบิกไม่ได้
         if obj.purchase_status_id != 1 or obj.approver_status_id != 1:
             try:
@@ -2854,17 +2898,25 @@ def viewPO(request):
     active = request.session.get('company_code', 'ALL')
     data = PurchaseOrder.objects.filter(Q(approver_status_id = 1) | Q(is_receive = False) & ~Q(approver_status_id = 3), is_cancel = False, branch_company__code = active)
 
+    rejected = PurchaseOrder.objects.filter(approver_status_id = 3, is_cancel = False, branch_company__code = active)
+
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
     data = myFilter.qs
+    rejected = PurchaseOrderFilter(request.GET, queryset = rejected).qs
 
-    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง
-    data, tab_context = split_draft_tab(request, data)
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ
+    data, tab_context = split_draft_tab(request, data, rejected)
 
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+
+    #แท็ปไม่อนุมัติ: ปุ่มขอเปลี่ยนแปลงรายละเอียดรายการ (สิทธิเดียวกับหน้า showPO)
+    if tab_context['tab'] == 'reject':
+        for po in dataPage:
+            po.can_re_approve = can_request_po_re_approve(request.user, po)
 
     prs = PurchaseOrderItem.objects.filter(po__in=data).values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
 
@@ -3147,6 +3199,23 @@ def require_approver_user_po(form):
     if 'approver_user' in form.fields:
         form.fields['approver_user'].required = True
 
+def collect_form_errors(forms, formset = None):
+    """รวมข้อความ error ของฟอร์ม/formset เป็น list "ชื่อช่อง: ข้อความ" สำหรับแจ้งเตือนผู้ใช้"""
+    errors = []
+    for f in forms:
+        for name, errs in f.errors.items():
+            label = f.fields[name].label if name in f.fields and f.fields[name].label else name
+            for e in errs:
+                errors.append(e if name == '__all__' else '%s: %s' % (label, e))
+    if formset is not None:
+        errors += list(formset.non_form_errors())
+        for i, e in enumerate(formset.errors):
+            for name, errs in e.items():
+                label = formset.forms[i].fields[name].label if name in formset.forms[i].fields else name
+                for msg in errs:
+                    errors.append('รายการที่ %d %s: %s' % (i + 1, label, msg))
+    return errors
+
 def is_save_draft(request):
     """กดปุ่มบันทึกแบบร่าง (ส่งค่าผ่าน hidden input เพราะปุ่ม submit ถูก disable ตอนกดบันทึก)"""
     return request.POST.get('save_draft') == '1'
@@ -3270,6 +3339,7 @@ def requestPOReApprove(request, po_id):
     if po.approver_status_id != 1 or po.is_cancel:
         po.approver_status_id = 1
         po.approver_update = None
+        po.reject_reason = None
         po.is_re_approve = True
         po.is_draft = True
         po.save()
@@ -3338,9 +3408,13 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         form_rate = RateDistributorForm(request.POST, request.FILES, instance=rate_dist)
         if isEditApproverUserPO:
             require_approver_user_po(form)
+        if isLockPOItem:
+            lock_vat_type_po(form)
         if isDraft:
             relax_required_for_draft(form)
             relax_required_for_draft(price_form)
+            #แบบร่างยังไม่เลือกผู้จำหน่ายได้ (ฟอร์มประเมินร้านค้าบังคับ distributor)
+            relax_required_for_draft(form_rate)
         if formset.is_valid() and price_form.is_valid() and form.is_valid() and form_rate.is_valid():
             #เลือกสินค้าได้เฉพาะรายการที่อยู่ในใบสั่งซื้อนี้ (itemList)
             if formset_has_item_outside(formset, set(po_items.values_list('item_id', flat = True))):
@@ -3376,7 +3450,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             rate_contact = form_rate.save(commit=False)
             rate_contact.po = po_data
             rate_contact.organizer_user = po_data.stockman_user
-            if rate_contact.price_rate and rate_contact.quantity_rate and rate_contact.service_rate and rate_contact.safety_rate:
+            if rate_contact.distributor_id and rate_contact.price_rate and rate_contact.quantity_rate and rate_contact.service_rate and rate_contact.safety_rate:
                 rate_contact.save()
 
             po_form = form.save()
@@ -3444,6 +3518,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                 obj.delete()
             formset.save_m2m()
             return redirect('viewPO')
+        #บันทึกไม่ผ่าน แจ้งเตือนช่องที่ผิด (บางช่องอยู่ใน hidden input ผู้ใช้มองไม่เห็น)
+        messages.error(request, 'บันทึก' + ('แบบร่าง' if isDraft else '') + 'ไม่สำเร็จ: ' + ', '.join(collect_form_errors([form, price_form, form_rate], formset)))
     else:
         formset = PurchaseOrderItemInlineFormset(instance=po_data)
         price_form = PurchaseOrderPriceForm(instance=po_data)
@@ -3451,6 +3527,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         form_rate = RateDistributorForm(instance=rate_dist)
         if isEditApproverUserPO:
             require_approver_user_po(form)
+        if isLockPOItem:
+            lock_vat_type_po(form)
 
     #ตั้งค่า readonly ให้ช่องรายการสินค้าและราคา ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
     if isLockPOItem:
@@ -3613,12 +3691,18 @@ def editPOApprove(request, po_id, isFromHome):
         post_status = request.POST['status'] or None
         status = BaseApproveStatus.objects.get(name = post_status)
 
+        reject_reason = get_reject_reason(request, status)
+        if reject_reason is False:
+            return redirect('editPOApprove', po_id = po_id, isFromHome = isFromHome)
+
         obj = PurchaseOrder.objects.get(id = po_id)
         #ผู้อนุมัติ
         if(isPermiss):
             obj.approver_status = status
             obj.approver_user_id = request.user.id
             obj.approver_update = datetime.datetime.now()
+            if reject_reason:
+                obj.reject_reason = reject_reason
         obj.save()
         return redirect('editPOApprove', po_id = po_id, isFromHome = isFromHome)
 
@@ -3644,24 +3728,31 @@ def editPOApprove(request, po_id, isFromHome):
     }
     return render(request, 'purchaseOrderApprove/editPOApprove.html',context)
 
-def split_draft_tab(request, data):
-    """แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง ของหน้ารายการ
+def split_draft_tab(request, data, rejected = None):
+    """แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ ของหน้ารายการ
+    rejected = queryset รายการที่ไม่อนุมัติ (None = ไม่มีแท็ปไม่อนุมัติ)
     คืน queryset เฉพาะแท็ปที่เลือก และ context สำหรับ _draft_tabs.html"""
-    tab = 'draft' if request.GET.get('tab') == 'draft' else 'process'
-    count_draft = data.filter(is_draft = True).count()
-    count_process = data.filter(is_draft = False).count()
+    tabs = ['process', 'draft']
+    if rejected is not None:
+        tabs.append('reject')
+    tab = request.GET.get('tab') if request.GET.get('tab') in tabs else 'process'
 
     #query string ของตัวกรอง (ไม่รวม tab และ page) ใช้ต่อท้ายลิงก์แท็ป
     tab_qs = request.GET.copy()
     for key in ('tab', 'page'):
         tab_qs.pop(key, None)
 
-    return data.filter(is_draft = (tab == 'draft')), {
+    tab_context = {
         'tab': tab,
         'tab_qs': tab_qs.urlencode(),
-        'count_draft': count_draft,
-        'count_process': count_process,
+        'count_draft': data.filter(is_draft = True).count(),
+        'count_process': data.filter(is_draft = False).count(),
+        'count_reject': rejected.count() if rejected is not None else None,
     }
+
+    if tab == 'reject':
+        return rejected, tab_context
+    return data.filter(is_draft = (tab == 'draft')), tab_context
 
 @login_required(login_url='signIn')
 def viewComparePricePO(request):
@@ -3670,20 +3761,27 @@ def viewComparePricePO(request):
     #data = ComparisonPrice.objects.filter(Q(examiner_status_id = 1) | Q(approver_status_id = 1))
     data = ComparisonPrice.objects.filter(Q(po_ref_no = "") & ~Q(examiner_status_id = 3) & ~Q(approver_status_id = 3) & ~Q(special_approver_status_id = 3) | (Q(examiner_status_id = 1) & Q(is_re_approve = True)), is_cancel = False, branch_company__code = active)
 
-    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
+    rejected = ComparisonPrice.objects.filter(Q(examiner_status_id = 3) | Q(approver_status_id = 3) | Q(special_approver_status_id = 3), is_cancel = False, branch_company__code = active)
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
     data = myFilter.qs
+    rejected = ComparisonPriceFilter(request.GET, queryset = rejected).qs
 
-    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง
-    data, tab_context = split_draft_tab(request, data)
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ
+    data, tab_context = split_draft_tab(request, data, rejected)
 
+    prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
     bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+
+    #แท็ปไม่อนุมัติ: ปุ่มขอเปลี่ยนแปลงรายละเอียดรายการ (สิทธิเดียวกับหน้า showComparePricePO)
+    if tab_context['tab'] == 'reject':
+        for cp in dataPage:
+            cp.can_re_approve = can_request_cp_re_approve(request.user, cp)
     context = {
         'cps':dataPage,
         'prs': prs,
@@ -3830,6 +3928,7 @@ def requestCPReApprove(request, cp_id):
     #เหมือนเงื่อนไขแสดงปุ่ม: ใบที่ตรวจสอบแล้ว หรือใบที่ยกเลิกแล้ว
     if cp.examiner_status_id != 1 or cp.is_cancel:
         cp.is_re_approve = True
+        cp.reject_reason = None
         cp.approver_status_id = 1
         cp.approver_update = None
 
@@ -4494,6 +4593,12 @@ def set_readonly_po_item_and_price(formset, price_form):
         widget.attrs['readonly'] = 'readonly'
         widget.attrs['class'] = (widget.attrs.get('class', '') + ' lock-po-item').strip()
 
+def lock_vat_type_po(form):
+    """ล็อกชนิดภาษีของใบสั่งซื้อที่ตัดมาจากใบเปรียบเทียบราคา (disabled: ไม่รับค่าที่ส่งมา ใช้ค่าเดิมของใบ)"""
+    if 'vat_type' in form.fields:
+        form.fields['vat_type'].disabled = True
+        form.fields['vat_type'].widget.attrs['class'] = (form.fields['vat_type'].widget.attrs.get('class', '') + ' lock-po-item').strip()
+
 def auto_approve_po_from_cp(po, cp):
     """อนุมัติใบสั่งซื้ออัตโนมัติ ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และใบสั่งซื้อมียอดเงินมากกว่า 0"""
     if cp.is_draft:
@@ -4505,170 +4610,103 @@ def auto_approve_po_from_cp(po, cp):
         return True
     return False
 
+def copy_cp_price_and_items_to_po(po, cp):
+    """คัดลอกราคาและรายการสินค้าของร้านที่เลือกในใบเปรียบเทียบราคามาใส่ใบสั่งซื้อ (แก้ไม่ได้ใน editPOItem)"""
+    cpd = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
+    for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
+        setattr(po, field, getattr(cpd, field))
+    if not po.discount:
+        po.discount = 0.00
+    if not po.freight:
+        po.freight = 0.00
+    po.save()
+    for it in ComparisonPriceItem.objects.filter(cp = cp.id, bidder = cpd).order_by('id'):
+        PurchaseOrderItem.objects.create(
+            po = po,
+            item = it.item,
+            quantity = it.quantity,
+            unit = it.unit,
+            unit_price = it.unit_price,
+            discount = it.discount,
+            price = it.price,
+            description = it.description,
+        )
+
+def can_create_po_from_cp(user, cp):
+    """สร้างใบสั่งซื้อจากใบเปรียบเทียบราคาได้ (เหมือนเงื่อนไขปุ่มสร้างในหน้ารายการ):
+    ผู้จัดทำที่อยู่บริษัทของใบ หรือ superuser และใบต้องส่งแล้ว ไม่ยกเลิก ตรวจสอบ/อนุมัติแล้ว
+    (ยอดเกิน 200,000 ต้องผ่านผู้อนุมัติพิเศษด้วย)"""
+    if not (user.is_superuser or (is_cp_owner(user, cp) and user_in_branch_company(user, cp.branch_company))):
+        return False
+    if cp.is_draft or cp.is_cancel:
+        return False
+    if cp.examiner_status_id != 2 or cp.approver_status_id != 2:
+        return False
+    if cp.is_special_approve_cm and cp.special_approver_status_id != 2:
+        return False
+    return True
+
+@login_required(login_url='signIn')
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def createPOFromComparisonPrice(request, cp_id):
-    active = request.session.get('company_code', 'ALL')
-    company = BaseBranchCompany.objects.get(code = active)
+    """สร้างใบสั่งซื้อจากใบเปรียบเทียบราคา: ดึงผู้จำหน่าย ราคา และรายการสินค้าจากร้านที่เลือกมาให้ครบ
+    แล้วไปกรอกข้อมูลที่เหลือ ประเมินร้านค้า และบันทึกแบบร่าง/ส่งอนุมัติ ในหน้าเดียว (editPOItem)"""
+    cp = get_object_or_404(ComparisonPrice, id = cp_id)
 
+    #สร้างใบสั่งซื้อจากใบเปรียบเทียบนี้ไปแล้ว ไปหน้าแก้ไขใบเดิม (กันสร้างซ้ำตอนกดซ้ำ/ย้อนกลับ)
+    po = PurchaseOrder.objects.filter(cp = cp, is_cancel = False).order_by('-id').first()
+    if po:
+        return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'False')
 
-    #ถ้า user login แก้ไขรหัสใบสั่งซื้อได้
-    isEditPO = is_edit_po_id(request.user)
+    #สร้างใบสั่งซื้อด้วยปุ่ม (POST) เท่านั้น
+    if request.method != 'POST':
+        return redirect('viewComparePricePO')
 
-    #ใบสั่งซื้อออกจากใบเปรียบเทียบราคา ผู้อนุมัติถูกกำหนดมาจากใบ CP จึง readonly สำหรับจัดซื้อ
-    isEditApproverUserPO = can_edit_approver_user_po(request.user, True)
+    if not can_create_po_from_cp(request.user, cp):
+        return HttpResponseForbidden('ไม่มีสิทธิสร้างใบสั่งซื้อจากใบเปรียบเทียบราคานี้ หรือใบเปรียบเทียบราคายังไม่ได้รับการอนุมัติ')
 
-    bc = ComparisonPrice.objects.get(id = cp_id)
+    try:
+        cpd = ComparisonPriceDistributor.objects.get(cp = cp, distributor = cp.select_bidder)
+    except (ComparisonPriceDistributor.DoesNotExist, ComparisonPriceDistributor.MultipleObjectsReturned):
+        messages.error(request, 'ไม่สามารถสร้างใบสั่งซื้อได้ เนื่องจากใบเปรียบเทียบราคา ' + str(cp.ref_no) + ' ยังไม่ได้เลือกผู้จำหน่าย')
+        return redirect('viewComparePricePO')
 
-    #ถ้าเป็นยอดเกิน 200,000 เปลี่ยนคนอนุมัติ
-    if bc.is_special_approve_cm:
-        approver_user = bc.special_approver_user
-    else:
-        approver_user = bc.approver_user
+    with transaction.atomic():
+        po = PurchaseOrder(
+            cp = cp,
+            distributor = cp.select_bidder,
+            credit = cpd.credit,
+            vat_type = cpd.vat_type,
+            quotation_pdf = cpd.quotation_pdf,
+            stockman_user = cp.organizer,
+            #ผู้อนุมัติดึงมาจากใบเปรียบเทียบราคาเสมอ (ถ้าเป็นยอดเกิน 200,000 ใช้ผู้อนุมัติพิเศษ)
+            approver_user = cp.special_approver_user if cp.is_special_approve_cm else cp.approver_user,
+            approver_status_id = 1,
+            #แบบร่าง: อนุมัติอัตโนมัติตอนกดบันทึกและส่งอนุมัติใน editPOItem (ถ้าใบเปรียบเทียบอนุมัติแล้ว)
+            is_draft = True,
+            address_company = cp.address_company,
+            branch_company = cp.branch_company,
+            created = cp.select_bidder_update if cp.select_bidder_update else cp.created,
+        )
+        po.save()
+        copy_cp_price_and_items_to_po(po, cp)
 
-    #ประเมินร้านค้า
-    rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = bc.select_bidder, counsel__isnull = False, po__branch_company__code = company).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
-    num_grade_all = RateDistributor.objects.filter(distributor = bc.select_bidder, po__branch_company__code = company).count()
-    ratings = RateDistributor.objects.filter(distributor = bc.select_bidder, po__branch_company__code = company).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
+        cp.po_ref_no = po.ref_no
+        cp.save()
 
-    #set ค่าเริ่มต้นของเจ้าหน้าที่พัสดุ และสเตตัสการอนุมัติเป็น รอดำเนินการ
-    form = PurchaseOrderFromComparisonPriceForm(request, request.POST or None, initial={'cp': cp_id , 'address_company': bc.address_company , 'approver_user' : approver_user})
-    form_rate = RateDistributorForm(request.POST or None, initial={'distributor': bc.select_bidder})
-    if form.is_valid() and form_rate.is_valid():
-        try:
-            new_contact = form.save(commit=False)
-            cp = ComparisonPrice.objects.get(id = new_contact.cp.id)
-            cpd = ComparisonPriceDistributor.objects.get(cp = new_contact.cp.id, distributor = cp.select_bidder)
-            new_contact.distributor = cp.select_bidder
-            new_contact.credit = cpd.credit
-            new_contact.stockman_user = cp.organizer
-            new_contact.vat_type = cpd.vat_type
-            new_contact.quotation_pdf = cpd.quotation_pdf
-            #ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และมียอดเงิน ให้อนุมัติใบสั่งซื้ออัตโนมัติ
-            new_contact.approver_status_id = 1
-            auto_approve_po_from_cp(new_contact, cp)
-            #ผู้อนุมัติดึงมาจากใบเปรียบเทียบราคาเสมอ ไม่ได้มาจากช่องในฟอร์ม (readonly)
-            new_contact.approver_user = cp.special_approver_user if cp.is_special_approve_cm else cp.approver_user
-            new_contact.branch_company = company
-            new_contact.created = cp.select_bidder_update if cp.select_bidder_update else cp.created
+    return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'False')
 
-            rate_contact = form_rate.save(commit=False)
-            rate_contact.organizer_user = cp.organizer
-            rate_contact.distributor = cp.select_bidder
-            rate_contact.po = new_contact
-        except:
-            return HttpResponseRedirect(reverse('createPOFromComparisonPrice', args=(cp_id,)))
-        else:
-            new_contact.save()
-            rate_contact.save()
-
-            cp.po_ref_no = new_contact.ref_no
-            cp.save()
-            return HttpResponseRedirect(reverse('createPOItemFromComparisonPrice', args=(new_contact.pk,)))
-
-    context = {
-        'form':form,
-        'form_rate':form_rate,
-        'isEditPO':isEditPO,
-        'isEditApproverUserPO':isEditApproverUserPO,
-        'cp':bc,
-        'rate_counsel':rate_counsel,
-        'num_grade_all':num_grade_all,
-        'ratings':ratings,
-        'po_page': "tab-active",
-        'po_show': "show",
-        active :"active show",
-		"disableTab":"disableTab",
-		"colorNav":"disableNav"
-    }
-
-    return render(request, "purchaseOrder/createPO.html", context)
-
+@login_required(login_url='signIn')
 def createPOItemFromComparisonPrice(request, po_id):
-    active = request.session.get('company_code', 'ALL')
-    bc = BaseBranchCompany.objects.get(code = active)
-
-    base_po_type = BasePOType.objects.all()
-
-    template_name = 'purchaseOrderItem/createPOItemFromComparisonPrice.html'
-    heading_message = 'Model Formset Demo'
-    po_data = PurchaseOrder.objects.get(id=po_id)
-    po_items = PurchaseOrderItem.objects.filter(po = po_id)
-    cp = ComparisonPrice.objects.get(id = po_data.cp.id)
-
-    #ดึง item ที่ทำใบ po แล้ว
-    #itemList = RequisitionItem.objects.filter(requisit__purchase_requisition_id__isnull = False, is_receive = False, product__isnull = False)
-    #เปลี่ยนให้ดึงสินค้าเฉพาะที่ตัดมาจากใบขอซื้อแล้วเท่านั้น 14-09-2022
-    itemList = ComparisonPriceItem.objects.values('item__id','item__product__id','item__product_name', 'item__requisit__pr_ref_no', 'item__quantity_pr', 'item__product__unit__id', 'unit__id').filter(cp = cp.id)
-
-    cp_item = ComparisonPriceItem.objects.filter(cp = po_data.cp.id, bidder__distributor = po_data.cp.select_bidder)
-    cpd_price = ComparisonPriceDistributor.objects.get(cp = po_data.cp.id, distributor = po_data.cp.select_bidder)
-    if request.method == 'GET':
-        formset = PurchaseOrderItemModelFormset(queryset=PurchaseOrderItem.objects.none())
-        price_form = PurchaseOrderPriceForm()
-    elif request.method == 'POST':
-        formset = PurchaseOrderItemModelFormset(request.POST)
-        price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
-        if formset.is_valid() and price_form.is_valid():
-            # Check if PO items already exist for this PO to prevent duplicate creation
-            if PurchaseOrderItem.objects.filter(po=po_data).exists():
-                return redirect('viewPO')
-
-            # save ราคาใบ po
-            price = price_form.save(commit=False)
-            #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้อนุมัติ และยังไม่อนุมัติอัตโนมัติ
-            price.is_draft = is_save_draft(request)
-            if not price.is_draft:
-                #รู้ยอดเงินแล้ว เช็คอนุมัติใบสั่งซื้ออัตโนมัติอีกครั้ง
-                auto_approve_po_from_cp(price, cp)
-            price.save()
-            # save po item
-            for form in formset:
-                # only save if name is present
-                if form.cleaned_data.get('item'):
-                    obj = form.save(commit=False)
-                    obj.po = po_data
-                    obj.save()
-            #redirect นอก loop
-            return redirect('viewPO')
-
-    #ล็อกช่องรายการสินค้าและราคา ให้ใช้ค่าที่ตัดมาจากใบเปรียบเทียบราคาเท่านั้น
-    set_readonly_po_item_and_price(formset, price_form)
-
-    po = PurchaseOrder.objects.get(id = po_id)
-    items = PurchaseOrderItem.objects.filter(po = po_id)
-    new_pr_id = dict()
-    if items:
-        for obj in items:
-            if obj.item.requisit.purchase_requisition_id not in new_pr_id:
-                new_pr_id[obj.item.requisit.purchase_requisition_id] = obj
-
-    new_pr = dict()
-    for id in new_pr_id:
-        try:
-            pr = PurchaseRequisition.objects.get(id = id)
-            new_pr[pr] = pr
-        except PurchaseRequisition.DoesNotExist:
-            pass
-
-    context = {
-        'po':po,
-        'po_items':po_items,
-        'cp_item':cp_item,
-        'cpd_price':cpd_price,
-        'po_page': "tab-active",
-        'po_show': "show",
-        'formset': formset,
-        'price_form': price_form,
-        'itemList':itemList,
-        'new_pr':new_pr,
-        'heading': heading_message,
-        'bc':bc,
-        'base_po_type':base_po_type,
-        active :"active show",
-		"disableTab":"disableTab",
-		"colorNav":"disableNav"
-    }
-    return render(request, template_name, context)
+    """หน้าเดิม (ขั้นที่ 2) รวมเข้ากับ editPOItem แล้ว: ใบที่สร้างไว้แต่ยังไม่มีรายการสินค้า
+    ให้ดึงรายการและราคาจากใบเปรียบเทียบราคามาใส่ แล้วไปหน้า editPOItem"""
+    po = get_object_or_404(PurchaseOrder, id = po_id)
+    forbidden = po_edit_forbidden(request.user, po)
+    if forbidden:
+        return forbidden
+    if po.cp_id and not PurchaseOrderItem.objects.filter(po = po).exists():
+        copy_cp_price_and_items_to_po(po, po.cp)
+    return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'False')
 
 @login_required(login_url='signIn')
 def viewCPApprove(request):
@@ -4867,7 +4905,13 @@ def printCPApprove(request, cp_id, isFromHome):
         post_status = request.POST['status'] or None
         status = BaseApproveStatus.objects.get(name = post_status)
 
+        reject_reason = get_reject_reason(request, status)
+        if reject_reason is False:
+            return redirect('printCPApprove', cp_id = cp_id, isFromHome = isFromHome)
+
         obj = ComparisonPrice.objects.get(id = cp_id)
+        if reject_reason and (isApprover or isExaminer or isApproverSpecial):
+            obj.reject_reason = reject_reason
         #ผู้อนุมัติ
         if(isApprover and isExaminer):
             obj.examiner_status = status
@@ -5079,6 +5123,7 @@ def reApprovePR(request, pr_id):
 
         pr.approver_status_id = 1 #กำหนดค่าเริ่มต้น
         pr.approver_update = None
+        pr.reject_reason = None
         
         #พัสดุ
         #pr.stockman_user_id = request.user.id

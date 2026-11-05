@@ -1,0 +1,378 @@
+{% comment %}หน้าตาใบสั่งซื้อ (.po-doc) ใช้ร่วมกันระหว่าง showPO และ editPOApprove
+layout ตามแบบเดิม (branch main) + ตกแต่งเฉพาะหน้าจอให้อ่านง่าย (ไม่ย้ายตำแหน่ง) + responsive บนมือถือ
++ ปริ้นแบบกระชับ (ขนาดตัวอักษรเดิม หัว/ท้ายเตี้ยลง ตารางใส่รายการได้มากขึ้น){% endcomment %}
+<style>
+  @media print {
+    .hidden-print {
+      display: none;
+    }
+    body {
+        font-size: 11pt;
+        color: black;
+    }
+  }
+  u.dotted {
+  border-bottom: 1px dashed #999;
+  text-decoration: none;
+  }
+
+  p.line75 {
+    line-height:75%;
+  }
+
+  .verybigmodal {
+    max-width: 80%;
+  }
+
+  .col-2-25 {
+    flex: 0 0 18.75%;
+    max-width: 18.75%;
+  }
+
+  .col-2-5 {
+    flex: 0 0 20.8333%; /* 2.5 of 12 = 20.8333% */
+    max-width: 20.8333%;
+  }
+
+  .col-7-5 {
+    flex: 0 0 62.5%;
+    max-width: 62.5%;
+  }
+
+  /* ---------- ตกแต่งหน้าจอ: ตำแหน่งเหมือนเดิม แต่อ่านง่ายขึ้น ---------- */
+  @media screen {
+    /* กระดาษเอกสาร */
+    .po-doc {
+      background: #fff;
+      border: 1px solid #e3e6ea;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+      padding: 1.25rem 1.75rem .5rem;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    /* ข้อความใน p/description ของ layout หลักเป็นสีเทาอ่อน */
+    .po-doc p,
+    .po-doc description,
+    .po-doc address {
+      color: #212529;
+    }
+    .po-doc hr {
+      border-top-color: #e9ecef;
+    }
+    .po-doc .ps-head h4 {
+      font-weight: 700;
+    }
+    .po-doc .ps-head description {
+      color: #495057;
+    }
+    .po-doc .ps-parties address {
+      line-height: 1.7;
+    }
+    .po-doc .ps-parties .text-right strong {
+      font-size: 1.2rem;
+    }
+
+    /* หัวข้อ "รายการสั่งซื้อ" */
+    .po-doc .panel-title {
+      font-size: 1.1rem;
+      margin: .75rem 0 .5rem;
+    }
+
+    /* ตารางรายการ */
+    .po-doc .ps-items thead th {
+      background: #f8f9fb;
+      border-top: 1px solid #e3e6ea;
+      border-bottom: 2px solid #dee2e6;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #495057;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .po-doc .ps-items tbody td {
+      vertical-align: top;
+    }
+    .po-doc .ps-items tbody tr:hover {
+      background: #fafbfc;
+    }
+    .po-doc .ps-items tbody td:last-child {
+      font-weight: 600;
+    }
+    .po-doc .ps-items td,
+    .po-doc .ps-summary .col-2-25 p {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* หมายเหตุ / สรุปยอดเงิน (.row อยู่นอก .col ให้ชิดขอบเดียวกับตาราง) */
+    .po-doc .panel-body > .row {
+      margin-left: 0;
+      margin-right: 0;
+    }
+    .po-doc .panel-body > .row > [class*="col"] {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .po-doc .ps-summary p {
+      margin-bottom: .4rem;
+    }
+    .po-doc .ps-summary > .col-2-25:nth-child(2) p {
+      color: #6c757d;
+    }
+    .po-doc .ps-grand {
+      margin-top: .25rem;
+      padding-top: .5rem;
+      border-top: 2px solid #dee2e6;
+    }
+    .po-doc .ps-grand > .col-2-25 p {
+      font-weight: 700;
+      color: #212529 !important;
+    }
+    .po-doc .ps-grand > .col-2-25:last-child p {
+      font-size: 1.1rem;
+      color: #0056b3 !important;
+    }
+    .po-doc .ps-grand #total-spell {
+      color: #6c757d;
+    }
+
+    /* ลงชื่อ */
+    .po-doc .ps-signs p.line75 {
+      line-height: 1.4;
+      margin-bottom: .35rem;
+    }
+    .po-doc .ps-signs > .col:first-child > p:first-child,
+    .po-doc .ps-signs p.line75:nth-of-type(2) {
+      font-weight: 600;
+    }
+  }
+
+  /* ---------- แถบปุ่มติดด้านล่าง (แบบเดียวกับหน้า editPOItem) ---------- */
+  .po-doc .po-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin: 1rem 0;
+    padding: .75rem 1rem;
+    background: #fff;
+    border-top: 1px solid #e3e6ea;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .05);
+  }
+  .po-doc .po-actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+  }
+  .po-doc .po-actions-group form {
+    margin: 0;
+  }
+  /* หน้าอนุมัติ: แถบปุ่มชิดขอบกระดาษ แบบเดียวกับ .ad-actions-bar หน้าอนุมัติใบขอซื้อ */
+  @media screen {
+    .po-doc .po-actions-bar {
+      margin: 1rem -1.75rem -.5rem;
+      padding: .75rem 1.75rem;
+      border-radius: 0 0 8px 8px;
+    }
+  }
+  @media print {
+    /* display:flex ชนะ .hidden-print จึงต้องซ่อนตรงนี้ */
+    .po-doc .po-actions {
+      display: none !important;
+    }
+  }
+
+  /* ---------- มือถือ (เฉพาะ screen ไม่กระทบหน้าตาตอนปริ้น) ---------- */
+  @media screen and (max-width: 767.98px) {
+    #content {
+      padding: 8px;
+    }
+    .po-doc {
+      padding: .75rem .9rem .25rem;
+      margin-top: .5rem;
+    }
+    .po-doc p {
+      font-size: .95rem;
+      line-height: 1.5;
+    }
+    .po-doc h4 {
+      font-size: 1.1rem;
+    }
+    /* หัวเอกสาร / ผู้จำหน่าย-ใบสั่งซื้อ: เรียงลงมา */
+    .po-doc .ps-head > *,
+    .po-doc .ps-parties > .col {
+      flex: 0 0 100%;
+      max-width: 100%;
+      float: none !important;
+    }
+    .po-doc .ps-head > .col-4 {
+      margin-top: .5rem;
+    }
+    .po-doc .ps-parties > .col.text-right {
+      text-align: left !important;
+      padding-top: .5rem;
+      border-top: 1px dashed #dee2e6;
+    }
+
+    /* ตารางรายการ -> การ์ดทีละรายการ */
+    .po-doc .ps-items-wrap {
+      overflow: visible;
+    }
+    .po-doc .ps-items,
+    .po-doc .ps-items tbody,
+    .po-doc .ps-items tr,
+    .po-doc .ps-items td {
+      display: block;
+      width: 100%;
+    }
+    .po-doc .ps-items thead,
+    .po-doc .ps-items .ps-hide-m {
+      display: none;
+    }
+    .po-doc .ps-items tbody tr {
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: .4rem .6rem;
+      margin-bottom: .5rem;
+    }
+    .po-doc .ps-items td {
+      display: flex;
+      justify-content: space-between;
+      gap: .75rem;
+      border: 0;
+      padding: .1rem 0;
+      text-align: right !important;
+    }
+    .po-doc .ps-items td::before {
+      content: attr(data-label);
+      flex: 0 0 auto;
+      color: #6c757d;
+      font-weight: normal;
+      text-align: left;
+    }
+    .po-doc .ps-items td.ps-cell-title {
+      display: block;
+      text-align: left !important;
+      font-weight: 600;
+      padding-bottom: .25rem;
+    }
+    .po-doc .ps-items td.ps-cell-title::before {
+      content: none;
+    }
+
+    /* สรุปยอดเงิน: หมายเหตุเต็มแถว / ชื่อรายการ-จำนวนเงิน ครึ่งต่อครึ่ง */
+    .po-doc .ps-summary > .col-7-5 {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+    .po-doc .ps-summary > .col-2-25 {
+      flex: 0 0 50%;
+      max-width: 50%;
+    }
+    .po-doc .ps-summary > .col-2-25:nth-child(2) p {
+      text-align: left !important;
+    }
+    .po-doc .ps-summary p {
+      margin-bottom: .3rem;
+    }
+    .po-doc .ps-summary .row {
+      margin-left: 0;
+      margin-right: 0;
+    }
+    .po-doc .ps-summary .row > .col {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .po-doc .ps-grand > .col-7-5 {
+      order: 3;
+    }
+
+    /* ลงชื่อ: เรียงลงมา */
+    .po-doc .ps-signs > * {
+      flex: 0 0 100%;
+      max-width: 100%;
+      float: none !important;
+    }
+    .po-doc .ps-signs > .col + .col {
+      border-top: 1px dashed #dee2e6;
+      padding-top: .5rem;
+    }
+    /* ปุ่มอนุมัติ/ไม่อนุมัติ: ครึ่งต่อครึ่ง กดง่าย */
+    .po-doc .ps-approve-buttons .btn {
+      flex: 1 1 0;
+      padding: .6rem .5rem;
+      font-size: 1rem;
+    }
+
+    /* แถบปุ่ม: กลุ่มอยู่แถวเดียวกันได้ (ขึ้นแถวใหม่เมื่อไม่พอ) ปุ่มยืดเต็มพื้นที่ */
+    .po-doc .po-actions {
+      padding: .5rem .75rem;
+    }
+    .po-doc .po-actions-group {
+      display: contents;
+    }
+    .po-doc .po-actions-group > .btn,
+    .po-doc .po-actions-group > form {
+      flex: 1 1 auto;
+      white-space: nowrap;
+    }
+    .po-doc .po-actions-group form .btn {
+      width: 100%;
+    }
+    .po-doc .po-actions-bar {
+      margin: 1rem -.9rem -.25rem;
+      padding: .5rem .75rem;
+      border-radius: 0 0 6px 6px;
+    }
+    .po-doc .po-actions-bar > .btn {
+      flex: 1 1 0;
+    }
+
+    .verybigmodal {
+      max-width: none;
+      margin: .5rem;
+    }
+    #pShowSearch {
+      overflow-x: auto;
+    }
+  }
+
+  /* ---------- ปริ้น: ย่อความสูงหัว/ท้ายเอกสาร (ขนาดตัวอักษรเท่าเดิม) ---------- */
+  @media print {
+    /* เว้นระยะพอดีๆ ให้สมส่วน (ยังเตี้ยกว่าใบเดิม) */
+    .po-doc .row.my-2 { margin-top: 0 !important; margin-bottom: 4px !important; }
+    .po-doc h3 { margin-bottom: 6px; }
+    .po-doc h4 { margin-bottom: 4px; }
+    .po-doc h6 { margin: 0; }
+    .po-doc hr { margin: 8px 0; }
+    .po-doc address { margin-bottom: 2px; }
+    .po-doc .po-qr img { width: 70px; height: 70px; }
+    .po-doc .po-qr ul { margin: 0 !important; line-height: 1.25; }
+    .po-doc .ps-summary p { margin-bottom: 3px; }
+    .po-doc .ps-grand { margin-top: 4px; }
+    .po-doc .ps-signs { margin-top: 12px !important; margin-bottom: 6px !important; }
+    .po-doc .ps-signs p { margin-bottom: 3px; }
+    .po-doc .ps-signs p.line75 { line-height: 1.3; }
+    .po-doc .ps-signs img[width="100"] { width: 80px; height: 32px; }
+    .po-doc .ps-signs img[width="160"] { width: 110px; height: 52px; }
+
+    /* ตารางรายการ: หน้าตาเดิม (Bootstrap .table เส้นแนวนอน) แต่ช่องแคบ ใส่รายการได้มาก */
+    .po-doc table.ps-items {
+      margin: 6px 0 10px 0;
+      line-height: 1.25;
+      color: #000;
+    }
+    .po-doc table.ps-items th,
+    .po-doc table.ps-items td {
+      padding: 2px 4px;
+    }
+    .po-doc table.ps-items thead { display: table-header-group; }
+    .po-doc table.ps-items tr { page-break-inside: avoid; break-inside: avoid; }
+    .po-doc table.ps-items .pi-nowrap { white-space: nowrap; }
+  }
+</style>

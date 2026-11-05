@@ -943,6 +943,8 @@ class PurchaseRequisition(models.Model):
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     is_complete = models.BooleanField(default=False) #ทำรายการขอซื้อหมดแล้ว
     is_re_approve = models.BooleanField(default=False)
+    reject_reason = models.TextField(blank=True, null = True, verbose_name="เหตุผลการไม่อนุมัติ")
+    is_draft = models.BooleanField(default=False) #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้อนุมัติ (ใบเก่าไม่ใช่แบบร่าง)
 
     def save(self, *args, **kwargs):
         if self.address_company is None:
@@ -1240,6 +1242,7 @@ class ComparisonPrice(models.Model):
 
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
     is_cancel = models.BooleanField(default=False)
+    reject_reason = models.TextField(blank=True, null = True, verbose_name="เหตุผลการไม่อนุมัติ")
     is_draft = models.BooleanField(default=True) #บันทึกแบบร่าง ยังไม่ส่งไปหาผู้ตรวจสอบ/ผู้อนุมัติ
 
     def save(self, *args, **kwargs):
@@ -1305,6 +1308,7 @@ class PurchaseOrder(models.Model):
     address_company = models.ForeignKey(BaseAddress, on_delete=models.CASCADE, blank=True, null=True)
     cancel_reason = models.CharField(max_length=255, blank = True, null = True)
     is_cancel = models.BooleanField(default=False)
+    reject_reason = models.TextField(blank=True, null = True, verbose_name="เหตุผลการไม่อนุมัติ")
     due_receive_update = models.DateField(blank=True, null=True) #วันที่กำหนดรับของ
     qr_code = models.ImageField(null=True, blank=True, upload_to = "qr_codes/",verbose_name="qr code")
     po_type = models.ForeignKey(BasePOType, on_delete=models.CASCADE, blank=True, null=True)

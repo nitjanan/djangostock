@@ -1,0 +1,38 @@
+{% comment %}ป๊อปอัปบังคับกรอกเหตุผลการไม่อนุมัติ (ใช้ร่วม editPRApprove / editPOApprove / printCPApprove)
+ปุ่ม "ไม่อนุมัติ" ให้เป็น type="button" data-toggle="modal" data-target="#rejectReasonModal" แล้ว include ไฟล์นี้นอก form หลัก
+พารามิเตอร์: action_url = url ที่ post สถานะ, doc_name = ชื่อเอกสาร เช่น ใบขอซื้อ{% endcomment %}
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible my-3 hidden-print" role="alert">
+      <i class="fas fa-exclamation-circle"></i> {{ message }}
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+  {% endfor %}
+{% endif %}
+<div class="modal fade hidden-print" id="rejectReasonModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <form action="{{ action_url }}" method="post" class="modal-content mb-0">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">ไม่อนุมัติ{{ doc_name }}</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="reject_reason">เหตุผลการไม่อนุมัติ <span class="text-danger">*</span></label>
+        <textarea id="reject_reason" name="reject_reason" class="form-control" rows="3" required></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+        <button type="submit" name="status" value="ไม่อนุมัติ" class="btn btn-danger">ยืนยันไม่อนุมัติ</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script type="text/javascript">
+//กันกรอกแต่ช่องว่าง (jQuery โหลดทีหลัง block content จึงใช้ JS ธรรมดา)
+document.querySelector('#rejectReasonModal form').addEventListener('submit', function(e){
+  var el = document.getElementById('reject_reason');
+  el.value = el.value.trim();
+  if(!el.value){ e.preventDefault(); el.focus(); }
+});
+</script>

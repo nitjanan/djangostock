@@ -1,0 +1,152 @@
+- generic [ref=f1e2]:
+  - navigation [ref=f1e3]:
+    - strong [ref=f1e5]:
+      - link "STG" [ref=f1e6] [cursor=pointer]:
+        - /url: /
+  - generic [ref=f1e7]:
+    - navigation [ref=f1e8]:
+      - button "" [ref=f1e9] [cursor=pointer]
+      - button "Toggle navigation" [ref=f1e12] [cursor=pointer]
+      - text:   
+    - generic [ref=f1e14]:
+      - generic [ref=f1e16]:
+        - generic [ref=f1e19]:
+          - heading "บริษัท ศิลาชัยสุราษฎร์ จำกัด" [level=4] [ref=f1e20]
+          - text: 57 หมู่ 7 ต.บ้านทำเนียบ อ.คีรีรัฐนิคม จ.สุราษฏร์ธานี 84180 โทร 099-6813306 084-2658115 เลขที่ผู้เสียภาษี 0845507000045 สาขา00001
+        - separator [ref=f1e22]
+        - generic [ref=f1e23]:
+          - generic [ref=f1e25]:
+            - strong [ref=f1e26]: "ผู้จำหน่าย: 01ก002"
+            - text: "ก.เจริญการไฟฟ้า1995 1036 หมู่ 1 ตำบลสลกบาตร อำเภอขาณุวรลักษบุรี จังหวัดกำแพงเพชร 62140 โทร : 081 544 9878"
+            - heading [level=6] [ref=f1e27]:
+              - text: "รหัสใบขอซื้อ :"
+              - generic [ref=f1e28]:
+                - link "RS16501007" [ref=f1e30] [cursor=pointer]:
+                  - /url: /purchaseRequisition/show/214/4
+                - text: ","
+              - generic [ref=f1e31]:
+                - link "RS16501008" [ref=f1e33] [cursor=pointer]:
+                  - /url: /purchaseRequisition/show/215/4
+                - text: ","
+              - generic [ref=f1e34]:
+                - link "RS16501009" [ref=f1e36] [cursor=pointer]:
+                  - /url: /purchaseRequisition/show/216/4
+                - text: ","
+              - generic [ref=f1e37]:
+                - link "RS16501010" [ref=f1e39] [cursor=pointer]:
+                  - /url: /purchaseRequisition/show/217/4
+                - text: ","
+              - generic [ref=f1e40]:
+                - link "RS16501011" [ref=f1e42] [cursor=pointer]:
+                  - /url: /purchaseRequisition/show/218/4
+                - text: ","
+          - generic [ref=f1e44]:
+            - strong [ref=f1e45]: ใบสั่งซื้อ
+            - text: "เลขที่ใบสั่งซื้อ : S16501006 วันที่ : 26 มกราคม 2022 เครดิต : 15 วัน วันที่กำหนดรับของ : None ขนส่งโดย : รับเอง"
+      - generic [ref=f1e48]:
+        - heading [level=3] [ref=f1e50]:
+          - strong [ref=f1e51]: รายการสั่งซื้อ
+        - generic [ref=f1e52]:
+          - table [ref=f1e54]:
+            - text: 
+            - rowgroup [ref=f1e55]:
+              - row [ref=f1e56]:
+                - cell "1. EL-G0-999 RAM" [ref=f1e57]:
+                  - generic [ref=f1e58]: "1."
+                  - text: EL-G0-999 RAM
+                - cell "จำนวน 4 ตัว" [ref=f1e59]:
+                  - text: จำนวน
+                  - generic [ref=f1e60]:
+                    - text: "4"
+                    - generic [ref=f1e61]: ตัว
+                - cell "หน่วยละ 100.0000" [ref=f1e62]
+                - cell "ส่วนลด 0.00" [ref=f1e63]
+                - cell "จำนวนเงิน 400.00" [ref=f1e64]
+              - row [ref=f1e65]:
+                - cell "2. HA-F0-052 nitjanan" [ref=f1e66]:
+                  - generic [ref=f1e67]: "2."
+                  - text: HA-F0-052 nitjanan
+                - cell "จำนวน 3 แผ่น" [ref=f1e68]:
+                  - text: จำนวน
+                  - generic [ref=f1e69]:
+                    - text: "3"
+                    - generic [ref=f1e70]: แผ่น
+                - cell "หน่วยละ 100.0000" [ref=f1e71]
+                - cell "ส่วนลด 0.00" [ref=f1e72]
+                - cell "จำนวนเงิน 300.00" [ref=f1e73]
+              - row [ref=f1e74]:
+                - cell "3. TL-G0-120 nitjanan" [ref=f1e75]:
+                  - generic [ref=f1e76]: "3."
+                  - text: TL-G0-120 nitjanan
+                - cell "จำนวน 3 อัน" [ref=f1e77]:
+                  - text: จำนวน
+                  - generic [ref=f1e78]:
+                    - text: "3"
+                    - generic [ref=f1e79]: อัน
+                - cell "หน่วยละ 100.0000" [ref=f1e80]
+                - cell "ส่วนลด 0.00" [ref=f1e81]
+                - cell "จำนวนเงิน 300.00" [ref=f1e82]
+              - row [ref=f1e83]:
+                - cell "4. TR-IO-102 nitjanan" [ref=f1e84]:
+                  - generic [ref=f1e85]: "4."
+                  - text: TR-IO-102 nitjanan
+                - cell "จำนวน 3 ตัว" [ref=f1e86]:
+                  - text: จำนวน
+                  - generic [ref=f1e87]:
+                    - text: "3"
+                    - generic [ref=f1e88]: ตัว
+                - cell "หน่วยละ 500.0000" [ref=f1e89]
+                - cell "ส่วนลด 0.00" [ref=f1e90]
+                - cell "จำนวนเงิน 1,500.00" [ref=f1e91]
+              - row [ref=f1e92]:
+                - cell "5. EL-G0-178 nitjanan" [ref=f1e93]:
+                  - generic [ref=f1e94]: "5."
+                  - text: EL-G0-178 nitjanan
+                - cell "จำนวน 4 ถุง" [ref=f1e95]:
+                  - text: จำนวน
+                  - generic [ref=f1e96]:
+                    - text: "4"
+                    - generic [ref=f1e97]: ถุง
+                - cell "หน่วยละ 100.0000" [ref=f1e98]
+                - cell "ส่วนลด 0.00" [ref=f1e99]
+                - cell "จำนวนเงิน 400.00" [ref=f1e100]
+          - separator [ref=f1e101]
+          - generic [ref=f1e102]:
+            - generic [ref=f1e103]:
+              - paragraph [ref=f1e106]: "ทะเบียนรถ/เครื่องจักร/หน่วยงาน :"
+              - paragraph [ref=f1e109]: "หมายเหตุ : ใช้สำหรับ........"
+              - paragraph [ref=f1e112]: "สถานที่จัดส่ง : 331 ถ.ธราธิบดี ต.ท่าข้าม อ.พุนพิน จ.สุราษฎร์ธานี โทร.077-200897"
+            - generic [ref=f1e113]:
+              - paragraph [ref=f1e116]: รวมเป็นเงิน
+              - paragraph [ref=f1e119]: หักส่วนลด
+              - paragraph [ref=f1e122]: จำนวนเงินหลังหักส่วนลด
+              - paragraph [ref=f1e125]: ค่าขนส่ง
+              - paragraph [ref=f1e128]: จำนวนภาษีมูลค่าเพิ่ม 7%
+            - generic [ref=f1e129]:
+              - paragraph [ref=f1e132]: 2,900.00 บาท
+              - paragraph [ref=f1e135]: 0.0 บาท
+              - paragraph [ref=f1e138]: 2,900.00 บาท
+              - paragraph [ref=f1e141]: 0.00 บาท
+              - paragraph [ref=f1e144]: 0.00 บาท
+          - generic [ref=f1e145]:
+            - paragraph [ref=f1e147]: (สองพันเก้าร้อยบาทถ้วน)
+            - paragraph [ref=f1e149]: จำนวนเงินรวมทั้งสิ้น
+            - paragraph [ref=f1e151]: 2,900.00 บาท
+          - separator [ref=f1e152]
+          - generic [ref=f1e153]:
+            - generic [ref=f1e154]:
+              - paragraph [ref=f1e155]: ผู้สั่งสินค้า
+              - paragraph [ref=f1e156]
+              - paragraph [ref=f1e158]: ฟักแฟง แตงไทย
+              - paragraph [ref=f1e159]: (จัดซื้อ หน้างาน)
+            - generic [ref=f1e160]:
+              - paragraph [ref=f1e161]: ในนาม บริษัท ศิลาชัยสุราษฎร์ จำกัด
+              - paragraph [ref=f1e162]: ผู้รับมอบอำนาจ
+              - paragraph [ref=f1e163]
+              - paragraph [ref=f1e165]: จตุภูมิ ชูชาติ
+              - paragraph
+            - heading "FM-PU-003 Rev.00" [level=6] [ref=f1e167]
+          - button " ปริ้นใบสั่งซื้อ" [ref=f1e171] [cursor=pointer]:
+            - generic [ref=f1e172]: 
+            - text: ปริ้นใบสั่งซื้อ
+          - separator [ref=f1e173]

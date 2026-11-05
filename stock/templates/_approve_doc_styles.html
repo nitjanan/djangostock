@@ -350,7 +350,8 @@
   }
 
   @media print {
-    #content {
+    /* หน้า show ที่ปริ้นด้วยแบบเดิม (.ad-doc.d-print-none) ไม่ต้องตัด padding */
+    #content:has(.ad-doc:not(.d-print-none)) {
       padding: 0 !important;
     }
     .ad-doc .ad-paper {

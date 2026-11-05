@@ -4,193 +4,211 @@
 {% load humanize %}
 
 {% block css %}
-<style>
-  @media print {
-    .hidden-print {
-      display: none;
-    }
-    body {
-        font-size: 11pt;
-        color: black;
-    }
-  }
-
-  .verybigmodal {
-    max-width: 80%;
-  }
-</style>
-{% include '_approve_doc_styles.html' %}
+{% include 'purchaseOrder/_po_doc_styles.html' %}
 {% endblock %}
 {% block content %}
-<div class="container ad-doc my-3">
-  <div class="ad-paper">
-    <!-- ======== หัวเอกสาร ======== -->
-    <div class="ad-head">
-      <div class="ad-company">
-        <div>
-          <div class="ad-company-name">{{po.address_company.name_th}}</div>
-          <div class="ad-company-address">
-            {{po.address_company.address}}
-            {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
-            {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}{% if po.address_company.branch %} สาขา{{po.address_company.branch}}{%endif%}
-          </div>
-          <!-- QR Code 17-05-2024 เอาออกก่อน -->
-          {% if po.qr_code %}
-          <div class="d-flex align-items-center mt-2">
-            <img src="{{ po.qr_code.url }}" width="120" height="120" class="mr-2">
-            <ul class="list-unstyled my-0 text-left">
-              {% for bp in base_po_type %}
-                <li>
-                  {% if bp == po.po_type %}
-                    <i class="fas fa-square"></i>
-                  {% else %}
-                    <i class="far fa-square"></i>
-                  {% endif %}
-                  {{ bp.name }}
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      <div class="ad-title">
-        <h4>
-          ใบสั่งซื้อ
-          {% if po.is_re_approve == True %}<b class="text-danger">***ฉบับแก้ไข</b>{% endif %}
-        </h4>
-        <dl class="ad-meta">
-          <dt>เลขที่ใบสั่งซื้อ</dt>
-          <dd>
-            {{po.ref_no}}
-            {% for item in items %}
-              {% if item.item.requisit.memorandum_pdf %}
-                {% ifchanged item.item.requisit.memorandum_pdf %}
-                  <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm py-0 hidden-print" title="เอกสารแนบ"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-                {% endifchanged %}
+<div class="container po-doc">
+    <div class="row my-2">
+        <div class="col-md-12">
+          <div class="row ps-head">
+            <div class="col">
+              <description>
+                <h4>{{po.address_company.name_th}}</h4>
+		                {{po.address_company.address}}
+                    {% if po.address_company.tel %}<br>โทร {{po.address_company.tel}}{%endif%}
+                    {% if po.address_company.tex %}<br>เลขที่ผู้เสียภาษี {{po.address_company.tex}}{%endif%}{% if po.address_company.branch %} สาขา{{po.address_company.branch}}{%endif%}
+              </description>
+            </div>
+            <!-- QR Code 17-05-2024 เอาออกก่อน -->
+            <div class="col-4 float-right po-qr" style="display: flex; align-items: center;">
+              {% if po.qr_code %}
+                  <img src="{{ po.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
+              <ul class="list-unstyled my-3 text-left">
+                  {% for bp in base_po_type %}
+                      <li>
+                          {% if bp == po.po_type %}
+                              <i class="fas fa-square"></i>
+                          {% else %}
+                              <i class="far fa-square"></i>
+                          {% endif %}
+                          {{ bp.name }}
+                      </li>
+                  {% endfor %}
+              </ul>
               {% endif %}
-            {% endfor %}
-          </dd>
-          <dt>วันที่</dt><dd>{{po.created}}</dd>
-          <dt>เครดิต</dt><dd>{{po.credit}}</dd>
-          <dt>วันที่กำหนดรับของ</dt><dd>{{po.due_receive_update}}</dd>
-          <dt>ขนส่งโดย</dt><dd>{{po.shipping}}</dd>
-        </dl>
-      </div>
-    </div>
-
-    <!-- ======== ผู้จำหน่าย ======== -->
-    <div class="ad-info">
-      <div>
-        <div class="ad-label">ผู้จำหน่าย: {{po.distributor.id}}</div>
-        <div class="font-weight-bold">{% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor}}</div>
-        <div>{{po.distributor.address}}</div>
-        <div>โทร : {{po.distributor.tel}}</div>
-      </div>
-      <div>
-        {% if po.cp %}
-          <div class="ad-label">รหัสใบเปรียบเทียบ</div>
-          <b><u><a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
-        {% else %}
-          <div class="ad-label">รหัสใบขอซื้อ</div>
-          {% for i in new_pr %}
-            <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>{% if not forloop.last %}, {% endif %}</b>
-          {% endfor %}
-        {%endif%}
-      </div>
-    </div>
-
-    <!-- ======== รายการสั่งซื้อ ======== -->
-    <div class="ad-section-title">รายการสั่งซื้อ ({{ items|length }} รายการ)</div>
-    <div class="table-responsive ad-items-wrap">
-      <table class="table table-bordered table-sm ad-items">
-        <thead>
-          <tr>
-            <th scope="col" class="text-center">No.</th>
-            <th scope="col" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-              รหัสสินค้า/รายละเอียด <i class="fas fa-list text-danger d-print-none"></i>
-            </th>
-            <th scope="col" class="text-right">จำนวน</th>
-            <th scope="col" class="text-center">หน่วย</th>
-            <th scope="col" class="text-right">หน่วยละ</th>
-            <th scope="col" class="text-right">ส่วนลด</th>
-            <th scope="col" class="text-right">จำนวนเงิน</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in items %}
-          <tr>
-            <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
-            <td class="ad-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{ item.item.product.id}} {{ item.item.product_name }} <b class="text-success ad-desc">{{ item.description|linebreaksbr }}</b></td>
-            <td class="text-right" data-label="จำนวน"><span>{{ item.quantity |floatformat:"-4"}} <span class="d-md-none d-print-none">{{ item.unit}}</span></span></td>
-            <td class="text-center ad-hide-m">{{ item.unit}}</td>
-            <td class="text-right" data-label="หน่วยละ">{{ item.unit_price | intcomma}}</td>
-            <td class="text-right" data-label="ส่วนลด">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
-            <td class="text-right font-weight-bold" data-label="จำนวนเงิน">{{ item.price | intcomma}}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ======== หมายเหตุ / สรุปยอดเงิน ======== -->
-    <div class="ad-summary">
-      <div class="ad-notes">
-        <p><span class="ad-label">ทะเบียนรถ/เครื่องจักร/หน่วยงาน :</span> {% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% endif %}</p>
-        <p><span class="ad-label">หมายเหตุ :</span> {% if po.note %}{{po.note|truncatechars:290}}{% endif %}</p>
-        <p><span class="ad-label">สถานที่จัดส่ง :</span> {% if po.delivery %}{{po.delivery}}{% endif %}</p>
-      </div>
-      <div>
-        <dl class="ad-totals">
-          <dt>รวมเป็นเงิน</dt><dd>{{po.total_price | intcomma}}&ensp;บาท</dd>
-          <dt>หักส่วนลด</dt><dd>{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</dd>
-          <dt>จำนวนเงินหลังหักส่วนลด</dt><dd>{{po.total_after_discount | intcomma}}&ensp;บาท</dd>
-          <dt>ค่าขนส่ง</dt><dd>{{po.freight | intcomma}}&ensp;บาท</dd>
-          <dt>จำนวนภาษีมูลค่าเพิ่ม 7%</dt><dd>{{po.vat | intcomma}}&ensp;บาท</dd>
-          <dt class="ad-grand">จำนวนเงินรวมทั้งสิ้น</dt><dd class="ad-grand">{{po.amount | intcomma}}&ensp;บาท</dd>
-        </dl>
-        <p id="total-spell" class="ad-spell text-right mt-1 mb-0"></p>
-      </div>
-    </div>
-
-    <!-- ======== ลงชื่อ / อนุมัติ ======== -->
-    <form action="{% url 'editPOApprove' po.id isFromHome %}" method="post" class="mb-0">
-      {% csrf_token %}
-      <div class="ad-signatures">
-        <div class="ad-sign">
-          <div class="ad-sign-title">ผู้สั่งสินค้า</div>
-          <img src="/media/{{po.stockman_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
-          <div>{{po.stockman_user}}</div>
-          <div class="text-muted small">({{po.stockman_user.userprofile.position}})</div>
+            </div>
         </div>
-        <div class="ad-sign{% if isPermiss and po.approver_status_id == 1 %} ad-sign-action{% endif %}">
-          <div class="ad-sign-title">ผู้รับมอบอำนาจ</div>
-          <div class="text-muted small">ในนาม {{po.address_company.name_th}}</div>
-          {% if po.approver_status_id == 2 %}
-            <img src="/media/{{po.approver_user.userprofile.signature}}" width="160" height="75" class="ad-sign-img"/>
-            <div>{{po.approver_user}}</div>
-          {% elif po.approver_status_id == 3 %}
-            <span class="badge badge-danger ad-status">{{po.approver_status}}</span>
-          {% endif %}
-          {% if isPermiss and po.approver_status_id == 1%}
-          <div class="ad-approve-buttons hidden-print">
-            <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">
-            <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบสั่งซื้อนี้หรือไม่?');">
+        <hr>
+        <div class="row ps-parties">
+          <div class="col">
+            <address>
+            <strong>ผู้จำหน่าย: {{po.distributor.id}}</strong><br>
+              {% if po.distributor.prefix %}{{po.distributor.prefix}}{%endif%} {{po.distributor}}<br>
+              {{po.distributor.address}}<br>
+              โทร : {{po.distributor.tel}}<br>
+              <h6 style="font-size:8pt">
+              {% if po.cp %}
+                รหัสใบเปรียบเทียบ :
+                <b><u><a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a></u></b>
+              {% else %}
+                รหัสใบขอซื้อ :
+                {% for i in new_pr %}
+                  <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
+                {% endfor %}
+              {%endif%}
+              </h6>
+            </address>
           </div>
-          {% endif %}
+          <div class="col text-right">
+            <address>
+              <strong>ใบสั่งซื้อ
+                {% if po.is_re_approve == True %}
+                  <b class="text-danger">***ฉบับแก้ไข</b>
+                {% endif %}
+                {% for item in items %}
+                  {% if item.item.requisit.memorandum_pdf %}
+                    {% ifchanged item.item.requisit.memorandum_pdf %}
+                      <a href="/media/{{item.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+                    {% endifchanged %}
+                  {% endif %}
+                {% endfor %}
+              </strong><br>
+              เลขที่ใบสั่งซื้อ : {{po.ref_no}}<br>
+              วันที่ : {{po.created}}<br>
+              เครดิต : {{po.credit}}<br>
+              วันที่กำหนดรับของ : {{po.due_receive_update}} ขนส่งโดย : {{po.shipping}}
+            </address>
+          </div>
         </div>
-      </div>
-    </form>
-
-    <div class="ad-footer">
-      <div>
-        <div>{{bc.affiliated.iso_code.po_code|safe}}</div>
-        <description id="dt_print"></description>
       </div>
     </div>
 
-    <!-- ======== แถบปุ่มกลับ/ปริ้น ติดด้านล่าง (ไม่ปริ้น) ======== -->
-    <div class="ad-actions-bar hidden-print">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive ps-items-wrap">
+                <table class="table ps-items">
+                    <thead>
+                    <tr>
+                        <th scope="col" class="text-center">No.</th>
+                        <th scope="col" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                          รหัสสินค้า/รายละเอียด <i class="fas fa-list text-danger d-print-none"></i>
+                        </th>
+                        <th scope="col" class="text-right">จำนวน</th>
+                        <th scope="col" class="text-center">หน่วย</th>
+                        <th scope="col" class="text-right">หน่วยละ</th>
+                        <th scope="col" class="text-right">ส่วนลด</th>
+                        <th scope="col" class="text-right">จำนวนเงิน</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="text-center ps-hide-m">{{ forloop.counter }}</td>
+                            <td class="ps-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{ item.item.product.id}} {{ item.item.product_name }} <b class="text-success" style="white-space: pre-line;">{{ item.description|linebreaksbr }}</b></td>
+                            <td class="text-right pi-nowrap" data-label="จำนวน"><span>{{ item.quantity |floatformat:"-4"}} <span class="d-md-none d-print-none">{{ item.unit}}</span></span></td>
+                            <td class="text-center ps-hide-m">{{ item.unit}}</td>
+                            <td class="text-right pi-nowrap" data-label="หน่วยละ">{{ item.unit_price | intcomma}}</td>
+                            <td class="text-right pi-nowrap" data-label="ส่วนลด">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
+                            <td class="text-right pi-nowrap" data-label="จำนวนเงิน">{{ item.price | intcomma}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <hr>
+            <div class="row ps-summary">
+              <div class="col-7-5">
+                <div class="row">
+                  <div class="col">
+                    <p>ทะเบียนรถ/เครื่องจักร/หน่วยงาน : {% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% endif %}</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col"><p>หมายเหตุ : {% if po.note %}{{po.note|truncatechars:290}}{% endif %}</p></div>
+                </div>
+                <div class="row">
+                  <div class="col"><p>สถานที่จัดส่ง : {% if po.delivery %}{{po.delivery}}{% endif %}</p></div>
+                </div>
+              </div>
+              <div class="col-2-25">
+                <div class="row"><div class="col"><p class="text-right">รวมเป็นเงิน</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">หักส่วนลด</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">จำนวนเงินหลังหักส่วนลด</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">ค่าขนส่ง</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p></div></div>
+              </div>
+              <div class="col-2-25">
+                <div class="row"><div class="col"><p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.total_after_discount | intcomma}}&ensp;บาท</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.freight | intcomma}}&ensp;บาท</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.vat | intcomma}}&ensp;บาท</p></div></div>
+              </div>
+            </div>
+
+            <div class="row ps-summary ps-grand">
+              <div class="col-7-5">
+                <p id="total-spell"></p>
+              </div>
+              <div class="col-2-25">
+                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
+              </div>
+              <div class="col-2-25">
+                <p class="text-right">{{po.amount | intcomma}}&ensp;บาท</p>
+              </div>
+            </div>
+
+            <hr>
+            <div class="row spacer my-3 ps-signs">
+                <div class="col">
+                  <p>ผู้สั่งสินค้า</p>
+                  <p><img src="/media/{{po.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/></p>
+                  <p>{{po.stockman_user}}</p>
+                  <p class="line75">({{po.stockman_user.userprofile.position}})</p>
+                </div>
+                <div class="col">
+                <!-- form Apporve -->
+                <form action="{% url 'editPOApprove' po.id isFromHome %}" method="post">
+                    {% csrf_token %}
+                    <p class="line75">ในนาม {{po.address_company.name_th}}</p>
+                    <p class="line75">ผู้รับมอบอำนาจ</p>
+                    <p>
+                        {% if po.approver_status_id == 2 %}
+                          <img src="/media/{{po.approver_user.userprofile.signature}}" width="160" height="75" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
+                          <p class="line75">{{po.approver_user}}</p>
+                        {% elif po.approver_status_id == 3 %}
+                          <span class="badge badge-danger">{{po.approver_status}}</span>
+                        {% endif %}
+                    </p>
+                    {% if isPermiss and po.approver_status_id == 1%}
+                    <div class="ps-approve-buttons" style="display: flex; gap: .5rem;">
+                      <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">
+                      <button type="button" class="btn btn-outline-danger btn hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
+                    </div>
+                    {% endif %}
+                    {% if po.reject_reason %}
+                      <p class="text-danger mt-2"><strong>เหตุผลการไม่อนุมัติ:</strong> {{po.reject_reason|linebreaksbr}}</p>
+                    {% endif %}
+                </form>
+                </div>
+                <div class="float-right">
+                  <h6 class="text-right">{{bc.affiliated.iso_code.po_code|safe}}</h6>
+                  <description id="dt_print"></description>
+                </div>
+            </div>
+            {% url 'editPOApprove' po.id isFromHome as reject_url %}
+            {% include '_reject_reason_modal.html' with action_url=reject_url doc_name='ใบสั่งซื้อ' %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% comment %}แถบปุ่มแบบเดียวกับหน้าอนุมัติใบขอซื้อ: กลับไป (ซ้าย) | รายการถัดไป หรือ ปริ้น (ขวา) อยู่ชั้นนอกสุดของ .po-doc เพื่อให้ sticky แสดงตั้งแต่เปิดหน้า{% endcomment %}
+    <div class="po-actions po-actions-bar hidden-print">
       {% if isFromHome == 'True' %}
         <a href="{% url 'home' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
       {% elif isFromHome == 'False' %}
@@ -209,7 +227,6 @@
       </button>
       {% endif %}
     </div>
-  </div>
 </div>
 <!-- Modal Search-->
 <div class="modal fade" id="myEdit" role="dialog">
@@ -262,7 +279,7 @@ function searchLastPoItem(){
             }
         });
     } else {
-      
+
     }
     return false;
 }
@@ -279,4 +296,3 @@ function setDateTimePrint(){
 }
 </script>
 {% endblock %}
-

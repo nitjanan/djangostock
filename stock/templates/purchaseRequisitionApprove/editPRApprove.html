@@ -169,7 +169,7 @@ u.dotted {
           {% if pr.purchase_status.id == 1 and request.user == pr.purchase_user %}
           <div class="ad-approve-buttons hidden-print">
             <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
-            <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
+            <button type="button" class="btn btn-outline-danger btn hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
           </div>
           {% endif %}
         </div>
@@ -200,14 +200,19 @@ u.dotted {
               {% if request.user == pr.purchase_user or pr.purchase_status.id == 2%}
               <div class="ad-approve-buttons hidden-print">
                 <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบขอซื้อนี้หรือไม่?');">
-                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบขอซื้อนี้หรือไม่?');">
+                <button type="button" class="btn btn-outline-danger btn hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
               </div>
               {% endif %}
             {% endif %}
           {% endif %}
         </div>
       </div>
+      {% if pr.reject_reason %}
+      <div class="text-danger mt-2"><strong>เหตุผลการไม่อนุมัติ:</strong> {{pr.reject_reason|linebreaksbr}}</div>
+      {% endif %}
     </form>
+    {% url 'editPRApprove' pr.id isFromHome as reject_url %}
+    {% include '_reject_reason_modal.html' with action_url=reject_url doc_name='ใบขอซื้อ' %}
 
     <div class="ad-footer">
       <div>

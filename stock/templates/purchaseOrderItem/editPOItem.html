@@ -222,14 +222,14 @@
   .po-form-grid .form-group {
     margin-bottom: .65rem;
   }
-  /* เน้นช่องผู้อนุมัติใบสั่งซื้อ และวันที่กำหนดรับของ */
-  .po-form-grid #div_id_vat_type > label,
+  /* เน้นช่องผู้อนุมัติใบสั่งซื้อ และวันที่กำหนดรับของ (ชนิดภาษีอยู่หัวการ์ดรายการสั่งซื้อ) */
+  #div_id_vat_type > label,
   .po-form-grid #div_id_approver_user > label,
   .po-form-grid #div_id_due_receive_update > label {
     font-weight: 600;
     color: #212529;
   }
-  .po-form-grid #div_id_vat_type > label::after,
+  #div_id_vat_type > label::after,
   .po-form-grid #div_id_approver_user > label::after,
   .po-form-grid #div_id_due_receive_update > label::after {
     content: "สำคัญ";
@@ -244,13 +244,13 @@
     line-height: 1.5;
     vertical-align: middle;
   }
-  .po-form-grid #div_id_vat_type .form-control,
+  #div_id_vat_type .form-control,
   .po-form-grid #div_id_approver_user .form-control,
   .po-form-grid #div_id_due_receive_update .form-control {
     border: 2px solid #007bff;
     font-weight: 600;
   }
-  .po-form-grid #div_id_vat_type .form-control:focus,
+  #div_id_vat_type .form-control:focus,
   .po-form-grid #div_id_approver_user .form-control:focus,
   .po-form-grid #div_id_due_receive_update .form-control:focus {
     box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .2);
@@ -270,19 +270,43 @@
     grid-column: span 2;
   }
   /* ชนิดภาษีใช้สีเหลือง (ทับสีฟ้าด้านบน) */
-  .po-form-grid #div_id_vat_type > label::after {
+  #div_id_vat_type > label::after {
     background: #fff3cd;
     color: #856404;
   }
-  .po-form-grid #div_id_vat_type .form-control {
+  #div_id_vat_type .form-control {
     border-color: #ffc107;
   }
-  .po-form-grid #div_id_vat_type .form-control:focus {
+  #div_id_vat_type .form-control:focus {
     box-shadow: 0 0 0 .2rem rgba(255, 193, 7, .3);
   }
-  /* สลับชนิดภาษีขึ้นไปแทนที่เครดิต: ผู้จำหน่าย, ชนิดภาษี, ขนส่งโดย, เครดิต, ... */
+  /* ชนิดภาษีหน้าปุ่มราคาที่ซื้อล่าสุด (หัวการ์ดรายการสั่งซื้อ) */
+  .po-items-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .5rem 1rem;
+  }
+  .po-vat-inline #div_id_vat_type {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 0;
+  }
+  .po-vat-inline #div_id_vat_type > label {
+    margin-bottom: 0;
+    font-size: .9rem;
+    white-space: nowrap;
+  }
+  .po-vat-inline #div_id_vat_type .form-control {
+    min-width: 11rem;
+    height: calc(1.5em + .5rem + 4px);
+    padding: .25rem .5rem;
+    font-size: .9rem;
+  }
+  /* เรียงลำดับ: ผู้จำหน่าย, ขนส่งโดย, เครดิต, ... */
   .po-form-grid #div-form-distributor { order: -3; }
-  .po-form-grid #div_id_vat_type { order: -2; }
   .po-form-grid #div_id_shipping { order: -1; }
   .po-form-grid #div_id_quotation_pdf .form-control-file {
     font-size: .85rem;
@@ -409,6 +433,12 @@
 {% block content %}
 <link rel="stylesheet" type='text/css' href="{% static '/css/rate.css' %}">
 <div class="container po-edit my-3">
+    {% for message in messages %}
+      <div class="alert {{ message.tags }} alert-dismissible hidden-print" role="alert">
+        <i class="fas fa-exclamation-circle"></i> {{ message }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+      </div>
+    {% endfor %}
     <!-- หัวเอกสาร -->
     <div class="card po-card mb-3">
       <div class="card-body">
@@ -521,7 +551,11 @@
                   {% endfor %}
                   </datalist-->
                 </div>
-                {{ form | crispy}}
+                {{ form.non_field_errors }}
+                {% for field in form %}
+                  {# ชนิดภาษีย้ายไปไว้หัวการ์ดรายการสั่งซื้อ หน้าปุ่มราคาที่ซื้อล่าสุด #}
+                  {% if field.name != 'vat_type' %}{{ field|as_crispy_field }}{% endif %}
+                {% endfor %}
               </div>
             </div>
           </div>
@@ -613,11 +647,14 @@
 
       <!-- รายการสั่งซื้อ -->
       <div class="card po-card mb-3">
-        <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between" style="gap: .5rem;">
           <h5><i class="fas fa-list-ul text-primary mr-2"></i>รายการสั่งซื้อ</h5>
-          <button type="button" class="btn btn-outline-danger btn-sm hidden-print" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-            <i class="fas fa-history"></i> ราคาที่ซื้อล่าสุด
-          </button>
+          <div class="po-items-tools">
+            <div class="po-vat-inline hidden-print">{{ form.vat_type|as_crispy_field }}</div>
+            <button type="button" class="btn btn-outline-danger btn-sm hidden-print" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+              <i class="fas fa-history"></i> ราคาที่ซื้อล่าสุด
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <div class="po-items-scroll">
@@ -1323,8 +1360,8 @@ function searchDataDistributor(){
                 if (data.credit) {
                     //set id_credit , id_vat_type
                     $('#id_credit').val(data.credit).trigger('change');
-                    $("#id_vat_type").val(data.vat_type);
                     {% if not isLockPOItem %}
+                    $("#id_vat_type").val(data.vat_type);
                     //ชนิดภาษีเปลี่ยนตามผู้จำหน่าย คำนวณยอดเงินใหม่
                     document.getElementById("vat-type").innerHTML = data.vat_type;
                     calculateAll();

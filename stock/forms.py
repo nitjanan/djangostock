@@ -569,6 +569,7 @@ class RateDistributorForm(forms.ModelForm):
     class Meta:
         model = RateDistributor
         fields = ('distributor', 'price_rate','quantity_rate','service_rate','safety_rate','counsel')
+        labels = {'distributor': 'ผู้จำหน่าย'}
         widgets={
                 'distributor': forms.HiddenInput(),
                 'price_rate': forms.HiddenInput(),

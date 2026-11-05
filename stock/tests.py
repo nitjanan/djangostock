@@ -160,6 +160,7 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
             id=1,
             name="Pending"
         )
+        BaseApproveStatus.objects.create(id=2, name="Approved")
         # Create UserProfile for user
         # สิทธิอนุมัติใบสั่งซื้อยึดจาก PositionBasePermission codename CAAPO
         self.position = Position.objects.create(name='ผู้อนุมัติใบสั่งซื้อ')
@@ -176,11 +177,15 @@ class CreatePOFromComparisonPriceTestCase(TestCase):
         self.profile.branch_company.add(self.branch)
 
         # Create ComparisonPrice
+        # ใบเปรียบเทียบราคาที่ตรวจสอบ/อนุมัติแล้ว (สร้างใบสั่งซื้อได้)
         self.cp = ComparisonPrice.objects.create(
             organizer=self.user,
             select_bidder=self.distributor,
             address_company=self.address,
-            branch_company=self.branch
+            branch_company=self.branch,
+            examiner_status_id=2,
+            approver_status_id=2,
+            is_draft=False,
         )
         # Set cp.created and cp.select_bidder_update to test select_bidder_update copying
         self.cp_created_date = datetime.date(2026, 6, 15)

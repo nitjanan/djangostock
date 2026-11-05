@@ -121,7 +121,7 @@
                         {% if cp.examiner_status.id == 1 and isExaminer %}
                             <div class="cp-approve-buttons hidden-print">
                                 <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                <button type="button" class="btn btn-outline-danger hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
                             </div>
                         {% endif %}
                     {% endif %}
@@ -146,12 +146,12 @@
                         {% if isApprover and isExaminer and cp.examiner_status.id == 1%}
                             <div class="cp-approve-buttons hidden-print">
                                 <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                <button type="button" class="btn btn-outline-danger hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
                             </div>
                         {% elif cp.approver_status.id == 1 and isApprover and cp.examiner_status.id == 2 %}
                             <div class="cp-approve-buttons hidden-print">
                                 <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                                <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                                <button type="button" class="btn btn-outline-danger hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
                             </div>
                         {% endif %}
                     {% endif %}
@@ -175,14 +175,19 @@
                     {% elif cp.examiner_status.id == 2 and cp.approver_status.id == 2 and cp.special_approver_status.id == 1 and isApproverSpecial%}
                         <div class="cp-approve-buttons hidden-print">
                             <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success hidden-print" onclick="return confirm('ต้องการอนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
-                            <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-outline-danger hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบเปรียบเทียบราคานี้หรือไม่?');">
+                            <button type="button" class="btn btn-outline-danger hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
                         </div>
                     {% elif cp.special_approver_status.id == 1 %}
                     {% endif %}
                 </div>
                 {% endif %}
             </div>
+          {% if cp.reject_reason %}
+          <div class="text-danger mt-2"><strong>เหตุผลการไม่อนุมัติ:</strong> {{cp.reject_reason|linebreaksbr}}</div>
+          {% endif %}
         </form>
+        {% url 'printCPApprove' cp.id isFromHome as reject_url %}
+        {% include '_reject_reason_modal.html' with action_url=reject_url doc_name='ใบเปรียบเทียบราคา' %}
 
         {% include 'comparePricePO/_cp_doc_footer.html' %}
 

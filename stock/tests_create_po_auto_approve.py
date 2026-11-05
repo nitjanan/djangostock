@@ -26,7 +26,8 @@ from stock.models import (
 
 
 class CreatePOFromComparisonPriceAutoApproveTestCase(TestCase):
-    """สร้าง PO จากใบเปรียบเทียบราคา: ตอนสร้างยังไม่มียอดเงิน จึงต้องเป็นรอดำเนินการเสมอ"""
+    """สร้าง PO จากใบเปรียบเทียบราคา: ดึงยอดเงินมาแล้ว แต่เป็นแบบร่าง จึงต้องเป็นรอดำเนินการเสมอ
+    (อนุมัติอัตโนมัติตอนกดบันทึกและส่งอนุมัติใน editPOItem)"""
 
     def setUp(self):
         self.client = Client()
@@ -79,6 +80,8 @@ class CreatePOFromComparisonPriceAutoApproveTestCase(TestCase):
             branch_company=self.branch,
             approver_user=self.user,
             special_approver_user=self.user,
+            examiner_status_id=2,
+            is_draft=False,
         )
         ComparisonPrice.objects.filter(id=self.cp.id).update(
             created=datetime.date(2026, 6, 15),
@@ -116,72 +119,66 @@ class CreatePOFromComparisonPriceAutoApproveTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         return PurchaseOrder.objects.get(cp=self.cp)
 
+    def _assert_cannot_create_po(self):
+        #ใบเปรียบเทียบราคาที่ยังไม่อนุมัติ สร้างใบสั่งซื้อไม่ได้
+        response = self.client.post(reverse('createPOFromComparisonPrice', kwargs={'cp_id': self.cp.id}))
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(PurchaseOrder.objects.filter(cp=self.cp).exists())
+
     def _set_cp(self, **kwargs):
         ComparisonPrice.objects.filter(id=self.cp.id).update(**kwargs)
         self.cp.refresh_from_db()
 
     # ---------- CP ปกติ (ไม่ใช่ยอดเกิน 200,000) ----------
 
-    def test_normal_cp_approved_stays_pending_without_amount(self):
-        #ตอนสร้างใบสั่งซื้อยังไม่ได้ใส่รายการ/ราคา amount จึงยังว่าง ต้องไม่อนุมัติอัตโนมัติ
+    def test_normal_cp_approved_stays_pending_as_draft(self):
+        #ตอนสร้างใบสั่งซื้อดึงยอดเงินจากใบเปรียบเทียบมาแล้ว แต่ยังเป็นแบบร่าง ต้องไม่อนุมัติอัตโนมัติ
         self._set_cp(is_special_approve_cm=False, approver_status_id=2, special_approver_status_id=None)
         po = self._post_create_po()
-        self.assertIsNone(po.amount)
+        self.assertEqual(po.amount, Decimal('107.00'))
+        self.assertTrue(po.is_draft)
         self.assertEqual(po.approver_status_id, 1)
         self.assertIsNone(po.approver_update)
 
-    def test_normal_cp_pending_keeps_po_pending(self):
+    def test_normal_cp_pending_cannot_create_po(self):
         self._set_cp(is_special_approve_cm=False, approver_status_id=1, special_approver_status_id=None)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
-    def test_normal_cp_rejected_keeps_po_pending(self):
+    def test_normal_cp_rejected_cannot_create_po(self):
         self._set_cp(is_special_approve_cm=False, approver_status_id=3, special_approver_status_id=None)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
-    def test_normal_cp_without_status_keeps_po_pending(self):
+    def test_normal_cp_without_status_cannot_create_po(self):
         self._set_cp(is_special_approve_cm=False, approver_status_id=None, special_approver_status_id=None)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
-    def test_normal_cp_ignores_special_approver_status(self):
+    def test_normal_cp_ignores_special_approver_status_cannot_create_po(self):
         # ไม่ใช่ใบพิเศษ: ต้องดูเฉพาะ approver_status
         self._set_cp(is_special_approve_cm=False, approver_status_id=1, special_approver_status_id=2)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
     # ---------- CP ยอดเกิน 200,000 (ต้องมีผู้อนุมัติพิเศษ) ----------
 
-    def test_special_cp_special_approved_stays_pending_without_amount(self):
+    def test_special_cp_special_approved_stays_pending_as_draft(self):
         self._set_cp(is_special_approve_cm=True, approver_status_id=2, special_approver_status_id=2)
         po = self._post_create_po()
-        self.assertIsNone(po.amount)
+        self.assertEqual(po.amount, Decimal('107.00'))
+        self.assertTrue(po.is_draft)
         self.assertEqual(po.approver_status_id, 1)
         self.assertIsNone(po.approver_update)
 
-    def test_special_cp_special_pending_keeps_po_pending(self):
+    def test_special_cp_special_pending_cannot_create_po(self):
         # ผู้อนุมัติปกติอนุมัติแล้ว แต่ผู้อนุมัติพิเศษยังไม่อนุมัติ
         self._set_cp(is_special_approve_cm=True, approver_status_id=2, special_approver_status_id=1)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
-    def test_special_cp_special_rejected_keeps_po_pending(self):
+    def test_special_cp_special_rejected_cannot_create_po(self):
         self._set_cp(is_special_approve_cm=True, approver_status_id=2, special_approver_status_id=3)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
-    def test_special_cp_without_special_status_keeps_po_pending(self):
+    def test_special_cp_without_special_status_cannot_create_po(self):
         self._set_cp(is_special_approve_cm=True, approver_status_id=2, special_approver_status_id=None)
-        po = self._post_create_po()
-        self.assertEqual(po.approver_status_id, 1)
-        self.assertIsNone(po.approver_update)
+        self._assert_cannot_create_po()
 
 
 class AutoApprovePOFromCPHelperTestCase(TestCase):

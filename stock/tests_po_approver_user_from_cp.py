@@ -81,6 +81,11 @@ class CreatePOFromComparisonPriceApproverUserTestCase(TestCase):
             branch_company=self.branch,
             approver_user=self.cp_approver,
             special_approver_user=self.cp_special_approver,
+            # ตรวจสอบ/อนุมัติแล้ว (สร้างใบสั่งซื้อได้)
+            examiner_status_id=2,
+            approver_status_id=2,
+            special_approver_status_id=2,
+            is_draft=False,
         )
         ComparisonPrice.objects.filter(id=self.cp.id).update(
             created=datetime.date(2026, 6, 15),
@@ -132,10 +137,12 @@ class CreatePOFromComparisonPriceApproverUserTestCase(TestCase):
         self.assertEqual(po.approver_user, self.cp_approver)
 
     def test_special_approver_user_is_shown_on_the_form(self):
+        #สร้างแล้วไปกรอกต่อในหน้าเดียว (editPOItem) ช่องผู้อนุมัติต้องเป็นผู้อนุมัติพิเศษของใบ CP
         self._set_cp(is_special_approve_cm=True)
-        url = reverse('createPOFromComparisonPrice', kwargs={'cp_id': self.cp.id})
+        po = self._post_create_po()
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'False'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         form = response.context['form']
         self.assertIn(self.cp_special_approver, form.fields['approver_user'].queryset)
-        self.assertEqual(form.initial['approver_user'], self.cp_special_approver)
+        self.assertEqual(form.initial['approver_user'], self.cp_special_approver.id)

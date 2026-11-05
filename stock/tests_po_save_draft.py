@@ -17,6 +17,7 @@ from stock.models import (
     BranchCompanyBaseAdress,
     ComparisonPrice,
     ComparisonPriceDistributor,
+    ComparisonPriceItem,
     Distributor,
     PurchaseOrder,
     PurchaseOrderItem,
@@ -61,9 +62,10 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
         # ใบเปรียบเทียบราคาที่อนุมัติแล้ว -> ใบสั่งซื้อที่ออกจากใบนี้อนุมัติอัตโนมัติตอนส่ง
         self.cp = ComparisonPrice.objects.create(
             organizer=self.user, select_bidder=self.distributor, address_company=self.address,
-            branch_company=self.branch, approver_user=self.approver, approver_status_id=2, is_draft=False,
+            branch_company=self.branch, approver_user=self.approver, examiner_status_id=2, approver_status_id=2,
+            is_draft=False,
         )
-        ComparisonPriceDistributor.objects.create(
+        self.cpd = ComparisonPriceDistributor.objects.create(
             cp=self.cp, distributor=self.distributor, credit=self.credit, vat_type=self.vat_type,
             total_price=100.00, amount=107.00,
         )
@@ -104,20 +106,16 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
             'delivery': self.delivery.id,
         }
 
-    def _post_create_from_cp(self, po, save_draft):
-        url = reverse('createPOItemFromComparisonPrice', kwargs={'po_id': po.id})
-        data = {
-            'form-TOTAL_FORMS': '1', 'form-INITIAL_FORMS': '0',
-            'form-MIN_NUM_FORMS': '0', 'form-MAX_NUM_FORMS': '1000',
-            'form-0-item': self.req_item.id, 'form-0-quantity': '5.0000', 'form-0-unit': self.unit.id,
-            'form-0-unit_price': '20.0000', 'form-0-price': '100.00',
-            'save_draft': '1' if save_draft else '',
-        }
-        data.update(self._price_data())
-        response = self.client.post(url, data)
+    def _post_create_from_cp(self):
+        """สร้างใบสั่งซื้อจากใบเปรียบเทียบราคา (ดึงราคาและรายการสินค้ามาให้ แล้วไปหน้า editPOItem)"""
+        ComparisonPriceItem.objects.create(
+            cp=self.cp.id, bidder=self.cpd, item=self.req_item, quantity=Decimal('5.0000'), unit=self.unit,
+            unit_price=Decimal('20.0000'), price=Decimal('100.00'),
+        )
+        response = self.client.post(reverse('createPOFromComparisonPrice', kwargs={'cp_id': self.cp.id}))
         self.assertEqual(response.status_code, 302)
-        po.refresh_from_db()
-        return po
+        po = PurchaseOrder.objects.get(cp=self.cp)
+        return po, PurchaseOrderItem.objects.get(po=po)
 
     def _post_edit(self, po, item, save_draft, re_approve='False', **override):
         url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'True', 'isReApprove': re_approve})
@@ -144,17 +142,26 @@ class PurchaseOrderSaveDraftTestCase(TestCase):
             id=po.id, approver_status=1, amount__gt=0, is_draft=False, approver_user=self.approver,
         ).exists()
 
-    # ---------- createPOItemFromComparisonPrice ----------
-    def test_po_from_cp_save_draft_does_not_auto_approve(self):
-        po, _ = self._create_po(cp=self.cp)
-        po = self._post_create_from_cp(po, save_draft=True)
+    # ---------- createPOFromComparisonPrice ----------
+    def test_po_from_cp_is_created_as_draft_and_not_auto_approved(self):
+        po, _ = self._post_create_from_cp()
         self.assertTrue(po.is_draft)
         self.assertEqual(po.approver_status_id, 1)
         self.assertFalse(self._in_approver_queue(po))
 
-    def test_po_from_cp_save_and_send_auto_approves(self):
-        po, _ = self._create_po(cp=self.cp)
-        po = self._post_create_from_cp(po, save_draft=False)
+    def test_po_from_cp_save_draft_on_edit_page_does_not_auto_approve(self):
+        po, item = self._post_create_from_cp()
+        response = self._post_edit(po, item, save_draft=True)
+        self.assertEqual(response.status_code, 302)
+        po.refresh_from_db()
+        self.assertTrue(po.is_draft)
+        self.assertEqual(po.approver_status_id, 1)
+
+    def test_po_from_cp_save_and_send_on_edit_page_auto_approves(self):
+        po, item = self._post_create_from_cp()
+        response = self._post_edit(po, item, save_draft=False)
+        self.assertEqual(response.status_code, 302)
+        po.refresh_from_db()
         self.assertFalse(po.is_draft)
         self.assertEqual(po.approver_status_id, 2)
 

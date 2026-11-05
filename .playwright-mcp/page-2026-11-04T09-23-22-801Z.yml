@@ -1,0 +1,21 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - heading "Page not found (404)" [level=1] [ref=e3]
+    - generic [ref=e4]: "'_tmp_print\\po.html' could not be found"
+    - table [ref=e5]:
+      - rowgroup [ref=e6]:
+        - row [ref=e7]:
+          - rowheader "Request Method:" [ref=e8]
+          - cell "GET" [ref=e9]
+        - row [ref=e10]:
+          - rowheader "Request URL:" [ref=e11]
+          - cell "http://localhost:8001/static/_tmp_print/po.html" [ref=e12]
+        - row [ref=e13]:
+          - rowheader "Raised by:" [ref=e14]
+          - cell "django.views.static.serve" [ref=e15]
+  - paragraph [ref=e18]:
+    - text: You’re seeing this error because you have
+    - code [ref=e19]: DEBUG = True
+    - text: in your Django settings file. Change that to
+    - code [ref=e20]: "False"
+    - text: ", and Django will display a standard 404 page."

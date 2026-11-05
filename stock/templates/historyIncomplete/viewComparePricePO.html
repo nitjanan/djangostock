@@ -61,7 +61,7 @@
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 5 %}">{{cp.ref_no}}</a></th>
+                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 5 %}">{{cp.ref_no}}</a>{% if cp.reject_reason %}<div class="small text-danger">เหตุผล: {{cp.reject_reason}}</div>{% endif %}</th>
                   <td>
                     {% for item in cp.comparisonpricedistributor_set.all %}
                       <li>{{ item.distributor.name }}</li>

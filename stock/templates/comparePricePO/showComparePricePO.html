@@ -156,6 +156,9 @@
             </div>
             {% endif %}
         </div>
+        {% if cp.reject_reason %}
+            <div class="text-danger mt-2"><strong>เหตุผลการไม่อนุมัติ:</strong> {{cp.reject_reason|linebreaksbr}}</div>
+        {% endif %}
 
         {% include 'comparePricePO/_cp_doc_footer.html' %}
 

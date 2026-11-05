@@ -3,6 +3,10 @@
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
 
+{% block css %}
+{% include '_draft_tabs_style.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
   {% if messages %}
@@ -68,8 +72,11 @@
   </div>
 </div>
 <div class="card div-shadow">
+  {% if isSupplies %}{% include '_draft_tabs.html' %}{% endif %}
   <div class="card-body">
-    {% if isPurchasing %}
+    {% if tab == 'reject' %}
+      * ใบขอซื้อที่ไม่ได้รับการอนุมัติ
+    {% elif isPurchasing %}
       * แสดงเฉพาะใบขอซื้อที่ได้รับการอนุมัติแล้ว
     {% else %}
     <a class="btn btn-primary btn-block" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
@@ -93,7 +100,7 @@
         <tbody>
         {% for pr in prs %}
           <tr>
-            <th scope="row"><a class="{% if pr.is_re_approve %}text-danger{%endif%}" href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a></th>
+            <th scope="row"><a class="{% if pr.is_re_approve %}text-danger{%endif%}" href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a>{% if pr.is_draft %} <span class="badge badge-secondary">แบบร่าง</span>{% endif %}{% if tab == 'reject' and pr.reject_reason %}<div class="small text-danger">เหตุผล: {{pr.reject_reason}}</div>{% endif %}</th>
             <td><a href="{% url 'showRequisition' pr.requisition.id 1 %}">{{pr.requisition.ref_no}}</a></td>
             <td>
               <ul>
@@ -121,7 +128,9 @@
             <td>{{pr.created |date:"d/m/Y"}}</td>
             <!-- <td class="text-center">{{pr.requisition.urgency.name}}</td> -->
             <td colspan="2">
-              {% if isPurchasing %}
+              {% if tab == 'reject' %}
+                <button type="button" class="btn btn-sm btn-outline-danger" style="width:90px">ไม่อนุมัติ</button>
+              {% elif isPurchasing %}
               <div style="display: flex;">
                 <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ CM/ใบ PO</a>
                 <a href="{% url 'closePR' pr.id %}" onclick="return confirm('คุณต้องการปิดรายการนี้หรือไม่ ?\n *** รายการใบขอซื้อจะไปอยู่หน้า History ใช้ในกรณี\n 1. ดึงสินค้าไปทำรายการแล้ว แต่ระบบไม่นำใบขอซื้อออกอัตโนมัติ\n 2. รายการใบขอซื้อที่ไม่ต้องการซื้อแล้ว')" class="btn btn-secondary btn-sm">ปิดรายการ</a>             
