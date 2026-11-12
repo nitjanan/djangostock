@@ -18,6 +18,35 @@ u.dotted {
 
 </style>
 {% include '_approve_doc_styles.html' %}
+{% include '_rq_item_modal_styles.html' %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+/* ช่อง select2 ใน modal แก้ไข: สูงเท่าช่องอื่น (46px) */
+.rq-modal .select2-container { display: block; width: 100% !important; }
+.rq-modal .select2-container .select2-selection--single { height: 46px; border: 1px solid #ced4da; border-radius: .25rem; }
+.rq-modal .select2-container .select2-selection--single .select2-selection__rendered { line-height: 44px; padding-left: .75rem; padding-right: 2rem; font-size: 1.1rem; color: #495057; }
+.rq-modal .select2-container .select2-selection--single .select2-selection__arrow { height: 44px; right: 6px; }
+.rq-modal .select2-container--focus .select2-selection--single,
+.rq-modal .select2-container--open .select2-selection--single { border-color: #80bdff; box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .25); }
+.rq-modal .select2-selection__placeholder { color: #8a94a0; }
+
+/* dropdown ค้นหา (แบบเดียวกับใบขอเบิก): ช่องค้นหาใหญ่ ไฮไลต์คำที่พิมพ์ */
+.rq-dd { border: 1.5px solid #2f6fb3 !important; border-radius: 8px !important; box-shadow: 0 8px 24px rgba(15, 30, 60, .16); overflow: hidden; }
+.rq-dd .select2-search--dropdown { padding: .5rem; background: #f4f8fc; }
+.rq-dd .select2-search__field { height: 38px; padding: .3rem .6rem; border: 1.5px solid #9dbbdc !important; border-radius: 6px; font-size: .95rem; outline: 0; }
+.rq-dd .select2-search__field:focus { border-color: #2f6fb3 !important; box-shadow: 0 0 0 3px rgba(47, 111, 179, .18); }
+.rq-dd .select2-results > .select2-results__options { max-height: 300px; }
+.rq-dd .select2-results__option { padding: .45rem .7rem; font-size: .95rem; border-bottom: 1px solid #eef1f5; }
+.rq-dd .select2-results__option[aria-selected=true] { background: #e8f0fa; color: #185fa5; font-weight: 600; }
+.rq-dd .select2-results__option--highlighted[aria-selected] { background: #2f6fb3; color: #fff; }
+.rq-dd mark { padding: 0 1px; background: #ffe58a; color: #1f2933; border-radius: 2px; }
+.rq-dd .select2-results__option--highlighted mark { background: rgba(255, 229, 138, .85); }
+/* ทะเบียนรถ: code เด่นเป็นป้าย ตามด้วยชื่อ */
+.rq-car-opt { display: flex; gap: .6rem; align-items: baseline; }
+.rq-car-code { flex: 0 0 auto; min-width: 74px; padding: .05rem .4rem; border-radius: 4px; background: #e8f0fa; color: #185fa5; font-weight: 700; font-size: .85rem; text-align: center; }
+.rq-car-name { flex: 1 1 auto; min-width: 0; line-height: 1.35; }
+.rq-dd .select2-results__option--highlighted .rq-car-code { background: #fff; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -40,33 +69,46 @@ u.dotted {
         <thead>
           <tr>
             <th class="text-center">ลำดับที่</th>
-            <th class="text-center">รหัสวัสดุ/อุปกรณ์</th>
-            <th class="text-center">สินค้า/รายละเอียด</th>
+            <th class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+              รหัสวัสดุ/อุปกรณ์ <i class="fas fa-list text-danger d-print-none"></i>
+            </th>
+            <th class="text-center">รายการ</th>
             <th class="text-center">รายละเอียด/ประเภทการซ่อม</th>
-            <th class="text-center">จำนวนที่ขอเบิก</th>
-            <th class="text-center">จำนวนที่จ่ายไป</th>
+            <th class="text-center">จำนวน</th>
+            <th class="text-center text-success">ซื้อแล้ว</th>
             <th class="text-center">หน่วย</th>
             <th class="text-center">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</th>
             <th class="text-center">วันที่ต้องการ</th>
             <th class="text-center">ระดับความเร่งด่วน</th>
-            {% if isEditPR %}<th class="text-center hidden-print">แก้ไข</th>{% endif %}
+            {% if canEditItems %}<th class="text-center hidden-print">แก้ไข</th>{% endif %}
           </tr>
         </thead>
         <tbody>
-          {% comment %}คลาส user*/userData และข้อความในช่องใช้กับ JS แก้ไขรายการ (editUser/updateToUserTabel) ห้ามใส่ข้อความอื่นเพิ่มในช่อง{% endcomment %}
+          {% comment %}แสดงแบบเดียวกับหน้า showPR (จำนวน = quantity_pr, ซื้อแล้ว = quantity_used)
+          ค่าที่ modal แก้ไขรายการใช้ (editUser) เก็บไว้ใน data-* ของแถว เพราะข้อความในช่องไม่ตรงกับค่าที่ต้องแก้
+          เช่น จำนวนที่ขอเบิก (quantity) และจำนวนที่จ่ายไป (quantity_take) ที่ไม่ได้แสดงในตาราง{% endcomment %}
           {% for user in users %}
-          <tr id="user-{{user.id}}">
+          <tr id="user-{{user.id}}"
+              data-product="{{user.product.id|default_if_none:''}}"
+              data-name="{{user.product_name|default_if_none:''}}"
+              data-description="{{user.description|default_if_none:''}}"
+              data-quantity="{{user.quantity|default_if_none:''}}"
+              data-quantity-take="{{user.quantity_take|default_if_none:''}}"
+              data-unit="{{user.unit|default_if_none:''}}"
+              data-machine="{{user.machine|default_if_none:''}}"
+              data-desired-date="{{user.desired_date|date:'Y-m-d'}}"
+              data-urgency="{{user.urgency|default_if_none:''}}">
             <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
-            <td class="text-center userProduct userData" name="product" data-label="รหัสวัสดุ/อุปกรณ์">{{user.product.id}}</td>
-            <td class="userName userData ad-cell-title" name="name"><form class="form-inline" id="search" method="GET"><b onClick="searchProduct('{{user.product_name}}')" data-target="#myEdit" data-toggle="modal" style="cursor: pointer;">{{user.product_name}}</b></form></td>
-            <td class="userDescription userData" name="description" data-label="รายละเอียด">{{user.description}}</td>
-            <td class="text-center userQuantity userData" name="quantity" data-label="จำนวนที่ขอเบิก">{{user.quantity}}</td>
-            <td class="text-center userQuantityTake userData" name="quantityTake" data-label="จำนวนที่จ่ายไป"><b onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" style="cursor: pointer;">{{user.quantity_take}}</b></td>
-            <td class="text-center userUnit userData" name="unit" data-val="{{user.unit}}" data-label="หน่วย">{{user.unit}}</td>
-            <td class="userMachine userData" name="machine" data-label="ทะเบียนรถ/เครื่องจักร">{{user.machine}}</td>
-            <td class="text-center userDesiredDate userData" name="desireddate" data-label="วันที่ต้องการ">{{user.desired_date | date:"d/m/Y"}}</td>
-            <td class="text-center userUrgency userData" name="urgency" data-val="{{user.urgency}}" data-label="ความเร่งด่วน">{% for bu in baseUrgency %}{% if user.urgency == bu.id %}{{bu.name}}{% endif %}{% endfor %}</td>
-            {% if isEditPR %} <!-- 03/07/2025 ถ้าอยู่ในกลุ่ม edit pr สามารถ re approve pr ได้ -->
+            <td class="text-center" data-label="รหัสวัสดุ/อุปกรณ์">{{user.product.id|default_if_none:''}}</td>
+            <td class="ad-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{user.product_name}}</td>
+            <td data-label="รายละเอียด">{{user.description|default_if_none:''}}</td>
+            <td class="text-center" data-label="จำนวน"><span>{{user.quantity_pr|floatformat:"-4"}} <span class="d-md-none d-print-none">{{user.unit|default_if_none:''}}</span></span></td>
+            <td class="text-center text-success" data-label="ซื้อแล้ว">{{user.quantity_used|floatformat:"-4"}}</td>
+            <td class="text-center ad-hide-m">{{user.unit|default_if_none:''}}</td>
+            <td data-label="ทะเบียนรถ/เครื่องจักร">{% if user.requisit.car %}{{user.requisit.car}}{% else %}{{user.machine|default_if_none:''}}{% endif %}</td>
+            <td class="text-center" data-label="วันที่ต้องการ">{{user.desired_date|date:"d/m/Y"}}</td>
+            <td class="text-center" data-label="ความเร่งด่วน">{% for bu in baseUrgency %}{% if user.urgency == bu.id %}{{bu.name}}{% endif %}{% endfor %}</td>
+            {% if canEditItems %} <!-- แก้ไขรายการสินค้าได้เฉพาะกลุ่มพัสดุ -->
             <td class="text-center hidden-print" data-label="แก้ไข">
               <button class="btn btn-secondary btn-sm" onClick="editUser('{{user.id}}')" data-toggle="modal" data-target="#myModal" title="แก้ไขรายการ"><i class="fas fa-pen"></i></button>
             </td>
@@ -74,7 +116,7 @@ u.dotted {
           </tr>
           {% empty %}
           <tr>
-            <td colspan="11" class="text-center ad-cell-title">
+            <td colspan="{% if canEditItems %}11{% else %}10{% endif %}" class="text-center ad-cell-title">
               <div class="alert alert-warning mb-0" role="alert">
                 ไม่มีสินค้า
               </div>
@@ -87,7 +129,7 @@ u.dotted {
             <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
             <td class="text-center">{{users | length}}</td>
             <td class="text-center">รายการ</td>
-            <td colspan="{% if isEditPR %}5{% else %}4{% endif %}" class="text-center"></td>
+            <td colspan="{% if canEditItems %}5{% else %}4{% endif %}" class="text-center"></td>
           </tr>
         </tfoot>
       </table>
@@ -95,6 +137,7 @@ u.dotted {
 
     <form method="post" id="reapprove-pr-form" class="mb-0">
       {% csrf_token %}
+      <input type="hidden" name="save_draft" id="id_save_draft" value="">{# 1 = บันทึกแบบร่าง (ตั้งค่าจากปุ่มด้านล่าง) #}
       <!-- ======== ข้อมูลใบขอซื้อ ======== -->
       <div class="ad-form hidden-print">
         <label for="{{ form_pr.organizer.id_for_label }}" class="ad-required">{{ form_pr.organizer.label}}</label>
@@ -121,10 +164,14 @@ u.dotted {
 
     <!-- ======== แถบปุ่ม ติดด้านล่าง (ไม่ปริ้น) อยู่ชั้นนอกของกระดาษเพื่อให้แสดงตั้งแต่เปิดหน้า ======== -->
     <div class="ad-actions-bar hidden-print">
-      <button type="submit" form="reapprove-pr-form" class="btn btn-primary">
-        <i class="fas fa-save"></i>
-        บันทึก
-      </button>
+      <div class="d-flex flex-wrap" style="gap: .5rem;">
+        <button type="submit" form="reapprove-pr-form" class="btn btn-secondary" onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
+          บันทึกแบบร่าง
+        </button>
+        <button type="submit" form="reapprove-pr-form" class="btn btn-primary" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
+          บันทึกและส่งอนุมัติ
+        </button>
+      </div>
       <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
         <i class="fas fa-print"></i>
         ปริ้น<span class="d-none d-sm-inline">ใบขอซื้อ</span>
@@ -197,67 +244,88 @@ u.dotted {
       </div>
     </div>
   </div>
-  <!-- Modal Edit-->
-  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <!-- Modal Edit: layout เดียวกับ modal แก้ไขรายการสินค้าในใบขอเบิก (_rq_item_modal_*) -->
+  <div class="modal fade rq-modal" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalEditLabel">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
-        <div class="modal-header text-white" style="background-color:#B2BABB;" >
-          <h4 class="modal-title" id="myModalLabel">แก้ไขรายการสินค้า</h4> 
-          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <div class="modal-header">
+          <h5 class="modal-title" id="myModalEditLabel"><i class="fas fa-pen text-secondary"></i> แก้ไขรายการสินค้า</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <form id="updateUser" action="">
           {% csrf_token %}
-        <div class="modal-body">
+        <div class="modal-body pt-1">
+            <div id="update_alert" class="alert alert-warning d-none mt-2" role="alert"></div><!-- แจ้งเตือนสินค้านี้ ออกใบขอเบิกล่าสุด -->
             <input class="form-control" id="form-id" type="hidden" name="formId"/>
-            <label for="formProduct" class="text-success">รหัสวัสดุ/อุปกรณ์</label>
-            <input id="form-product" name="formProduct" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control is-valid" autocomplete="off" value="{{item.product.id}}">
-            <datalist id="idExpresslist">
-            {% for results in baseProduct %}
-              <option value="{{results.id}}">{{results.name}}</option>
-            {% endfor %}
-            </datalist>
-            <label for="name">สินค้า/รายละเอียด</label>
+            <div class="rq-product-box rq-ps" data-mode="2" data-target="#form-product">
+              <label for="form-product-q"><i class="fas fa-box mr-2"></i>รหัสวัสดุ/อุปกรณ์</label>
+              <div class="rq-ps-search">
+                <i class="fas fa-search rq-ps-icon"></i>
+                <input type="text" id="form-product-q" class="rq-ps-q" autocomplete="off" placeholder="พิมพ์รหัสหรือชื่อสินค้า...">
+                <span class="rq-ps-count"></span>
+              </div>
+              <input type="hidden" name="formProduct" id="form-product">
+              <div class="rq-ps-selected d-none"></div>
+              <div class="rq-ps-results"></div>
+              <button type="button" class="rq-ps-cancel"><i class="fas fa-undo mr-1"></i>ยกเลิก ใช้สินค้าเดิม</button>
+            </div>
+            <label for="form-name">สินค้า/รายละเอียด</label>
             <input class="form-control" id="form-name" type="text" name="formName"/>
-            <label for="description">รายละเอียด/ประเภทการซ่อม</label>
-            <!--input class="form-control" id="form-description" type="text" name="formDescription"/-->
-            <select id="form-description" name="formDescription" class="select form-control" required>
-              <option value="" selected="">---------</option>
-              {% for rt in baseRepairType %}
-              <option value="{{rt.name}}">{{rt.name}}</option>
-              {% endfor %}
-            </select>
-            <label for="quantity">จำนวนที่ขอเบิก</label>
-            <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
-            <label for="quantityTake" class="text-danger d-none">จำนวนที่จ่ายไป (ออกใบจ่ายสินค้าภายใน)</label>
-            <input class="form-control is-invalid d-none" id="form-quantitytake" type="number" name="formQuantityTake" min="0"  step="any"/>
-            <label for="name">หน่วย</label>
-            <input class="form-control" list="formUnitList" name="formUnit" id="form-unit">
-            <datalist id="formUnitList">
-              {% for unit in baseUnit %}
-                <option data-id = "{{unit.id}}" value="{{unit.name}}">
-              {% endfor %}
-            </datalist>
-            <label for="name">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</label>
-            <!--input class="form-control" type="text" id="form-machine" name="formMachine"-->
-            <select id="form-machine" name="formMachine" class="select form-control" required>
-              <option value="" selected="">---------</option>
-              {% for car in baseCar %}
-                <option value="{{car.name}}{{car.code}}">{{car.code}} : {{car.name}}</option>
-              {% endfor %}
-            </select>
-            <label for="name">วันที่ต้องการ</label>
-            <input class="form-control dateinput form-control" type="date" id="form-desireddate" name="formDesiredDate"  placeholder="Select a date" onchange="selectedUrgency(this.name, 'form-urgency');">
-            <label for="name">ระดับความเร่งด่วน</label>
-            <select id="form-urgency" name="formUrgency" class="select form-control" required>
-              <option value="" selected="">---------</option>
-              {% for op in baseUrgency %}
-              <option value="{{op.id}}">{{op.name}} {{op.description}}</option>
-              {% endfor %}
-            </select>
+            <div class="form-row">
+              <div class="col-md-6">
+                <label for="form-description">รายละเอียด/ประเภทการซ่อม</label>
+                <select id="form-description" name="formDescription" class="select form-control" required>
+                  <option value="" selected="">---------</option>
+                  {% for rt in baseRepairType %}
+                  <option value="{{rt.name}}">{{rt.name}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="form-machine">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</label>
+                <select id="form-machine" name="formMachine" class="select form-control" required>
+                  <option value="" selected="">---------</option>
+                  {% for car in baseCar %}
+                    <option value="{{car.name}}{{car.code}}">{{car.code}} : {{car.name}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="col-6 col-md-3">
+                <label for="form-quantity">จำนวนที่ขอเบิก</label>
+                <input class="form-control" id="form-quantity" type="number" name="formQuantity" min="0.0001" step="any"/>
+              </div>
+              <!-- จำนวนที่จ่ายไป: ซ่อนไว้ (คงค่าเดิมของรายการไว้) -->
+              <div class="d-none">
+                <input class="form-control" id="form-quantitytake" type="number" name="formQuantityTake" min="0" step="any"/>
+              </div>
+              <div class="col-6 col-md-3">
+                <label for="form-unit">หน่วย</label>
+                <div class="rq-unit">
+                  <input class="form-control rq-unit-q" name="formUnit" id="form-unit" autocomplete="off" placeholder="พิมพ์หรือเลือกหน่วย">
+                  <i class="fas fa-chevron-down rq-unit-caret"></i>
+                  <div class="rq-unit-list d-none"></div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <label for="form-desireddate">วันที่ต้องการ</label>
+                <input class="form-control dateinput" type="date" id="form-desireddate" name="formDesiredDate" onchange="selectedUrgency(this.name, 'form-urgency');">
+              </div>
+              <div class="col-6 col-md-3">
+                <label for="form-urgency">ระดับความเร่งด่วน</label>
+                <select id="form-urgency" name="formUrgency" class="select form-control" required>
+                  <option value="" selected="">---------</option>
+                  {% for op in baseUrgency %}
+                  <option value="{{op.id}}">{{op.name}} {{op.description}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
         </div>
         <div class="modal-footer">
-            <button type="submit" class="btn btn-primary" >บันทึก</button>
-            <button type="button" class="btn btn-default" data-dismiss="modal">ปิด</button>
+            <button type="button" class="btn btn-light" data-dismiss="modal">ปิด</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> บันทึก</button>
         </div>
         </form>
       </div>
@@ -265,10 +333,10 @@ u.dotted {
   </div>
   <!-- Modal Search-->
   <div class="modal fade" id="myEdit" role="dialog">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title">รายการสินค้าใน Express</h4>
+            <h4 class="modal-title">รายการสินค้าที่ซื้อล่าสุด</h4>
             <button type="button" class="close" data-dismiss="modal">&times;</button>
           </div>
           <div class="modal-body">
@@ -280,37 +348,6 @@ u.dotted {
 {% endblock%}
 {% block javascript %}
 <script>
-function searchProduct(name){
-    var titleInput = name;
-    if (titleInput) {
-        // Create Ajax Call
-        $.ajax({
-            url: '{% url "searchItemExpress" %}',
-            data: {
-                'title': titleInput,
-            },
-            dataType: 'json',
-            success: function (data) {
-              if (data.instance) {
-                openModal(data.instance);
-                e.preventDefault();
-              }else{
-                $("#pShowSearch").html('ไม่พบสินค้าที่ค้นหา');
-              }
-            }
-        });
-    } else {
-      
-    }
-    return false;
-  }
-
-
-function openModal(instance) {
-  $("#pShowSearch").html(instance);
-  $('#myEdit').modal('show');
-}
-
 // Create Django Ajax Call
 $(function(){
 $(document).on('submit','form#addUser',function(){
@@ -392,7 +429,7 @@ $(document).on('submit','form#updateUser',function(){
     var desireddateInput = $('input[name="formDesiredDate"]').val();
     var unitInput = $('#form-unit').val();
     var urgencyInput = $('#form-urgency').val();
-    var productInput = $('input[name="formProduct"]').val().trim();
+    var productInput = ($('#form-product').val() || '').trim();
     if (nameInput && descriptionInput && quantityInput) {
         // Create Ajax Call
         $.ajax({
@@ -411,19 +448,15 @@ $(document).on('submit','form#updateUser',function(){
             },
             dataType: 'json',
             success: function (data) {
-                if (data.user) {
-                  e.preventDefault();
-                  updateToUserTabel(data.user);
-                }
+                location.reload(); //บันทึกเสร็จแล้วค่อยโหลดหน้าใหม่
+            },
+            error: function () {
+                alert("บันทึกการแก้ไขไม่สำเร็จ กรุณาลองใหม่");
             }
         });
-
     } else {
-        alert("All fields must have a valid value.");
+        alert("กรุณากรอก สินค้า/รายละเอียด, รายละเอียด/ประเภทการซ่อม และจำนวนที่ขอเบิก");
     }
-    $('form#updateUser').trigger("reset");
-    $('#myModal').modal('hide');
-    location.reload();
     return false;
   });
 });
@@ -432,76 +465,76 @@ $(document).on('submit','form#updateUser',function(){
 // Update Django Ajax Call
 function editUser(id) {
   if (id) {
-    tr_id = "#user-" + id;
-    name = $(tr_id).find(".userName").text();
-    description = $(tr_id).find(".userDescription").text();
-    quantity = $(tr_id).find(".userQuantity").text();
-    quantityTake = $(tr_id).find(".userQuantityTake").text();
-    machine = $(tr_id).find(".userMachine").text();
-    desireddate_str = $(tr_id).find(".userDesiredDate").text();
-    desireddateObject = desireddate_str.split("/").reverse().join("-");
-    unit = $(tr_id).find(".userUnit").data('val');
-    urgency = $(tr_id).find(".userUrgency").data('val');
-    product = $(tr_id).find(".userProduct").text();
+    var row = $("#user-" + id);
+    var name = row.attr('data-name') || '';
+    var description = row.attr('data-description') || '';
+    var quantity = row.attr('data-quantity') || '';
+    var quantityTake = row.attr('data-quantity-take') || '';
+    var machine = row.attr('data-machine') || '';
+    var desireddateObject = row.attr('data-desired-date') || '';
+    var unit = row.attr('data-unit') || '';
+    var urgency = row.attr('data-urgency') || '';
+    var product = row.attr('data-product') || '';
     $('#form-id').val(id);
     $('#form-name').val(name);
-    $('#form-description').val(description);
+    rqSetSelect('#form-description', description);
     $('#form-quantity').val(quantity);
     $('#form-quantitytake').val(quantityTake);
-    $('#form-machine').val(machine);
+    rqSetSelect('#form-machine', machine);
     $('#form-desireddate').val(desireddateObject);
     $('#form-unit').val(unit);
     $('#form-urgency').val(urgency);
-    $('#form-product').val(product);
+    //ตั้งค่ารหัสสินค้าเดิมเป็นการ์ด (ไม่เรียก setDataProductExpress เพื่อไม่ให้ดึงชื่อใหม่ทับ)
+    var psBox = $('#myModal .rq-ps');
+    psReset(psBox);
+    if (product.trim()) psShowSelected(psBox, product.trim(), name.trim(), unit);
+    $("#update_alert").addClass("d-none");
   }
 }
 
-function appendToUsrTable(user) {
-  $("#userTable > tbody:last-child").append(`
-        <tr id="user-${user.id}">
-            <td class="text-center userName" name="name">${user.product}</td>
-            '<td class="userName" name="name">${user.name}</td>
-            '<td class="userDescription" name="description">${user.description}</td>
-            '<td class="text-center userQuantity" name="quantity">${user.quantity}</td>
-            '<td class="text-center userQuantityTake" name="quantityTake">${user.quantity_take}</td>
-            '<td class="text-center userUnit" name="unit">${user.unit}</td>
-            '<td class="userMachine" name="machine">${user.machine}</td>
-            '<td class="text-center userDesiredDate" name="desireddate">${user.desired_date}</td>
-            '<td class="text-center userUrgency" name="urgency">${user.urgency}</td>
-            '<td align="center" class="hidden-print">
-                <button class="btn btn-secondary form-control" onClick="editUser(${user.id})" data-toggle="modal" data-target="#myModal")"><i class="fas fa-pen"></i></button>
-            </td>
-            <td align="center" class="hidden-print">
-                <button class="btn btn-danger form-control" onClick="deleteUser(${user.id})"><i class="fas fa-trash-alt"></i></button>
-            </td>
-        </tr>
-    `);
+//เลือกรหัสสินค้าใหม่ใน modal แก้ไข (mode 2): ดึงชื่อ/หน่วยจาก Express มาใส่ให้
+function setDataProductExpress(mode){
+  var id_product = ($('#form-product').val() || '').trim();
+  if (mode != 2 || !id_product) return false;
+  $.ajax({
+    url: '{% url "setDataProductExpress" %}',
+    data: { 'id_product': id_product },
+    dataType: 'json',
+    success: function (data) {
+      if (data.exp_name) {
+        $('#form-name').val(data.exp_name.trim());
+      }
+      if (data.exp_unit) {
+        var selectedOption = $('#unitList option[data-id="' + data.exp_unit + '"]');
+        if (selectedOption.length) {
+          $('#form-unit').val(selectedOption.attr('value'));
+        }
+      }
+      if (data.exp_alert) {
+        $("#update_alert").removeClass("d-none").text(data.exp_alert);
+      } else {
+        $("#update_alert").addClass("d-none");
+      }
+    }
+  });
+  return false;
 }
 
-function updateToUserTabel(user){
-    $("#userTable #user-" + user.id).children(".userData").each(function() {
-        var attr = $(this).attr("name");
-        if (attr == "name") {
-          $(this).text(user.name);
-        } else if (attr == "description") {
-          $(this).text(user.description);
-        } else if (attr == "quantity"){
-          $(this).text(user.quantity);
-        } else if (attr == "quantityTake"){
-          $(this).text(user.quantity_take);
-        } else if (attr == "machine"){
-          $(this).text(user.machine);
-        } else if (attr == "desireddate"){
-          $(this).text(user.desired_date);
-        } else if (attr == "unit"){
-          $(this).text(user.unit);
-        }else if (attr == "urgency"){
-          $(this).text(user.urgency);
-        }else if (attr == "product"){
-          $(this).text(user.product);
-        }
-      });
+//หัวคอลัมน์ รหัสวัสดุ/อุปกรณ์: แสดงรายการสินค้าที่ซื้อล่าสุด (แบบเดียวกับหน้า showPR)
+function searchLastPoItem() {
+  var itemList = [{% for it in users %}'{{it.id}}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+  $("#pShowSearch").html('กำลังค้นหา...');
+  $.ajax({
+    url: '{% url "searchLastPoItem" %}',
+    data: { itemList: itemList },
+    dataType: 'json',
+    success: function (data) {
+      $("#pShowSearch").html(data.instance || 'ไม่พบรายการที่สั่งซื้อล่าสุด');
+    }
+  });
+  return false;
 }
+
 function parseDate(str) {
     var mdy = str.split('-');
     return new Date(mdy[0], mdy[1]-1, mdy[2]);
@@ -540,5 +573,95 @@ function setDateTimePrint(){
 	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
 	$("#dt_print").text(datetime);
 }
-</script> 
+</script>
+{% include '_rq_item_modal_js.html' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+{% include '_thai_similar_js.html' %}
+<script>
+//ช่อง รายละเอียด/ประเภทการซ่อม และ ทะเบียนรถ/เครื่องจักร/หน่วยงาน: select2 ค้นหาง่าย แบบเดียวกับใบขอเบิก
+//พิมพ์ได้หลายคำ ไม่สนตัวพิมพ์/ขีด/ช่องว่าง และสะกดคล้ายก็เจอ (ป้าย "ชื่อคล้าย")
+var rqTerm = '';
+function rqEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function rqMark(text) { return ThaiSimilar.mark(rqEsc(text), rqTerm); }
+function rqNorm(s) { return String(s || '').toLowerCase().replace(/[\s\-._]/g, ''); }
+function rqMatcher(params, data) {
+  var term = $.trim(params.term || '');
+  rqTerm = term; //matcher ทำงานก่อน templateResult จึงจำคำค้นไว้ไฮไลต์
+  if (!term) return data;
+  if (!data.id) return null; //ไม่แสดงตัวเลือกว่างตอนค้นหา
+  var hay = String(data.text || '').toLowerCase(), hayN = rqNorm(data.text), similar = false;
+  var ok = term.split(/\s+/).every(function (t) {
+    if (hay.indexOf(t.toLowerCase()) > -1 || (rqNorm(t) && hayN.indexOf(rqNorm(t)) > -1)) return true;
+    if (ThaiSimilar.match(data.text, t)) { similar = true; return true; }
+    return false;
+  });
+  return ok ? $.extend({}, data, { similar: similar }) : null;
+}
+//ทะเบียนรถ: ตัวเลือกเป็น "code : ชื่อ" แสดง code เป็นป้ายเด่น
+function rqCarResult(d) {
+  if (d.loading || !d.id) return rqEsc(d.text);
+  var parts = String(d.text || '').split(' : ');
+  if (parts.length < 2) return rqMark(d.text) + (d.similar ? ThaiSimilar.badge : '');
+  return '<div class="rq-car-opt"><span class="rq-car-code">' + rqMark(parts[0]) + '</span>' +
+         '<span class="rq-car-name">' + rqMark(parts.slice(1).join(' : ')) + (d.similar ? ThaiSimilar.badge : '') + '</span></div>';
+}
+function rqLocalSelect(sel, placeholder, searchPlaceholder, templateResult) {
+  var $el = $(sel);
+  var ddClass = 'rq-dd-' + $el.attr('id');
+  $el.select2({
+    width: '100%',
+    placeholder: placeholder,
+    dropdownParent: $('#myModal'), //อยู่ใน modal: ต้องวาง dropdown ใน modal ไม่งั้นพิมพ์ในช่องค้นหาไม่ได้
+    dropdownCssClass: 'rq-dd ' + ddClass,
+    matcher: rqMatcher,
+    language: { noResults: function () { return 'ไม่พบข้อมูล — ลองพิมพ์คำอื่น'; } },
+    escapeMarkup: function (m) { return m; },
+    templateResult: templateResult || function (d) {
+      if (!d.id) return rqEsc(d.text);
+      return rqMark(d.text) + (d.similar ? ThaiSimilar.badge : '');
+    },
+    templateSelection: function (d) { return rqEsc(d.text || ''); },
+  });
+  function field() { return document.querySelector('.' + ddClass + ' .select2-search__field'); }
+  //เปิดแล้วโฟกัสช่องค้นหาทันที
+  $el.on('select2:open', function () {
+    setTimeout(function () {
+      var f = field();
+      if (!f) return;
+      f.placeholder = searchPlaceholder;
+      f.focus();
+      rqTerm = f.value;
+    }, 0);
+  });
+  //โฟกัสที่ช่องแล้วพิมพ์ = เปิดรายการและค้นหาเลย
+  $el.next('.select2-container').on('keydown', '.select2-selection', function (e) {
+    if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      var ch = e.key;
+      e.preventDefault();
+      $el.select2('open');
+      setTimeout(function () {
+        var f = field();
+        if (f) { f.value = ch; rqTerm = ch; $(f).trigger('input'); }
+      }, 0);
+    }
+  });
+}
+//ตั้งค่าเดิมของรายการ ถ้าค่าเดิมไม่มีในตัวเลือก (เช่นข้อมูลเก่า) ให้เพิ่มเป็นตัวเลือกไว้ ค่าจะได้ไม่หายตอนบันทึก
+function rqSetSelect(sel, v) {
+  var $el = $(sel);
+  v = $.trim(v || '');
+  if (v && !$el.find('option').filter(function () { return this.value === v; }).length) {
+    $el.append(new Option(v, v));
+  }
+  $el.val(v).trigger('change.select2');
+}
+$(function () {
+  rqLocalSelect('#form-description', 'คลิกเพื่อเลือก หรือพิมพ์', 'พิมพ์ประเภทการซ่อม');
+  rqLocalSelect('#form-machine', 'คลิกเพื่อเลือก หรือพิมพ์ code / ชื่อ', 'พิมพ์ code หรือชื่อ เช่น 70-1234, รถแม็คโคร', rqCarResult);
+});
+</script>
 {% endblock %}

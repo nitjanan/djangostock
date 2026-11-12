@@ -88,6 +88,7 @@ urlpatterns = [
     path('purchaseRequisition/create/CMorPO/<int:pr_id>',views.createCMorPO,name="createCMorPO"),
     path('purchaseRequisition/show/<int:pr_id>/<int:mode>',views.showPR,name="showPR"),
     path('purchaseRequisition/reApprove/<int:pr_id>',views.reApprovePR,name="reApprovePR"),
+    path('purchaseRequisition/requestReApprove/<int:pr_id>',views.requestPRReApprove,name="requestPRReApprove"),
     path('purchaseRequisition/close/<int:pr_id>',views.closePR,name="closePR"),
     path('purchaseRequisition/reBuy/<int:pr_id>',views.reBuyPR,name="reBuyPR"),
 

@@ -1,0 +1,13 @@
+{% comment %}แจ้งผลการบันทึก (django messages) ด้านบนหน้ารายการ: ใบขอเบิก / ใบขอซื้อ / ใบเปรียบเทียบราคา / ใบสั่งซื้อ
+ข้อความหลังบันทึกมาจาก doc_saved_message ใน views.py (ผ่าน redirect_list_focus){% endcomment %}
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert {{ message.tags }} alert-dismissible fade show my-3" role="alert">
+      {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}<i class="fas fa-times-circle"></i>
+      {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}<i class="fas fa-exclamation-triangle"></i>
+      {% else %}<i class="fas fa-check-circle"></i>{% endif %}
+      {{ message }}
+      <button type="button" class="close" data-dismiss="alert" aria-label="ปิด"><span aria-hidden="true">&times;</span></button>
+    </div>
+  {% endfor %}
+{% endif %}

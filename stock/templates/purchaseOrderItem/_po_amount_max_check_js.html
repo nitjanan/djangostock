@@ -1,0 +1,12 @@
+  //ปุ่มบันทึกและส่งอนุมัติ: จำนวนเงินรวมทั้งสิ้นตั้งแต่วงเงินของสิทธิอนุมัติใบสั่งซื้อ (CAAPO ap_amount_max) ขึ้นไป
+  //แจ้งเตือนและไม่ให้บันทึก (ต้องออกใบเปรียบเทียบราคาก่อน) server เช็คซ้ำใน check_po_amount_over_max
+  //ปุ่มไม่มี data-amount-max (ใบที่ออกจากใบเปรียบเทียบ/ไม่ได้ตั้งวงเงิน) จะไม่เช็ค คืน true ถ้าส่งต่อได้
+  function checkPOAmountOverMax(button) {
+    var max = parseFloat($(button).attr('data-amount-max'));
+    if (isNaN(max)) return true;
+    var amount = parseFloat(String($('#id_amount').val() || '').replace(/,/g, '')) || 0;
+    if (amount < max) return true;
+    var maxText = max.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    alert('ไม่สามารถบันทึกและส่งอนุมัติได้\nกรุณาออกใบเปรียบเทียบราคาก่อน เนื่องจากยอดเงินตั้งแต่ ' + maxText + ' บาทขึ้นไป');
+    return false;
+  }

@@ -66,14 +66,7 @@
 
 {% block content %}
 <div class="container my-3">
-  {% if messages %}
-    {% for message in messages %}
-        <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
-          <i class="fas fa-check-circle"></i>
-          {{ message }}
-        </div>
-    {% endfor %}
-  {% endif %}
+  {% include '_messages_alert.html' %}
 
 {% if isPurchasing %}
   <h3 align="center">สร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อจากใบขอซื้อ/ขอซ่อม</h3>
@@ -213,9 +206,19 @@
             </td>
             <td class="lt-actions">{% spaceless %}
               {% if tab == 'reject' %}
+                {% if pr.can_re_approve %}
+                <!-- POST: ใบขอซื้อกลับเป็นรอดำเนินการแบบร่างก่อน แล้วไปหน้าแก้ไข (ส่งอนุมัติใหม่ด้วยปุ่ม บันทึกและส่งอนุมัติ) -->
+                <form method="post" action="{% url 'requestPRReApprove' pr.id %}" onsubmit="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลง</button>
+                </form>
+                {% endif %}
               {% elif isPurchasing %}
                 <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ CM/PO</a>
                 <a href="{% url 'closePR' pr.id %}" onclick="return confirm('คุณต้องการปิดรายการนี้หรือไม่ ?\n *** รายการใบขอซื้อจะไปอยู่หน้า History ใช้ในกรณี\n 1. ดึงสินค้าไปทำรายการแล้ว แต่ระบบไม่นำใบขอซื้อออกอัตโนมัติ\n 2. รายการใบขอซื้อที่ไม่ต้องการซื้อแล้ว')" class="btn btn-outline-secondary btn-sm">ปิดรายการ</a>
+              {% elif pr.approver_status_id == 1 and pr.is_re_approve and pr.is_draft and canReApprovePR %}
+                <!-- ขอเปลี่ยนแปลงรายละเอียดแล้ว ยังเป็นแบบร่าง: แก้ไขต่อในหน้า reApprovePR -->
+                <a href="{% url 'reApprovePR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
               {% elif pr.approver_status_id == 1 and pr.is_re_approve == False %}
                 <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
                 <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?\n *** หากลบใบขอซื้อนี้จะลบใบจ่ายสินค้าภายในด้วย')" href="{% url 'removePR' pr.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>

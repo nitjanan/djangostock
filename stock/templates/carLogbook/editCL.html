@@ -132,7 +132,6 @@
     <fieldset {% if read_only %}disabled class="cl-read-only"{% endif %}>
         {{form.id}}
         {{ form.branch_company }}
-        {{ form.created | add_class:"form-control d-none" }}
         {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
 
         <div class="cl-grid">
@@ -175,6 +174,13 @@
             <div class="cl-main">
                 <div class="cl-card">
                     <div class="cl-sec"><i class="fas fa-id-card"></i>ข้อมูลรถและเลขไมล์</div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="id_created" class="text-danger font-weight-bold">วันที่</label>
+                            {{ form.created|attr:"class:form-control is-invalid"|attr:"required:true" }}
+                            {{ form.created.errors }}
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label>{{ form.name.label }}</label>
@@ -305,8 +311,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 {% include '_select2_search.html' %}
 <script>
-    $('#id_created').val('{{cl_data.created|date:"Y-m-d"}}');
-
     // ===== ทะเบียนรถ: เปิดแล้วเห็นรายการทันที พิมพ์ทะเบียน/รหัสได้ (ไม่สนขีด/ช่องว่าง เช่น 801234 เจอ 80-1234) =====
     var carTerms = [];
     initSearchSelect('#id_car', 'เลือกทะเบียนรถ/ เครื่องจักร', true, {

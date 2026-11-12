@@ -1,0 +1,190 @@
+{% comment %}JS ของ modal เพิ่ม/แก้ไขรายการสินค้า ใช้คู่กับ _rq_item_modal_styles.html
+หน้าที่ include ต้องมี jQuery ตัวเต็ม ($.getJSON), function setDataProductExpress(mode) และ datalist #unitList (รายชื่อหน่วย){% endcomment %}
+<script>
+// ช่องค้นหารหัสวัสดุ/อุปกรณ์ ใน modal เพิ่ม/แก้ไขรายการ: ผลค้นหาแสดงเป็นรายการค้างในหน้าต่าง
+// .rq-ps[data-target] = hidden input ที่เก็บรหัสสินค้า, data-mode = โหมดของ setDataProductExpress (1 เพิ่ม, 2 แก้ไข)
+var PS_URL = "{% url 'product_search' %}";
+var PS_EMPTY = ''; //ยังไม่พิมพ์ = ไม่แสดงกล่องผลค้นหา
+function escapeHtml(str) {
+  return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+//ไฮไลต์สีเหลืองตรงคำที่พิมพ์ค้นหา (ทุกคำ) — q เป็น array regex จาก server (data.hl รวมตัวสะกดคล้าย ส/ศ) หรือข้อความ
+function psMark(text, q) {
+  var out = escapeHtml(text);
+  var pats = $.isArray(q) ? q : String(q || '').split(/\s+/).filter(Boolean).map(function (t) {
+    return escapeHtml(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  });
+  pats.forEach(function (p) {
+    try { out = out.replace(new RegExp('(' + p + ')(?![^<]*>)', 'ig'), '<mark>$1</mark>'); } catch (e) {}
+  });
+  return out;
+}
+function psRowHtml(item, selectedId, q) {
+  var sel = item.id === selectedId ? ' is-selected' : '';
+  return '<div class="rq-ps-row' + sel + '" data-id="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.name) + '" data-unit="' + escapeHtml(item.unit) + '">' +
+           '<span class="rq-ps-code">' + psMark(item.id, q) + '</span>' +
+           '<span class="rq-ps-name">' + psMark(item.name, q) + (item.similar ? '<span class="ps-similar">ชื่อคล้าย</span>' : '') + '</span>' +
+           '<span>' + (item.unit ? '<span class="rq-ps-unit">' + escapeHtml(item.unit) + '</span>' : '') + '<i class="fas fa-check rq-ps-check"></i></span>' +
+         '</div>';
+}
+function psNextToken(box) {
+  var tok = (box.data('tok') || 0) + 1;
+  box.data('tok', tok);
+  return tok;
+}
+function psReset(box) {
+  psNextToken(box);
+  box.find('.rq-ps-q').val('');
+  box.find('.rq-ps-count').text('');
+  $(box.data('target')).val('');
+  box.removeClass('is-picked has-value');
+  box.find('.rq-ps-selected').addClass('d-none').empty();
+  box.find('.rq-ps-results').html(PS_EMPTY);
+}
+function psShowSelected(box, id, name, unit) {
+  id = String(id);
+  $(box.data('target')).val(id);
+  box.addClass('is-picked has-value');
+  box.find('.rq-ps-selected').removeClass('d-none').html(
+    '<div class="rq-ps-card-icon"><i class="fas fa-box-open"></i></div>' +
+    '<div><div class="rq-ps-card-code">' + escapeHtml(id) +
+      (unit ? '<span class="rq-ps-unit">' + escapeHtml(unit) + '</span>' : '') + '</div>' +
+    '<div class="rq-ps-card-name">' + escapeHtml(name) + '</div></div>' +
+    '<button type="button" class="rq-ps-change"><i class="fas fa-sync-alt mr-1"></i>เปลี่ยน</button>');
+  box.find('.rq-ps-row').each(function () { $(this).toggleClass('is-selected', String($(this).data('id')) === id); });
+}
+function psSearch(box, page) {
+  var q = box.find('.rq-ps-q').val().trim();
+  var results = box.find('.rq-ps-results');
+  var tok = psNextToken(box);
+  if (!q) {
+    box.find('.rq-ps-count').text('');
+    results.html(PS_EMPTY);
+    return;
+  }
+  if (page === 1) results.html('<div class="rq-ps-empty"><i class="fas fa-spinner fa-spin mr-1"></i>กำลังค้นหา...</div>');
+  $.getJSON(PS_URL, { q: q, page: page }, function (data) {
+    if (box.data('tok') !== tok) return; //มีการพิมพ์ใหม่ระหว่างรอ ไม่ต้องแสดงผลเก่า
+    var selectedId = $(box.data('target')).val();
+    var html = $.map(data.results, function (item) { return psRowHtml(item, selectedId, data.hl || q); }).join('');
+    results.find('.rq-ps-more').remove();
+    if (page === 1) {
+      results.html(html || '<div class="rq-ps-empty">ไม่พบสินค้า "' + escapeHtml(q) + '"</div>');
+      results.scrollTop(0);
+    } else {
+      results.append(html);
+    }
+    var shown = results.find('.rq-ps-row').length;
+    box.find('.rq-ps-count').text(data.total ? 'พบ ' + data.total + ' รายการ' : '');
+    if (data.pagination && data.pagination.more) {
+      results.append('<button type="button" class="rq-ps-more" data-page="' + (page + 1) + '">แสดงเพิ่ม (เหลืออีก ' + (data.total - shown) + ' รายการ)</button>');
+    }
+    if (page === 1) results.find('.rq-ps-row').first().addClass('is-active');
+  });
+}
+function psPick(box, row) {
+  psShowSelected(box, row.data('id'), row.data('name'), row.data('unit'));
+  setDataProductExpress(box.data('mode'));
+}
+$(function () {
+  var psTimer;
+  $(document).on('input', '.rq-ps-q', function () {
+    var box = $(this).closest('.rq-ps');
+    clearTimeout(psTimer);
+    psTimer = setTimeout(function () { psSearch(box, 1); }, 250);
+  });
+  $(document).on('click', '.rq-ps-row', function () {
+    var row = $(this);
+    row.addClass('is-active').siblings().removeClass('is-active');
+    psPick(row.closest('.rq-ps'), row);
+  });
+  $(document).on('click', '.rq-ps-more', function () {
+    psSearch($(this).closest('.rq-ps'), parseInt($(this).data('page'), 10));
+  });
+  //คีย์บอร์ด: ↑ ↓ เลื่อน, Enter เลือก (ไม่ให้ Enter ส่งฟอร์ม)
+  $(document).on('keydown', '.rq-ps-q', function (e) {
+    var box = $(this).closest('.rq-ps');
+    var rows = box.find('.rq-ps-row');
+    var idx = rows.index(rows.filter('.is-active'));
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!rows.length) return;
+      idx = e.key === 'ArrowDown' ? Math.min(idx + 1, rows.length - 1) : Math.max(idx - 1, 0);
+      rows.removeClass('is-active').eq(idx).addClass('is-active')[0].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (idx >= 0) psPick(box, rows.eq(idx));
+    } else if (e.key === 'Escape' && box.hasClass('has-value')) {
+      e.preventDefault();
+      e.stopPropagation(); //ไม่ให้ Esc ปิด modal
+      box.addClass('is-picked');
+    }
+  });
+  //การ์ดสินค้าที่เลือก: "เปลี่ยน" เปิดช่องค้นหาอีกครั้ง, "ยกเลิก" กลับไปใช้สินค้าเดิม
+  $(document).on('click', '.rq-ps-change', function () {
+    var box = $(this).closest('.rq-ps');
+    box.removeClass('is-picked');
+    box.find('.rq-ps-q').trigger('focus').trigger('select');
+  });
+  $(document).on('click', '.rq-ps-cancel', function () {
+    $(this).closest('.rq-ps').addClass('is-picked');
+  });
+  //ช่องหน่วย: โฟกัสแล้วแสดงหน่วยทั้งหมด พิมพ์เพื่อกรอง (ค้นหาบางส่วนของคำ) ↑ ↓ Enter เลือก
+  var RQ_UNITS = [];
+  $('#unitList option').each(function () {
+    var v = $(this).attr('value');
+    if (v && RQ_UNITS.indexOf(v) < 0) RQ_UNITS.push(v);
+  });
+  function unitRender(input) {
+    var list = input.siblings('.rq-unit-list');
+    var val = input.val().trim();
+    var q = val.toLowerCase();
+    var exact = RQ_UNITS.indexOf(val) >= 0; //ค่าปัจจุบันเป็นหน่วยที่มีอยู่แล้ว -> แสดงทั้งหมดให้เปลี่ยนได้ง่าย
+    var items = (!q || exact) ? RQ_UNITS : RQ_UNITS.filter(function (u) { return u.toLowerCase().indexOf(q) >= 0; });
+    list.html(items.length
+      ? $.map(items, function (u) {
+          return '<button type="button" tabindex="-1" class="rq-unit-opt' + (u === val ? ' is-current' : '') + '" data-v="' + escapeHtml(u) + '">' + escapeHtml(u) + '</button>';
+        }).join('')
+      : '<div class="rq-unit-empty">ไม่พบหน่วย "' + escapeHtml(val) + '"</div>');
+    if (!exact) list.find('.rq-unit-opt').first().addClass('is-active');
+    list.removeClass('d-none').scrollTop(0);
+    var cur = list.find('.is-current')[0];
+    if (cur) cur.scrollIntoView({ block: 'nearest' });
+  }
+  function unitHide(input) { input.siblings('.rq-unit-list').addClass('d-none'); }
+  $(document).on('focus click', '.rq-unit-q', function () { unitRender($(this)); });
+  $(document).on('input', '.rq-unit-q', function () { unitRender($(this)); });
+  $(document).on('blur', '.rq-unit-q', function () {
+    var input = $(this);
+    setTimeout(function () { unitHide(input); }, 150);
+  });
+  $(document).on('mousedown', '.rq-unit-opt', function (e) {
+    e.preventDefault(); //ไม่ให้ช่องหลุดโฟกัสก่อนเลือก
+    var input = $(this).closest('.rq-unit').find('.rq-unit-q');
+    input.val($(this).data('v'));
+    unitHide(input);
+  });
+  $(document).on('keydown', '.rq-unit-q', function (e) {
+    var input = $(this);
+    var list = input.siblings('.rq-unit-list');
+    if (list.hasClass('d-none')) return;
+    var opts = list.find('.rq-unit-opt');
+    var idx = opts.index(opts.filter('.is-active'));
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!opts.length) return;
+      if (idx < 0) idx = opts.index(opts.filter('.is-current'));
+      idx = e.key === 'ArrowDown' ? Math.min(idx + 1, opts.length - 1) : Math.max(idx - 1, 0);
+      opts.removeClass('is-active').eq(idx).addClass('is-active')[0].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (idx >= 0) input.val(opts.eq(idx).data('v'));
+      unitHide(input);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation(); //ไม่ให้ Esc ปิด modal
+      unitHide(input);
+    }
+  });
+});
+</script>

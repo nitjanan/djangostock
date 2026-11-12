@@ -769,7 +769,8 @@ class CarLogbookForm(forms.ModelForm):
                     , 'job4_id', 'job4', 'start_job4', 'end_job4', 'exd_job4'
                     , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease', 'coolant', 'DW_water') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
-            'created' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
+            #input type=date ต้องได้ค่าแบบ YYYY-MM-DD เสมอ (หน้าแก้ไขแสดงวันที่เดิมให้แก้ได้)
+            'created' : forms.DateInput(format='%Y-%m-%d', attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
             'image_mile': forms.ClearableFileInput(
                 attrs={
                     'accept': 'image/*',   # only images
@@ -848,7 +849,8 @@ class RoiCarLogbookForm(forms.ModelForm):
                   ,'orig6', 'mile_start_job6', 'mile_end_job6', 'job6_id', 'job6'
                   , 'note', 'oil', 'gas', 'engine', 'hydraulic', 'grease', 'coolant', 'DW_water') #สร้าง auto อ้างอิงจากฟิลด์ใน db , 'repair_type', 'car' 04-06-2024 เอาออกก่อน
         widgets = {
-            'created' : forms.DateInput(attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
+            #input type=date ต้องได้ค่าแบบ YYYY-MM-DD เสมอ (หน้าแก้ไขแสดงวันที่เดิมให้แก้ได้)
+            'created' : forms.DateInput(format='%Y-%m-%d', attrs={'class':'form-control is-invalid', 'placeholder':'Select a date', 'type':'date', 'required':''}),
             'image_mile': forms.ClearableFileInput(
                 attrs={
                     'accept': 'image/*',   # only images
