@@ -1,0 +1,49 @@
+{% load widget_tweaks %}
+{% comment %}ใบเสนอราคา + ปุ่มบันทึก + สรุปยอดเงินของร้านที่กำลังเพิ่ม/แก้ไข (bookform)
+show_spell: แสดงจำนวนเงินตัวอักษร (#total-spell) / submit_label, submit_class, submit_icon: ปุ่มบันทึก{% endcomment %}
+<div class="row mt-3">
+  <div class="col-lg-6 mb-3 mb-lg-0 d-flex flex-column">
+    <div class="pdf">
+      <label class="font-weight-bold mb-1" for="{{bookform.quotation_pdf.id_for_label}}">ใบเสนอราคา</label>
+      {{bookform.quotation_pdf | add_class:"form-control-file"}}
+      {% if bookform.quotation_pdf.errors %}
+      <div class="alert alert-warning mt-2" role="alert">
+          {{ bookform.quotation_pdf.errors }}
+      </div>
+      {% endif %}
+    </div>
+    {% if show_spell %}<p id="total-spell" class="cp-total-spell text-left mt-3 mb-0"></p>{% endif %}
+    <div class="mt-auto pt-3">
+      <button type="submit" class="btn {{ submit_class }} px-4"><i class="fas {{ submit_icon }}"></i> {{ submit_label }}</button>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="cp-totals">
+      <p class="text-right" id="tempTotal" hidden></p>
+      <div class="cp-total-row">
+        <label for="id_total_price">{{bookform.total_price.label}}</label>
+        {{bookform.total_price | add_class:"form-control text-right"}}
+      </div>
+      <div class="cp-total-row">
+        <label for="id_discount">{{bookform.discount.label}}</label>
+        {{bookform.discount | add_class:"form-control text-right"}}
+      </div>
+      <div class="cp-total-row">
+        <label for="id_total_after_discount">{{bookform.total_after_discount.label}}</label>
+        {{bookform.total_after_discount | add_class:"form-control text-right"}}
+      </div>
+      <div class="cp-total-row">
+        <label for="id_freight">{{bookform.freight.label}}</label>
+        {{bookform.freight | add_class:"form-control text-right"}}
+      </div>
+      <div class="cp-total-row">
+        <label for="id_vat">{{bookform.vat.label}}</label>
+        {{bookform.vat | add_class:"form-control text-right"}}
+      </div>
+      <div class="cp-total-row cp-total-grand">
+        <label for="id_amount">{{bookform.amount.label}}</label>
+        {{bookform.amount | add_class:"form-control text-right"}}
+      </div>
+    </div>
+  </div>
+</div>

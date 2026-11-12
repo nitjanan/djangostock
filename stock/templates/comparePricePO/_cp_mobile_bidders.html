@@ -1,0 +1,32 @@
+{% load humanize %}
+{% comment %}สรุปราคาแต่ละร้านเป็นการ์ด แสดงเฉพาะบนมือถือ (ไม่ปริ้น) ใช้คู่กับ _cp_mobile_styles.html{% endcomment %}
+<div class="cp-m-bidders d-md-none d-print-none">
+    <div class="cp-m-heading">สรุปราคาแต่ละร้าน ({{ bidder|length }} ร้าน)</div>
+    {% for bd in bidder %}
+    <div class="cp-m-bidder {% if cp.select_bidder_id == bd.distributor_id %}cp-selected{% endif %}">
+        <div class="cp-m-bidder-head">
+            <span class="cp-m-no">{{ forloop.counter }}</span>
+            <div class="cp-m-name">
+                {{ bd.distributor.name }}
+                <div>
+                    {% if forloop.first %}<span class="badge badge-success">ราคาต่ำสุด</span>{% endif %}
+                    {% if cp.select_bidder_id == bd.distributor_id %}<span class="badge badge-primary">ร้านที่เลือก</span>{% endif %}
+                </div>
+            </div>
+            {% if bd.quotation_pdf %}
+                <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm" title="ใบเสนอราคา"><i class="fas fa-file-download"></i></a>
+            {% endif %}
+        </div>
+        <dl class="cp-m-amounts">
+            <dt>รวม</dt><dd>{{ bd.total_price|intcomma }}</dd>
+            <dt>หักส่วนลด</dt><dd>{{ bd.discount|intcomma }}</dd>
+            <dt>หลังหักส่วนลด</dt><dd>{{ bd.total_after_discount|intcomma }}</dd>
+            <dt>ค่าขนส่ง</dt><dd>{{ bd.freight|intcomma }}</dd>
+            <dt>ภาษีมูลค่าเพิ่ม 7%</dt><dd>{{ bd.vat|intcomma }}</dd>
+            <dt class="cp-m-grand">รวมเป็นเงินทั้งสิ้น</dt><dd class="cp-m-grand">{{ bd.amount|intcomma }}</dd>
+        </dl>
+        <div class="cp-m-sub">เครดิต {{ bd.credit }}{% if bd.distributor.tel %} · โทร. {{ bd.distributor.tel }}{% endif %}</div>
+    </div>
+    {% endfor %}
+    <div class="cp-m-scroll-hint"><i class="fas fa-arrows-alt-h"></i> ตารางรายการด้านล่าง เลื่อนซ้าย-ขวาเพื่อดูทั้งหมด</div>
+</div>

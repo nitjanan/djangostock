@@ -5,9 +5,6 @@
 {% load widget_tweaks %}
 {% load templatehelpers %}
 {% block css %}
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-
 <!-- Boostrap 4 icon -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 <style>
@@ -15,484 +12,278 @@
 .select2-container{display:block !important;width:100% !important;max-width:100% !important;box-sizing:border-box;}
 .select2-container > .selection,
 .select2-container .select2-selection,
-.select2-container .select2-selection--single,
-.select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
-.input-group > .select2-container{flex:1 1 auto;width:1% !important;}
+.select2-container .select2-selection--single{display:block !important;width:100% !important;box-sizing:border-box !important;}
+.select2-container .select2-selection--single{height:38px !important;padding:4px 12px;border-radius:6px;border:1px solid #ced4da;}
+.select2-container .select2-selection--single .select2-selection__rendered{line-height:28px !important;padding-left:0;}
+.select2-container .select2-selection--single .select2-selection__arrow{height:36px !important;top:0;right:6px;}
+.select2-container .select2-dropdown{border-radius:6px;border:1px solid #ced4da;}
+.select2-container .select2-selection__clear{line-height:28px !important;}
+.select2-container .dropdown-wrapper{display:none;}
 
-    /* Fill the parent column / form-group width */
-    .form-group .select2-container .select2-selection--single,
-    .col-md-6 .select2-container .select2-selection--single,
-    .col-md-4 .select2-container .select2-selection--single {
-        width: 100% !important;
-    }
+/* select2 ไม่สนใจ fieldset disabled จึงต้องกันการคลิกเอง */
+.cl-read-only .select2-container{pointer-events:none;}
+.cl-read-only .select2-selection{background-color:#e9ecef !important;}
 
-    /* Adjust the Select2 container */
-    .select2-container .select2-selection--single {
-    height: 37px !important;
-    line-height: 50px !important;
-    padding: 5px 12px;
-    border-radius: 4px;
-    border: 1px solid #ced4da;
-    }
+/* ===== บันทึกการใช้รถ ร้อยเกาะ (แถบสรุปซ้าย + ฟอร์มขวา) ===== */
+.cl-edit{max-width:1240px;margin:0 auto;padding-bottom:1rem;}
+.cl-edit fieldset{min-width:0;}
+.cl-edit .cl-title{display:flex;align-items:center;gap:.6rem;font-size:1.3rem;font-weight:600;margin-bottom:.75rem;}
+.cl-edit .cl-title .badge{font-size:.75rem;font-weight:500;}
+.cl-edit .cl-grid{display:grid;grid-template-columns:270px minmax(0,1fr);gap:1rem;align-items:start;}
+.cl-edit .cl-card{background:#fff;border:1px solid #e3e6ea;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);padding:.85rem 1.1rem;margin-bottom:1rem;}
+.cl-edit .cl-main .cl-card:last-child{margin-bottom:0;}
+.cl-edit .cl-sec{display:flex;align-items:center;gap:.5rem;font-weight:600;font-size:1rem;margin-bottom:.7rem;color:#343a40;}
+.cl-edit .cl-sec i{color:#1c3d7a;}
+.cl-edit .form-group{margin-bottom:.6rem;}
+.cl-edit label{font-size:.8rem;color:#495057;margin-bottom:.15rem;}
 
-    /* Adjust the dropdown arrow height and alignment */
-    .select2-container .select2-selection--single .select2-selection__arrow {
-    height: 37px !important;
-    top: 0;
-    right: 6px;
-    }
+/* แถบสรุปด้านซ้าย */
+.cl-edit .cl-side{position:sticky;top:.75rem;}
+.cl-edit .cl-side .cl-card{padding:.9rem;}
+.cl-edit .cl-plate{display:inline-flex;align-items:stretch;border:2px solid #1c3d7a;border-radius:7px;overflow:hidden;background:#fff;line-height:1;max-width:100%;}
+.cl-edit .cl-plate .pi{display:flex;align-items:center;background:#1c3d7a;color:#ffd43b;padding:0 .5rem;}
+.cl-edit .cl-plate .pt{display:flex;align-items:center;padding:.3rem .6rem;font-size:1.15rem;font-weight:700;letter-spacing:.05em;color:#1c3d7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cl-edit .cl-plate .pc{display:flex;align-items:center;background:#ffd43b;color:#1c3d7a;font-weight:700;font-size:.8rem;padding:0 .5rem;border-left:2px solid #1c3d7a;white-space:nowrap;}
+.cl-edit .cl-meta{font-size:.85rem;color:#6c757d;margin:.5rem 0 .75rem;}
+.cl-edit .cl-meta div{margin-bottom:.15rem;}
+.cl-edit .cl-meta i{width:1.1rem;text-align:center;margin-right:.25rem;}
+.cl-edit .cl-tiles{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;}
+.cl-edit .cl-tile{border:1px solid #eef0f2;background:#f8f9fa;border-radius:8px;padding:.4rem .55rem;min-width:0;}
+.cl-edit .cl-tile .k{font-size:.72rem;color:#6c757d;}
+.cl-edit .cl-tile .v{font-size:1.05rem;font-weight:700;color:#212529;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cl-edit .cl-tile.wide{grid-column:1 / -1;}
+.cl-edit .cl-tile.dist{background:#f3f8ff;border-color:#d0e4ff;}
+.cl-edit .cl-tile.dist .v{color:#1864ab;}
+.cl-edit .cl-tile.trips{background:#f4fbf6;border-color:#d3f0db;}
+.cl-edit .cl-tile.trips .v{color:#2b8a3e;}
+.cl-edit .cl-tile.bad{background:#fff5f5;border-color:#ffc9c9;}
+.cl-edit .cl-tile.bad .v{color:#c92a2a;}
 
-    /* Ensure dropdown menu adapts properly */
-    .select2-container .select2-dropdown {
-    border-radius: 4px;
-    border: 1px solid #ced4da;
-    }
+/* รูปเลขไมล์ */
+.cl-edit .cl-photo{display:block;margin-top:.75rem;border:1.5px dashed #ced4da;border-radius:8px;overflow:hidden;background:#fbfbfc;cursor:pointer;text-align:center;color:#6c757d;font-size:.85rem;margin-bottom:0;}
+.cl-edit .cl-photo:hover{border-color:#86b7fe;color:#0d6efd;}
+.cl-edit .cl-photo img{display:none;width:100%;max-height:200px;object-fit:contain;background:#f1f3f5;}
+.cl-edit .cl-photo.has-img img{display:block;}
+.cl-edit .cl-photo .cap{padding:.55rem;}
+.cl-edit .cl-photo.has-img .cap{padding:.35rem;font-size:.78rem;border-top:1px solid #eef0f2;}
+.cl-read-only .cl-photo{cursor:default;}
 
-    /* Align the clear button */
-    .select2-container .select2-selection__clear {
-    line-height: 37px !important;
-    }
-        
-    .big-checkbox{
-        width: 16px; /* Adjust the width as needed */
-        height: 16px; /* Adjust the height as needed */
-        transform: scale(1.15); /* Adjust the scale as needed */
-        -webkit-transform: scale(1.15); /* For Safari and Chrome */
-        -moz-transform: scale(1.15); /* For Firefox */
-        -ms-transform: scale(1.15); /* For Internet Explorer */
-        -o-transform: scale(1.15); /* For Opera */
-    }
+/* แถบปุ่ม ติดด้านล่าง (แบบเดียวกับใบขอเบิก) */
+.cl-edit .cl-actions-bar{position:sticky;bottom:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin-top:1rem;padding:.75rem 1.25rem;background:#fff;border:1px solid #e4e8ee;border-radius:12px;box-shadow:0 -4px 16px rgba(16,24,40,.06);}
 
-    .inline-checkboxes{
-        display: inline-block;
-        margin-right: 15px; /* Adjust spacing as needed */
-    }
+/* ตารางเที่ยวขนส่ง: # | ต้นทาง | สถานที่จัดส่ง | ไมล์เริ่ม | ไมล์สิ้นสุด | ระยะ */
+.cl-edit .cl-trips-head,.cl-edit .cl-trip{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 120px 120px 70px;gap:.5rem;align-items:start;}
+.cl-edit .cl-trips-head{font-size:.75rem;color:#6c757d;padding-bottom:.3rem;border-bottom:1px solid #eef0f2;}
+.cl-edit .cl-trip{padding:.55rem 0;border-bottom:1px dashed #e9ecef;}
+.cl-edit .cl-trip:last-child{border-bottom:0;padding-bottom:0;}
+.cl-edit .cl-trip .n{width:24px;height:24px;border-radius:50%;background:#e7f1ff;color:#0d6efd;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;justify-content:center;margin-top:7px;}
+.cl-edit .cl-trip .req-n{background:#1c3d7a;color:#fff;}
+.cl-edit .cl-trip .lbl{display:none;}
+.cl-edit .cl-trip input[type="number"]{text-align:right;}
+.cl-edit .cl-trip .dist{margin-top:7px;font-size:.8rem;font-weight:600;text-align:center;border-radius:6px;padding:.2rem 0;color:#adb5bd;white-space:nowrap;}
+.cl-edit .cl-trip .dist.ok{background:#e7f5ff;color:#1864ab;}
+.cl-edit .cl-trip .dist.bad{background:#fff5f5;color:#c92a2a;}
+/* เที่ยวที่ยังไม่กรอก ทำให้จางลงเล็กน้อย */
+.cl-edit .cl-trip.empty .n{background:#f1f3f5;color:#adb5bd;}
+.cl-edit .cl-more{display:block;width:100%;margin-top:.5rem;border:1.5px dashed #ced4da;background:#fbfbfc;color:#495057;border-radius:8px;padding:.4rem;font-size:.85rem;}
+.cl-edit .cl-more:hover{border-color:#86b7fe;color:#0d6efd;}
 
-    #preview-image_mile {
-            max-width: 200px; 
-            display: none; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            padding: 5px;
-    }
+/* ปริมาณที่ใช้ */
+.cl-edit .cl-qty{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.1rem .75rem;}
 
-    .upload-label {
-            background-color: white; 
-            padding: 6px 20px; 
-            border: 1px solid #ddd; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            width: 100%; 
-            height: 40px; 
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-    }
-
-    .custom-combobox {
-        position: relative;
-        display: inline-block;
-    }
-    .custom-combobox-toggle {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        margin-left: -1px;
-        padding: 0;
-    }
-    .custom-combobox-input {
-        margin: 0;
-        padding: 5px 10px;
-    }
-    /* select2 ไม่สนใจ fieldset disabled จึงต้องกันการคลิกเอง */
-    .cl-read-only .select2-container {
-        pointer-events: none;
-    }
-    .cl-read-only .select2-selection {
-        background-color: #e9ecef !important;
-    }
+@media (max-width:1199.98px){
+  .cl-edit .cl-trips-head,.cl-edit .cl-trip{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 105px 105px 62px;}
+}
+@media (max-width:991.98px){
+  .cl-edit .cl-grid{grid-template-columns:minmax(0,1fr);}
+  .cl-edit .cl-side{position:static;order:2;}
+  .cl-edit .cl-main{order:1;}
+  .cl-edit .cl-qty{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (max-width:767.98px){
+  .cl-edit .cl-trips-head{display:none;}
+  .cl-edit .cl-trip{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr);}
+  .cl-edit .cl-trip .orig,.cl-edit .cl-trip .job{grid-column:2 / -1;}
+  .cl-edit .cl-trip .m1{grid-column:2;}
+  .cl-edit .cl-trip .lbl{display:block;font-size:.72rem;color:#6c757d;margin-bottom:.1rem;}
+  .cl-edit .cl-trip .dist{grid-column:2 / -1;margin-top:0;}
+  .cl-edit .cl-trip .dist:not(.ok):not(.bad){display:none;}
+}
+@media (max-width:575.98px){
+  .cl-edit .cl-card{padding:.75rem;}
+  .cl-edit .cl-actions-bar{padding:.5rem .75rem;}
+  .cl-edit .cl-actions-bar .btn{flex:1 1 auto;white-space:nowrap;}
+}
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="container my-3 cl-edit">
+    <div class="cl-title">
+        <i class="fas fa-truck-moving text-primary"></i>
+        {% if read_only %}ดูบันทึกการใช้รถ <span class="badge badge-secondary">ดูอย่างเดียว</span>{% else %}แก้ไขบันทึกการใช้รถ{% endif %}
+        <span class="badge badge-info">ร้อยเกาะ</span>
+    </div>
+    <form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {# แท็ป ALL ดูได้อย่างเดียว: ปิดทุกช่องใน fieldset #}
+    <fieldset {% if read_only %}disabled class="cl-read-only"{% endif %}>
+        {{form.id}}
+        {{ form.branch_company }}
+        {{ form.created | add_class:"form-control d-none" }}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
 
-<div class="container my-3">
-    <h2 align="center">{% if read_only %}ดูบันทึกการใช้รถ{% else %}แก้ไขบันทึกการใช้รถ{% endif %}</h2>
-            <form method="POST" enctype="multipart/form-data">
-            {# แท็ป ALL ดูได้อย่างเดียว: ปิดทุกช่องใน fieldset #}
-            <fieldset {% if read_only %}disabled class="cl-read-only"{% endif %}>
-                {{form.id}}
-                {{ form.branch_company }}
-                <h6 class="text-right">รายละเอียดใบบันทึกการใช้รถ</h6>
-                <div class="card div-shadow my-2">
-                    <div class="card-body">
-                            <div class="form-row">
-                                {{ form.created | add_class:"form-control d-none" }}
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.name.label }}</label> 
-                                    {{ form.name  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label>ทะเบียนหัว</label> 
-                                    {{ form.car  | add_class:"form-control"}}
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col">
-                                    {{ form.image_mile.label_tag}}
-                                    <input type="file" 
-                                        name="image_mile" 
-                                        accept="image/*" 
-                                        id="id_image_mile" 
-                                        style="display: none;" 
-                                        oninvalid="this.setCustomValidity('กรุณาถ่ายรูปโลโก้')"
-                                        oninput="this.setCustomValidity('')">
+        <div class="cl-grid">
+            <!-- ===== แถบสรุปด้านซ้าย ===== -->
+            <aside class="cl-side">
+                <div class="cl-card">
+                    <span class="cl-plate" title="ทะเบียนรถ / รหัสรถ">
+                        <span class="pi"><i class="fas fa-truck"></i></span>
+                        <span class="pt" id="cl-plate-name">{{ cl_data.car.name|default:"-" }}</span>
+                        <span class="pc{% if not cl_data.car.code %} d-none{% endif %}" id="cl-plate-code">{{ cl_data.car.code }}</span>
+                    </span>
+                    <div class="cl-meta">
+                        <div><i class="far fa-calendar-alt"></i>{{ cl_data.created|date:"d/m/Y" }}</div>
+                        <div><i class="fas fa-user"></i>{{ cl_data.name|default:"-" }}</div>
+                        {% if cl_data.branch_company %}<div><i class="far fa-building"></i>{{ cl_data.branch_company }}</div>{% endif %}
+                    </div>
+                    <div class="cl-tiles">
+                        <div class="cl-tile"><div class="k">ไมล์เริ่ม</div><div class="v" id="sum-mile-start">-</div></div>
+                        <div class="cl-tile"><div class="k">ไมล์สิ้นสุด</div><div class="v" id="sum-mile-end">-</div></div>
+                        <div class="cl-tile wide dist" id="tile-dist"><div class="k"><i class="fas fa-route"></i> ระยะทางรวม (กม.)</div><div class="v" id="sum-dist">-</div></div>
+                        <div class="cl-tile wide trips"><div class="k"><i class="fas fa-shipping-fast"></i> จำนวนเที่ยว</div><div class="v" id="sum-trips">-</div></div>
+                    </div>
 
-                                    <!-- Label as button -->
-                                    <label for="id_image_mile" class="upload-label{% if read_only %} d-none{% endif %}" id="label_image_mile">
-                                        <i class="fas fa-camera"></i>&nbsp;ถ่ายรูปเลขไมล์เริ่มต้น
-                                    </label>
+                    <!-- รูปเลขไมล์ -->
+                    <input type="file" name="image_mile" accept="image/*" id="id_image_mile" style="display:none;"
+                        oninvalid="this.setCustomValidity('กรุณาถ่ายรูปเลขไมล์')" oninput="this.setCustomValidity('')">
+                    <label for="id_image_mile" class="cl-photo" id="label_image_mile">
+                        <img id="preview-image_mile" src="" alt="รูปเลขไมล์">
+                        <div class="cap">
+                            {% if read_only %}<i class="fas fa-image"></i> รูปเลขไมล์
+                            {% else %}<i class="fas fa-camera"></i> <span id="photo-cap">ถ่ายรูปเลขไมล์เริ่มต้น</span>{% endif %}
+                        </div>
+                    </label>
+                    {% if cl_data.image_mile %}<a href="{{ cl_data.image_mile.url }}" target="_blank" class="small d-inline-block mt-1"><i class="fas fa-external-link-alt"></i> เปิดรูปขนาดเต็ม</a>{% endif %}
+                </div>
+            </aside>
 
-                                    <!-- Preview container -->
-                                    <div id="preview-container" style="margin-top: 10px;">
-                                        <img id="preview-image_mile" src="" alt="Preview โลโก้">
-                                    </div>
-                                </div>
-                            </div>
+            <!-- ===== ฟอร์มด้านขวา ===== -->
+            <div class="cl-main">
+                <div class="cl-card">
+                    <div class="cl-sec"><i class="fas fa-id-card"></i>ผู้ขับและรถ</div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6 mb-md-0">
+                            <label>{{ form.name.label }}</label>
+                            {{ form.name|add_class:"form-control" }}
+                            {{ form.name.errors }}
+                        </div>
+                        <div class="form-group col-md-6 mb-0">
+                            <label>ทะเบียนหัว</label>
+                            {{ form.car|add_class:"form-control" }}
+                            {{ form.car.errors }}
+                        </div>
                     </div>
                 </div>
 
-                <h6 class="text-right">รายละเอียดงาน</h6>
-                <div class="card div-shadow my-2">
-                    <div class="card-body">
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.orig1.label }}</label> 
-                                    {{ form.orig1  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.job1.label }}</label> 
-                                    {{ form.job1  | add_class:"form-control"}}
-                                    {{ form.job1_id }}
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_start_job1.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_start_job1 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_end_job1.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_end_job1 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                            </div>
+                <div class="cl-card">
+                    <div class="cl-sec"><i class="fas fa-map-marked-alt"></i>เที่ยวขนส่ง</div>
+                    <div class="cl-trips-head"><span>#</span><span>ต้นทาง</span><span>สถานที่จัดส่ง</span><span>ไมล์เริ่ม</span><span>ไมล์สิ้นสุด</span><span class="text-center">ระยะ</span></div>
 
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.orig2.label }}</label> 
-                                    {{ form.orig2  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.job2.label }}</label> 
-                                    {{ form.job2  | add_class:"form-control"}}
-                                    {{ form.job2_id }}
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_start_job2.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_start_job2 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_end_job2.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_end_job2 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                            </div>
+                    {% for t in "123456" %}
+                    {% with oname="orig"|add:t jname="job"|add:t jid="job"|add:t|add:"_id" ms="mile_start_job"|add:t me="mile_end_job"|add:t %}
+                    {% with fo=form|bound_field:oname fj=form|bound_field:jname fjid=form|bound_field:jid fms=form|bound_field:ms fme=form|bound_field:me %}
+                    <div class="cl-trip" data-trip="{{ t }}">
+                        <span class="n{% if t == '1' %} req-n{% endif %}"{% if t == '1' %} title="ต้องกรอก"{% endif %}>{{ t }}</span>
+                        <div class="orig"><span class="lbl">ต้นทาง</span>{{ fo|add_class:"form-control" }}{{ fo.errors }}</div>
+                        <div class="job"><span class="lbl">สถานที่จัดส่ง</span>{{ fj|add_class:"form-control" }}{{ fjid }}{{ fj.errors }}</div>
+                        <div class="m1"><span class="lbl">ไมล์เริ่ม</span>{{ fms|add_class:"form-control" }}</div>
+                        <div class="m2"><span class="lbl">ไมล์สิ้นสุด</span>{{ fme|add_class:"form-control" }}</div>
+                        <div class="dist" id="dist{{ t }}">-</div>
+                    </div>
+                    {% endwith %}
+                    {% endwith %}
+                    {% endfor %}
+                    {% if not read_only %}
+                    <button type="button" class="cl-more" id="btn-more-trips"><i class="fas fa-plus"></i> เพิ่มเที่ยว</button>
+                    {% endif %}
+                </div>
 
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.orig3.label }}</label> 
-                                    {{ form.orig3  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.job3.label }}</label> 
-                                    {{ form.job3  | add_class:"form-control"}}
-                                    {{ form.job3_id }}
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_start_job3.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_start_job3 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_end_job3.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_end_job3 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.orig4.label }}</label> 
-                                    {{ form.orig4  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.job4.label }}</label> 
-                                    {{ form.job4  | add_class:"form-control"}}
-                                    {{ form.job4_id }}
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_start_job4.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_start_job4 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_end_job4.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_end_job4 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.orig5.label }}</label> 
-                                    {{ form.orig5  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.job5.label }}</label> 
-                                    {{ form.job5  | add_class:"form-control"}}
-                                    {{ form.job5_id }}
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_start_job5.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_start_job5 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_end_job5.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_end_job5 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.orig6.label }}</label> 
-                                    {{ form.orig6  | add_class:"form-control"}}
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>{{ form.job6.label }}</label> 
-                                    {{ form.job6  | add_class:"form-control"}}
-                                    {{ form.job6_id }}
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_start_job6.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_start_job6 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                                <div class="form-group col-md-2">
-                                    <label>{{ form.mile_end_job6.label }}</label>
-                                    <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text" id="inputGroup-sizing-default"><i class="bi bi-speedometer2"></i></span>
-                                    </div>
-                                        {{ form.mile_end_job6 | add_class:"form-control"}}
-                                    </div>
-                                </div>
-                            </div>
+                <div class="cl-card">
+                    <div class="cl-sec"><i class="fas fa-gas-pump"></i>ปริมาณที่ใช้</div>
+                    <div class="cl-qty">
+                        <div class="form-group"><label>{{ form.oil.label }}</label>{{ form.oil|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.gas.label }}</label>{{ form.gas|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.engine.label }}</label>{{ form.engine|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.hydraulic.label }}</label>{{ form.hydraulic|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.grease.label }}</label>{{ form.grease|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.coolant.label }}</label>{{ form.coolant|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.DW_water.label }}</label>{{ form.DW_water|add_class:"form-control" }}</div>
+                        <div class="form-group"><label>{{ form.note.label }}</label>{{ form.note|add_class:"form-control"|attr:"rows:1" }}</div>
                     </div>
                 </div>
-                <h6 class="text-right">ปริมาณที่ใช้</h6>
-                <div class="card div-shadow my-2">
-                    <div class="card-body">
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.oil.label }}</label> 
-                                    {{ form.oil | add_class:"form-control" }}
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.gas.label }}</label> 
-                                    {{ form.gas  | add_class:"form-control"}}
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.engine.label }}</label> 
-                                    {{ form.engine | add_class:"form-control" }}
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.hydraulic.label }}</label> 
-                                    {{ form.hydraulic  | add_class:"form-control"}}
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.grease.label }}</label> 
-                                    {{ form.grease | add_class:"form-control" }}
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.coolant.label }}</label> 
-                                    {{ form.coolant  | add_class:"form-control"}}
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.DW_water.label }}</label> 
-                                    {{ form.DW_water | add_class:"form-control" }}
-                                </div>
-                                <div class="form-group col-md-6">
-                                    <label>{{ form.note.label }}</label> 
-                                    {{ form.note  | add_class:"form-control"}}
-                                </div>
-                            </div>
-                    </div>
-                    {% csrf_token %}
-                </div>
-            </fieldset>
-                <div class="row my-3">
-                    <div class="col">
-                        {% if read_only %}
-                        <a href="{% url 'viewCL' %}" class="btn btn-lg btn-secondary float-right">
-                            <i class="fas fa-arrow-left"></i>
-                            กลับ
-                        </a>
-                        {% else %}
-                        <button type="submit" class="btn btn-lg  btn-warning float-right">
-                            <i class="fas fa-save"></i>
-                            บันทึกการแก้ไข
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </form>
+            </div>
+        </div>
+    </fieldset>
 
+    <!-- แถบปุ่ม ติดด้านล่าง (แบบเดียวกับใบขอเบิก) -->
+    <div class="cl-actions-bar">
+        {% if not read_only %}
+        <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
+        {% else %}
+        <span class="text-muted small"><i class="fas fa-eye"></i> โหมดดูอย่างเดียว</span>
+        {% endif %}
+        <a href="{% url 'viewCL' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> กลับ</a>
+    </div>
+    </form>
 </div>
 
 {% endblock%}
 {% block javascript %}
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
 <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
-<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Select2 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+{% include '_select2_search.html' %}
 <script>
-    let today = new Date().toISOString().split('T')[0];
-    $('#id_created').val(today);
+    // คงวันที่เดิมของใบ (เดิมตั้งเป็นวันนี้ ทำให้วันที่เปลี่ยนทุกครั้งที่แก้ไข)
+    $('#id_created').val('{{cl_data.created|date:"Y-m-d"}}');
 
-    function setupAutocomplete(inputSelector, hiddenSelector, buttonSelector, url) {
-        var $input = $(inputSelector);
-        var $hidden = $(hiddenSelector);
-
-        $input.autocomplete({
-            source: function(request, response) {
-                $.ajax({
-                    url: url,
-                    dataType: "json",
-                    data: { term: request.term , car : $("#id_car").val()},
-                    success: function(data) {
-                        response(data);
-                    }
-                });
-            },
-            minLength: 0,
-            select: function(event, ui) {
-                // set both inputs to the NAME
-                $hidden.val(ui.item.value);
-                $input.val(ui.item.label);
-                return false;
-            }
-        });
-
-        // Show all on ▼ click
-        $(buttonSelector).on("click", function() {
-            $input.autocomplete("search", "");
-            $input.focus();
-        });
-    }
-
-    $('#id_car').select2({
+    // ===== ทะเบียนรถ: เปิดแล้วเห็นรายการทันที พิมพ์ทะเบียน/รหัสได้ =====
+    var carTerms = [];
+    initSearchSelect('#id_car', 'เลือกทะเบียนหัว', true, {
+        searchHint: 'พิมพ์ทะเบียน หรือ รหัสรถ…',
+        minimumInputLength: 0,
         ajax: {
             url: "{% url 'car_search' %}",
             dataType: 'json',
-            delay: 250,
+            delay: 200,
             data: function (params) {
-                return {
-                    q: params.term, // search term
-                    'rq_type': 2,
-                };
+                carTerms = s2Terms(params.term);
+                return { q: params.term || '', 'rq_type': 2 };
             },
-            processResults: function (data) {
-                return {
-                    results: data.results
-                };
-            },
+            processResults: function (data) { return { results: data.results }; },
             cache: true
         },
-        placeholder: 'ค้นหาด้วย code หรือ ทะเบียนรถ ...',
-        minimumInputLength: 2,
-        allowClear: true
+        templateResult: function (d) {
+            if (d.loading || !d.id) return d.text;
+            if (!d.name && !d.code) return $('<span>').html(s2Highlight(d.text, carTerms));
+            var sub = [d.dep, d.car_type].filter(Boolean).join(' · ');
+            return $('<span>').html(
+                '<b>' + s2Highlight(d.name, carTerms) + '</b>' +
+                (d.code ? ' <span class="badge badge-warning">' + s2Highlight(d.code, carTerms) + '</span>' : '') +
+                (sub ? '<span class="s2-sub">' + s2EscHtml(sub) + '</span>' : ''));
+        }
     });
 
-    //after load
     $(document).ready(function() {
-        $('#id_orig1').select2({ width: '100%' });
-        $('#id_orig2').select2({ width: '100%' });
-        $('#id_orig3').select2({ width: '100%' });
-        $('#id_orig4').select2({ width: '100%' });
-        $('#id_orig5').select2({ width: '100%' });
-        $('#id_orig6').select2({ width: '100%' });
-
-        $('#id_job1').select2({ width: '100%' });
-        $('#id_job2').select2({ width: '100%' });
-        $('#id_job3').select2({ width: '100%' });
-        $('#id_job4').select2({ width: '100%' });
-        $('#id_job5').select2({ width: '100%' });
-        $('#id_job6').select2({ width: '100%' });
-
-        $('#id_name').css('pointer-events','none');
-        $('#id_car').next('.select2-container').css('pointer-events', 'none');
+        // ชื่อ / ต้นทาง / สถานที่จัดส่ง: ค้นได้หลายคำ ไฮไลต์คำค้น โฟกัสช่องค้นหาทันที
+        initSearchSelect('#id_name', 'เลือกชื่อ', false, { searchHint: 'พิมพ์ชื่อเพื่อค้นหา…' });
+        for (var i = 1; i <= 6; i++) {
+            initSearchSelect('#id_orig' + i, 'เลือกต้นทาง', i > 1, { searchHint: 'พิมพ์ชื่อต้นทาง…' });
+            initSearchSelect('#id_job' + i, 'เลือกสถานที่จัดส่ง', i > 1, { searchHint: 'พิมพ์สถานที่จัดส่ง…' });
+        }
 
         setValeJob('#id_job1', '{{cl_data.job1_id}}', '{{cl_data.job1}}');
         setValeJob('#id_job2', '{{cl_data.job2_id}}', '{{cl_data.job2}}');
@@ -501,169 +292,175 @@
         setValeJob('#id_job5', '{{cl_data.job5_id}}', '{{cl_data.job5}}');
         setValeJob('#id_job6', '{{cl_data.job6_id}}', '{{cl_data.job6}}');
 
-        $('#id_job1 option:contains("{{cl_data.job1}}")').prop('selected', true).trigger('change');;
-        $('#id_job2 option:contains("{{cl_data.job2}}")').prop('selected', true).trigger('change');;
-        $('#id_job3 option:contains("{{cl_data.job3}}")').prop('selected', true).trigger('change');;
-        $('#id_job4 option:contains("{{cl_data.job4}}")').prop('selected', true).trigger('change');;
-        $('#id_job5 option:contains("{{cl_data.job5}}")').prop('selected', true).trigger('change');;
-        $('#id_job6 option:contains("{{cl_data.job6}}")').prop('selected', true).trigger('change');;
-
         setPreviewImage();
+        initTrips();
+        updateSummary();
     });
 
+    // เลือกสถานที่จัดส่งเดิม: ใช้ id ก่อน ถ้าไม่มีใช้ชื่อ
     function setValeJob(element, id, name){
-        if (id)
-            $(element + ' option[value="'+ id +'"]').prop('selected', true);
-        else
-            $(element + ' option:contains("'+ name +'")').prop('selected', true);
+        var $el = $(element), $opt = id ? $el.find('option[value="' + id + '"]') : $();
+        if (!$opt.length && name) {
+            $opt = $el.find('option').filter(function(){ return $.trim($(this).text()) === name; });
+        }
+        if ($opt.length) $el.val($opt.first().val()).trigger('change.select2');
     }
 
+    // ===== แสดงเฉพาะเที่ยวที่กรอกแล้ว + ปุ่ม "เพิ่มเที่ยว" =====
+    function tripFilled(i){
+        return !!($('#id_orig' + i).val() || $('#id_job' + i).val() || $('#id_mile_start_job' + i).val() || $('#id_mile_end_job' + i).val());
+    }
+    function initTrips(){
+        var last = 1;
+        for (var i = 1; i <= 6; i++) if (tripFilled(i)) last = i;
+        {% if read_only %}
+        for (var j = last + 1; j <= 6; j++) $('.cl-trip[data-trip="' + j + '"]').hide();
+        {% else %}
+        var show = Math.min(last + 1, 6);  // เผื่อช่องว่างไว้ 1 เที่ยว
+        for (var j = show + 1; j <= 6; j++) $('.cl-trip[data-trip="' + j + '"]').hide();
+        $('#btn-more-trips').toggle(show < 6);
+        {% endif %}
+    }
+    $('#btn-more-trips').on('click', function(){
+        var $next = $('.cl-trip:hidden').first();
+        $next.show();
+        if (!$('.cl-trip:hidden').length) $(this).hide();
+        $next.find('select').first().select2('open');
+    });
 
+    // ===== แถบสรุป: ไมล์เริ่ม (เที่ยว 1) / ไมล์สิ้นสุด (มากสุด) / ระยะทางแต่ละเที่ยว =====
+    function fmtNum(v){ return Number(v).toLocaleString('en', {maximumFractionDigits: 2}); }
+    function updateSummary(){
+        var total = 0, trips = 0, maxEnd = null, anyBad = false;
+        for (var i = 1; i <= 6; i++) {
+            var s = parseFloat($('#id_mile_start_job' + i).val()), e = parseFloat($('#id_mile_end_job' + i).val());
+            var $d = $('#dist' + i).removeClass('ok bad');
+            $('.cl-trip[data-trip="' + i + '"]').toggleClass('empty', !tripFilled(i));
+            if (!isNaN(e)) maxEnd = maxEnd === null ? e : Math.max(maxEnd, e);
+            if (isNaN(s) || isNaN(e)) { $d.text('-'); continue; }
+            if (e < s) { $d.text('ไมล์ผิด').addClass('bad'); anyBad = true; continue; }
+            total += e - s; trips++;
+            $d.text(fmtNum(e - s)).addClass('ok');
+        }
+        var ms = parseFloat($('#id_mile_start_job1').val());
+        $('#sum-mile-start').text(isNaN(ms) ? '-' : fmtNum(ms));
+        $('#sum-mile-end').text(maxEnd === null ? '-' : fmtNum(maxEnd));
+        $('#sum-dist').text(anyBad ? 'มีเที่ยวที่ไมล์สิ้นสุดน้อยกว่าไมล์เริ่ม' : (trips ? fmtNum(total) : '-'));
+        $('#tile-dist').toggleClass('bad', anyBad);
+        $('#sum-trips').text(trips ? trips + ' เที่ยว' : '-');
+    }
+    $(document).on('input change', '[id^="id_mile_start_job"], [id^="id_mile_end_job"], [id^="id_orig"], [id^="id_job"]', updateSummary);
+
+    // เปลี่ยนรถ → อัปเดตป้ายทะเบียน (ข้อความจาก select2 รูปแบบ "code : ชื่อ")
+    $('#id_car').on('change', function(){
+        var d = $(this).select2('data'), txt = (d && d[0] && d[0].text) || '';
+        var parts = txt.split(' : ');
+        $('#cl-plate-name').text(parts.length > 1 ? parts.slice(1).join(' : ') : (txt || '-'));
+        $('#cl-plate-code').text(parts.length > 1 ? parts[0] : '').toggleClass('d-none', parts.length < 2);
+        searchPmRound();
+    });
+
+    // ===== รูปเลขไมล์ =====
     const inputFile = document.getElementById('id_image_mile');
     const previewImage = document.getElementById('preview-image_mile');
+    const photoBox = document.getElementById('label_image_mile');
+    const photoCap = document.getElementById('photo-cap');
 
-    //get old pic
     let hasOldImage = false;
     function setPreviewImage(){
         '{% if cl_data.image_mile %}'
             previewImage.src = '{{ cl_data.image_mile.url }}';
-            previewImage.style.display = 'block';
+            photoBox.classList.add('has-img');
+            if (photoCap) photoCap.textContent = 'แตะเพื่อเปลี่ยนรูปเลขไมล์';
             hasOldImage = true; // ✅ มีรูปเก่า
         '{% endif %}'
     }
 
-    //uplode pic
     inputFile.addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 previewImage.src = e.target.result;
-                previewImage.style.display = 'block';
+                photoBox.classList.add('has-img');
+                if (photoCap) photoCap.textContent = 'แตะเพื่อเปลี่ยนรูปเลขไมล์';
             }
             reader.readAsDataURL(file);
         } else {
             previewImage.src = '';
-            previewImage.style.display = 'none';
+            if (!hasOldImage) photoBox.classList.remove('has-img');
         }
     });
 
-    //before submit
-    $('form').submit(function () {
+    // ===== ก่อนบันทึก =====
+    $('form').submit(function (event) {
         const submitButton = $(this).find("[type='submit']");
         submitButton.prop("disabled", true); //ปิดปุ่ม submit หากมีการกดซ้ำ
 
         //ไม่มีไฟล์ใหม่ และ ไม่มีไฟล์เก่า
         if (inputFile.files.length < 1 && !hasOldImage) {
-            $("#id_mile_start").focus();
             alert('กรุณาถ่ายรูปเลขไมล์ก่อนส่งข้อมูล');
-
             submitButton.prop("disabled", false);
             event.preventDefault();
             return false;
         }
 
-        if (!check_start_and_end_mile('id_mile_start_job1', 'id_mile_end_job1')){
-            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
-            event.preventDefault(); // Prevent form submission
-            return false;
-        }
-        if (!check_start_and_end_mile('id_mile_start_job2', 'id_mile_end_job2')){
-            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
-            event.preventDefault(); // Prevent form submission
-            return false;
-        }
-        if (!check_start_and_end_mile('id_mile_start_job3', 'id_mile_end_job3')){
-            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
-            event.preventDefault(); // Prevent form submission
-            return false;
-        }
-        if (!check_start_and_end_mile('id_mile_start_job4', 'id_mile_end_job4')){
-            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
-            event.preventDefault(); // Prevent form submission
-            return false;
-        }
-        if (!check_start_and_end_mile('id_mile_start_job5', 'id_mile_end_job5')){
-            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
-            event.preventDefault(); // Prevent form submission
-            return false;
-        }
-        if (!check_start_and_end_mile('id_mile_start_job6', 'id_mile_end_job6')){
-            submitButton.prop("disabled", false); // เปิดปุ่ม submit อีกครั้ง
-            event.preventDefault(); // Prevent form submission
-            return false;
+        for (var i = 1; i <= 6; i++) {
+            if (!check_start_and_end_mile('id_mile_start_job' + i, 'id_mile_end_job' + i)) {
+                submitButton.prop("disabled", false);
+                event.preventDefault();
+                return false;
+            }
         }
 
-	    setDataEmptyId("#id_job1", "#id_job1_id");
-        setDataEmptyId("#id_job2", "#id_job2_id");
-        setDataEmptyId("#id_job3", "#id_job3_id");
-        setDataEmptyId("#id_job4", "#id_job4_id");
-        setDataEmptyId("#id_job5", "#id_job5_id");
-        setDataEmptyId("#id_job6", "#id_job6_id");
-
+        for (var k = 1; k <= 6; k++) setDataEmptyId('#id_job' + k, '#id_job' + k + '_id');
         return true;
     });
 
     function setDataEmptyId(fk, id){
-		if($(fk+" option:selected").index() > 0) {
-			$(id).val($(fk).find(":selected").val());
-		}else{
-			$(id).val(null);
-		}
-	}
+        if ($(fk + " option:selected").index() > 0) {
+            $(id).val($(fk).find(":selected").val());
+        } else {
+            $(id).val(null);
+        }
+    }
 
- 	function check_start_and_end_mile(id_start_mile, id_end_mile){
-        let startVal = $('#' + id_start_mile).val();
-        let endVal = $('#' + id_end_mile).val();
-        if (startVal && endVal) {
-            if (startVal > endVal) {
-                $('#' + id_end_mile).focus();
-                alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
-                return false;
-            }
+    function check_start_and_end_mile(id_start_mile, id_end_mile){
+        let startVal = parseFloat($('#' + id_start_mile).val());
+        let endVal = parseFloat($('#' + id_end_mile).val());
+        if (!isNaN(startVal) && !isNaN(endVal) && startVal > endVal) {
+            $('#' + id_end_mile).closest('.cl-trip').show();
+            $('#' + id_end_mile).focus();
+            alert('เลขไมล์สิ้นสุดน้อยกว่า เลขไมล์เริ่มต้น กรุณาคีย์ข้อมูลใหม่');
+            return false;
         }
         return true; // ✅ ผ่านการตรวจสอบ
-    }   
-
-    $('#id_car').on('change', function() {
-        searchPmRound();
-    });
+    }
 
     $("#id_mile_end_job1").blur(function() {
         searchPmRound();
     });
 
     function searchPmRound(){
-        if($('#id_car').val() != "" && $('#id_mile_end_job1').val() != ""){
-            var id_car = $('#id_car').val();
-            var mile_end = $('#id_mile_end_job1').val();
-            // Create Ajax Call
-            if(id_car && mile_end){
-                $.ajax({
-                    url: '{% url "searchPmRound" %}',
-                    data: {
-                        'id_car': id_car,
-                        'mile_end': mile_end,
-                    },
-                    dataType: 'json',
-                    success: function (data) {
-                        if (data.alert_pm == true) {
-                            alert('แจ้งเตือน PM ถึงกำหนดทำ PM ที่ : ' + ReplaceNumberWithCommas(data.next_pm) + " (กม.หรือชม.)");
-                        }
+        var id_car = $('#id_car').val();
+        var mile_end = $('#id_mile_end_job1').val();
+        if (id_car && mile_end) {
+            $.ajax({
+                url: '{% url "searchPmRound" %}',
+                data: { 'id_car': id_car, 'mile_end': mile_end },
+                dataType: 'json',
+                success: function (data) {
+                    if (data.alert_pm == true) {
+                        alert('แจ้งเตือน PM ถึงกำหนดทำ PM ที่ : ' + ReplaceNumberWithCommas(data.next_pm) + " (กม.หรือชม.)");
                     }
-                });
-            }
-            return false;
+                }
+            });
         }
+        return false;
     }
 
     function ReplaceNumberWithCommas(num) {
-        const options = { 
-            maximumFractionDigits: 2 
-        };
-        const formatted = Number(num).toLocaleString('en', options);
-        return formatted;
+        return Number(num).toLocaleString('en', { maximumFractionDigits: 2 });
     }
-
 </script>
 {% endblock%}

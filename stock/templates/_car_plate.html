@@ -1,0 +1,3 @@
+{% comment %}ป้ายทะเบียนรถแบบเด่น ใช้ในหน้ารายการ (ใบแจ้งซ่อม / ใบบันทึกการใช้รถ / ประวัติ / รายงาน)
+ส่ง car (BaseCar) เข้ามา: {% include "_car_plate.html" with car=ma.car %} — สไตล์อยู่ใน _list_page_style.html (.lt-plate — รูปแบบ cl-pill){% endcomment %}
+{% if car %}<span class="lt-plate" title="ทะเบียน {{ car.name }}{% if car.code %} / รหัส {{ car.code }}{% endif %}"><i class="fas fa-truck"></i> {{ car.name }}{% if car.code %}<span class="pc">{{ car.code }}</span>{% endif %}</span>{% else %}<span class="text-muted">-</span>{% endif %}

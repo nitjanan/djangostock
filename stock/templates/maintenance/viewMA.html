@@ -4,6 +4,7 @@
 {% load templatehelpers %}
 
 {% block css %}
+{% include '_list_page_style.html' %}
 <style>
 .ma{
   border: 1px solid #ddd;
@@ -33,44 +34,34 @@
 {% block content %}
 <div class="container my-3">
 <h3 align="center">ใบแจ้งซ่อม</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
     <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.ref_no|as_crispy_field }}
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.name|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.car|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.location|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.car|as_crispy_field }}
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-tools"></i> การซ่อม</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.broke_type|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.car_state|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.repair_type|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.name|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.broke_type|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.car_state|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.repair_type|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.location|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.start_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.end_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.end_created|as_crispy_field }}</div>
+          <div class="col-12 col-md-3 lf-btns">
+            <button type="submit" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+            <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
           </div>
         </div>
       </div>
@@ -80,79 +71,62 @@
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table class="table table-striped lt">
         <thead class="thead-dark">
           <tr>
             <th scope="col">รหัสใบแจ้งซ่อม</th>
-            <th scope="col">วันที่</th>
-            <th scope="col">ชื่อผู้แจ้งซ่อม</th>
             <th scope="col">ทะเบียนรถ</th>
-            <th scope="col">อาการเสีย</th>
-            <th scope="col">สภาพรถ</th>
-            <th scope="col">ไฟล์แนบ</th>
-            <th scope="col" style="width: 15px;">รูปภาพ</th>
-            <th scope="col" style="min-width: 160px;">ความคิดเห็นผู้อนุมัติซ่อม</th>
-            <th scope="col" style="width: 100px;">สถานะอนุมัติ</th>
+            <th scope="col">อาการเสีย / สภาพรถ</th>
+            <th scope="col">รูปภาพ</th>
+            <th scope="col">ความคิดเห็นผู้อนุมัติซ่อม</th>
+            <th scope="col">สถานะ</th>
+            <th scope="col">จัดการ</th>
           </tr>
         </thead>
         <tbody>
         {% for ma in mas %}
           <tr>
-            <th scope="row"><a href="{%url 'showMA' ma.id 1 %}">{{ma.ref_no}}</a></th>
-            <td>{{ma.created |date:"d/m/Y" }}</td>
-            <td>{{ma.name}}</td>
-            <td>{{ma.car}}</td>
-            <td>{{ma.broke_reason}}</td>
-            <td>{{ma.car_state}}</td>
-            <td style="width: 15px;">
-              {% if ma.ma_pdf %}
-                <a href="/media/{{ma.ma_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
-              {% endif %}
-            </td>
-            <td style="width: 150px;">{% if ma.image1 %}
-                <a target="_blank" href="{{ ma.image1.url }}">
-                    <img class="ma" src="{{ ma.image1.url }}" style="width:60px;height: 60px;">
-                </a>
-                {% endif %}
-                {% if ma.image2 %}
-                <a target="_blank" href="{{ ma.image2.url }}">
-                    <img class="ma" src="{{ ma.image2.url }}" style="width:60px;height: 60px;">
-                </a>
-                {% endif %}
-                {% if ma.image3 %}
-                <a target="_blank" href="{{ ma.image3.url }}">
-                    <img class="ma" src="{{ ma.image3.url }}" style="width:60px;height: 60px;">
-                </a>
-                {% endif %}
-                {% if ma.image4 %}
-                <a target="_blank" href="{{ ma.image4.url }}">
-                    <img class="ma" src="{{ ma.image4.url }}" style="width:60px;height: 60px;">
-                </a>
-                {% endif %}
+            <th scope="row">
+              <a class="lt-ref" href="{% url 'showMA' ma.id 1 %}">{{ ma.ref_no }}</a>
+              <span class="lt-sub">{{ ma.created|date:"d/m/Y" }}</span>
+              <span class="lt-sub"><i class="fas fa-user"></i> {{ ma.name }}</span>
+            </th>
+            <td class="lt-name">{% include "_car_plate.html" with car=ma.car %}</td>
+            <td class="lt-note">
+              {{ ma.broke_reason }}
+              {% if ma.car_state %}<span class="lt-sub">{{ ma.car_state }}</span>{% endif %}
             </td>
             <td>
-              {% if ma.approve_note %}
-                <div class="approve-note"><i class="fas fa-comment-dots"></i> {{ ma.approve_note|linebreaksbr }}</div>
-              {% endif %}
+              <div class="lt-photos">
+                {% if ma.image1 %}<a target="_blank" href="{{ ma.image1.url }}"><img class="ma" src="{{ ma.image1.url }}" alt="รูปที่ 1"></a>{% endif %}
+                {% if ma.image2 %}<a target="_blank" href="{{ ma.image2.url }}"><img class="ma" src="{{ ma.image2.url }}" alt="รูปที่ 2"></a>{% endif %}
+                {% if ma.image3 %}<a target="_blank" href="{{ ma.image3.url }}"><img class="ma" src="{{ ma.image3.url }}" alt="รูปที่ 3"></a>{% endif %}
+                {% if ma.image4 %}<a target="_blank" href="{{ ma.image4.url }}"><img class="ma" src="{{ ma.image4.url }}" alt="รูปที่ 4"></a>{% endif %}
+              </div>
+            </td>
+            <td class="lt-note">
+              {% if ma.approve_note %}<div class="approve-note"><i class="fas fa-comment-dots"></i> {{ ma.approve_note|linebreaksbr }}</div>{% endif %}
             </td>
             <td>
+              {% if ma.approve_status == 'อนุมัติซ่อมบำรุง' %}<span class="lt-pill st-2">อนุมัติซ่อม</span>{% else %}<span class="lt-pill st-1">ขออนุมัติซ่อม</span>{% endif %}
+            </td>
+            <td class="lt-actions">{% spaceless %}
               {% if ma.approve_status == 'อนุมัติซ่อมบำรุง' %}
-                <a style="width: 100px;" href="{%url 'editMA' ma.id %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
-                <a style="width: 100px;" onclick="return confirm('คุณต้องการยกเลิกใบแจ้งซ่อมนี้หรือไม่ ?\n ใบแจ้งซ่อมจะไปอยู่ในแท็ป History')" href="{% url 'cancelMA' ma.id %}" class="my-2 btn btn-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</a>
-              {%else%}
-                <button style="width: 100px;" type="button"
-                  class="btn btn-sm btn-block btn-outline-warning"
-                >ขออนุมัติซ่อม
-                </button>
-              {%endif%}
-            </td>
+                <a href="{% url 'editMA' ma.id %}" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i> ทำรายการ</a>
+                <a onclick="return confirm('คุณต้องการยกเลิกใบแจ้งซ่อมนี้หรือไม่ ?\n ใบแจ้งซ่อมจะไปอยู่ในแท็ป History')" href="{% url 'cancelMA' ma.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-window-close"></i> ยกเลิก</a>
+              {% endif %}
+              {% if ma.ma_pdf %}<a href="/media/{{ ma.ma_pdf }}" class="btn btn-outline-success btn-sm" target="_blank"><i class="fas fa-file-download"></i> ไฟล์แนบ</a>{% endif %}
+            {% endspaceless %}</td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="7">ไม่พบใบแจ้งซ่อม</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=mas %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

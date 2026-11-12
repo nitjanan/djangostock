@@ -1,0 +1,88 @@
+{% comment %}ช่องค้นหาผู้จำหน่าย (#id-form-distributor, jquery-ui autocomplete) ใช้ร่วมกัน: ใบเปรียบเทียบราคา (ผ่าน _cp_search), ใบสั่งซื้อ (createPO, editPOItem)
+คลิกช่องว่างก็แสดงรายการ / ค้นหาได้หลายคำ / สะกดคล้าย (ส/ศ, ตัวสะกด, วรรณยุกต์) ก็เจอ พร้อมป้าย "ชื่อคล้าย" / เลือกแล้วดึงเครดิตทันที
+ต้อง include หลัง jQuery + jquery-ui และหลังสคริปต์ของหน้า (ใช้ searchDataDistributor, getRateDistributor ของหน้า ถ้ามี){% endcomment %}
+<style>
+  .ui-autocomplete.cp-dist-menu {
+    max-height: 320px; overflow-y: auto; overflow-x: hidden; z-index: 1060;
+    padding: .25rem 0; border: 1px solid #2f6fb3; border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .15); font-size: .9rem;
+    max-width: calc(100vw - 32px); /* มือถือ: ชื่อยาวขึ้นบรรทัดใหม่ ไม่ล้นจอ (100vw รวม scrollbar ด้วย) */
+  }
+  .cp-dist-menu .ui-menu-item-wrapper { padding: .4rem .75rem; border: 0 !important; margin: 0 !important; }
+  .cp-dist-menu .ui-menu-item + .ui-menu-item { border-top: 1px solid #f1f3f5; }
+  .cp-dist-menu .ui-state-active { background: #e7f1ff !important; color: #212529 !important; }
+  .cp-dist-opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .1rem .6rem; align-items: baseline; }
+  .cp-dist-code { font-weight: 700; color: #0d5ea6; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cp-dist-name { overflow-wrap: anywhere; font-weight: 600; color: #212529; }
+  .cp-dist-credit { grid-column: 2; font-size: .78rem; color: #6c757d; }
+  .cp-dist-empty { color: #6c757d; font-style: italic; }
+  /* ผลที่หาเจอจากชื่อสะกดคล้าย (เช่น ส/ศ, สต็อก/สต็อค) หรือพิมพ์ผิดเล็กน้อย */
+  .cp-dist-fuzzy {
+    display: inline-block; margin-left: .35rem; padding: 0 .4rem; border-radius: 999px;
+    background: #fd7e14; color: #fff; font-size: .72rem; font-weight: 600; vertical-align: middle; white-space: nowrap;
+  }
+  .cp-dist-menu mark { padding: 0 1px; background: #ffe58a; color: inherit; border-radius: 2px; font-weight: 800; }
+</style>
+<script type="text/javascript">
+(function ($) {
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  //ไฮไลต์สีเหลือง — hl เป็น array regex จาก server (รวมตัวสะกดคล้าย) ถ้าไม่มีใช้คำที่พิมพ์
+  function mark(text, hl, q) {
+    var out = esc(text);
+    var pats = $.isArray(hl) && hl.length ? hl : String(q || '').split(/\s+/).filter(Boolean).map(function (t) {
+      return esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    });
+    pats.forEach(function (p) {
+      try { out = out.replace(new RegExp('(' + p + ')(?![^<]*>)', 'ig'), '<mark>$1</mark>'); } catch (e) {}
+    });
+    return out;
+  }
+
+  $(function () {
+    var $d = $('#id-form-distributor');
+    if (!$d.length || !$d.autocomplete) return;
+    if (!$d.autocomplete('instance')) $d.autocomplete({});
+    var lastTerm = '';
+    $d.attr('placeholder', 'คลิกเพื่อดูรายการ หรือพิมพ์รหัส / ชื่อผู้จำหน่าย (สะกดผิดก็หาเจอ)');
+    $d.autocomplete('option', {
+      minLength: 0,
+      delay: 200,
+      classes: { 'ui-autocomplete': 'cp-dist-menu' },
+      position: { my: 'left top', at: 'left bottom', collision: 'fit' },
+      source: function (req, resp) {
+        lastTerm = req.term;
+        $.getJSON('{% url "autocompalteDistributor" %}', { term: req.term, rich: 1 })
+          .done(function (data) { resp(data.length ? data : [{ empty: true, value: '', label: '' }]); })
+          .fail(function () { resp([]); });
+      },
+      //ไม่ให้รายการล้นขอบขวา (jquery-ui นับความกว้างรวม scrollbar)
+      open: function () {
+        var m = $d.autocomplete('widget'), cw = document.documentElement.clientWidth;
+        if (m.offset().left + m.outerWidth() > cw - 8) m.css('left', Math.max(8, cw - 8 - m.outerWidth()));
+      },
+      focus: function (e, ui) { if (ui.item.empty) e.preventDefault(); },
+      select: function (e, ui) {
+        if (ui.item.empty) { e.preventDefault(); return; }
+        $d.val(ui.item.value);
+        if (typeof window.searchDataDistributor === 'function') window.searchDataDistributor();
+        //หน้าใบสั่งซื้อ: โหลดผลประเมินผู้จำหน่ายด้วย (เดิมทำตอนออกจากช่อง)
+        if (typeof window.getRateDistributor === 'function') window.getRateDistributor();
+        return false;
+      }
+    });
+    $d.autocomplete('instance')._renderItem = function (ul, item) {
+      var html = item.empty
+        ? '<div class="cp-dist-empty">ไม่พบผู้จำหน่าย — ลองพิมพ์คำอื่น</div>'
+        : '<div class="cp-dist-opt"><span class="cp-dist-code">' + mark(item.id, item.hl, lastTerm) + '</span>' +
+          '<span class="cp-dist-name">' + mark(item.name, item.hl, lastTerm) +
+            (item.fuzzy ? ' <span class="cp-dist-fuzzy" title="ไม่ตรงทุกตัวอักษร อาจสะกดต่างกัน">ชื่อคล้าย</span>' : '') + '</span>' +
+          (item.credit ? '<span class="cp-dist-credit">เครดิต ' + esc(item.credit) + '</span>' : '') + '</div>';
+      return $('<li>').append($('<div>').html(html)).appendTo(ul);
+    };
+    //คลิก/โฟกัสช่องว่าง -> แสดงรายการ
+    $d.on('focus click', function () { if (!this.value) $d.autocomplete('search', ''); });
+  });
+})(jQuery);
+</script>

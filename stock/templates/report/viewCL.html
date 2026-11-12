@@ -4,6 +4,7 @@
 {% load templatehelpers %}
 
 {% block css %}
+{% include '_list_page_style.html' %}
 <style>
 .cl{
   border: 1px solid #ddd;
@@ -20,39 +21,28 @@
 {% block content %}
 <div class="container my-3">
 <h3 align="center">รายงานบันทึกการใช้รถ</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
-    <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.ref_no|as_crispy_field }}
+    <form method="get" id="lf-filter-form">
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.car|as_crispy_field }}</div>
+          <div class="col-12 col-md-6">{{ filter.form.name|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.car|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.name|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.start_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.end_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
-          </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.end_created|as_crispy_field }}</div>
         </div>
       </div>
     </form>
-    <div class="row">
-        <div class="col-3">
-          <button id="cla_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#24493d;color:white;">
+    <div class="lf-foot">
+      <div class="lf-export">
+        <button type="button" id="cla_download-btn" class="btn btn-excel" style="--xl:#24493d;">
             <span id="cla_btn-text">รายงานบันทึกการใช้รถประจำวัน <i class="far fa-file-excel"></i></span>
               <div id="cla_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -62,9 +52,7 @@
                 0%
               </span>
           </button>
-        </div>
-        <div class="col-2">
-          <button id="epc_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#376e5b;color:white;">
+        <button type="button" id="epc_download-btn" class="btn btn-excel" style="--xl:#376e5b;">
             <span id="epc_btn-text">สรุปค่าใช้จ่ายแต่ละหน่วยงาน <i class="far fa-file-excel"></i></span>
               <div id="epc_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -74,61 +62,66 @@
                 0%
               </span>
           </button>
-        </div>
+      </div>
+      <div class="lf-btns">
+        <button type="submit" form="lf-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+      </div>
     </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
+    {% include "carLogbook/_cl_job_toggle.html" %}
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table id="cl-table" class="table table-striped lt">
         <thead class="thead-dark">
           <tr>
             {% if is_all_comp %}<th scope="col">บริษัท</th>{% endif %}
-            <th scope="col">รหัสใบใช้รถ</th>
-            <th scope="col">วันที่</th>
-            <th scope="col">ชื่อผู้ใช้</th>
-            <th scope="col">ทะเบียนรถ</th>
-            <th scope="col" style="width: 60px;">รูปภาพ</th>
-            <th scope="col">ไมล์เริ่ม</th>
-            <th scope="col">ไมล์สิ้นสุด</th>
-            <th scope="col">รายละเอียดงานที่1</th>
-            <th scope="col">เวลาเริ่มงานที่ 1 / เลขไมล์เริ่มงานที่ 1</th>
-            <th scope="col">เวลาสิ้นสุดงานที่ 1 / เลขไมล์สิ้นสุดงานที่ 1</th>
+      <th scope="col">รหัสใบใช้รถ</th>
+            <th scope="col">ผู้ใช้ / ทะเบียนรถ</th>
+            <th scope="col">รูปภาพ</th>
+            <th scope="col" class="text-right">เลขไมล์ / ระยะ / ชม.</th>
+            <th scope="col">งานที่ 1</th>
+            <th scope="col">งานที่ 2</th>
+            <th scope="col" class="cl-job-extra">งานที่ 3</th>
+            <th scope="col" class="cl-job-extra">งานที่ 4</th>
+            <th scope="col" class="cl-job-extra">งานที่ 5</th>
+            <th scope="col" class="cl-job-extra">งานที่ 6</th>
           </tr>
         </thead>
         <tbody>
         {% for cl in cls %}
           <tr>
-            {% if is_all_comp %}<td>{{cl.branch_company.code}}</td>{% endif %}
-            <th scope="row"><a href="">{{cl.ref_no}}</a></th>
-            <td>{{cl.created |date:"d/m/Y" }}</td>
-            <td>{{cl.name}}</td>
-            <td>{{cl.car}}</td>
-            <td style="width: 60px;">{% if cl.image_mile %}
-                <a target="_blank" href="{{ cl.image_mile.url }}">
-                    <img class="cl" src="{{ cl.image_mile.url }}" style="width:60px;height:60px;">
-                </a>
-                {% endif %}
-            </td>
-            <td>{{cl.mile_start}}</td>
-            <td>{{cl.mile_end}}</td>
-            <td>{{cl.job1}}</td>
-            <td>
-              {% if cl.start_job1 %}{{cl.start_job1}}{%endif%}
-              {% if cl.mile_start_job1 %}{{cl.mile_start_job1}}{%endif%}
+            {% if is_all_comp %}<td>{{ cl.branch_company.code }}</td>{% endif %}
+      <th scope="row">
+              <span class="lt-ref">{{ cl.ref_no }}</span>
+              <span class="lt-sub">{{ cl.created|date:"d/m/Y" }}</span>
+            </th>
+            <td class="lt-name">
+              {{ cl.name }}
+              <span class="d-block">{% include "_car_plate.html" with car=cl.car %}</span>
             </td>
             <td>
-              {% if cl.end_job1 %}{{cl.end_job1}}{%endif%}
-              {% if cl.mile_end_job1 %}{{cl.mile_end_job1}}{%endif%}
+              {% if cl.image_mile %}<div class="lt-photos"><a target="_blank" href="{{ cl.image_mile.url }}"><img class="cl" src="{{ cl.image_mile.url }}" alt="รูปเลขไมล์"></a></div>{% endif %}
             </td>
+            {% include "carLogbook/_cl_mile_cell.html" %}
+            {% include "carLogbook/_cl_job_cell.html" with job=cl.job1 start=cl.start_job1 end=cl.end_job1 ms=cl.mile_start_job1 me=cl.mile_end_job1 %}
+            {% include "carLogbook/_cl_job_cell.html" with job=cl.job2 start=cl.start_job2 end=cl.end_job2 ms=cl.mile_start_job2 me=cl.mile_end_job2 %}
+            {% include "carLogbook/_cl_job_cell.html" with job=cl.job3 start=cl.start_job3 end=cl.end_job3 ms=cl.mile_start_job3 me=cl.mile_end_job3 extra=1 %}
+            {% include "carLogbook/_cl_job_cell.html" with job=cl.job4 start=cl.start_job4 end=cl.end_job4 ms=cl.mile_start_job4 me=cl.mile_end_job4 extra=1 %}
+            {% include "carLogbook/_cl_job_cell.html" with job=cl.job5 ms=cl.mile_start_job5 me=cl.mile_end_job5 extra=1 %}
+            {% include "carLogbook/_cl_job_cell.html" with job=cl.job6 ms=cl.mile_start_job6 me=cl.mile_end_job6 extra=1 %}
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="11">ไม่พบใบบันทึกการใช้รถ</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=cls %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

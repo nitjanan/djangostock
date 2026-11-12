@@ -45,3 +45,6 @@ htmlcov/
 # Misc
 *.bak
 *.tmp
+
+# Playwright MCP artifacts
+.playwright-mcp/

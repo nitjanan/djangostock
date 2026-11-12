@@ -4,50 +4,13 @@
 {% load humanize %}
 
 {% block css %}
-<style>
-  @media print {
-    .hidden-print {
-      display: none;
-    }
-    body {
-        font-size: 11pt;
-        color: black;
-    }
-  }
-  u.dotted {
-  border-bottom: 1px dashed #999;
-  text-decoration: none;
-  }
-
-  p.line75 {
-    line-height:75%;
-  }
-
-  .verybigmodal {
-    max-width: 80%;
-  }
-
-  .col-2-25 {
-    flex: 0 0 18.75%;
-    max-width: 18.75%;
-  }
-
-  .col-2-5 {
-    flex: 0 0 20.8333%; /* 2.5 of 12 = 20.8333% */
-    max-width: 20.8333%;
-  }
-
-  .col-7-5 {
-    flex: 0 0 62.5%;
-    max-width: 62.5%;
-  }
-</style>
+{% include 'purchaseOrder/_po_doc_styles.html' %}
 {% endblock %}
 {% block content %}
-<div class="container">
+<div class="container po-doc">
     <div class="row my-2">
         <div class="col-md-12">
-          <div class="row">
+          <div class="row ps-head">
             <div class="col">
               <description>
                 <h4>{{po.address_company.name_th}}</h4>
@@ -57,7 +20,7 @@
               </description>
             </div>
             <!-- QR Code 17-05-2024 เอาออกก่อน -->
-            <div class="col-4 float-right" style="display: flex; align-items: center;">
+            <div class="col-4 float-right po-qr" style="display: flex; align-items: center;">
               {% if po.qr_code %}
                   <img src="{{ po.qr_code.url }}" width="120" height="120" style="margin-right: 10px;">
               <ul class="list-unstyled my-3 text-left">
@@ -76,7 +39,7 @@
             </div>
         </div>
         <hr>
-        <div class="row">
+        <div class="row ps-parties">
           <div class="col">
             <address>
             <strong>ผู้จำหน่าย: {{po.distributor.id}}</strong><br>
@@ -92,7 +55,7 @@
                 {% for i in new_pr %}
                   <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
                 {% endfor %}
-              {%endif%}              
+              {%endif%}
               </h6>
             </address>
           </div>
@@ -119,7 +82,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="row">
       <div class="col-md-12">
         <div class="panel panel-default">
@@ -127,16 +90,14 @@
             <h3 class="panel-title"><strong>รายการสั่งซื้อ</strong></h3>
           </div>
           <div class="panel-body">
-            <div class="table-responsive">
-                <table class="table">
+            <div class="table-responsive ps-items-wrap">
+                <table class="table ps-items">
                     <thead>
                     <tr>
                         <th scope="col" class="text-center">No.</th>
-                        <form class="form-inline ml-3" id="search" method="GET">				
-                          <th scope="col" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-                            รหัสสินค้า/รายละเอียด <i class="fas fa-list text-danger d-print-none"></i>
-                          </th>
-                        </form>
+                        <th scope="col" class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                          รหัสสินค้า/รายละเอียด <i class="fas fa-list text-danger d-print-none"></i>
+                        </th>
                         <th scope="col" class="text-right">จำนวน</th>
                         <th scope="col" class="text-center">หน่วย</th>
                         <th scope="col" class="text-right">หน่วยละ</th>
@@ -147,81 +108,21 @@
                     <tbody>
                         {% for item in items %}
                         <tr>
-                            <td class="text-center">{{ forloop.counter }}</td>
-                            <td>{{ item.item.product.id}} {{ item.item.product_name }} <b class="text-success" style="white-space: pre-line;">{{ item.description|linebreaksbr }}</b></td>
-                            <td class="text-right">{{ item.quantity |floatformat:"-4"}}</td>
-                            <td class="text-center">{{ item.unit}}</td>
-                            <td class="text-right">{{ item.unit_price | intcomma}}</td>
-                            <td class="text-right">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
-                            <td class="text-right">{{ item.price | intcomma}}</td>
+                            <td class="text-center ps-hide-m">{{ forloop.counter }}</td>
+                            <td class="ps-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{ item.item.product.id}} {{ item.item.product_name }} <b class="text-success" style="white-space: pre-line;">{{ item.description|linebreaksbr }}</b></td>
+                            <td class="text-right pi-nowrap" data-label="จำนวน"><span>{{ item.quantity |floatformat:"-4"}} <span class="d-md-none d-print-none">{{ item.unit}}</span></span></td>
+                            <td class="text-center ps-hide-m">{{ item.unit}}</td>
+                            <td class="text-right pi-nowrap" data-label="หน่วยละ">{{ item.unit_price | intcomma}}</td>
+                            <td class="text-right pi-nowrap" data-label="ส่วนลด">{% if item.discount %}{{item.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%endif%}{%else%}0.00{%endif%}</td>
+                            <td class="text-right pi-nowrap" data-label="จำนวนเงิน">{{ item.price | intcomma}}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
             <hr>
-            <!--  Old ****************
-            <div class="row">
-              <div class="col-7">
-                <p>หมายเหตุ : {{po.note}}</p>
-              </div>
-              <div class="col-3">
-                <p class="text-right">รวมเป็นเงิน</p>
-              </div>
-              <div class="col-2">
-                <p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-7">
-                <p>สถานที่จัดส่ง : {% if po.delivery %}{{po.delivery}}{% endif %}</p>
-              </div>
-              <div class="col-3">
-                <p class="text-right">หักส่วนลด</p>
-              </div>
-              <div class="col-2">
-                <p class="text-right">{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-10">
-                <p class="text-right">จำนวนเงินหลังหักส่วนลด</p>
-              </div>
-              <div class="col-2">
-                <p class="text-right">{{po.total_after_discount | intcomma}}&ensp;บาท</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-10">
-                <p class="text-right">ค่าขนส่ง</p>
-              </div>
-              <div class="col-2">
-                <p class="text-right">{{po.freight | intcomma}}&ensp;บาท</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-10">
-                <p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p>
-              </div>
-              <div class="col-2">
-                <p class="text-right">{{po.vat | intcomma}}&ensp;บาท</p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-7">
-                <p id="total-spell"></p>
-              </div>
-              <div class="col-3">
-                <p class="text-right">จำนวนเงินรวมทั้งสิ้น</p>
-              </div>
-              <div class="col-2">
-                <p class="text-right">{{po.amount | intcomma}}&ensp;บาท</p>
-              </div>
-            </div>
-            -->
-            <!-- New **************** -->
-            <div class="row">
-              <div class="col-7-5 col-md">
+            <div class="row ps-summary">
+              <div class="col-7-5">
                 <div class="row">
                   <div class="col">
                     <p>ทะเบียนรถ/เครื่องจักร/หน่วยงาน : {% if items.0.item.requisit.car.code %}{{ items.0.item.requisit.car.name }}{{ items.0.item.requisit.car.code }}{% endif %}</p>
@@ -235,50 +136,22 @@
                 </div>
               </div>
               <div class="col-2-25">
-                <div class="row">
-                  <div class="col"><p class="text-right">รวมเป็นเงิน</p></div>
-                </div>
-                <div class="row">
-                  <div class="col"><p class="text-right">หักส่วนลด</p></div>
-                </div>
-                <div class="row">
-                  <div class="col"><p class="text-right">จำนวนเงินหลังหักส่วนลด</p></div>
-                </div>
-                <div class="row">
-                  <div class="col"><p class="text-right">ค่าขนส่ง</p></div>
-                </div>
-                <div class="row">
-                  <div class="col"><p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p></div>
-                </div>
+                <div class="row"><div class="col"><p class="text-right">รวมเป็นเงิน</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">หักส่วนลด</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">จำนวนเงินหลังหักส่วนลด</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">ค่าขนส่ง</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">จำนวนภาษีมูลค่าเพิ่ม 7%</p></div></div>
               </div>
-              <div class="col-2-25 col-md">
-                <div class="row">
-                  <div class="col"><p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p></div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <p class="text-right">{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</p>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <p class="text-right">{{po.total_after_discount | intcomma}}&ensp;บาท</p>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <p class="text-right">{{po.freight | intcomma}}&ensp;บาท</p>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col">
-                    <p class="text-right">{{po.vat | intcomma}}&ensp;บาท</p>
-                  </div>
-                </div>
+              <div class="col-2-25">
+                <div class="row"><div class="col"><p class="text-right">{{po.total_price | intcomma}}&ensp;บาท</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.discount | intcomma}}&ensp;{% if '%' in po.discount %}{%else%}บาท{%endif%}</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.total_after_discount | intcomma}}&ensp;บาท</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.freight | intcomma}}&ensp;บาท</p></div></div>
+                <div class="row"><div class="col"><p class="text-right">{{po.vat | intcomma}}&ensp;บาท</p></div></div>
               </div>
             </div>
 
-            <div class="row">
+            <div class="row ps-summary ps-grand">
               <div class="col-7-5">
                 <p id="total-spell"></p>
               </div>
@@ -291,7 +164,7 @@
             </div>
 
             <hr>
-            <div class="row spacer my-3">
+            <div class="row spacer my-3 ps-signs">
                 <div class="col">
                   <p>ผู้สั่งสินค้า</p>
                   <p><img src="/media/{{po.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/></p>
@@ -308,14 +181,18 @@
                         {% if po.approver_status_id == 2 %}
                           <img src="/media/{{po.approver_user.userprofile.signature}}" width="160" height="75" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
                           <p class="line75">{{po.approver_user}}</p>
+                        {% elif po.approver_status_id == 3 %}
+                          <span class="badge badge-danger">{{po.approver_status}}</span>
                         {% endif %}
                     </p>
                     {% if isPermiss and po.approver_status_id == 1%}
-                    <div style="display: flex;">
+                    <div class="ps-approve-buttons" style="display: flex; gap: .5rem;">
                       <input id='submit' type='submit' name = 'status' value = 'อนุมัติ' class="btn btn-success btn hidden-print" onclick="return confirm('ต้องการอนุมัติใบสั่งซื้อนี้หรือไม่?');">
-                      &nbsp;
-                      <input id='submit' type='submit' name = 'status' value = 'ไม่อนุมัติ' class="btn btn-danger btn hidden-print" onclick="return confirm('ต้องการไม่อนุมัติใบสั่งซื้อนี้หรือไม่?');">                    
+                      <button type="button" class="btn btn-outline-danger btn hidden-print" data-toggle="modal" data-target="#rejectReasonModal">ไม่อนุมัติ</button>
                     </div>
+                    {% endif %}
+                    {% if po.reject_reason %}
+                      <p class="text-danger mt-2"><strong>เหตุผลการไม่อนุมัติ:</strong> {{po.reject_reason|linebreaksbr}}</p>
                     {% endif %}
                 </form>
                 </div>
@@ -324,25 +201,31 @@
                   <description id="dt_print"></description>
                 </div>
             </div>
-            <div class="row my-3 d-print-none">
-              <div class="col">
-                {% if isFromHome == 'True' %}
-                  <a href="{% url 'home' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
-                {% elif isFromHome == 'False' %}
-                  <a href="{% url 'viewPOApprove' %}" class="btn btn-secondary d-print-none"><i class="fas fa-arrow-left"></i> กลับไป</a>
-                {% endif %}
-              </div>
-              <div class="col text-right">
-                <button type="button" class="btn btn-outline-info pull-right hidden-print" onclick="scrollToTop();setDateTimePrint();window.print();">
-                  <i class="fas fa-print"></i>
-                  ปริ้นใบสั่งซื้อ
-              </button>
-              </div>
-            </div>
-            <hr>
+            {% url 'editPOApprove' po.id isFromHome as reject_url %}
+            {% include '_reject_reason_modal.html' with action_url=reject_url doc_name='ใบสั่งซื้อ' %}
           </div>
         </div>
       </div>
+    </div>
+    {% comment %}แถบปุ่มแบบเดียวกับหน้าอนุมัติใบขอซื้อ: กลับไป (ซ้าย) | รายการถัดไป หรือ ปริ้น (ขวา) อยู่ชั้นนอกสุดของ .po-doc เพื่อให้ sticky แสดงตั้งแต่เปิดหน้า{% endcomment %}
+    <div class="po-actions po-actions-bar hidden-print">
+      {% if isFromHome == 'True' %}
+        <a href="{% url 'home' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
+      {% elif isFromHome == 'False' %}
+        <a href="{% url 'viewPOApprove' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> กลับไป</a>
+      {% else %}
+        <span></span>
+      {% endif %}
+      {% if next_po %}
+      <a href="{% url 'editPOApprove' next_po.id isFromHome %}" class="btn btn-primary">
+        รายการถัดไป <i class="fas fa-arrow-right"></i>
+      </a>
+      {% else %}
+      <button type="button" class="btn btn-outline-info d-none d-md-inline-block" onclick="printFromShowPage();">
+        <i class="fas fa-print"></i>
+        ปริ้น<span class="d-none d-sm-inline">ใบสั่งซื้อ</span>
+      </button>
+      {% endif %}
     </div>
 </div>
 <!-- Modal Search-->
@@ -361,6 +244,8 @@
 </div>
 {% endblock %}
 {% block javascript %}
+{% url 'showPO' po.id 2 as print_url %}
+{% include '_print_from_show_page.html' with print_url=print_url print_title='ปริ้นใบสั่งซื้อ' %}
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script type="text/javascript">
 $(function() {
@@ -394,7 +279,7 @@ function searchLastPoItem(){
             }
         });
     } else {
-      
+
     }
     return false;
 }
@@ -411,4 +296,3 @@ function setDateTimePrint(){
 }
 </script>
 {% endblock %}
-

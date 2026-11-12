@@ -62,306 +62,282 @@
     }
     
   b.dblUnderlined { border-bottom: 3px double; }
+
+  /* ฟอร์มเลือกร้านค้า (ไม่ปริ้น) */
+  .cp-print .cp-form-card {
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+  }
+  .cp-print .cp-form-card > .card-header {
+    background: #f8f9fb;
+    border-bottom: 1px solid #e3e6ea;
+  }
+  .cp-print .cp-form-card > .card-header h5 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .cp-print .cp-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+  }
+  .cp-print .cp-form-grid .form-group {
+    margin-bottom: .75rem;
+  }
+  .cp-print .cp-form-grid label {
+    margin-bottom: .2rem;
+    font-size: .9rem;
+    color: #495057;
+  }
+  .cp-print .cp-form-grid .cp-span-2 {
+    grid-column: 1 / -1;
+  }
+  .cp-print .cp-select-bidder label {
+    font-weight: 700;
+    color: #212529;
+  }
+  .cp-print .cp-select-bidder .express {
+    border: 2px solid #007bff;
+    font-weight: 600;
+  }
+  .cp-print .cp-radio-box {
+    padding: .4rem .75rem;
+    border: 1px solid #e3e6ea;
+    border-radius: 6px;
+    background: #fbfbfc;
+  }
+  .cp-print .cp-radio-box > div {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1.25rem;
+  }
+  .cp-print .cp-radio-box label {
+    margin: 0;
+    color: #212529;
+  }
+  /* เน้นช่องประเภทใบเปรียบเทียบ (มีผลกับผู้ตรวจสอบ/ผู้อนุมัติ และผู้อนุมัติ 2) */
+  .cp-print .cp-field-important > label {
+    font-weight: 700;
+    color: #212529;
+  }
+  .cp-print .cp-field-important .cp-radio-box {
+    border: 2px solid #007bff;
+    background: #fff;
+  }
+  .cp-print .cp-field-important .cp-radio-box label {
+    padding: .1rem .5rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .cp-print .cp-field-important .cp-radio-box label:has(input:checked) {
+    background: #e7f1ff;
+    color: #0056b3;
+    font-weight: 700;
+  }
+  @media (max-width: 767.98px) {
+    .cp-print .cp-form-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cp-print .cp-doc-head {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: .5rem;
+    }
+  }
+
+  /* เน้นช่องผู้ตรวจสอบ/ผู้อนุมัติ (เฉพาะบนจอ ตอนปริ้นเป็นแบบปกติ) */
+  @media screen {
+    /* ผู้ตรวจสอบ/ผู้อนุมัติ: สีเหลือง */
+    .cp-print .cp-sign-required {
+      background: #fff8e1;
+    }
+    .cp-print .cp-sign-required select.form-control {
+      border: 2px solid #ffc107;
+      font-weight: 600;
+    }
+    .cp-print .cp-sign-required select.form-control:focus {
+      box-shadow: 0 0 0 .2rem rgba(255, 193, 7, .3);
+    }
+    .cp-print .cp-sign-required .cp-badge-important {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .cp-print .cp-badge-important {
+      display: inline-block;
+      padding: 0 .45rem;
+      border-radius: 4px;
+      background: #e7f1ff;
+      color: #0056b3;
+      font-size: .72rem;
+      font-weight: 600;
+      line-height: 1.5;
+      vertical-align: middle;
+    }
+  }
+  @media screen {
+    /* ผู้อนุมัติ 2: สีส้ม */
+    .cp-print .cp-sign-approver2 {
+      background: #fff4e6;
+      box-shadow: inset 0 0 0 2px #fd7e14;
+    }
+    .cp-print .cp-badge-cascp {
+      display: inline-block;
+      padding: 0 .45rem;
+      border-radius: 4px;
+      background: #ffe8cc;
+      color: #b35900;
+      font-size: .72rem;
+      font-weight: 600;
+      line-height: 1.5;
+      vertical-align: middle;
+    }
+  }
+
 </style>
+{% include 'comparePricePO/_cp_doc_styles.html' %}
+{% include 'comparePricePO/_cp_compare_table_styles.html' %}
 {% endblock %}
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-2 offset-1">
-            <img src="/media/company/STG_logo.png" class="rounded float-right" width="90" height="60"/>
+<div class="container cp-print my-3">
+    <!-- ======== เอกสารใบเปรียบเทียบราคา (ส่วนที่ปริ้น) ======== -->
+    <div class="cp-paper">
+        {% include 'comparePricePO/_cp_doc_head.html' %}
+
+        {% include 'comparePricePO/_cp_compare_table.html' %}
+
+        {% if bidder|length > 0 %}
+        <div class="cp-conclusion">
+            <div class="cp-less"><b id="txtLess"></b></div>
+            <div class="cp-select-line">
+                <b id="txtSelectBidder"></b>
+                <b id="txtSelectBidderPrice"></b>
+                <b id="txtSelectBidderSpell"></b>
+            </div>
         </div>
-        <div class="col-4 text-center">
-            <h6 style="display: inline-block;align-items: center;">ใบเปรียบเทียบราคา</h6>
-            {% if cp.is_re_approve %}
-                <b class="text-danger">***ฉบับแก้ไข</b>
-            {% endif %}
-            {% if cp.cm_type %}
-                &emsp;<p style="font-size:6px;display: inline-block;align-items: center;">({{cp.cm_type}})</p>
-            {%endif%}
-            <h6>{{cp.address_company.name_th}}</h6>
-            <p style="font-size:12px">{{cp.address_company.address}}</p>
-         </div>
-        <div class="col-2">
-            <img src="/media/{{cp.address_company.logo}}" class="rounded float-left" width="60" height="60"/>
-        </div>
-        <div class="col-3 text-center">
-            <b style="font-size:9pt">รหัส {{cp.ref_no}}
-                {% for oldest in items_oldest %}
-                    {% if oldest.item.requisit.memorandum_pdf %}
-                        {% ifchanged oldest.item.requisit.memorandum_pdf %}
-                            <a href="/media/{{oldest.item.requisit.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
-                        {% endifchanged %}
-                    {% endif %}
-                {% endfor %}
-            </b>
-            <h6 style="font-size:9pt">รหัสใบขอซื้อ
-                {% for i in new_pr %}
-                    <b><u><a href="/purchaseRequisition/show/{{i.id}}/4">{{i.ref_no}}</a></u>, </b>
-                {% endfor %}
-            </h6>
-            <p style="font-size:9pt">วันที่&emsp;{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</p>
+        {% endif %}
+
+        <form method="post" id="cp-select-form">
+        {% csrf_token %}
+        <!-- form เก็บราคาส่วนต่างของสองร้านค้า -->
+        {{form.amount_diff}}
+
+        <!-- ======== เลือกร้านค้า / รายละเอียด (ไม่ปริ้น) ======== -->
+        <div class="card cp-form-card hidden-print my-3">
+            <div class="card-header">
+                <h5><i class="fas fa-check-circle text-primary mr-2"></i>เลือกร้านค้าและรายละเอียดใบเปรียบเทียบ</h5>
+            </div>
+            <div class="card-body">
+                <div class="cp-form-grid">
+                    <div class="form-group cp-select-bidder">
+                        <label for="express">{{form.select_bidder.label}} <span class="text-danger">*</span></label>
+                        {{form.select_bidder | add_class:"select-bidder"}}
+                        <input id="express" name="express" type="text" list="idExpressList" class="express form-control" Placeholder="เลือกจากร้าน ..." autocomplete="off" required>
+                        <datalist id="idExpressList">
+                          {% for results in bidder %}
+                            <option data-id="{{results.distributor.id}}" data-value="{{results.total_price}}" data-index="{{forloop.counter}}" data-amount="{{results.amount}}" value="{{results.distributor.name}}"></option>
+                          {% endfor %}
+                        </datalist>
+                        {% if form.select_bidder.errors %}<div class="text-danger small mt-1">{{ form.select_bidder.errors }}</div>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{form.address_company.id_for_label}}">{{form.address_company.label}}</label>
+                        {{form.address_company | add_class:"form-control"}}
+                    </div>
+                    <div class="form-group cp-field-important">
+                        <label>{{form.cm_type.label}} <span class="cp-badge-important">สำคัญ</span></label>
+                        <div class="cp-radio-box">{{form.cm_type}}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>{{form.base_spares_type.label}}</label>
+                        <div class="cp-radio-box">{{form.base_spares_type}}</div>
+                    </div>
+                    <div class="form-group cp-span-2">
+                        <label for="{{form.note.id_for_label}}">{{form.note.label}}</label>
+                        {{form.note | add_class:"form-control"}}
+                    </div>
+                </div>
+            </div>
         </div>
 
-    </div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-sm">
-        <thead class="text-center">
-            <tr>
-                <td scope="col" rowspan="4">ลำดับ</td>
-                <td scope="col" rowspan="4">รายการ</td>
-                <td scope="col" rowspan="4">จำนวน</td>
-                <td scope="col" rowspan="4">หน่วย</td>
-                {% for bd in bidder %}
-                    <td scope="col" colspan="4">{{bd.distributor.name}}
-                        {% if bd.quotation_pdf %}
-                            <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm hidden-print"><i class="fas fa-file-download"></i></a>
-                        {% endif %}
-                    </td>
-                {% endfor %}
-                <td scope="col" rowspan="4">
-                    <ul class="list-unstyled my-3 text-left">
-                        {% for bst in baseSparesType %}
-                            <li>
-                                {% if bst == cp.base_spares_type%}
-                                <i class="fas fa-square"></i>
-                                {% else %}
-                                <i class="far fa-square"></i>
-                                {% endif %}
-                                 {{bst.name}}
-                            </li>
-                        {% endfor %}                        
-                    </ul>
-                </td>
-            </tr>
-            <tr>
-                {% for bd in bidder %}
-                    <td scope="col" colspan="4">โทร. {{bd.distributor.tel}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                {% for bd in bidder %}
-                    <td scope="col">เกรด</td>
-                    <td scope="col" colspan="3">เครดิต {{bd.credit}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                {% for bd in bidder %}
-                    <td scope="col">ยี่ห้อ</td>
-                    <td scope="col">ราคา/หน่วย</td>
-                    <td scope="col">ส่วนลด</td>
-                    <td scope="col">รวม</td>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for oldest in items_oldest %}
-                <tr>
-                    <th scope="row" class="text-center">{{forloop.counter}}</th>
-                    <td>{{oldest.item.product_name}} <b class="text-success" style="white-space: pre-line;">{{oldest.description|linebreaksbr}}</b></td>
-                    <td class="text-right">{{oldest.quantity |floatformat:"-4"}}</td>
-                    <td class="text-center">{{oldest.unit}}</td>
-                        {% comment %}
-                        วนตามคอลัมน์ร้านค้า (bidder) แล้วจับคู่เฉพาะรายการของร้านค้านั้น ๆ ด้วย it.bidder_id == bd.id
-                        เพื่อไม่ให้ราคา/สินค้าไปแสดงผิดคอลัมน์เวลาลำดับ queryset ไม่ตรงกัน
-                        {% endcomment %}
-                        {% for bd in bidder %}
-                            {% for it in itemName %}
-                                {% if it.bidder_id == bd.id and oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
-                                <td>{{it.brand}}</td>
-                                <td class="text-right">{% if it.unit_price %}{{it.unit_price | intcomma}}{%else%}{%endif%}</td>
-                                <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
-                                <td class="text-right">{% if it.price %}{{it.price | intcomma}}{%else%}{%endif%}</td>
-                                {% endif %}
-                            {% endfor %}
+        <!-- ======== ลงชื่อ (ปริ้น) ======== -->
+        <div class="cp-signatures my-2">
+            <div class="cp-sign">
+                <div class="cp-sign-title">ผู้จัดทำ</div>
+                <div>( {{cp.organizer}} )</div>
+                <div class="text-muted small">{{cp.organizer.userprofile.position}}</div>
+            </div>
+            <div class="cp-sign cp-sign-required">
+                <div class="cp-sign-title">ผู้ตรวจสอบ <span class="text-danger hidden-print">*</span> <span class="cp-badge-important hidden-print">สำคัญ</span></div>
+                {{form.examiner_user | add_class:"form-control"}}
+            </div>
+            <div class="cp-sign cp-sign-required">
+                <div class="cp-sign-title">ผู้อนุมัติ <span class="text-danger hidden-print">*</span> <span class="cp-badge-important hidden-print">สำคัญ</span></div>
+                {{form.approver_user | add_class:"form-control"}}
+            </div>
+            <!-- ผู้อนุมัติ 2 (CASCP) แสดงเมื่อร้านที่เลือกมียอดอยู่ในช่วงสิทธิ และไม่ได้เลือกประเภทใบเปรียบเทียบ (updateApprover2) -->
+            <div class="cp-sign cp-sign-approver2 d-none" id="cp-sign-approver2">
+                <div class="cp-sign-title">ผู้อนุมัติ 2 <span class="cp-badge-cascp hidden-print">{% if cascp_info.min %}ยอดเกิน {{ cascp_info.min|floatformat:0|intcomma }}{% else %}ยอดเกินเกณฑ์{% endif %}</span></div>
+                <div class="hidden-print">
+                    {% if special_approver_users %}
+                        <div class="small text-muted">ผู้มีสิทธิอนุมัติ</div>
+                        {% for u in special_approver_users %}
+                            <div class="font-weight-bold">{{ u.first_name }} {{ u.last_name }}</div>
                         {% endfor %}
-                    <td><!-- * --></td>
-                </tr>
-            {% endfor %}
-            <tr style="visibility:hidden;"><td colspan="100%">.</td></tr>
-            <tr>
-                <td colspan="2" class="text-right">รวม</td>
-                <td rowspan="6"></td>
-                <td rowspan="6"></td>
-                {% for bd in bidder %}
-                    <td rowspan="6"></td>
-                    <td rowspan="6"></td>
-                    <td rowspan="6"></td>
-                    <td class="text-right">{{bd.total_price | intcomma}}</td>
-                {% endfor %}
-                <td rowspan="6"><u>หมายเหตุ</u><br>{{cp.note|truncatechars:450}}</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">หักส่วนลด</td>
-                {% for bd in bidder %}
-                    <td class="text-right">{{bd.discount | intcomma}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
-                {% for bd in bidder %}
-                    <td class="text-right">{{bd.total_after_discount | intcomma}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">ค่าขนส่ง</td>
-                {% for bd in bidder %}
-                    <td class="text-right">{{bd.freight | intcomma}}</td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td>
-                {% for bd in bidder %}
-                    <td class="text-right"><u>{{bd.vat | intcomma}}</u></td>
-                {% endfor %}
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right">รวมเป็นเงินทั้งสิ้น</td>
-                {% for bd in bidder %}
-                    <td class="text-right"><b class="dblUnderlined">{{bd.amount | intcomma}}</b></td>
-                {% endfor %}
-            </tr>           
-        </tbody>
-        </table>
-    </div>
-    {% if bidder|length > 0 %}
-    <div class="row mx-auto pd-3 less" style="height: 4px;">
-        <div class="col">
-            <b id="txtLess"></b>
-        </div>
-    </div>
-    <hr class="less">
-    <div class="row mx-auto pd-3" style="height: 4px;">
-        <div class="col-6">
-            <b id="txtSelectBidder"></b>
-        </div>
-        <div class="col-2">
-            <b id="txtSelectBidderPrice"></b>
-        </div>
-        <div class="col-4">
-            <b id="txtSelectBidderSpell"></b>
-        </div>
-    </div>
-    <hr>
-    {% endif %} 
-    <form method="post">
-    <!-- form เก็บราคาส่วนต่างของสองร้านค้า -->
-    <div class="row my-2 hidden-print">
-        <div class="col-10">
-            {{form.amount_diff | add_class:"form-control is-valid"}}
-        </div>
-    </div>
-    <div class="row my-2 hidden-print">
-            <div class="col-2">
-                {{form.address_company.label}} :
+                    {% else %}
+                        <div class="small text-danger">ยังไม่มีผู้มีสิทธิอนุมัติ 2 (CASCP) ของบริษัทนี้</div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="col-10">
-                {{form.address_company | add_class:"form-control"}}
+        </div>
+        {% include 'comparePricePO/_cp_doc_footer.html' %}
+
+        <!-- ======== ปุ่มบันทึก/ปริ้น ติดด้านล่าง (ไม่ปริ้น) ======== -->
+        <div class="cp-actions-bar hidden-print mt-3">
+            <div>
+                {% if cp.examiner_status_id == 1 %}
+                <button type="submit" name="btnSaveDraft" class="btn btn-secondary hidden-print" formnovalidate>
+                    <i class="fas fa-file-alt"></i>
+                    บันทึกแบบร่าง
+                </button>
+                {% endif %}
+                <button type="submit" name="btnSaveAndSend" class="btn btn-primary hidden-print">
+                    <i class="fas fa-paper-plane"></i>
+                    บันทึกและส่งอนุมัติ
+                </button>
             </div>
-    </div>
-    <div class="row my-3 hidden-print">
-        <div class="col-2 text-danger">
-            {{form.select_bidder.label}} :
-        </div>
-        <div class="col-10 text-danger">
-                {{form.select_bidder | add_class:"select-bidder"}}
-                {{ form.select_bidder.errors }}
-                <input id="express" name="express" type="text" list="idExpressList" class="express form-control is-invalid" Placeholder="เลือกจากร้าน ..." class="form-control" autocomplete="off" required>
-                <datalist id="idExpressList">
-                  {% for results in bidder %}
-                    <option data-id="{{results.distributor.id}}" data-value="{{results.total_price}}" data-index="{{forloop.counter}}" data-amount="{{results.amount}}" value="{{results.distributor.name}}"></option>
-                  {% endfor %}
-                </datalist>
-            {% csrf_token %}
-        </div>
-    </div>
-    <div class="row my-2 hidden-print">
-        <div class="col-2">
-            {{form.note.label}} :
-        </div>
-        <div class="col-10">
-            {{form.note | add_class:"form-control"}}
-        </div>
-    </div>
-    <div class="row my-2 d-print-none">
-        <div class="col-2">
-            {{form.cm_type.label}} :
-        </div>
-        <div class="col-10">
-            <div class="card" style="width: 28rem;">
-                <div class="card-body">
-                    {{form.cm_type}}
-                </div>
-            </div>            
-        </div>
-    </div>
-    <div class="row my-2 hidden-print">
-        <div class="col-2">
-            {{form.base_spares_type.label}} :
-        </div>
-        <div class="col-10">
-            <div class="card" style="width: 28rem;">
-                <div class="card-body">
-                    {{form.base_spares_type}}
-                </div>
-            </div>            
-        </div>
-    </div>
-    <hr class="hidden-print">
-    <div class="row my-2">
-        <div class="card-group col">
-                <div class="card" style="max-width: 15rem;">
-                    <div class="card-body text-center pt-1 pb-1">
-                    ผู้จัดทำ <img src="/media/{{cp.organizer.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/><br>
-                    ( {{cp.organizer}} )<br>
-                    {{cp.organizer.userprofile.position}}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body text-center pt-1 pb-1">
-                        ผู้ตรวจสอบ
-                        {{form.examiner_user | add_class:"form-control is-invalid"}}
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body text-center pt-1 pb-1">
-                        ผู้อนุมัติ
-                        {{form.approver_user | add_class:"form-control is-invalid"}}
-                    </div>
-                </div>
-        </div>        
-    </div>
-    <div class="row">
-        <div class="col text-right">{{bc.affiliated.iso_code.cm_code|safe}}</div>
-    </div>
-    <div class="text-right my-2">
-        <description id="dt_print"></description>
-    </div>
-    <div class="row my-2">
-        <div class="col-6">
-            {% if cp.examiner_status_id == 1 %}
-            <button type="submit" name="btnSaveDraft" class="btn btn-secondary hidden-print" formnovalidate>
-                <i class="fas fa-file-alt"></i>
-                บันทึกแบบร่าง
-            </button>
-            {% endif %}
-            <button type="submit" name="btnSaveAndSend" class="btn btn-primary hidden-print">
-                <i class="fas fa-paper-plane"></i>
-                บันทึกและส่งอนุมัติ
+            <button type="button" class="btn btn-outline-info hidden-print" onclick="printCPFromShowPage();">
+                <i class="fas fa-print"></i>
+                ปริ้นใบเปรียบเทียบราคา
             </button>
         </div>
-        <div class="col-6 text-right">
-          <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
-            <i class="fas fa-print"></i>
-            ปริ้นใบเปรียบเทียบราคา
-          </button>
-        </div>
-      </div>
-    </form>
+        </form>
+    </div>
 </div>
 {% endblock%}
 {% block javascript %}
+{{ cascp_info|json_script:"cascp-info" }}
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script>
+    //---------- ผู้อนุมัติ 2 (CASCP): ร้านที่เลือกมียอดในช่วงสิทธิ และไม่ได้เลือกประเภทใบเปรียบเทียบ (เหมือน is_special_approver_cp) ----------
+    var cascpInfo = JSON.parse(document.getElementById('cascp-info').textContent);
+    function updateApprover2() {
+        var amount = parseFloat($('#idExpressList option[data-id="' + $('#id_select_bidder').val() + '"]').attr('data-amount'));
+        var cmType = $('#id_cm_type :radio:checked').val() || '';
+        var min = parseFloat(cascpInfo.min), max = parseFloat(cascpInfo.max);
+        var isSpecial = !isNaN(amount) && !isNaN(min) && !isNaN(max) && amount >= min && amount <= max && cmType === '';
+        $('#cp-sign-approver2').toggleClass('d-none', !isSpecial);
+    }
+
+    //---------- เน้นคอลัมน์ร้านที่เลือกในหัวตารางเปรียบเทียบ (เปลี่ยนตามช่องเลือกผู้จัดจำหน่าย) ----------
+    function updateSelectedBidderHeader() {
+        var selected = String($('#id_select_bidder').val() || '');
+        $('.cp-compare-table .cp-bidder-name').each(function () {
+            var isSelected = selected !== '' && String($(this).attr('data-distributor')) === selected;
+            $(this).toggleClass('cp-selected', isSelected);
+            $(this).find('.cp-selected-badge').toggleClass('d-none', !isSelected);
+        });
+    }
+
     $(function() {
     //get datalist to set input
     var inputs = $(".select-bidder");
@@ -398,10 +374,13 @@
     //set examiner_user and approver_user
     searchExaminerAndApproverUser();
 
+    updateApprover2();
+    updateSelectedBidderHeader();
 });
 
 $('input[type=radio][name=cm_type]').change(function() {
     searchExaminerAndApproverUser();
+    updateApprover2();
 });
 
  $(".express" ).change(function() {
@@ -427,6 +406,8 @@ $('input[type=radio][name=cm_type]').change(function() {
 
     //หาผู้ตรวจสอบและผู้อนุมัติใบเปรียบเทียบราคา
     searchExaminerAndApproverUser();
+    updateApprover2();
+    updateSelectedBidderHeader();
   });
 
   $(".express").blur(function() {
@@ -524,6 +505,42 @@ $('input[type=radio][name=cm_type]').change(function() {
             document.getElementById("txtLess").innerHTML = "";
     }
     */
+
+    //---------- ปริ้นใบเปรียบเทียบราคา: ใช้หน้าตาเดียวกับตอนปริ้นจากหน้า showComparePricePO ----------
+    function cpFormSnapshot() {
+        return $('#cp-select-form').find(':input').not('[name=csrfmiddlewaretoken]').serialize();
+    }
+    var cpFormAtLoad = null;
+    //เก็บค่าหลัง $(function) ด้านบนเติมข้อมูลตอนเปิดหน้าเสร็จแล้ว (ready ทำงานตามลำดับที่ลงทะเบียน)
+    $(function () { cpFormAtLoad = cpFormSnapshot(); });
+
+    function printCPFromShowPage() {
+        if (cpFormAtLoad !== null && cpFormSnapshot() !== cpFormAtLoad
+            && !confirm('มีข้อมูลที่ยังไม่ได้บันทึก ใบเปรียบเทียบที่ปริ้นจะเป็นข้อมูลที่บันทึกไว้ล่าสุด\nต้องการปริ้นต่อหรือไม่?')) {
+            return;
+        }
+        var frame = $('#cp-print-frame');
+        if (!frame.length) {
+            //ซ่อนไว้นอกจอ (ไม่ใช้ display:none เพราะบางเบราว์เซอร์จะไม่ render หน้าใน iframe)
+            frame = $('<iframe id="cp-print-frame" title="ปริ้นใบเปรียบเทียบราคา" aria-hidden="true" tabindex="-1"></iframe>')
+                .css({ position: 'fixed', left: '-10000px', top: 0, width: '1400px', height: '900px', border: 0 })
+                .appendTo('body');
+        }
+        var url = '{% url "showComparePricePO" cp.id 1 %}';
+        frame.off('load').on('load', function () {
+            try {
+                var w = this.contentWindow;
+                if (typeof w.setDateTimePrint !== 'function') throw new Error('showComparePricePO not loaded');
+                w.setDateTimePrint();
+                w.focus();
+                w.print();
+            } catch (e) {
+                //โหลดใน iframe ไม่ได้ (เช่นถูกบล็อก) ให้เปิดหน้าใบเปรียบเทียบในแท็บใหม่แทน
+                window.open(url, '_blank');
+            }
+        });
+        frame.attr('src', url + '?print=' + Date.now());
+    }
 
     function setDateTimePrint(){
 		var currentdate = new Date();

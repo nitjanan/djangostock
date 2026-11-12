@@ -1,0 +1,39 @@
+{% comment %}หัวเอกสารใบขอซื้อ (.ad-doc) ใช้ร่วมกันทุกหน้าใบขอซื้อ ให้หน้าตาเหมือนหน้า showPR
+ใช้ที่อยู่บริษัทของใบขอซื้อ ถ้ายังไม่มี (ตอนสร้าง) ใช้ company.address
+show_address_cog: แสดงปุ่มแก้ไขที่อยู่ตามจดทะเบียน (modal #addressCompany ต้องมีในหน้านั้น){% endcomment %}
+<div class="ad-head">
+  {% if pr.address_company %}
+    {% include 'purchaseRequisition/_pr_doc_company.html' with addr=pr.address_company %}
+  {% else %}
+    {% include 'purchaseRequisition/_pr_doc_company.html' with addr=company.address %}
+  {% endif %}
+  <div class="ad-title">
+    <h4>
+      ใบขอซื้อ/ใบขอซ่อม
+      {% if pr.is_re_approve == True %}<b class="text-danger">***ฉบับแก้ไข</b>{% endif %}
+    </h4>
+    <dl class="ad-meta">
+      <dt>รหัสใบขอซื้อ</dt>
+      <dd>
+        {{pr.ref_no|default:"-"}}
+        {% if requisition.memorandum_pdf %}
+          <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm py-0 hidden-print" title="เอกสารแนบ"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+        {% endif %}
+      </dd>
+      <dt>รหัสใบขอเบิก</dt><dd><u><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></u></dd>
+      <dt>วันที่ขอซื้อ</dt>
+      <dd>{% if pr.created %}{{ pr.created | date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="ad-info">
+  <div>
+    <div class="ad-label">ผู้ขอซื้อ/ขอซ่อม</div>
+    <div class="font-weight-bold">{{requisition.chief_approve_user_name}}</div>
+  </div>
+  <div>
+    <div class="ad-label">แผนก</div>
+    <div class="font-weight-bold">{{requisition.section}}</div>
+  </div>
+</div>

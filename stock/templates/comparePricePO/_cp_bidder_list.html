@@ -1,0 +1,9 @@
+{% comment %}รายชื่อร้านที่เสนอราคาในตารางใบเปรียบเทียบราคา: บรรทัดละร้าน คั่นด้วยเส้นประ
+ร้านที่เลือกตัวหนา + เครื่องหมายถูก, ร้านอื่นตัวเล็กสีเทา, ไม่มีร้าน = "-"
+ส่ง cp (ComparisonPrice) — view ควร prefetch_related('comparisonpricedistributor_set__distributor')
+สไตล์ .cp-bd อยู่ใน _list_page_style.html{% endcomment %}
+{% for item in cp.comparisonpricedistributor_set.all %}
+  <div class="cp-bd">{% if cp.select_bidder_id and item.distributor_id == cp.select_bidder_id %}<strong>{{ item.distributor.name }} <i class="fas fa-check text-success"></i></strong>{% else %}<span class="cp-bd-other">{{ item.distributor.name }}</span>{% endif %}</div>
+{% empty %}
+  <span class="text-muted">-</span>
+{% endfor %}

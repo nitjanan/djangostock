@@ -3,6 +3,67 @@
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% include '_user_filter_search.html' %}
+{% include '_draft_tabs_style.html' %}
+<style>
+  /* จัดซื้อ: รายการสินค้า + จำนวนที่ยังไม่ได้ซื้อ */
+  .pr-items-col {
+    min-width: 300px;
+  }
+  .pr-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .3rem 0;
+  }
+  .pr-item + .pr-item {
+    border-top: 1px dashed #ced4da;
+  }
+  .pr-item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .pr-item-remain {
+    flex: 0 0 auto;
+    text-align: right;
+    white-space: nowrap;
+    color: #0056b3;
+  }
+  .pr-remain-num {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .pr-urgency-col .pr-item {
+    justify-content: center;
+    min-height: 1.5em;
+  }
+  /* เริ่มแถวแรกที่ขอบบนเหมือนกันทั้งสองคอลัมน์ เส้นประจะได้อยู่ระดับเดียวกัน */
+  td.pr-items-col, td.pr-urgency-col {
+    vertical-align: top;
+  }
+  .pr-items-col .pr-item, .pr-urgency-col .pr-item {
+    box-sizing: border-box;
+  }
+  /* ยืดแถวเข้าไปใน padding ของช่อง (.75rem) ให้เส้นประของสินค้าและเร่งด่วนต่อกันเป็นเส้นเดียว */
+  .pr-items-col .pr-item {
+    margin-right: -.75rem;
+    padding-right: .75rem;
+  }
+  .pr-urgency-col .pr-item {
+    margin-left: -.75rem;
+    padding-left: .75rem;
+  }
+  /* ซื้อครบแล้ว: สีจาง */
+  .pr-item-remain.is-done {
+    color: #adb5bd;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
   {% if messages %}
@@ -20,47 +81,35 @@
   <h3 align="center">ใบขอซื้อ/ขอซ่อม</h3>
 {% endif %}
 
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
     <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.ref_no|as_crispy_field }}
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.requisition__name|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.purchase_user|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.organizer|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.requisition__name|as_crispy_field}}
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-box-open"></i> สินค้า</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.item_product_id|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.item_product_name|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.item_machine|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.item_rq_note|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.purchase_user|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.organizer|as_crispy_field}}
-        </div> 
-        <div class="form-group col-md-3 mb-0">
-          {{filter.form.item_machine|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.item_product_id|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.item_product_name|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-3 mb-0">
-          {{filter.form.item_rq_note|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.start_created|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{filter.form.end_created|as_crispy_field}}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.end_created|as_crispy_field }}</div>
+          <div class="col-12 col-md-3 lf-btns">
+            <button type="submit" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+            <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
           </div>
         </div>
       </div>
@@ -68,91 +117,120 @@
   </div>
 </div>
 <div class="card div-shadow">
+  {% if showDraftTabs %}{% include '_draft_tabs.html' %}{% endif %}
   <div class="card-body">
-    {% if isPurchasing %}
+    {% if tab == 'reject' %}
+      * ใบขอซื้อที่ไม่ได้รับการอนุมัติ
+    {% elif isPurchasing %}
       * แสดงเฉพาะใบขอซื้อที่ได้รับการอนุมัติแล้ว
     {% else %}
-    <a class="btn btn-primary btn-block" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-square"></i> สร้างใบขอซื้อ</a>
+    <a class="btn lt-create" href="{%url 'preparePR' %}" role="button"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อ</a>
     {% endif %}
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table class="table table-striped lt">
         <thead class="thead-dark">
           <tr>
             <th scope="col">รหัสใบขอซื้อ</th>
-            <th scope="col">รหัสใบขอเบิก</th>
+            <th scope="col" class="lt-hide-lg">รหัสใบขอเบิก</th>
+            {% if isPurchasing %}
+            <th scope="col" class="pr-items-col"><div class="d-flex justify-content-between"><span>สินค้า</span><span>ยังไม่ได้ซื้อ</span></div></th>
+            {% else %}
             <th scope="col">สินค้า</th>
+            {% endif %}
             <th scope="col">เร่งด่วน</th>
-            <th scope="col">ชื่อผู้ขอเบิก</th>
-            <th scope="col">ชื่อผู้ขอซื้อ</th>
-            <th scope="col">เจ้าหน้าที่จัดซื้อ</th>
-            <th scope="col">วันที่ขอซื้อ</th>
-            <!-- <th scope="col">ความเร่งด่วน</th> -->
-            <th scope="col" colspan="2" class="text-center">Action</th>
+            <th scope="col" class="lt-hide-lg">ผู้ขอเบิก / ผู้ขอซื้อ</th>
+            <th scope="col" class="lt-hide-lg">จัดซื้อ</th>
+            <th scope="col">สถานะ</th>
+            <th scope="col">จัดการ</th>
           </tr>
         </thead>
         <tbody>
         {% for pr in prs %}
-          <tr>
-            <th scope="row"><a class="{% if pr.is_re_approve %}text-danger{%endif%}" href="{% url 'showPR' pr.id 1 %}">{{pr.ref_no}}</a></th>
-            <td><a href="{% url 'showRequisition' pr.requisition.id 1 %}">{{pr.requisition.ref_no}}</a></td>
-            <td>
-              <ul>
-                {% for requisition_item in pr.requisition.requisitionitem_set.all %}
-                  {% if requisition_item.is_used  == False and requisition_item.quantity_pr > 0 %}
-                    <li>{{ requisition_item.product_name }}</li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-            </td>
-            <td>
-              <ul>
-                {% for requisition_item in pr.requisition.requisitionitem_set.all %}
-                  {% for bu in baseUrgency %}
-                    {% if requisition_item.urgency == bu.id and requisition_item.is_used  == False  and requisition_item.quantity_pr > 0 %}
-                      <li>{{bu.name}}</li>
-                    {% endif %}
-                  {% endfor %}
-                {% endfor %}
-              </ul>
-            </td>
-            <td>{{pr.requisition.name}}</td>
-            <td>{{pr.purchase_user}}</td>
-            <td>{{pr.organizer}}</td>
-            <td>{{pr.created |date:"d/m/Y"}}</td>
-            <!-- <td class="text-center">{{pr.requisition.urgency.name}}</td> -->
-            <td colspan="2">
-              {% if isPurchasing %}
-              <div style="display: flex;">
-                <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ CM/ใบ PO</a>
-                <a href="{% url 'closePR' pr.id %}" onclick="return confirm('คุณต้องการปิดรายการนี้หรือไม่ ?\n *** รายการใบขอซื้อจะไปอยู่หน้า History ใช้ในกรณี\n 1. ดึงสินค้าไปทำรายการแล้ว แต่ระบบไม่นำใบขอซื้อออกอัตโนมัติ\n 2. รายการใบขอซื้อที่ไม่ต้องการซื้อแล้ว')" class="btn btn-secondary btn-sm">ปิดรายการ</a>             
+          <tr id="row-{{ pr.id }}"{% if pr.id == focus_id %} class="row-focus"{% endif %}>
+            <th scope="row">
+              <a class="lt-ref {% if pr.is_re_approve %}text-danger{% endif %}" href="{% url 'showPR' pr.id 1 %}">{{ pr.ref_no }}</a>
+              {% if pr.is_draft %}<span class="badge badge-secondary">แบบร่าง</span>{% endif %}
+              <span class="lt-sub">{{ pr.created|date:"d/m/Y" }}</span>
+              <div class="lt-inline">
+                <a class="lt-link" href="{% url 'showRequisition' pr.requisition.id 1 %}">{{ pr.requisition.ref_no }}</a>
+                <span class="lt-sub"><i class="fas fa-user"></i> {{ pr.requisition.name }} → {{ pr.purchase_user }}</span>
+                <span class="lt-sub"><i class="fas fa-user-tie"></i> {{ pr.organizer }}</span>
               </div>
-              {% else %}
-                {% if pr.approver_status_id == 1 and pr.is_re_approve == False %}
-                <div style="display: flex;">
-                  <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
-                  <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?\n *** หากลบใบขอซื้อนี้จะลบใบจ่ายสินค้าภายในด้วย')" href="{% url 'removePR' pr.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
-                </div>
-                {% else %}
-                  <button type="button"
-                    class="btn btn-sm
-                    {% if pr.approver_status.id == 1 %}
-                      btn-outline-warning
-                    {% elif pr.approver_status.id == 2 %}
-                      btn-outline-success
-                    {% elif pr.approver_status.id == 3 %}
-                      btn-outline-danger
-                    {% endif %}" style="width:90px"
-                    >{{pr.approver_status}}</button>
+              {% if tab == 'reject' and pr.reject_reason %}<div class="lt-reason">เหตุผล: {{ pr.reject_reason }}</div>{% endif %}
+            </th>
+            <td class="lt-hide-lg"><a href="{% url 'showRequisition' pr.requisition.id 1 %}">{{ pr.requisition.ref_no }}</a></td>
+            {% if isPurchasing %}
+            <!-- จัดซื้อ: สินค้าทีละแถว ชื่อสินค้า (ซ้าย) | จำนวนที่ยังไม่ได้ซื้อ = จำนวน - ซื้อแล้ว (ขวา) -->
+            <td class="pr-items-col">
+              {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                {% if requisition_item.is_used == False and requisition_item.quantity_pr > 0 %}
+                  <div class="pr-item">
+                    <div class="pr-item-name">{{ requisition_item.product_name }}</div>
+                    <div class="pr-item-remain {% if not requisition_item.quantity_not_bought %}is-done{% endif %}">
+                      <span class="pr-remain-num">{{ requisition_item.quantity_not_bought|floatformat:"-4" }}</span> {{ requisition_item.unit }}
+                    </div>
+                  </div>
                 {% endif %}
+              {% endfor %}
+            </td>
+            <!-- จัดซื้อ: ความเร่งด่วนทีละแถว ตรงกับรายการสินค้า (ความสูงแต่ละแถวปรับให้เท่ากันด้วย JS) -->
+            <td class="pr-urgency-col">
+              {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                {% if requisition_item.is_used == False and requisition_item.quantity_pr > 0 %}
+                  <div class="pr-item">{% for bu in baseUrgency %}{% if requisition_item.urgency == bu.id %}{{ bu.name }}{% endif %}{% endfor %}</div>
+                {% endif %}
+              {% endfor %}
+            </td>
+            {% else %}
+            <td class="pr-items-col">
+              {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                {% if requisition_item.is_used == False and requisition_item.quantity_pr > 0 %}
+                  <div class="pr-item"><div class="pr-item-name">{{ requisition_item.product_name }}</div></div>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td class="pr-urgency-col">
+              {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                {% if requisition_item.is_used == False and requisition_item.quantity_pr > 0 %}
+                  <div class="pr-item">{% for bu in baseUrgency %}{% if requisition_item.urgency == bu.id %}{{ bu.name }}{% endif %}{% endfor %}</div>
+                {% endif %}
+              {% endfor %}
+            </td>
+            {% endif %}
+            <td class="lt-hide-lg">
+              {{ pr.requisition.name }}
+              <span class="lt-sub">ขอซื้อ: {{ pr.purchase_user }}</span>
+            </td>
+            <td class="lt-hide-lg">
+              {{ pr.organizer }}
+            </td>
+            <td>
+              {% if tab == 'reject' %}
+                <span class="lt-pill st-3">ไม่อนุมัติ</span>
+              {% else %}
+                {% include '_status_pill.html' with status=pr.approver_status label="อนุมัติ" %}
               {% endif %}
             </td>
+            <td class="lt-actions">{% spaceless %}
+              {% if tab == 'reject' %}
+              {% elif isPurchasing %}
+                <a href="{% url 'createCMorPO' pr.id %}" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> สร้างใบ CM/PO</a>
+                <a href="{% url 'closePR' pr.id %}" onclick="return confirm('คุณต้องการปิดรายการนี้หรือไม่ ?\n *** รายการใบขอซื้อจะไปอยู่หน้า History ใช้ในกรณี\n 1. ดึงสินค้าไปทำรายการแล้ว แต่ระบบไม่นำใบขอซื้อออกอัตโนมัติ\n 2. รายการใบขอซื้อที่ไม่ต้องการซื้อแล้ว')" class="btn btn-outline-secondary btn-sm">ปิดรายการ</a>
+              {% elif pr.approver_status_id == 1 and pr.is_re_approve == False %}
+                <a href="{% url 'editPR' pr.id %}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> แก้ไข</a>
+                <a onclick="return confirm('คุณต้องการลบใบขอซื้อนี้หรือไม่ ?\n *** หากลบใบขอซื้อนี้จะลบใบจ่ายสินค้าภายในด้วย')" href="{% url 'removePR' pr.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+              {% endif %}
+            {% endspaceless %}</td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="8">ไม่พบใบขอซื้อ</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=prs %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">
@@ -201,4 +279,40 @@
     </nav>
     <!--end of Pagination-->
 </div>
+{% include '_focus_row.html' with page_number=prs.number %}
 {% endblock%}
+{% block javascript %}
+<script>
+  //ให้แถวสินค้าและแถวความเร่งด่วนสูงเท่ากัน เส้นประจะได้ตรงกัน (ชื่อสินค้ายาวหลายบรรทัด)
+  function alignPrItemRows() {
+    document.querySelectorAll('tr').forEach(function (tr) {
+      var names = tr.querySelectorAll('.pr-items-col .pr-item');
+      var urgencies = tr.querySelectorAll('.pr-urgency-col .pr-item');
+      names.forEach(function (nameRow, i) {
+        var urgencyRow = urgencies[i];
+        if (!urgencyRow) return;
+        nameRow.style.height = '';
+        urgencyRow.style.height = '';
+      });
+      // วัดความสูงจริงแบบมีทศนิยม (offsetHeight ปัดเป็นจำนวนเต็ม ทำให้เส้นเลื่อนสะสมเมื่อซูม/สเกลจอ 125%)
+      var heights = [];
+      names.forEach(function (nameRow, i) {
+        var urgencyRow = urgencies[i];
+        if (!urgencyRow) return;
+        heights[i] = Math.max(nameRow.getBoundingClientRect().height, urgencyRow.getBoundingClientRect().height);
+      });
+      names.forEach(function (nameRow, i) {
+        var urgencyRow = urgencies[i];
+        if (!urgencyRow) return;
+        nameRow.style.height = heights[i] + 'px';
+        urgencyRow.style.height = heights[i] + 'px';
+      });
+    });
+  }
+  alignPrItemRows();
+  window.addEventListener('load', alignPrItemRows);
+  window.addEventListener('resize', alignPrItemRows);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(alignPrItemRows);
+</script>
+
+{% endblock %}

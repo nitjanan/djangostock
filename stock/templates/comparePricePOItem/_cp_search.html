@@ -1,0 +1,109 @@
+{% comment %}ค้นหาง่ายขึ้น: ผู้จำหน่าย (_distributor_search) / เครดิต / หน่วย ใช้ร่วมกันใน create, edit, editFromPR ของใบเปรียบเทียบราคา
+ต้อง include หลัง jQuery 3.6 + jquery-ui + select2 และหลังสคริปต์ของหน้า (ใช้ cloneMore, searchDataDistributor ของหน้า)
+ใช้ที่หน้า purchaseOrderItem/edit ด้วย (skip_credit=True: ไม่ยุ่งกับช่องเครดิต / หน่วยที่ล็อก .lock-po-item ไม่เปลี่ยน){% endcomment %}
+<style>
+  .cp-dd mark { padding: 0 1px; background: #ffe58a; color: inherit; border-radius: 2px; font-weight: 800; }
+  /* dropdown select2 ของ เครดิต / หน่วย */
+  .cp-dd { border-color: #2f6fb3 !important; box-shadow: 0 8px 24px rgba(0, 0, 0, .12); }
+  .cp-dd .select2-search__field { border: 1px solid #ced4da !important; border-radius: 4px; padding: .3rem .5rem !important; }
+  .cp-dd .select2-results__option { padding: .35rem .65rem; font-weight: 600; color: #212529; }
+  .cp-dd .select2-results__option--highlighted[aria-selected] { background: #e7f1ff !important; color: #212529 !important; }
+  .cp-dd .select2-results__option[aria-selected=true] { background: #d0e3fa; font-weight: 700; }
+  .cp-dd-unit { min-width: 160px; }
+  /* dropdown แนบกับ body ไม่ให้โดน rule ความกว้าง 100% ของหน้า */
+  body > .select2-container { width: auto !important; display: block; }
+</style>
+<script type="text/javascript">
+(function ($) {
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  //ไฮไลต์ทุกคำที่พิมพ์ (สีเหลือง)
+  function mark(text, q) {
+    var out = esc(text);
+    String(q || '').split(/\s+/).filter(Boolean).forEach(function (t) {
+      var re = new RegExp('(' + esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+      out = out.replace(re, '<mark>$1</mark>');
+    });
+    return out;
+  }
+  function norm(s) { return String(s || '').toLowerCase().replace(/[\s\-._]/g, ''); }
+
+  //select2 แบบค้นหาได้หลายคำ ไม่สนตัวพิมพ์/ช่องว่าง/ขีด + ไฮไลต์ + พิมพ์ทับช่องที่ปิดอยู่ก็เปิดค้นหาเลย
+  var term = '';
+  function matcher(params, data) {
+    var q = $.trim(params.term || '');
+    term = q; //matcher ทำงานก่อน templateResult จึงจำคำค้นตรงนี้เพื่อใช้ไฮไลต์
+    if (!q) return data;
+    if (!data.id) return null; //ซ่อน "---------" ตอนค้นหา
+    var text = norm(data.text);
+    var ok = q.split(/\s+/).every(function (t) { return text.indexOf(norm(t)) > -1; });
+    return ok ? data : null;
+  }
+  function searchable($el, ddClass, searchPlaceholder) {
+    if (!$el.length) return;
+    $el.each(function () {
+      var $s = $(this);
+      if ($s.data('select2')) $s.select2('destroy');
+      $s.select2({
+        width: '100%',
+        dropdownCssClass: 'cp-dd ' + (ddClass || ''),
+        matcher: matcher,
+        escapeMarkup: function (m) { return m; },
+        templateResult: function (d) { return d.loading ? d.text : mark(d.text, term); },
+        templateSelection: function (d) { return esc(d.text); },
+        language: { noResults: function () { return 'ไม่พบ "' + esc(term) + '"'; } }
+      });
+    });
+    $el.off('.cpsearch')
+      .on('select2:open.cpsearch', function () {
+        term = '';
+        var f = $('.select2-container--open .select2-search__field');
+        f.attr('placeholder', searchPlaceholder || 'พิมพ์เพื่อค้นหา').off('.cpsearch')
+          .on('input.cpsearch', function () { term = this.value; });
+        setTimeout(function () { if (f[0]) f[0].focus(); }, 0);
+      });
+    //กดตัวอักษรบนช่องที่ปิดอยู่ -> เปิดและเริ่มค้นหาด้วยตัวนั้นเลย
+    $el.each(function () {
+      var $s = $(this);
+      $s.next('.select2-container').find('.select2-selection').off('.cpsearch').on('keydown.cpsearch', function (e) {
+        if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          $s.select2('open');
+          var f = $('.select2-container--open .select2-search__field');
+          f.val(e.key).trigger('input');
+        }
+      });
+    });
+  }
+
+  //หน่วย: select ในแต่ละแถวรายการ (แถวถูก clone ตอนกด +) จึงต้องปิด select2 ก่อน clone แล้วเปิดใหม่
+  //หน่วยของรายการที่ล็อก (ใบสั่งซื้อจากใบเปรียบเทียบราคา) ไม่ทำเป็นช่องค้นหา เพราะ select2 จะทำให้กดเปลี่ยนได้
+  function unitSelects() { return $('.form-row select[id$="-unit"]').not('.lock-po-item'); }
+  function initUnits() { searchable(unitSelects(), 'cp-dd-unit', 'พิมพ์หน่วย เช่น EA, กล่อง'); }
+  //ตอนโหลดหน้า หน้า create กด + ให้เองแล้วตั้งค่าหน่วยแบบไม่แจ้ง select2 จึงเปิด select2 หลังหน้าโหลดเสร็จเท่านั้น
+  var unitsReady = false;
+  if (typeof window.cloneMore === 'function' && !window.cloneMore.cpWrapped) {
+    var origClone = window.cloneMore;
+    window.cloneMore = function () {
+      if (!unitsReady) return origClone.apply(this, arguments);
+      unitSelects().each(function () { if ($(this).data('select2')) $(this).select2('destroy'); });
+      var r = origClone.apply(this, arguments);
+      initUnits();
+      return r;
+    };
+    window.cloneMore.cpWrapped = true;
+  }
+
+  $(function () {
+    {% if not skip_credit %}
+    //เครดิต
+    searchable($('#id_credit'), '', 'พิมพ์เครดิต เช่น 30');
+    {% endif %}
+    //หน่วย
+    initUnits();
+    unitsReady = true;
+  });
+})(jQuery);
+</script>
+{% include 'comparePricePOItem/_distributor_search.html' %}

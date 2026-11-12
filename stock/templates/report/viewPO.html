@@ -4,73 +4,64 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% include '_user_filter_search.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
 <h3 align="center">สรุปใบสั่งซื้อที่อนุมัติ</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
     <form method="get" id="po-filter-form">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-2 mb-0">
-            {{ filter.form.ref_no|as_crispy_field }}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{ filter.form.item_product_id_from|as_crispy_field }}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{ filter.form.item_product_id_to|as_crispy_field }}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_product_name|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.unit_price_min|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.unit_price_max|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.distri_id|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.distributor|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.stockman_user|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.category|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.amount_min|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.amount_max|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_machine|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.item_rq_note|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.pr_ref_no|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.cp_ref_no|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.start_created|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.end_created|as_crispy_field}}
-          </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.pr_ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.cp_ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.stockman_user|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-box-open"></i> สินค้า</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.item_product_id_from|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.item_product_id_to|as_crispy_field }}</div>
+          <div class="col-12 col-md-6">{{ filter.form.item_product_name|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.category|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.item_machine|as_crispy_field }}</div>
+          <div class="col-12 col-md-6">{{ filter.form.item_rq_note|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-store"></i> ผู้จำหน่าย</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.distri_id|as_crispy_field }}</div>
+          <div class="col-12 col-md-9">{{ filter.form.distributor|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-coins"></i> ราคา</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.unit_price_min|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.unit_price_max|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.amount_min|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.amount_max|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.end_created|as_crispy_field }}</div>
+        </div>
       </div>
     </form>
-    <div class="d-flex flex-wrap align-items-center mt-2" style="gap: 0.5rem;">
-        <button type="submit" form="po-filter-form" class="btn btn-info">กรอง <i class="fas fa-filter"></i></button>
-        <button id="po_download-btn" type="button" class="btn" style="position: relative; overflow: hidden; background-color:#32714B;color:white;">
+    <div class="lf-foot">
+      <div class="lf-export">
+        <button type="button" id="po_download-btn" class="btn btn-excel" style="--xl:#32714B;">
           <span id="po_btn-text">รายงานใบสั่งสินค้า <i class="fas fa-file-excel"></i></span>
             <div id="po_btn-progress"
               style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
@@ -80,7 +71,7 @@
               0%
             </span>
         </button>
-        <button id="poe_download-btn" type="button" class="btn btn-success" style="position: relative; overflow: hidden;">
+        <button type="button" id="poe_download-btn" class="btn btn-excel" style="--xl:#28a745;">
           <span id="poe_btn-text">PO to Express <i class="far fa-file-excel"></i></span>
             <div id="poe_btn-progress"
               style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
@@ -91,7 +82,7 @@
             </span>
         </button>
         {% if request.user.is_superuser or is_po_approve_report %}
-        <button id="poa_download-btn" type="button" class="btn" style="position: relative; overflow: hidden; background-color:#5CB881;color:white;">
+        <button type="button" id="poa_download-btn" class="btn btn-excel" style="--xl:#5CB881;">
           <span id="poa_btn-text">PO Approve <i class="far fa-file-excel"></i></span>
             <div id="poa_btn-progress"
               style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
@@ -102,60 +93,68 @@
             </span>
         </button>
         {%endif%}
+      </div>
+      <div class="lf-btns">
+        <button type="submit" form="po-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+      </div>
     </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-bordered my-3">
+      <table class="table table-striped lt">
         <thead class="table-active">
-            <tr>
-                <th scope="col">วันที่สั่งซื้อ</th>
-                <th scope="col">รหัสใบสั่งซื้อ</th>
-                <th scope="col">รหัส CM/รหัส PR</th>
-                <th scope="col">ชื่อผู้จำหน่าย</th>
-                <th scope="col">เครดิต</th>
-                <th scope="col">ผู้สั่งสินค้า</th>
-                <th scope="col" class="text-center">มูลค่าสินค้า</th>
-                <th scope="col" class="text-center">vat</th>
-                <th scope="col" class="text-center">ราคา</th>
-                <th scope="col">วันที่รับสินค้า</th>
-            </tr>
+          <tr>
+            <th scope="col">รหัสใบสั่งซื้อ</th>
+            <th scope="col" class="lt-hide-lg">รหัส CM / PR</th>
+            <th scope="col">ผู้จำหน่าย</th>
+            <th scope="col" class="lt-hide-lg">ผู้สั่ง</th>
+            <th scope="col" class="text-right">มูลค่าสินค้า / VAT</th>
+            <th scope="col" class="text-right">ราคา</th>
+            <th scope="col">การรับสินค้า</th>
+          </tr>
         </thead>
         <tbody>
         {% for po in pos %}
           <tr>
-            <td>{{po.created |date:"d/m/Y"}}</td>
-            <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 4 %}">{{po.ref_no}}</a></th>
-            <td>
-              {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 4 %}">{{po.cp.ref_no}}</a>{%endif%}
-              {%if po.pr %}
-                {% with pr_list=prs_by_po|get_item:po.id %}
-                  {% for pr in pr_list %}
-                    <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
-                  {% endfor %}
-                {% endwith %}
-              {%endif%}
+            <th scope="row">
+              <a class="lt-ref {% if po.is_re_approve %}text-danger{% endif %}" href="{% url 'showPO' po.id 4 %}">{{ po.ref_no }}</a>
+              <span class="lt-sub">{{ po.created|date:"d/m/Y" }}</span>
+              <div class="lt-inline">
+                {% if po.cp %}<a class="lt-link {% if po.cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' po.cp.id 4 %}">{{ po.cp.ref_no }}</a>{% endif %}
+                {% if po.pr %}{% with pr_list=prs_by_po|get_item:po.id %}{% for pr in pr_list %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endfor %}{% endwith %}{% endif %}
+                <span class="lt-sub"><i class="fas fa-user"></i> {{ po.stockman_user }}</span>
+              </div>
+            </th>
+            <td class="lt-hide-lg">
+              {% if po.cp %}<a class="lt-link {% if po.cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' po.cp.id 4 %}">{{ po.cp.ref_no }}</a>{% endif %}
+              {% if po.pr %}{% with pr_list=prs_by_po|get_item:po.id %}{% for pr in pr_list %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endfor %}{% endwith %}{% endif %}
             </td>
-            <td>{{po.distributor}}</td>
-            <td>{{po.credit}}</td>
-            <td>{{po.stockman_user}}</td>
-            <td class="text-right">{% if po.total_after_discount %}{{po.total_after_discount | intcomma}}{%endif%}</td>
-            <td class="text-right">{% if po.vat %}{{po.vat | intcomma}}{%else%}0.00{%endif%}</td>
-            <td class="text-right">{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
-            <td>
-              {% if po.is_receive == True %}
-                {{ po.receive_update |date:"d/m/Y" }}
-              {%endif%}
+            <td class="lt-name">
+              {{ po.distributor|default:"-" }}
+              {% if po.credit %}<span class="lt-sub">เครดิต {{ po.credit }}</span>{% endif %}
             </td>
+            <td class="lt-hide-lg">
+              {{ po.stockman_user }}
+            </td>
+            <td class="text-right text-nowrap">
+              {% if po.total_after_discount %}{{ po.total_after_discount|intcomma }}{% endif %}
+              <span class="lt-sub">VAT {% if po.vat %}{{ po.vat|intcomma }}{% else %}0.00{% endif %}</span>
+            </td>
+            <td class="lt-num">{% if po.amount %}{{ po.amount|intcomma }}{% endif %}</td>
+            <td>{% if po.is_receive %}<span class="lt-pill st-info"><small>รับแล้ว:</small> {{ po.receive_update|date:"d/m/Y" }}</span>{% else %}<span class="lt-pill st-1">ยังไม่รับ</span>{% endif %}</td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="7">ไม่พบใบสั่งซื้อ</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=pos %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

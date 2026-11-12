@@ -10,14 +10,29 @@ from django.utils import timezone
 from django.utils.timezone import make_aware
 from datetime import datetime, time
 from .models import Maintenance
+from .thai_search import user_name_q, text_similar_q
+from .filter_suggest import SuggestInput
+
+
+def similar_text_filter(field, suggest=False):
+    #ช่องกรองข้อความที่ค้นได้หลายคำ และสะกดคล้ายก็เจอ (ส/ศ, ตัวสะกด, วรรณยุกต์) เช่น ชื่อผู้จำหน่าย
+    #suggest=True: ช่องนี้มี dropdown ค่าที่เคยบันทึก (ดึงจาก field เดียวกัน)
+    extra = {'widget': SuggestInput(field)} if suggest else {}
+    return django_filters.CharFilter(method=lambda qs, name, value: qs.filter(text_similar_q(field, value)), **extra)
+
+
+def cp_items(cp_qs):
+    #ComparisonPriceItem.cp เป็น IntegerField (ไม่ใช่ FK) join จาก ComparisonPrice ตรงๆ ไม่ได้
+    return ComparisonPriceItem.objects.filter(cp__in=cp_qs.values('id'))
 
 class RequisitionFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
-    name = django_filters.CharFilter(field_name="name__first_name", lookup_expr='icontains')
-    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    #ค้นจากชื่อหรือนามสกุล ได้หลายคำ และสะกดคล้ายก็เจอ (ส/ศ, ตัวสะกด, วรรณยุกต์)
+    name = django_filters.CharFilter(method='filter_name', widget=SuggestInput('name', kind='user'))
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains', widget=SuggestInput('ref_no'))
 
     class Meta:
         model = Requisition
@@ -25,6 +40,9 @@ class RequisitionFilter(django_filters.FilterSet):
         #fields = ('id', 'name', 'section','created', 'chief_approve_status', 'supplies_approve_status')
         #ดึงทุก field
         # fields = '__all__'
+
+    def filter_name(self, queryset, name, value):
+        return queryset.filter(user_name_q('name__', value))
 
 RequisitionFilter.base_filters['id'].label = 'รหัส'
 RequisitionFilter.base_filters['ref_no'].label = 'รหัส'
@@ -41,29 +59,33 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     purchase_user =  django_filters.ModelChoiceFilter(field_name="purchase_user", queryset= User.objects.filter(groups__name='หัวหน้างาน'))
-    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
-    requisition__name = django_filters.CharFilter(field_name="requisition__name__first_name", lookup_expr='icontains')
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains', widget=SuggestInput('ref_no'))
+    #ค้นจากชื่อหรือนามสกุล ได้หลายคำ และสะกดคล้ายก็เจอ (ส/ศ, ตัวสะกด, วรรณยุกต์)
+    requisition__name = django_filters.CharFilter(method='filter_requisition_name', widget=SuggestInput('requisition__name', kind='user'))
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     item_product_name = django_filters.CharFilter(
         field_name="requisition__requisitionitem__product_name",
-        lookup_expr='icontains'
+        lookup_expr='icontains', widget=SuggestInput('requisition__requisitionitem__product_name')
     )
     item_product_id = django_filters.CharFilter(
         field_name="requisition__requisitionitem__product__id",
-        lookup_expr='icontains'
+        lookup_expr='icontains', widget=SuggestInput('requisition__requisitionitem__product__id', label='requisition__requisitionitem__product__name')
     )
     item_machine = django_filters.CharFilter(
-        field_name="requisition__machine",
-        lookup_expr='icontains'
+        field_name="requisition__requisitionitem__machine",
+        lookup_expr='icontains', widget=SuggestInput('requisition__requisitionitem__machine')
     )
     item_rq_note = django_filters.CharFilter(
         field_name="requisition__note",
-        lookup_expr='icontains'
+        lookup_expr='icontains', widget=SuggestInput('requisition__note', kind='note')
     )
 
     class Meta:
         model = PurchaseRequisition
         fields = ('id','requisition', 'requisition__name','requisition__section','requisition__urgency','created','purchase_user','purchase_status','approver_status', 'organizer')
+
+    def filter_requisition_name(self, queryset, name, value):
+        return queryset.filter(user_name_q('requisition__name__', value))
 
 PurchaseRequisitionFilter.base_filters['id'].label = 'รหัสใบขอซื้อ'
 PurchaseRequisitionFilter.base_filters['ref_no'].label = 'รหัสใบขอซื้อ'
@@ -87,25 +109,25 @@ class PurchaseOrderFilter(django_filters.FilterSet):
     id = django_filters.NumberFilter(field_name="id", widget = TextInput(attrs={'size': 3 ,'class': 'numberinput' }))
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
-    distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='startswith')
-    cp_ref_no = django_filters.CharFilter(field_name="cp__ref_no", lookup_expr='icontains')
-    pr_ref_no = django_filters.CharFilter(method='filter_pr_ref_no')
+    distributor  = similar_text_filter("distributor__name", suggest=True)
+    cp_ref_no = django_filters.CharFilter(field_name="cp__ref_no", lookup_expr='icontains', widget=SuggestInput('cp__ref_no'))
+    pr_ref_no = django_filters.CharFilter(method='filter_pr_ref_no', widget=SuggestInput('purchaseorderitem__item__requisit__pr_ref_no'))
 
     #filter ที่กรองจากรายการสินค้าใน PO ใช้ method เดียวกัน เพื่อรวมเงื่อนไขไว้ใน .filter() เดียว
     #ถ้าแยก filter จะ join purchaseorderitem แยกกันทีละครั้ง ทำให้แต่ละเงื่อนไขไปตรงกับคนละรายการ
     #เช่น ราคาต่อหน่วย 100-200 จะได้ PO ที่มีรายการราคา 50 และ 500 ติดมาด้วย
-    item_machine = django_filters.CharFilter(method='filter_po_item')
-    item_rq_note = django_filters.CharFilter(method='filter_po_item')
-    item_product_name = django_filters.CharFilter(method='filter_po_item')
-    item_product_id = django_filters.CharFilter(method='filter_po_item')
-    item_product_id_from  = django_filters.CharFilter(method='filter_po_item')
-    item_product_id_to  = django_filters.CharFilter(method='filter_po_item')
+    item_machine = django_filters.CharFilter(method='filter_po_item', widget=SuggestInput('purchaseorderitem__item__machine'))
+    item_rq_note = django_filters.CharFilter(method='filter_po_item', widget=SuggestInput('purchaseorderitem__item__requisit__note', kind='note'))
+    item_product_name = django_filters.CharFilter(method='filter_po_item', widget=SuggestInput('purchaseorderitem__item__product_name'))
+    item_product_id = django_filters.CharFilter(method='filter_po_item', widget=SuggestInput('purchaseorderitem__item__product__id', label='purchaseorderitem__item__product__name'))
+    item_product_id_from  = django_filters.CharFilter(method='filter_po_item', widget=SuggestInput('purchaseorderitem__item__product__id', label='purchaseorderitem__item__product__name'))
+    item_product_id_to  = django_filters.CharFilter(method='filter_po_item', widget=SuggestInput('purchaseorderitem__item__product__id', label='purchaseorderitem__item__product__name'))
     unit_price_min  = django_filters.NumberFilter(method='filter_po_item')
     unit_price_max  = django_filters.NumberFilter(method='filter_po_item')
     category = django_filters.ModelChoiceFilter(method='filter_po_item', queryset= Category.objects.all())
 
-    distri_id  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='startswith')
-    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    distri_id  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='startswith', widget=SuggestInput('distributor__id', label='distributor__name'))
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains', widget=SuggestInput('ref_no'))
     stockman_user = django_filters.ModelChoiceFilter(field_name="stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     amount_min  = django_filters.NumberFilter(field_name="amount", lookup_expr='gte')
     amount_max  = django_filters.NumberFilter(field_name="amount", lookup_expr='lte')
@@ -172,23 +194,23 @@ PurchaseOrderFilter.base_filters['distri_id'].label = 'รหัสผู้จ�
 PurchaseOrderFilter.base_filters['category'].label = 'หมวดหมู่สินค้า'
 
 class PurchaseOrderItemFilter(django_filters.FilterSet):
-    item_product_id_from  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='gte')
-    item_product_id_to  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='lte')
-    item_product_name = django_filters.CharFilter(field_name="item__product_name", lookup_expr='icontains')
-    item_machine = django_filters.CharFilter(field_name="item__machine", lookup_expr='icontains')
-    item_rq_note = django_filters.CharFilter(field_name="item__requisit__note", lookup_expr='icontains')
+    item_product_id_from  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='gte', widget=SuggestInput('item__product__id', label='item__product__name'))
+    item_product_id_to  = django_filters.CharFilter(field_name="item__product_id", lookup_expr='lte', widget=SuggestInput('item__product__id', label='item__product__name'))
+    item_product_name = django_filters.CharFilter(field_name="item__product_name", lookup_expr='icontains', widget=SuggestInput('item__product_name'))
+    item_machine = django_filters.CharFilter(field_name="item__machine", lookup_expr='icontains', widget=SuggestInput('item__machine'))
+    item_rq_note = django_filters.CharFilter(field_name="item__requisit__note", lookup_expr='icontains', widget=SuggestInput('item__requisit__note', kind='note'))
     start_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
-    distri_id  = django_filters.CharFilter(field_name="po__distributor__id", lookup_expr='startswith')
-    distributor  = django_filters.CharFilter(field_name="po__distributor__name", lookup_expr='startswith')
+    distri_id  = django_filters.CharFilter(field_name="po__distributor__id", lookup_expr='startswith', widget=SuggestInput('po__distributor__id', label='po__distributor__name'))
+    distributor  = similar_text_filter("po__distributor__name", suggest=True)
     stockman_user = django_filters.ModelChoiceFilter(field_name="po__stockman_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
     unit_price_min  = django_filters.NumberFilter(field_name="unit_price", lookup_expr='gte')
     unit_price_max  = django_filters.NumberFilter(field_name="unit_price", lookup_expr='lte')
     category = django_filters.ModelChoiceFilter(field_name="item__product__category__name", queryset= Category.objects.all())
-    po_ref_no = django_filters.CharFilter(field_name="po__ref_no", lookup_expr='icontains')
-    cp_ref_no = django_filters.CharFilter(field_name="po__cp__ref_no", lookup_expr='icontains')
+    po_ref_no = django_filters.CharFilter(field_name="po__ref_no", lookup_expr='icontains', widget=SuggestInput('po__ref_no'))
+    cp_ref_no = django_filters.CharFilter(field_name="po__cp__ref_no", lookup_expr='icontains', widget=SuggestInput('po__cp__ref_no'))
     #ค้นจากใบขอซื้อของรายการสินค้า (ตรงกับที่ตารางแสดง) ไม่ใช่ po.pr เพราะ PO ที่สร้างจากใบเปรียบไม่มี po.pr และ PO หนึ่งใบมีสินค้าจากหลายใบขอซื้อได้
-    pr_ref_no = django_filters.CharFilter(field_name="item__requisit__pr_ref_no", lookup_expr='icontains')
+    pr_ref_no = django_filters.CharFilter(field_name="item__requisit__pr_ref_no", lookup_expr='icontains', widget=SuggestInput('item__requisit__pr_ref_no'))
 
     class Meta:
         model = PurchaseOrderItem
@@ -216,22 +238,24 @@ class ComparisonPriceFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
     end_created = django_filters.DateFilter(field_name = "created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
-    select_bidder  = django_filters.CharFilter(field_name="select_bidder__name", lookup_expr='icontains')
-    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains')
+    select_bidder  = similar_text_filter("select_bidder__name", suggest=True)
+    #ผู้จำหน่ายที่อยู่ในใบเปรียบ (ทุกร้านที่นำมาเทียบ ไม่ใช่เฉพาะร้านที่เลือก)
+    distributor  = similar_text_filter("comparisonpricedistributor__distributor__name", suggest=True)
+    ref_no  = django_filters.CharFilter(field_name="ref_no", lookup_expr='icontains', widget=SuggestInput('ref_no'))
     unit_price_min = django_filters.NumberFilter(method='filter_price_min')
     unit_price_max = django_filters.NumberFilter(method='filter_price_max')
     # Filter จาก Product.name
     item_product_name = django_filters.CharFilter(
-        method='filter_item_product_name'
+        method='filter_item_product_name', widget=SuggestInput('item__product__name', source=cp_items)
     )
 
     # ถ้าจะ filter จาก Product.id
     item_product_id = django_filters.CharFilter(
-        method='filter_item_product_id'
+        method='filter_item_product_id', widget=SuggestInput('item__product__id', label='item__product__name', source=cp_items)
     )
 
     pr_ref_no = django_filters.CharFilter(
-        method='filter_pr_ref_no'
+        method='filter_pr_ref_no', widget=SuggestInput('item__requisit__pr_ref_no', source=cp_items)
     )
 
     class Meta:
@@ -304,6 +328,7 @@ ComparisonPriceFilter.base_filters['end_created'].label = 'ถึง'
 ComparisonPriceFilter.base_filters['approver_status'].label = 'ผู้อนุมัติ'
 ComparisonPriceFilter.base_filters['examiner_status'].label = 'ผู้ตรวจสอบ'
 ComparisonPriceFilter.base_filters['select_bidder'].label = 'ร้านที่เลือก'
+ComparisonPriceFilter.base_filters['distributor'].label = 'ผู้จำหน่าย'
 ComparisonPriceFilter.base_filters['unit_price_min'].label = 'ราคาจาก'
 ComparisonPriceFilter.base_filters['unit_price_max'].label = 'ถึงราคา'
 ComparisonPriceFilter.base_filters['item_product_id'].label = 'รหัสสินค้า'
@@ -332,7 +357,7 @@ class RateDistributorFilter(django_filters.FilterSet):
     end_created = django_filters.DateFilter(field_name = "po__created", lookup_expr='lte', widget=DateInput(attrs={'type':'date'}))
     distributor_id_from  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='gte')
     distributor_id_to  = django_filters.CharFilter(field_name="distributor__id", lookup_expr='lte')
-    distributor  = django_filters.CharFilter(field_name="distributor__name", lookup_expr='icontains')
+    distributor  = similar_text_filter("distributor__name")
     organizer_user = django_filters.ModelChoiceFilter(field_name="organizer_user", queryset= User.objects.filter(groups__name='จัดซื้อ'))
 
     class Meta:
@@ -350,7 +375,7 @@ RateDistributorFilter.base_filters['organizer_user'].label = 'ผู้ประ
 class DistributorFilter(django_filters.FilterSet):
     distributor_id_from  = django_filters.CharFilter(field_name="id", lookup_expr='gte')
     distributor_id_to  = django_filters.CharFilter(field_name="id", lookup_expr='lte')
-    distributor  = django_filters.CharFilter(field_name="name", lookup_expr='icontains')
+    distributor  = similar_text_filter("name")
 
     class Meta:
         model = Distributor

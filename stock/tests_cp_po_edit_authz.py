@@ -675,16 +675,12 @@ class PurchaseOrderEditAuthzTestCase(EditAuthzBase):
     def test_from_pr_requires_login(self):
         self.assertRedirectsToSignIn(self._client().get(self._from_pr_url()))
 
-    def test_from_pr_owner_and_superuser_edit_pending_po(self):
-        self.assertEqual(self._client(self.superuser).get(self._from_pr_url()).status_code, 200)
-        response = self._client(self.owner).post(self._from_pr_url(), self._from_pr_data())
-        self.assertRedirects(
-            response,
-            reverse('editPOItem', kwargs={'po_id': self.po.id, 'isFromPR': 'True', 'isReApprove': 'False'}),
-            fetch_redirect_response=False,
-        )
-        self.po.refresh_from_db()
-        self.assertEqual(self.po.shipping, 'KERRY')
+    def test_from_pr_owner_and_superuser_redirect_to_merged_edit_page(self):
+        #รวมหน้า editPOFromPR เข้ากับ editPOItem แล้ว: URL เดิมพาไปหน้าแก้ไขใบสั่งซื้อ
+        target = reverse('editPOItem', kwargs={'po_id': self.po.id, 'isFromPR': 'True', 'isReApprove': 'False'})
+        for user in (self.owner, self.superuser):
+            response = self._client(user).get(self._from_pr_url())
+            self.assertRedirects(response, target, fetch_redirect_response=False)
 
     def test_from_pr_colleague_forbidden(self):
         client = self._client(self.colleague)

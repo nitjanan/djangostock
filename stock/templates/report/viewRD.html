@@ -4,36 +4,28 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
 <h3 align="center">สรุปการประเมินร้านค้า</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
-    <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-2 mb-0">
-            {{filter.form.distributor_id_from|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.distributor_id_to|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-5 mb-0">
-            {{filter.form.distributor|as_crispy_field}}
-          </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
-          </div>
+    <form method="get" id="lf-filter-form">
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-store"></i> ผู้จำหน่าย</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.distributor_id_from|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.distributor_id_to|as_crispy_field }}</div>
+          <div class="col-12 col-md-6">{{ filter.form.distributor|as_crispy_field }}</div>
         </div>
       </div>
     </form>
-    <div class="row">
-        <div class="col">
-          <button id="rd_download-btn" class="btn btn-success" style="position: relative; overflow: hidden;">
+    <div class="lf-foot">
+      <div class="lf-export">
+        <button type="button" id="rd_download-btn" class="btn btn-excel" style="--xl:#28a745;">
           <span id="rd_btn-text">รายงานการประเมินร้านค้า <i class="fas fa-file-excel"></i></span>
           <div id="rd_btn-progress" 
               style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -43,42 +35,41 @@
               0%
           </span>
           </button>
-        </div>
+      </div>
+      <div class="lf-btns">
+        <button type="submit" form="lf-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+      </div>
     </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-bordered my-3">
+      <table class="table table-striped lt">
         <thead class="table-active">
-            <tr>
-                <th scope="col" class="text-center">รหัสผู้จัดจำหน่าย</th>
-                <th scope="col" class="text-center">ชื่อผู้จัดจำหน่าย</th>
-                <th scope="col" class="text-center">ที่อยู่</th>
-            </tr>
+          <tr>
+            <th scope="col">รหัส</th>
+            <th scope="col">ผู้จัดจำหน่าย</th>
+            <th scope="col">ที่อยู่</th>
+          </tr>
         </thead>
         <tbody>
         {% for item in ds %}
           <tr>
-            <th scope="row"><a href="{%url 'showRateDistributor' item.id %}">{{item.id}}</a></th>
-            <td>{{item.name}}</td>
-            <td>{{item.address}}</td>
+            <th scope="row"><a class="lt-ref" href="{% url 'showRateDistributor' item.id %}">{{ item.id }}</a></th>
+            <td><a href="{% url 'showRateDistributor' item.id %}">{{ item.name }}</a></td>
+            <td class="text-muted">{{ item.address }}</td>
           </tr>
         {% empty %}
-          <tr>
-            <th scope="row" colspan="3" class="text-center">
-              <div class="alert alert-warning" role="alert">
-                ไม่มีรายการประเมินร้านค้า
-              </div>
-            </th>
-          </tr>
+          <tr class="lt-empty-row"><td colspan="3">ไม่มีรายการประเมินร้านค้า</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=ds %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

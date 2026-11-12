@@ -1,0 +1,15 @@
+{% comment %}ช่องรายการสินค้าในหน้ารายการใบเปรียบเทียบราคา / ใบสั่งซื้อ: แสดง 3 รายการแรก ที่เหลือกด "และอีก N รายการ" เพื่อขยาย
+ต้องส่ง items (list ของ dict: code, name, quantity, unit) — สร้างจาก attach_cp_item_list / attach_po_item_list ใน views{% endcomment %}
+<div class="dl-items">
+  {% for it in items %}
+  <div class="dl-item{% if forloop.counter > 3 %} dl-extra{% endif %}">
+    <span class="dl-item-name">{% firstof it.name it.product_name it.code %}</span>
+    <span class="dl-item-qty">{{ it.quantity|floatformat:"-4" }} <small>{{ it.unit }}</small></span>
+  </div>
+  {% empty %}
+  <span class="text-muted small">ไม่มีรายการ</span>
+  {% endfor %}
+  {% if items|length > 3 %}
+  <button type="button" class="dl-more" data-more="และอีก {{ items|length|add:'-3' }} รายการ" onclick="var b=this.parentNode.classList.toggle('is-open');this.querySelector('span').textContent=b?'ย่อรายการ':this.dataset.more;this.setAttribute('aria-expanded',b)" aria-expanded="false"><i class="fas fa-chevron-down"></i> <span>และอีก {{ items|length|add:'-3' }} รายการ</span></button>
+  {% endif %}
+</div>

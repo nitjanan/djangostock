@@ -5,6 +5,7 @@
 {% load humanize %}
 
 {% block css %}
+{% include '_list_page_style.html' %}
 <style>
   /* ===== Dashboard cards — scoped to .dashboard-cards only ===== */
   .dashboard-cards {
@@ -350,12 +351,12 @@
   </div>
   <p class="text-muted small">ตัวเลขทั้งหมดนับตามเงื่อนไขการกรองปัจจุบัน</p>
 
-  <div class="card my-3 bg-light div-shadow">
+  <div class="card my-3 bg-light div-shadow lf-ad">
     <div class="card-body">
-      <form method="get">
+      <form method="get" id="ad-filter-form">
         {% csrf_token %}
         <div class="form-row align-items-end">
-          <div class="form-group col-md-5 mb-0">
+          <div class="form-group col-md-6 mb-0">
             <label for="id_search" class="col-form-label">{{ filter.form.search.label }}</label>
             <div class="search-wrapper">
               <i class="fas fa-search search-icon" aria-hidden="true"></i>
@@ -365,7 +366,7 @@
                      value="{{ filter.form.search.value|default_if_none:'' }}">
             </div>
           </div>
-          <div class="form-group col-md-2 mb-0">
+          <div class="form-group col-6 col-md-3 mb-0">
             <label for="id_year_scope" class="col-form-label">{{ filter.form.year_scope.label }}</label>
             <div class="search-wrapper">
               <i class="fas fa-calendar-alt search-icon" aria-hidden="true"></i>
@@ -376,7 +377,7 @@
               </select>
             </div>
           </div>
-          <div class="form-group col-md-2 mb-0">
+          <div class="form-group col-6 col-md-3 mb-0">
             <label for="id_stage" class="col-form-label">{{ filter.form.stage.label }}</label>
             <div class="search-wrapper">
               <i class="fas fa-layer-group search-icon" aria-hidden="true"></i>
@@ -387,30 +388,31 @@
               </select>
             </div>
           </div>
-          <div class="form-group col-md-3 mb-0">
-            <div class="filter-actions">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-              <a href="{% url 'viewAllDetailsReport' %}" class="btn btn-secondary">ล้าง</a>
-              <a href="{% url 'viewAllDetailsReportExport' %}?{{ request.GET.urlencode }}" class="btn btn-success">Excel<i class="fas fa-file-excel"></i></a>
-            </div>
-          </div>
         </div>
       </form>
+      <div class="lf-foot">
+        <div class="lf-export">
+          <a href="{% url 'viewAllDetailsReportExport' %}?{{ request.GET.urlencode }}" class="btn btn-excel" style="--xl:#28a745;">Export <i class="fas fa-file-excel"></i></a>
+        </div>
+        <div class="lf-btns filter-actions">
+          <button type="submit" form="ad-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+          <a href="{% url 'viewAllDetailsReport' %}" class="btn btn-secondary">ล้าง</a>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="card div-shadow">
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-bordered my-2">
+        <table class="table table-bordered my-2 lt">
           <thead class="table-active">
             <tr>
               <th>เอกสาร</th>
-              <th>ขั้นตอน / วันที่ล่าสุด</th>
               <th>ผู้ขอเบิก / แผนก</th><th>รายการ</th>
-              <th>ใช้ในระบบงาน (ใบเบิก)</th><th>หมายเหตุ (ใบเบิก)</th>
+              <th class="lt-hide-lg">ใช้ในระบบงาน (ใบเบิก)</th><th class="lt-hide-lg">หมายเหตุ (ใบเบิก)</th>
               <!--th>รายการเปรียบเทียบ</th--><th>ร้านค้า</th>
-              <th>จำนวน × ราคาต่อหน่วย</th><th class="text-right">รวมเป็นเงิน</th>
+              <th class="lt-hide-lg">จำนวน × ราคาต่อหน่วย</th><th class="text-right">รวมเป็นเงิน</th>
               <th>จัดการ</th>
             </tr>
           </thead>
@@ -425,10 +427,7 @@
                   <li class="mb-1 text-nowrap"><span class="badge badge-warning">CP</span> {% if row.comparison_price %}<a href="{% url 'showComparePricePO' row.comparison_price.id 4 %}">{{ row.comparison_price.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
                   <li class="text-nowrap"><span class="badge badge-success">PO</span> {% if row.purchase_order %}<a href="{% url 'showPO' row.purchase_order.id 4 %}">{{ row.purchase_order.ref_no|default:"-" }}</a>{% else %}-{% endif %}</li>
                 </ul>
-              </td>
-              <td class="text-nowrap">
-                <span class="badge {% if row.stage == 'RQ' %}badge-primary{% elif row.stage == 'PR' %}badge-info{% elif row.stage == 'CP' %}badge-warning{% elif row.stage == 'PO' %}badge-success{% else %}badge-secondary{% endif %}">{{ row.stage }}</span>
-                <br><small class="text-muted">{{ row.stage_date|date:"d/m/Y" }}</small>
+                <div class="mt-1"><small class="text-muted">ล่าสุด</small> <span class="badge {% if row.stage == 'RQ' %}badge-primary{% elif row.stage == 'PR' %}badge-info{% elif row.stage == 'CP' %}badge-warning{% elif row.stage == 'PO' %}badge-success{% else %}badge-secondary{% endif %}">{{ row.stage }}</span> <small class="text-muted">{{ row.stage_date|date:"d/m/Y" }}</small></div>
               </td>
               <td>
                 {% if row.requisition %}
@@ -436,24 +435,24 @@
                   <br><small class="text-muted">{{ row.requisition.section.name|default:"-" }}</small>
                 {% else %}-{% endif %}
               </td>
-              <td class="text-nowrap">{{ row.item.product_name|default:"-" }}{% if row.po_item.description %}<br><small class="text-muted">{{ row.po_item.description }}</small>{% endif %}</td>
-              <td>{{ row.item.machine|default:"-" }}</td>
-              <td>{% if row.requisition and row.requisition.note %}{{ row.requisition.note }}{% else %}-{% endif %}</td>
+              <td class="lt-note">{{ row.item.product_name|default:"-" }}{% if row.po_item.description %}<br><small class="text-muted">{{ row.po_item.description }}</small>{% endif %}<div class="lt-inline">{% if row.item.machine %}<span class="lt-sub"><i class="fas fa-cogs"></i> {{ row.item.machine }}</span>{% endif %}{% if row.requisition and row.requisition.note %}<span class="lt-sub"><i class="fas fa-sticky-note"></i> {{ row.requisition.note }}</span>{% endif %}</div></td>
+              <td class="lt-hide-lg lt-name">{{ row.item.machine|default:"-" }}</td>
+              <td class="lt-hide-lg lt-note">{% if row.requisition and row.requisition.note %}{{ row.requisition.note }}{% else %}-{% endif %}</td>
               <!--td>{% if row.comparison_item %}{{ row.comparison_item.brand|default:"-" }}{% else %}-{% endif %}</td-->
-              <td>
+              <td class="lt-name">
                 {% if row.cp_distributors %}
                   <ul class="mb-0 pl-3">
                     {% for d in row.cp_distributors %}
-                      <li class="text-nowrap" style="list-style-type: disc;">{{ d.distributor.name }}{% if d.is_selected %} <span class="badge badge-success">เลือก</span>{% endif %}</li>
+                      <li style="list-style-type: disc;">{{ d.distributor.name }}{% if d.is_selected %} <span class="badge badge-success">เลือก</span>{% endif %}</li>
                     {% endfor %}
                   </ul>
                 {% elif row.distributor %}
                   {{ row.distributor.name }}{% if row.is_selected_distributor %} <span class="badge badge-success">เลือก</span>{% endif %}
                 {% else %}-{% endif %}
               </td>
-              <td>{% if row.po_item %}{{ row.po_item.quantity }} × {{ row.po_item.unit_price|intcomma }}{% else %}-{% endif %}</td>
-              <td class="text-right">{% if row.amount != None %}{{ row.amount|intcomma }}{% else %}-{% endif %}</td>
-              <td><button type="button" class="btn btn-sm btn-outline-info chain-toggle">รายละเอียด</button></td>
+              <td class="text-nowrap lt-hide-lg">{% if row.po_item %}{{ row.po_item.quantity }} × {{ row.po_item.unit_price|intcomma }}{% else %}-{% endif %}</td>
+              <td class="lt-num">{% if row.amount != None %}{{ row.amount|intcomma }}{% else %}-{% endif %}{% if row.po_item %}<span class="lt-inline lt-sub">{{ row.po_item.quantity }} × {{ row.po_item.unit_price|intcomma }}</span>{% endif %}</td>
+              <td class="lt-actions"><button type="button" class="btn btn-sm btn-outline-info chain-toggle">รายละเอียด</button></td>
             </tr>
             <tr class="chain-detail" hidden>
               <td colspan="12">
@@ -634,7 +633,7 @@
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="12" class="text-center text-muted">ไม่พบข้อมูล ลองปรับเงื่อนไขการค้นหาหรือการกรอง</td></tr>
+            <tr class="lt-empty-row"><td colspan="12">ไม่พบข้อมูล ลองปรับเงื่อนไขการค้นหาหรือการกรอง</td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -642,7 +641,7 @@
     </div>
   </div>
 
-  <br/>
+  {% include '_list_count.html' with page=page_obj %}
   <nav aria-label="Page navigation">
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}

@@ -1,0 +1,5 @@
+{% comment %}ปุ่มสร้างใบสั่งซื้อจากใบเปรียบเทียบราคา (POST): ดึงผู้จำหน่าย ราคา รายการสินค้ามาให้ แล้วไปหน้า editPOItem{% endcomment %}
+<form method="post" action="{% url 'createPOFromComparisonPrice' cp.id %}" class="mb-0">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary btn-sm text-nowrap" onclick="this.disabled=true;this.form.submit();"><i class="fas fa-plus-square"></i> สร้าง</button>
+</form>

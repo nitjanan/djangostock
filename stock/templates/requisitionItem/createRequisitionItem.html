@@ -96,7 +96,7 @@
                     <td class="text-center col"><strong>สินค้า/รายละเอียด</strong></td>
                     <td class="text-center col"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
                     <td class="text-center col"><strong>จำนวนที่ขอเบิก</strong></td>
-                    <td class="text-center col"><strong>จำนวนที่จ่ายไป</strong></td>
+                    <td class="text-center col d-none"><strong>จำนวนที่จ่ายไป</strong></td><!-- ซ่อนไว้ก่อน -->
                     <td class="text-center col"><strong>หน่วย</strong></td>
                     <td class="text-center col"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
                     <td class="text-center col"><strong>วันที่ต้องการ</strong></td>
@@ -115,7 +115,7 @@
             <div class="row form-row spacer my-2" >
                 <div class="col">
                     <div class="input-group">
-                          {{form.product_name | add_class:"form-control" |attr:"width:1px"}}{{form.description | add_class:"form-control"}} {{form.quantity | add_class:"form-control"}} {{form.quantity_take| add_class:"form-control"}} {{form.unit | add_class:"form-control"}} {{form.machine | add_class:"form-control"}} {{form.desired_date | add_class:"form-control"}} {{form.urgency | add_class:"form-control"}}
+                          {{form.product_name | add_class:"form-control" |attr:"width:1px"}}{{form.description | add_class:"form-control"}} {{form.quantity | add_class:"form-control"}} {{form.quantity_take|attr:"type:hidden"|attr:"value:0"}} {{form.unit | add_class:"form-control"}} {{form.machine | add_class:"form-control"}} {{form.desired_date | add_class:"form-control"}} {{form.urgency | add_class:"form-control"}}
                           <div class="input-group-append text-right">
                               <button class="btn btn-success add-form-row hidden-print">+</button>
                           </div>
@@ -205,6 +205,7 @@ function cloneMore(selector, prefix) {
             $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
         }
     });
+    newElement.find('input[name$="-quantity_take"]').val(0); //จำนวนที่จ่ายไป ซ่อนไว้ ค่าเริ่มต้น 0
     newElement.find('label').each(function() {
         var forValue = $(this).attr('for');
         if (forValue) {

@@ -304,33 +304,27 @@ class EditPOItemLockFromComparisonPriceTestCase(TestCase):
         for item_form in response.context['formset'].forms:
             self.assertIsNone(item_form.fields['quantity'].widget.attrs.get('readonly'))
 
-    def test_create_po_item_from_cp_page_renders_readonly(self):
-        """หน้าใส่รายการสินค้าจากใบเปรียบเทียบราคา ต้อง readonly ทุกช่องของรายการและราคา"""
+    def test_create_po_item_from_cp_url_redirects_to_edit_po_item(self):
+        """หน้าใส่รายการสินค้าจากใบเปรียบเทียบราคา (ขั้นที่ 2 เดิม) รวมเข้ากับ editPOItem แล้ว"""
         po, item = self._create_po(self.cp)
         url = reverse('createPOItemFromComparisonPrice', kwargs={'po_id': po.id})
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(
+            response,
+            reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'False'}),
+            fetch_redirect_response=False,
+        )
+        #มีรายการสินค้าอยู่แล้ว ต้องไม่ดึงซ้ำ
+        self.assertEqual(PurchaseOrderItem.objects.filter(po=po).count(), 1)
 
-        price_form = response.context['price_form']
-        for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
-            self.assertEqual(price_form.fields[field].widget.attrs.get('readonly'), 'readonly', field)
-        #หมายเหตุ และสถานที่จัดส่ง ยังแก้ได้
+    def test_price_note_and_delivery_stay_editable_on_locked_edit_po_item(self):
+        #ใบจาก CP: ราคาล็อก แต่หมายเหตุ และสถานที่จัดส่ง ยังแก้ได้
+        po, item = self._create_po(self.cp)
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'False'})
+        price_form = self.client.get(url).context['price_form']
+        self.assertEqual(price_form.fields['amount'].widget.attrs.get('readonly'), 'readonly')
         self.assertIsNone(price_form.fields['note'].widget.attrs.get('readonly'))
         self.assertIsNone(price_form.fields['delivery'].widget.attrs.get('readonly'))
-
-        for item_form in response.context['formset'].forms:
-            for name in ('item', 'quantity', 'unit', 'unit_price', 'discount', 'price', 'description'):
-                self.assertEqual(item_form.fields[name].widget.attrs.get('readonly'), 'readonly', name)
-
-    def test_express_input_is_readonly_on_create_po_item_from_cp(self):
-        po, item = self._create_po(self.cp)
-        url = reverse('createPOItemFromComparisonPrice', kwargs={'po_id': po.id})
-        html = self.client.get(url).content.decode('utf-8')
-        self.assertIn('id="id_form-0-express"', html)
-        express_tag = html[html.index('id="id_form-0-express"'):]
-        express_tag = express_tag[:express_tag.index('>')]
-        self.assertIn('readonly', express_tag)
-        self.assertIn('lock-po-item', express_tag)
 
     def test_express_input_readonly_only_when_locked_on_edit_po_item(self):
         po_cp, item_cp = self._create_po(self.cp)

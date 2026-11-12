@@ -5,6 +5,7 @@
 {% load humanize %}
 
 {% block css %}
+{% include '_list_page_style.html' %}
 <style>
   #loading {
       display: none; /* Initially hidden */
@@ -23,50 +24,36 @@
 {% block content %}
 <div class="container my-3">
 <h3 align="center">ใบจ่ายสินค้าภายใน - อะไหล่ Express</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
-    <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.docnum|as_crispy_field }}
+    <form method="get" id="lf-filter-form">
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.docnum|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.depcod|as_crispy_field }}</div>
+          <div class="col-12 col-md-6">{{ filter.form.depname|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-3 mb-0">
-          {{ filter.form.depcod|as_crispy_field }}
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-sticky-note"></i> หมายเหตุ</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.note2|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.note3|as_crispy_field }}</div>
+          <div class="col-12 col-md-6">{{ filter.form.remark|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-3 mb-0">
-          {{ filter.form.depname|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-4 mb-0">
-          {{ filter.form.note2|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-3 mb-0">
-          {{ filter.form.note3|as_crispy_field }}
-        </div>                
-        <div class="form-group col-md-4 mb-0">
-          {{ filter.form.remark|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.start_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.end_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
-          </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.end_created|as_crispy_field }}</div>
         </div>
       </div>
     </form>
-    <div class="row">
-        <div class="col">
-          <!-- a class="btn btn-success" href="{% url 'exportExcelByExpense' %}?{{request.GET.urlencode}}">รายงานสรุปค่าใช้จ่ายพัสดุ PO <i class="fas fa-file-excel"></i></a-->
-
-          <button id="iv_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#24493d;color:white;">
+    <div class="lf-foot">
+      <div class="lf-export">
+        <button type="button" id="iv_download-btn" class="btn btn-excel" style="--xl:#24493d;">
             <span id="iv_btn-text">รายงานสรุปค่าใช้จ่ายพัสดุ <i class="far fa-file-excel"></i></span>
               <div id="iv_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -76,7 +63,7 @@
                 0%
               </span>
           </button>
-          <button id="er_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#376e5b;color:white;">
+        <button type="button" id="er_download-btn" class="btn btn-excel" style="--xl:#376e5b;">
             <span id="er_btn-text">รายงานสรุปค่าใช่จ่ายทะเบียนรถทั้งหมด <i class="far fa-file-excel"></i></span>
               <div id="er_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -86,7 +73,7 @@
                 0%
               </span>
           </button>
-          <button id="rr_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#49937a;color:white;">
+        <button type="button" id="rr_download-btn" class="btn btn-excel" style="--xl:#49937a;">
             <span id="rr_btn-text">รายงานสรุปตามทะเบียนรถและประเภทการซ่อม <i class="far fa-file-excel"></i></span>
               <div id="rr_btn-progress" 
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; 
@@ -96,7 +83,7 @@
                 0%
               </span>
           </button>
-          <button id="all_download-btn" class="btn" style="position: relative; overflow: hidden; background-color:#5cb397;color:white;">
+        <button type="button" id="all_download-btn" class="btn btn-excel" style="--xl:#5cb397;">
             <span id="all_btn-text">Export ตารางใบจ่ายและใบขายทั้งหมด <i class="far fa-file-excel"></i></span>
               <div id="all_btn-progress"
                 style="position: absolute; left: 0; top: 0; height: 100%; width: 0%;
@@ -106,46 +93,56 @@
                 0%
               </span>
           </button>
-        </div>
+      </div>
+      <div class="lf-btns">
+        <button type="submit" form="lf-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+      </div>
     </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table class="table table-striped lt">
         <thead class="thead-dark">
           <tr>
             <th scope="col">เลขที่เอกสาร</th>
-            <th scope="col">วันที่จ่าย</th>
             <th scope="col">สินค้า</th>
-            <th scope="col">exp คชจ.</th>
-            <th scope="col">แผนกคชจ.</th>
+            <th scope="col">แผนก คชจ.</th>
             <th scope="col">หมายเหตุ</th>
-            <th scope="col">จำนวนเงิน</th>
+            <th scope="col" class="text-right">จำนวนเงิน</th>
             <th scope="col">ประเภทการซ่อม</th>
-            <th scope="col">เลขที่ใบแจ้งซ่อม</th>
           </tr>
         </thead>
         <tbody>
         {% for oi in ois %}
           <tr>
-            <th scope="row"><a href="">{{oi.docnum}}</a></th>
-            <td>{{oi.docdat |date:"d/m/Y" }}</td>
-            <td>{{oi.get_items|safe }}</td>
-            <td>{{oi.depcod}}</td>
-            <td>{{oi.get_depnam}}</td>
-            <td>{{oi.remark}}</td>
-            <td class="text-right">{{oi.get_total_price | intcomma}}</td>
-            <td>{% if oi.get_repair %}{{oi.get_repair}}{%else%}{{oi.note2}}{%endif%}</td>
-            <td>{{oi.note3}}</td>
+            <th scope="row">
+              <span class="lt-ref">{{ oi.docnum }}</span>
+              <span class="lt-sub">{{ oi.docdat|date:"d/m/Y" }}</span>
+            </th>
+            <td class="lt-note">{{ oi.get_items|safe }}</td>
+            <td>
+              {{ oi.get_depnam }}
+              <span class="lt-sub">{{ oi.depcod }}</span>
+            </td>
+            <td class="lt-note">{{ oi.remark }}</td>
+            <td class="lt-num">{{ oi.get_total_price|intcomma }}</td>
+            <td>
+              {% if oi.get_repair %}{{ oi.get_repair }}{% else %}{{ oi.note2 }}{% endif %}
+              {% if oi.note3 %}<span class="lt-sub">ใบแจ้งซ่อม {{ oi.note3 }}</span>{% endif %}
+            </td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="6">ไม่พบรายการ</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=ois %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

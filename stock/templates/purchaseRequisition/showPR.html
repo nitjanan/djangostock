@@ -12,7 +12,7 @@
     display: none;
   }
 
-    @page {
+  @page {
       margin: 0mm 10mm 0mm 0mm;
       }
       body {
@@ -27,7 +27,8 @@ u.dotted {
   text-decoration: none;
 }
 
-@media print { 
+/* ---------- ใช้กับหน้าปริ้น (แบบเดิม) ---------- */
+@media print {
   table.table-bordered{
     border:1px solid black;
     margin-top:20px;
@@ -43,306 +44,161 @@ u.dotted {
 .verybigmodal {
     max-width: 80%;
 }
+
 </style>
+{% include '_approve_doc_styles.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="container my-3">
-    <div class="row my-2">
-      <div class="col col-md-2">
-        <img src="/media/{{pr.address_company.logo}}" class="rounded float-left" width="120" height="120"/>
-      </div>
-      <div class="text-left col">
-          <description>
-            <strong>{{pr.address_company.name_eng}}{% if isPurchasing or isSupplies %}  <button type="button" class="btn btn-outline-dark d-print-none btn-sm" data-toggle="modal" data-target="#addressCompany"><i class="fas fa-cog"></i></button>{%endif%}</strong>
-            <br>{{pr.address_company.name_th}}
-            <br>{{pr.address_company.address}}
-            <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
-          </description>
-      </div>
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {% if isReApprove %}
-        <div class="col d-print-none">
-              <div class="pdf">
-                {% if form.memorandum_pdf.errors %}
-                  <div class="alert alert-warning" role="alert">
-                      {{ form.memorandum_pdf.errors }}
-                  </div>
-                {% endif %}
-                เอกสารแนบ {{form.memorandum_pdf | add_class:"form-control text-right"}}
-              </div>
-              <button type="submit" name="btnformR" class="btn btn-primary my-1">
-                <i class="fas fa-save"></i>
-                บันทึก
-              </button>
+{% include 'purchaseRequisition/_showPR_print.html' %}
+<div class="container ad-doc my-3 d-print-none">
+  <div class="ad-paper">
+    <!-- ======== หัวเอกสาร ======== -->
+    {% if isPurchasing or isSupplies %}{% include 'purchaseRequisition/_pr_doc_head.html' with show_address_cog=True %}{% else %}{% include 'purchaseRequisition/_pr_doc_head.html' %}{% endif %}
+
+    <!-- ======== เอกสารแนบ / แก้ไขที่อยู่หัวรายงาน (ไม่ปริ้น) ======== -->
+    <form method="post" enctype="multipart/form-data" class="d-print-none mb-0">
+      {% csrf_token %}
+      {% if isReApprove %}
+      <div class="mb-3">
+        <div class="ad-label">เอกสารแนบ</div>
+        <div class="d-flex flex-wrap align-items-center" style="gap: .5rem;">
+          <div class="pdf flex-grow-1">{{form.memorandum_pdf | add_class:"form-control"}}</div>
+          <button type="submit" name="btnformR" class="btn btn-primary">
+            <i class="fas fa-save"></i>
+            บันทึก
+          </button>
         </div>
-        {%endif%}
-        <div class="modal fade" id="addressCompany" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-          <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLongTitle">แก้ไขที่อยู่ตามจดทะเบียน</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-              <div class="modal-body">
-                {{pr_form.address_company | add_class:"form-control"}}
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
-                <button type="submit" name="btnformPR" class="btn btn-primary">บันทึกการแก้ไข</button>
-              </div>
-            </div>
+        {% if form.memorandum_pdf.errors %}
+          <div class="alert alert-warning mt-2 mb-0" role="alert">
+              {{ form.memorandum_pdf.errors }}
           </div>
-        </div>
-      </form>
-    </div>
-    <div class="row">
-      <div class="col-2">
-        {% if pr.is_re_approve == True %}
-          <b class="text-danger"><h5>***ฉบับแก้ไข</h5></b>
         {% endif %}
       </div>
-      <div class="col text-center">
-        <h3>ใบขอซื้อ/ใบขอซ่อม</h3>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col invoice-title text-left">
-        <h5>รหัสใบขอเบิก # <u><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></u></h5>
-      </div>
-      <div class="col invoice-title text-right">
-        <h5>รหัสใบขอซื้อ # {{pr.ref_no}}
-          {% if requisition.memorandum_pdf %}
-            {% ifchanged requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-            {% endifchanged %}
-          {% endif %}
-        </h5>
-      </div>
-    </div>
-    <hr>
-    <div class="row">
-      <div class="col-md-12">
-      <div class="row">
-        <div class="col-4">
-          <description>
-          <strong>ผู้ขอซื้อ/ขอซ่อม: </strong>{{requisition.chief_approve_user_name}}
-          <br>
-          <br>
-          </description>
-        </div>
-        <div class="col-4 text-center">
-            <description>
-              <strong>แผนก: </strong>{{requisition.section}}<br>
-              <br>
-            </description>
-          </div>
-        <div class="col-4 text-right">
-          <description>
-            <strong>วันที่ขอซื้อ: </strong>
-            {% if pr.created %}
-              {{ pr.created | date:"d/m/Y" }}
-            {% else %}
-              {% now "d/m/Y" %}
-            {% endif %}
-            <br>
-            <br>
-          </description>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-12">
-      <div class="panel panel-default">
-            <!-- div class="panel-heading">
-                <h3 class="panel-title">
-                  <strong>รายการใบขอซื้อ</strong>
-                </h3>
-            </div-->
-        <div class="panel-body">
-          <div class="table-responsive">
-            <table id="userTable" class="table table-bordered">
-              <thead>
-                <tr>
-                    <td class="text-center"><strong>ลำดับที่</strong></td>
-                    <form class="form-inline ml-3" id="search" method="GET">
-                      <td class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
-                        <strong>รหัสวัสดุ/อุปกรณ์ <i class="fas fa-list text-danger d-print-none"></i></strong>
-                      </td>
-                    </form>
-                    <td class="text-center"><strong>รายการ</strong></td>
-                    <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
-                    <td class="text-center"><strong>จำนวน</strong></td>
-                    <td class="text-center text-success"><strong>ซื้อแล้ว</strong></td>
-                    <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
-                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
-                    <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in items %}
-                <tr>
-                    <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center">{{item.product.id}}</td>
-                    <td name="name">{{item.product_name}}</td>
-                    <td name="description">{{item.description}}</td>
-                    <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
-                    <td class="text-center text-success" name="used">
-                      {{item.quantity_used |floatformat:"-4"}}
-                    </td>
-                    <td class="text-center" name="unit">
-                      {{item.unit}}
-                    </td>
-                    <td name="machine">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
-                    <td name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
-                    <td class="text-center" name="urgency">
-                      {% for bu in baseUrgency %}
-                        {% if item.urgency == bu.id %}
-                          {{bu.name}}
-                        {% endif %}
-                      {% endfor %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="10" class="text-center">
-                    <div class="alert alert-warning" role="alert">
-                      ไม่มีสินค้า
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-                <tr>
-                  <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
-                  <td class="text-center">{{items | length}}</td>
-                  <td class="text-center">รายการ</td>
-                  <td colspan="4" class="text-center"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {% if is_staff and not pr.is_complete %}
-              <div class="row my-2 d-print-none">
-                <div class="col-2 text-success">{{ pro_form.organizer.label}}</div>
-                <div class="col">{{ pro_form.organizer | add_class:"form-control is-valid" }}</div>
-              </div>
-            {%endif%}
-          <div class="row">
-            <div class="card-group col">
-              <div class="card col">
-                <div class="card-body">
-                  <strong>หมายเหตุ: </strong>
-                  <u class="dotted">
-                    {{ pr.note |truncatechars:450}}
-                  </u>
-                </div>
-              </div>
-              <div class="card col-4">
-                <div class="card-body">
-                  <h5 class="card-title">ระดับความเร่งด่วน</h5>
-                  <p class="card-text">A = ภายใน 48 ชม.&emsp;B = 3-5 วัน<br>C = 7 วัน&emsp;&emsp;&emsp;&emsp;&emsp;D = 15 วัน</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="card-group col">
-              <div class="card">
-                <div class="card-body">
-                  <h5 class="card-title">เจ้าหน้าที่พัสดุ
-                    <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;" />
-                  </h5>
-                  <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
-                  <div class="row">
-                    <div class="col-sm-8">
-                      <p class="card-text">วันที่ {{pr.stockman_update | format_datetime }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-body">
-                  <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                  {% if pr.purchase_status_id == 2 %}
-                    <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                      <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                    </h5>
-                  {% else %}
-                    <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                        #{{pr.purchase_status}}
-                    </h5>
-                  {% endif %}
-                  <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
-                  <div class="row">
-                    <div class="col-sm-8">
-                      <p class="card-text">วันที่ {{pr.purchase_update | format_datetime }}</p>
-                    </div>
-                  </div>  
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-body">
-                      <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                      {% if pr.approver_status_id == 2 %}
-                        <h5 class="card-title">ผู้อนุมัติ
-                          <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                        </h5>
-                      {% else %}
-                        <h5 class="card-title">ผู้อนุมัติ
-                          #{{pr.approver_status}}
-                        </h5>
-                      {% endif %}
-                      <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
-                      <div class="row">
-                        <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.approver_update | format_datetime }}</p>
-                        </div>
-                      </div>  
-                  </div>
-                </div>  
-                </div>
-                </div>  
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="invoice-title text-right my-2">
-            <h6>{{bc.affiliated.iso_code.pr_code|safe}}</h6>
-          </div>
-          <div class="text-right my-2">
-            <description id="dt_print"></description>
-          </div>
-          <div class="row my-2">
-            <div class="col-6">
-              {%if isEditPR and isSupplies and pr.approver_status.id == 2 %}<!-- 03/07/2025 ถ้าอยู่ในกลุ่ม edit pr สามารถ re approve pr ได้ -->
-                <a class="btn btn-warning d-print-none" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลงรายละเอียดรายการ</a>
-              {% endif %}
-              {% if is_staff and not pr.is_complete %}
-                <button name="btnformPRO" type="submit" class="btn btn-success hidden-print"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
-              {%endif%}
-            </div>
-          </form>
-            <div class="col-6 text-right">
-              {% if isRePr %}
-                <a class="btn btn-light d-print-none" style="background-color:#6f42c1;border-color:#6f42c1;color:#fff;" onclick="return confirm('คุณต้องการนำรายการนี้กลับมาหรือไม่ ?\n *** รายการใบขอซื้อนี้จะกลับไปที่หน้าสร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อ')" href="{%url 'reBuyPR' pr.id %}" role="button"><i class="fas fa-redo"></i> นำรายการกลับมา</a>
-              {% endif %}
-              <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
-                <i class="fas fa-print"></i>
-                ปริ้นใบขอซื้อ
+      {%endif%}
+      <div class="modal fade" id="addressCompany" tabindex="-1" role="dialog" aria-labelledby="addressCompanyTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addressCompanyTitle">แก้ไขที่อยู่ตามจดทะเบียน</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
               </button>
             </div>
+            <div class="modal-body">
+              {{pr_form.address_company | add_class:"form-control"}}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+              <button type="submit" name="btnformPR" class="btn btn-primary">บันทึกการแก้ไข</button>
+            </div>
           </div>
         </div>
       </div>
+    </form>
+
+    <!-- ======== รายการขอซื้อ ======== -->
+    <div class="ad-section-title">รายการขอซื้อ ({{ items|length }} รายการ)</div>
+    <div class="table-responsive ad-items-wrap">
+      <table id="userTable" class="table table-bordered table-sm ad-items">
+        <thead>
+          <tr>
+            <th class="text-center">ลำดับที่</th>
+            <th class="text-center" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+              รหัสวัสดุ/อุปกรณ์ <i class="fas fa-list text-danger d-print-none"></i>
+            </th>
+            <th class="text-center">รายการ</th>
+            <th class="text-center">รายละเอียด/ประเภทการซ่อม</th>
+            <th class="text-center">จำนวน</th>
+            <th class="text-center text-success">ซื้อแล้ว</th>
+            <th class="text-center">หน่วย</th>
+            <th class="text-center">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</th>
+            <th class="text-center">วันที่ต้องการ</th>
+            <th class="text-center">ระดับความเร่งด่วน</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
+            <td class="text-center" data-label="รหัสวัสดุ/อุปกรณ์">{{item.product.id}}</td>
+            <td name="name" class="ad-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{item.product_name}}</td>
+            <td name="description" data-label="รายละเอียด">{{item.description}}</td>
+            <td class="text-center" name="quantity" data-label="จำนวน"><span>{{item.quantity_pr |floatformat:"-4"}} <span class="d-md-none d-print-none">{{item.unit}}</span></span></td>
+            <td class="text-center text-success" name="used" data-label="ซื้อแล้ว">{{item.quantity_used |floatformat:"-4"}}</td>
+            <td class="text-center ad-hide-m" name="unit">{{item.unit}}</td>
+            <td name="machine" data-label="ทะเบียนรถ/เครื่องจักร">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
+            <td class="text-center" name="desireddate" data-label="วันที่ต้องการ">{{item.desired_date | date:"d/m/Y"}}</td>
+            <td class="text-center" name="urgency" data-label="ความเร่งด่วน">{% for bu in baseUrgency %}{% if item.urgency == bu.id %}{{bu.name}}{% endif %}{% endfor %}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10" class="text-center ad-cell-title">
+              <div class="alert alert-warning mb-0" role="alert">
+                ไม่มีสินค้า
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="ad-hide-m">
+          <tr>
+            <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
+            <td class="text-center">{{items | length}}</td>
+            <td class="text-center">รายการ</td>
+            <td colspan="4" class="text-center"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="ad-summary">
+      <div class="ad-notes">
+        <p><span class="ad-label">หมายเหตุ :</span> <u class="dotted">{{pr.note|truncatechars:450}}</u></p>
+      </div>
+      <div class="small">
+        <div class="font-weight-bold">ระดับความเร่งด่วน</div>
+        A = ภายใน 48 ชม.&emsp;B = 3-5 วัน&emsp;C = 7 วัน&emsp;D = 15 วัน
+      </div>
+    </div>
+
+    <!-- ======== ลงชื่อ ======== -->
+    {% include 'purchaseRequisition/_pr_doc_signs.html' %}
+
+    <!-- ======== ผู้จัดทำ + แถบปุ่ม ติดด้านล่าง (ไม่ปริ้น) ======== -->
+    <form method="post" enctype="multipart/form-data" class="mb-0" id="pr-organizer-form">
+      {% csrf_token %}
+      {% if is_staff and not pr.is_complete %}
+        <div class="d-print-none mt-3">
+          <div class="ad-label text-success">{{ pro_form.organizer.label}}</div>
+          {{ pro_form.organizer | add_class:"form-control is-valid" }}
+        </div>
+      {%endif%}
+    </form>
+
+    <!-- แถบปุ่มอยู่ชั้นนอกของกระดาษ (นอก form) เพื่อให้ sticky แสดงตั้งแต่เปิดหน้า ปุ่มบันทึกผูกกับ form ด้วย form="pr-organizer-form" -->
+    <div class="ad-actions-bar hidden-print">
+        <div class="d-flex flex-wrap" style="gap: .5rem;">
+          <button type="button" class="btn btn-secondary" onclick="history.back();"><i class="fas fa-arrow-left"></i> กลับไป</button>
+          {%if isEditPR and isSupplies and pr.approver_status.id == 2 %}<!-- 03/07/2025 ถ้าอยู่ในกลุ่ม edit pr สามารถ re approve pr ได้ -->
+            <a class="btn btn-warning" onclick="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')" href="{%url 'reApprovePR'  pr.id %}" role="button"><i class="fas fa-edit"></i> ขอเปลี่ยนแปลง<span class="d-none d-sm-inline">รายละเอียดรายการ</span></a>
+          {% endif %}
+          {% if is_staff and not pr.is_complete %}
+            <button name="btnformPRO" type="submit" form="pr-organizer-form" class="btn btn-success"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
+          {%endif%}
+        </div>
+        <div class="d-flex flex-wrap" style="gap: .5rem;">
+          {% if isRePr %}
+            <a class="btn btn-light" style="background-color:#6f42c1;border-color:#6f42c1;color:#fff;" onclick="return confirm('คุณต้องการนำรายการนี้กลับมาหรือไม่ ?\n *** รายการใบขอซื้อนี้จะกลับไปที่หน้าสร้างใบเปรียบเทียบราคาหรือใบสั่งซื้อ')" href="{%url 'reBuyPR' pr.id %}" role="button"><i class="fas fa-redo"></i> นำรายการกลับมา</a>
+          {% endif %}
+          <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
+            <i class="fas fa-print"></i>
+            ปริ้น<span class="d-none d-sm-inline">ใบขอซื้อ</span>
+          </button>
+        </div>
     </div>
   </div>
+</div>
   <!-- Modal Search-->
     <div class="modal fade" id="myEdit" role="dialog">
       <div class="modal-dialog modal-lg verybigmodal">
@@ -360,8 +216,6 @@ u.dotted {
 {% endblock %}
 {% block javascript %}
 <script type="text/javascript">
-$('div.pdf a').addClass('btn btn-outline-success btn-sm');
-$('div.pdf a').text('Download');
 
 //ค้นหา 5 รายการล่าสุด
 function searchLastPoItem(){
@@ -387,7 +241,7 @@ function searchLastPoItem(){
             }
         });
     } else {
-      
+
     }
     return false;
 }
@@ -400,7 +254,7 @@ function openModal(instance) {
 function setDateTimePrint(){
 	var currentdate = new Date();
 	var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
-	$("#dt_print").text(datetime);
+	$(".js-dt-print").text(datetime);
 }
 </script>
 {% endblock %}

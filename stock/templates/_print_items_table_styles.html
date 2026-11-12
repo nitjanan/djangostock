@@ -1,0 +1,49 @@
+{% comment %}ตารางรายการตอนปริ้น (.print-items) ใช้กับ _showPO_print และ _showPR_print
+ขนาดตัวอักษรเท่าใบเดิม ช่องแคบ เพื่อให้ใส่รายการได้มากต่อหน้า หัวตารางพิมพ์ซ้ำทุกหน้า และไม่ตัดแถวกลางหน้า{% endcomment %}
+<style>
+  @media print {
+    table.print-items {
+      width: 100%;
+      margin: 4px 0 6px 0 !important;
+      border-collapse: collapse;
+      line-height: 1.25;
+      color: #000;
+    }
+    table.print-items thead {
+      display: table-header-group;
+    }
+    table.print-items tfoot {
+      display: table-row-group;
+    }
+    table.print-items tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    table.print-items th,
+    table.print-items td {
+      padding: 2px 4px !important;
+      vertical-align: top;
+      border: 1px solid #dee2e6 !important; /* สีจางแบบใบเดิม (Bootstrap print ของ .table-bordered) */
+      background: #fff !important;
+    }
+    table.print-items thead th {
+      vertical-align: middle;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1.15;
+    }
+    table.print-items .pi-nowrap {
+      white-space: nowrap;
+    }
+    table.print-items .pi-desc {
+      white-space: normal;
+    }
+    table.print-items .pi-sum td {
+      font-weight: bold;
+    }
+    .print-items-title {
+      font-weight: bold;
+      margin: 0;
+    }
+  }
+</style>

@@ -1,0 +1,134 @@
+{% load humanize %}
+{% comment %}ตารางเปรียบเทียบราคา ใช้ทั้งหน้าเลือกร้านค้า (printComparePricePO) และหน้าแสดง (showComparePricePO)
+ให้หน้าตาเหมือนกันทั้งบนจอและตอนปริ้น / show_last_price: คลิกหัว "รายการ" ดูราคาที่ซื้อล่าสุด (searchLastPoItem){% endcomment %}
+<div class="table-responsive cp-compare-wrap">
+    <table class="table table-bordered table-sm cp-compare-table mb-2 {% if bidder|length >= 5 %}cp-bidders-5{% elif bidder|length == 4 %}cp-bidders-4{% endif %}">
+    <thead class="text-center">
+        <tr>
+            <th scope="col" rowspan="4" class="cp-col-no">ลำดับ</th>
+            {% if show_last_price %}
+            <th scope="col" rowspan="4" class="cp-col-item" style="cursor: pointer;" onclick="searchLastPoItem()" data-target="#myEdit" data-toggle="modal">
+                รายการ <i class="fas fa-list text-danger d-print-none"></i>
+            </th>
+            {% else %}
+            <th scope="col" rowspan="4" class="cp-col-item">รายการ</th>
+            {% endif %}
+            <th scope="col" rowspan="4">จำนวน</th>
+            <th scope="col" rowspan="4">หน่วย</th>
+            {% for bd in bidder %}
+                <th scope="col" colspan="4" class="cp-bidder-name {% if cp.select_bidder_id == bd.distributor_id %}cp-selected{% endif %}" data-distributor="{{ bd.distributor_id }}">
+                    {{bd.distributor.name}}
+                    {% if bd.quotation_pdf %}
+                        <a href="/media/{{bd.quotation_pdf}}" class="btn btn-outline-primary btn-sm py-0 hidden-print" title="ใบเสนอราคา"><i class="fas fa-file-download"></i></a>
+                    {% endif %}
+                    <div class="hidden-print">
+                        {% if forloop.first %}<span class="badge badge-success">ราคาต่ำสุด</span>{% endif %}
+                        <span class="badge badge-primary cp-selected-badge {% if cp.select_bidder_id != bd.distributor_id %}d-none{% endif %}">ร้านที่เลือก</span>
+                    </div>
+                </th>
+            {% endfor %}
+            <th scope="col" rowspan="4" class="cp-col-spares">
+                <ul class="list-unstyled my-1 text-left">
+                    {% for bst in baseSparesType %}
+                        <li>
+                            {% if bst == cp.base_spares_type%}
+                            <i class="fas fa-square"></i>
+                            {% else %}
+                            <i class="far fa-square"></i>
+                            {% endif %}
+                             {{bst.name}}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </th>
+        </tr>
+        <tr>
+            {% for bd in bidder %}
+                <td scope="col" colspan="4" class="cp-sub">โทร. {{bd.distributor.tel}}</td>
+            {% endfor %}
+        </tr>
+        <tr>
+            {% for bd in bidder %}
+                <td scope="col" class="cp-sub">เกรด</td>
+                <td scope="col" colspan="3" class="cp-sub">เครดิต {{bd.credit}}</td>
+            {% endfor %}
+        </tr>
+        <tr class="cp-col-heads">
+            {% for bd in bidder %}
+                <th scope="col">ยี่ห้อ</th>
+                <th scope="col">ราคา/หน่วย</th>
+                <th scope="col">ส่วนลด</th>
+                <th scope="col">รวม</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for oldest in items_oldest %}
+            <tr>
+                <th scope="row" class="text-center">{{forloop.counter}}</th>
+                <td>{{oldest.item.product_name}} <b class="text-success" style="white-space: pre-line;">{{oldest.description|linebreaksbr}}</b></td>
+                <td class="text-right">{{oldest.quantity |floatformat:"-4"}}</td>
+                <td class="text-center">{{oldest.unit}}</td>
+                    {% comment %}
+                    วนตามคอลัมน์ร้านค้า (bidder) แล้วจับคู่เฉพาะรายการของร้านค้านั้น ๆ ด้วย it.bidder_id == bd.id
+                    เพื่อไม่ให้ราคา/สินค้าไปแสดงผิดคอลัมน์เวลาลำดับ queryset ไม่ตรงกัน
+                    {% endcomment %}
+                    {% for bd in bidder %}
+                        {% for it in itemName %}
+                            {% if it.bidder_id == bd.id and oldest.item.id == it.item.id and oldest.quantity == it.quantity and oldest.unit == it.unit %}
+                            <td>{{it.brand}}</td>
+                            <td class="text-right">{% if it.unit_price %}{{it.unit_price | intcomma}}{%else%}{%endif%}</td>
+                            <td class="text-right">{% if it.discount %}{{it.discount |intcomma}}{%endif%}</td>
+                            <td class="text-right font-weight-bold">{% if it.price %}{{it.price | intcomma}}{%else%}{%endif%}</td>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                <td><!-- * --></td>
+            </tr>
+        {% endfor %}
+        <tr class="cp-gap"><td colspan="100%"></td></tr>
+        <tr class="cp-sum">
+            <td colspan="2" class="text-right">รวม</td>
+            <td rowspan="6"></td>
+            <td rowspan="6"></td>
+            {% for bd in bidder %}
+                <td rowspan="6"></td>
+                <td rowspan="6"></td>
+                <td rowspan="6"></td>
+                <td class="text-right">{{bd.total_price | intcomma}}</td>
+            {% endfor %}
+            <td rowspan="6" class="cp-note"><u>หมายเหตุ</u><br>{{cp.note|truncatechars:450}}</td>
+        </tr>
+        <tr class="cp-sum">
+            <td colspan="2" class="text-right">หักส่วนลด</td>
+            {% for bd in bidder %}
+                <td class="text-right">{{bd.discount | intcomma}}</td>
+            {% endfor %}
+        </tr>
+        <tr class="cp-sum">
+            <td colspan="2" class="text-right">จำนวนเงินหลังหักส่วนลด</td>
+            {% for bd in bidder %}
+                <td class="text-right">{{bd.total_after_discount | intcomma}}</td>
+            {% endfor %}
+        </tr>
+        <tr class="cp-sum">
+            <td colspan="2" class="text-right">ค่าขนส่ง</td>
+            {% for bd in bidder %}
+                <td class="text-right">{{bd.freight | intcomma}}</td>
+            {% endfor %}
+        </tr>
+        <tr class="cp-sum">
+            <td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td>
+            {% for bd in bidder %}
+                <td class="text-right"><u>{{bd.vat | intcomma}}</u></td>
+            {% endfor %}
+        </tr>
+        <tr class="cp-sum cp-sum-grand">
+            <td colspan="2" class="text-right">รวมเป็นเงินทั้งสิ้น</td>
+            {% for bd in bidder %}
+                <td class="text-right"><b class="dblUnderlined">{{bd.amount | intcomma}}</b></td>
+            {% endfor %}
+        </tr>
+    </tbody>
+    </table>
+</div>

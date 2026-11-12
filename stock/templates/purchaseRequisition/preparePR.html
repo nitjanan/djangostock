@@ -2,74 +2,171 @@
 {% load static %}
 
 {% block content %}
-<div class="container my-2">
-  <h3 align="center">สร้างใบขอซื้อและใบจ่ายสินค้าภายใน</h3>
-      {% if messages %}
-          {% for message in messages %}
-              <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert" >
-                <i class="fas fa-check-circle"></i>
-                {{ message }}
-              </div>
-          {% endfor %}
-      {% endif %}
-    {% for requisition in requisitions%}
-    <div class="card my-3">
-        <h5 class="card-header alert-info">ใบขอเบิก #{{requisition.ref_no}}</h5>
-        <div class="card-body">
-          <h6 class="card-title">วันที่ตั้งเบิก {{requisition.created |date:"d/m/Y"}}</h6>
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col" class="text-center">สินค้า</th>
-                <th scope="col" class="text-center">จำนวนที่ออกใบขอซื้อ</th>
-                <th scope="col" class="text-center">จำนวนที่ออกใบจ่ายสินค้าภายใน</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for item in requisition.requisitionitem_set.all %}
-              <tr>
-                <th scope="row">{{forloop.counter}}</th>
-                <td>{{ item.product_name }}</td>
-                <td class="text-right">{{ item.quantity_pr |floatformat:"-4" }}</td>
-                <td class="text-right">{% if requisition.agency.id == 1 %}{{ item.quantity_take |floatformat:"-4" }}{%else%}0{%endif%}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          <p class="card-text">ขอเบิกโดย {{requisition.name}} แผนก {{requisition.section}}</p>
-          <a href="{%url 'CUInvoiceAndItem' requisition.id %}" class="btn btn-primary"><i class="fas fa-plus-circle"></i> สร้างใบขอซื้อและใบจ่ายสินค้าภายใน</a>
-        </div>
+<style>
+  .pp-page { max-width: 1200px; }
+  .pp-head {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    margin: .75rem 0 1.25rem; padding-bottom: .9rem; border-bottom: 2px solid #e3e8ef;
+  }
+  .pp-title { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1f2d3d; }
+  .pp-sub { margin: .25rem 0 0; color: #6c757d; font-size: .95rem; }
+  .pp-total {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .35rem .85rem; border-radius: 999px; background: #e7f1ff; color: #0b5ed7; font-weight: 600; white-space: nowrap;
+  }
+
+  .pp-card {
+    margin-bottom: 1rem; background: #fff; border: 1px solid #e3e8ef; border-left: 4px solid #17a2b8;
+    border-radius: 10px; box-shadow: 0 1px 3px rgba(16, 24, 40, .06); overflow: hidden;
+  }
+  .pp-card-head {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    padding: .85rem 1.1rem; background: #f7fafc; border-bottom: 1px solid #e3e8ef;
+  }
+  .pp-ref { font-size: 1.15rem; font-weight: 700; color: #0f6674; text-decoration: none; }
+  .pp-ref:hover { color: #0b4f5a; text-decoration: underline; }
+  .pp-ref-label { display: block; font-size: .75rem; font-weight: 400; color: #6c757d; }
+  .pp-meta { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; margin: 0; padding: 0; list-style: none; color: #495057; font-size: .92rem; }
+  .pp-meta i { width: 1rem; margin-right: .3rem; color: #8a99ad; text-align: center; }
+  .pp-meta b { font-weight: 600; color: #1f2d3d; }
+  .pp-action { margin-left: auto; }
+  .pp-action .btn { font-weight: 600; white-space: nowrap; }
+
+  .pp-table { width: 100%; margin: 0; border-collapse: collapse; font-size: .95rem; }
+  .pp-table th {
+    padding: .5rem .75rem; background: #fff; color: #6c757d; font-size: .8rem; font-weight: 600;
+    border-bottom: 1px solid #e3e8ef; white-space: nowrap;
+  }
+  .pp-table td { padding: .5rem .75rem; border-bottom: 1px solid #f0f3f7; vertical-align: top; }
+  .pp-table tbody tr:last-child td { border-bottom: 0; }
+  .pp-table tbody tr:hover td { background: #fafcfe; }
+  .pp-no { width: 48px; color: #8a99ad; text-align: center; }
+  .pp-qty { width: 150px; text-align: right; font-variant-numeric: tabular-nums; }
+  .pp-qty-pr { color: #0b5ed7; font-weight: 600; }
+  .pp-qty-take { color: #198754; font-weight: 600; }
+  .pp-zero { color: #c0c8d2; font-weight: 400; }
+
+  .pp-empty {
+    padding: 3rem 1rem; text-align: center; color: #6c757d;
+    background: #fff; border: 1px dashed #ced4da; border-radius: 10px;
+  }
+  .pp-empty i { display: block; margin-bottom: .75rem; font-size: 2.5rem; color: #adb5bd; }
+  .pp-pagination .pagination { justify-content: center; margin: 1.25rem 0 .5rem; }
+
+  @media screen and (max-width: 767.98px) {
+    .pp-title { font-size: 1.25rem; }
+    .pp-card-head { gap: .6rem; padding: .75rem .85rem; }
+    .pp-action { width: 100%; margin-left: 0; }
+    .pp-action .btn { width: 100%; white-space: normal; }
+    .pp-table { font-size: .9rem; }
+    .pp-table th, .pp-table td { padding: .45rem .5rem; }
+    .pp-no { width: 32px; }
+    .pp-qty { width: 60px; }
+    .pp-qty-label-long { display: none; }
+  }
+  @media screen and (min-width: 768px) {
+    .pp-qty-label-short { display: none; }
+  }
+</style>
+
+<div class="container pp-page my-2">
+  <div class="pp-head">
+    <div>
+      <h3 class="pp-title"><i class="fas fa-clipboard-list text-info mr-2"></i>สร้างใบขอซื้อและใบจ่ายสินค้าภายใน</h3>
+      <p class="pp-sub">ใบขอเบิกที่ยังไม่ได้ออกใบขอซื้อหรือใบจ่ายสินค้าภายใน</p>
     </div>
-    {% empty %}
-    <div class="alert alert-warning my-3" role="alert">
-      ไม่มีใบขอเบิก
-    </div>
+    {% if requisitions.paginator.count %}
+      <span class="pp-total"><i class="fas fa-file-alt"></i> รอดำเนินการ {{ requisitions.paginator.count }} ใบ</span>
+    {% endif %}
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {{ message.tags }} alert-dismissible my-3" role="alert">
+        <i class="fas fa-check-circle"></i>
+        {{ message }}
+      </div>
     {% endfor %}
-       <!--Pagination-->
-       <nav aria-label="pagination">
-        {% if requisitions.has_other_pages %}
-        <ul class="pagination">
-          {% if requisitions.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page={{ requisitions.previous_page_number }}">&laquo;</a></li>
+  {% endif %}
+
+  {% for requisition in requisitions %}
+  <div class="pp-card">
+    <div class="pp-card-head">
+      <a class="pp-ref" href="{% url 'editAllRequisition' requisition.id %}" title="ดู/แก้ไขใบขอเบิก">
+        <span class="pp-ref-label">ใบขอเบิก</span>{{ requisition.ref_no }}
+      </a>
+      <ul class="pp-meta">
+        <li><i class="far fa-calendar-alt"></i>วันที่ตั้งเบิก <b>{{ requisition.created|date:"d/m/Y" }}</b></li>
+        <li><i class="fas fa-user"></i>ขอเบิกโดย <b>{{ requisition.name }}</b></li>
+        <li><i class="fas fa-sitemap"></i>แผนก <b>{{ requisition.section }}</b></li>
+        <li><i class="fas fa-list-ol"></i><b>{{ requisition.requisitionitem_set.count }}</b> รายการ</li>
+      </ul>
+      <div class="pp-action">
+        <a href="{% url 'CUInvoiceAndItem' requisition.id %}" class="btn btn-primary">
+          <i class="fas fa-plus-circle mr-1"></i>สร้างใบขอซื้อและใบจ่ายสินค้าภายใน
+        </a>
+      </div>
+    </div>
+    <table class="pp-table">
+      <thead>
+        <tr>
+          <th class="pp-no">#</th>
+          <th>สินค้า</th>
+          <th class="pp-qty">
+            <span class="pp-qty-label-long">จำนวนที่ออกใบขอซื้อ</span><span class="pp-qty-label-short">ขอซื้อ</span>
+          </th>
+          <th class="pp-qty d-none"><!-- จำนวนที่จ่ายไป: ซ่อนไว้ก่อน -->
+            <span class="pp-qty-label-long">จำนวนที่ออกใบจ่ายภายใน</span><span class="pp-qty-label-short">จ่ายภายใน</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in requisition.requisitionitem_set.all %}
+        <tr>
+          <td class="pp-no">{{ forloop.counter }}</td>
+          <td>{{ item.product_name }}</td>
+          <td class="pp-qty {% if item.quantity_pr %}pp-qty-pr{% else %}pp-zero{% endif %}">{{ item.quantity_pr|floatformat:"-4" }}</td>
+          {% if requisition.agency.id == 1 %}
+            <td class="pp-qty d-none {% if item.quantity_take %}pp-qty-take{% else %}pp-zero{% endif %}">{{ item.quantity_take|floatformat:"-4" }}</td>
           {% else %}
-            <li class="page-item disabled"><a class="page-link"><span>&laquo;</span></a></li>
+            <td class="pp-qty pp-zero d-none">0</td>
           {% endif %}
-          {% for i in requisitions.paginator.page_range %}
-            {% if requisitions.number == i %}
-              <li class="page-item active"><a class="page-link">{{ i }}<span class="sr-only">(current)</span></a></li>
-            {% else %}
-              <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-            {% endif %}
-          {% endfor %}
-          {% if requisitions.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{ requisitions.next_page_number }}">&raquo;</a></li>
-          {% else %}
-            <li class="page-item disabled"><a class="page-link"><span>&raquo;</span></a></li>
-          {% endif %}
-        </ul>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% empty %}
+  <div class="pp-empty">
+    <i class="fas fa-check-circle"></i>
+    ไม่มีใบขอเบิกที่รอสร้างใบขอซื้อหรือใบจ่ายสินค้าภายใน
+  </div>
+  {% endfor %}
+
+  <!--Pagination-->
+  <nav class="pp-pagination" aria-label="pagination">
+    {% if requisitions.has_other_pages %}
+    <ul class="pagination">
+      {% if requisitions.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ requisitions.previous_page_number }}">&laquo;</a></li>
+      {% else %}
+        <li class="page-item disabled"><a class="page-link"><span>&laquo;</span></a></li>
       {% endif %}
-    </nav>
-    <!--end of Pagination-->
+      {% for i in requisitions.paginator.page_range %}
+        {% if requisitions.number == i %}
+          <li class="page-item active"><a class="page-link">{{ i }}<span class="sr-only">(current)</span></a></li>
+        {% else %}
+          <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if requisitions.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ requisitions.next_page_number }}">&raquo;</a></li>
+      {% else %}
+        <li class="page-item disabled"><a class="page-link"><span>&raquo;</span></a></li>
+      {% endif %}
+    </ul>
+    {% endif %}
+  </nav>
+  <!--end of Pagination-->
 </div>
-{% endblock%}
+{% endblock %}

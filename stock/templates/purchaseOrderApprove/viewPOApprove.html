@@ -4,38 +4,34 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% include '_user_filter_search.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
 <h3 align="center">อนุมัติใบสั่งซื้อ</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
     <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-1 mb-0">
-            {{ filter.form.ref_no|as_crispy_field }}
-          </div>
-          <div class="form-group col-md-3 mb-0">
-            {{filter.form.distributor|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-1 mb-0">
-            {{filter.form.credit|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.approver_status|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.start_created|as_crispy_field}}
-          </div>
-          <div class="form-group col-md-2 mb-0">
-            {{filter.form.end_created|as_crispy_field}}
-          </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.distributor|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.credit|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.approver_status|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.end_created|as_crispy_field }}</div>
+          <div class="col-12 col-md-3 lf-btns">
+            <button type="submit" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+            <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
           </div>
         </div>
       </div>
@@ -45,55 +41,54 @@
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table class="table table-striped lt">
         <thead class="thead-dark">
-            <tr>
-                <th scope="col">รหัสใบสั่งซื้อ</th>
-                <th scope="col">รหัส CM/รหัส PR</th>
-                <th scope="col">ชื่อผู้จำหน่าย</th>
-                <th scope="col">เครดิต</th>
-                <th scope="col">วันที่สั่งซื้อ</th>
-                <th scope="col">ราคา</th>
-                <th scope="col">ผู้อนุมัติ</th>
-                <th scope="col">ดำเนินการ</th>
-            </tr>
+          <tr>
+            <th scope="col">รหัสใบสั่งซื้อ</th>
+            <th scope="col" class="lt-hide-lg">รหัส CM / PR</th>
+            <th scope="col">ผู้จำหน่าย</th>
+            <th scope="col">วันที่สั่งซื้อ</th>
+            <th scope="col" class="text-right">ราคา</th>
+            <th scope="col">สถานะ</th>
+            <th scope="col">จัดการ</th>
+          </tr>
         </thead>
         <tbody>
         {% for po in pos %}
           <tr>
-            <th scope="row"><a class="{% if po.is_re_approve %}text-danger{%endif%}" href="{%url 'showPO' po.id 2 %}">{{po.ref_no}}</a></th>
-            <td>
-              {%if po.cp %}<a class="{% if po.cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' po.cp.id 2 %}">{{po.cp.ref_no}}</a>{%endif%}
-              {%if po.pr %}<a href="{%url 'showPR' po.pr.id 2 %}">{{po.pr.ref_no}}</a>{%endif%}
+            <th scope="row">
+              <a class="lt-ref {% if po.is_re_approve %}text-danger{% endif %}" href="{% url 'showPO' po.id 2 %}">{{ po.ref_no }}</a>
+              <div class="lt-inline">
+                {% if po.cp %}<a class="lt-link {% if po.cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' po.cp.id 2 %}">{{ po.cp.ref_no }}</a>{% endif %}
+                {% if po.pr %}<a class="lt-link" href="{% url 'showPR' po.pr.id 2 %}">{{ po.pr.ref_no }}</a>{% endif %}
+              </div>
+            </th>
+            <td class="lt-hide-lg">
+              {% if po.cp %}<a class="lt-link {% if po.cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' po.cp.id 2 %}">{{ po.cp.ref_no }}</a>{% endif %}
+              {% if po.pr %}<a class="lt-link" href="{% url 'showPR' po.pr.id 2 %}">{{ po.pr.ref_no }}</a>{% endif %}
             </td>
-            <td>{{po.distributor}}</td>
-            <td>{{po.credit}}</td>
-            <td>{{po.created |date:"d/m/Y"}}</td>
-            <td>{% if po.amount %}{{po.amount | intcomma}}{%endif%}</td>
-            <td>
-              <button type="button"
-              class="btn btn-block btn-sm
+            <td class="lt-name">
+              {{ po.distributor|default:"-" }}
+              {% if po.credit %}<span class="lt-sub">เครดิต {{ po.credit }}</span>{% endif %}
+            </td>
+            <td>{{ po.created|date:"d/m/Y" }}</td>
+            <td class="lt-num">{% if po.amount %}{{ po.amount|intcomma }}{% endif %}</td>
+            <td>{% include '_status_pill.html' with status=po.approver_status label="อนุมัติ" %}</td>
+            <td class="lt-actions">{% spaceless %}
               {% if po.approver_status.id == 1 %}
-                btn-outline-warning
-              {% elif po.approver_status.id == 2 %}
-                btn-outline-success
-              {% elif po.approver_status.id == 3 %}
-                btn-outline-danger
-              {% endif %}"
-              >{{po.approver_status}}</button>
-            </td>
-            <td>
-              {% if po.approver_status.id == 1 %}
-              <a href="{%url 'editPOApprove' po.id False %}" class="btn btn-primary btn-block btn-sm">ทำการอนุมัติ</a>
-              {%endif%}
-            </td>
+                <a href="{% url 'editPOApprove' po.id False %}" class="btn btn-primary btn-sm">ทำการอนุมัติ</a>
+              {% endif %}
+            {% endspaceless %}</td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="7">ไม่พบใบสั่งซื้อที่รออนุมัติ</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=pos %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

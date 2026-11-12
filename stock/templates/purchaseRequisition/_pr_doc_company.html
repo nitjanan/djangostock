@@ -1,0 +1,15 @@
+{% comment %}ชื่อ/ที่อยู่บริษัทบนหัวใบขอซื้อ addr: ที่อยู่บริษัท (BaseAddress) / show_address_cog: ปุ่มแก้ไขที่อยู่{% endcomment %}
+<div class="ad-company">
+  <img src="/media/{{addr.logo}}" class="rounded ad-company-logo"/>
+  <div>
+    <div class="ad-company-name">
+      {{addr.name_eng}}
+      {% if show_address_cog %}<button type="button" class="btn btn-outline-dark d-print-none btn-sm py-0" data-toggle="modal" data-target="#addressCompany" title="แก้ไขที่อยู่ตามจดทะเบียน"><i class="fas fa-cog"></i></button>{%endif%}
+    </div>
+    <div>{{addr.name_th}}</div>
+    <div class="ad-company-address">
+      {{addr.address}}
+      <br>{% if addr.tel %}โทร {{addr.tel}}{%endif%}{% if addr.tex %} เลขที่ผู้เสียภาษี {{addr.tex}}{%endif%}{% if addr.branch %} สาขา{{addr.branch}}{%endif%}
+    </div>
+  </div>
+</div>

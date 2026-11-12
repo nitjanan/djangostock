@@ -1,0 +1,20 @@
+{% comment %}ปุ่มซ่อน/แสดงคอลัมน์งานที่ 3-6 ในหน้ารายการใบใช้รถ — ค่าเริ่มต้นซ่อน
+วางไว้เหนือตาราง ตารางต้องมี id="cl-table" และคอลัมน์งานที่ 3-6 มี class cl-job-extra{% endcomment %}
+<style>
+  #cl-table:not(.show-extra-jobs) .cl-job-extra { display: none; }
+  .cl-job-toggle { margin-bottom: .5rem; }
+  .cl-job-toggle i { transition: transform .15s; }
+  .cl-job-toggle[aria-pressed="true"] i { transform: rotate(180deg); }
+  /* ป้าย ชม. / ระยะ ในตาราง (แบบเดียวกับหน้าแก้ไข) */
+  #cl-table .cl-pills { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .3rem; }
+  #cl-table .cl-pill { display: inline-flex; align-items: center; gap: .25rem; padding: .1rem .5rem; border-radius: 999px; font-size: .8rem; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #cl-table .cl-pill.hrs { background: #ebfbee; color: #2b8a3e; }
+  #cl-table .cl-pill.dist { background: #e7f5ff; color: #1864ab; }
+  #cl-table .cl-pill.bad { background: #fff5f5; color: #c92a2a; }
+</style>
+<div class="text-right">
+  <button type="button" class="btn btn-info btn-sm cl-job-toggle" aria-pressed="false" aria-controls="cl-table"
+    onclick="var on=document.getElementById('cl-table').classList.toggle('show-extra-jobs');this.setAttribute('aria-pressed',on);this.querySelector('span').textContent=on?'ซ่อนงานที่ 3-6':'แสดงงานที่ 3-6'">
+    <i class="fas fa-chevron-down"></i> <span>แสดงงานที่ 3-6</span>
+  </button>
+</div>

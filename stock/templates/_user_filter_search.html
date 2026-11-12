@@ -1,0 +1,73 @@
+{% comment %}
+ช่องกรองผู้ใช้ (dropdown เลือกคน) ในหน้ารายการ ใบขอเบิก / ใบขอซื้อ / ใบเปรียบเทียบราคา / ใบสั่งซื้อ ให้พิมพ์ค้นหาได้
+- ค้นจากชื่อหรือนามสกุล ได้หลายคำ ไม่สนลำดับ
+- สะกดคล้ายก็เจอ (ส/ศ, ตัวสะกด, วรรณยุกต์ — _thai_similar_js.html) พร้อมป้าย "ชื่อคล้าย"
+ใส่ใน {% block css %} ได้เลย (รอหน้าโหลดเสร็จเอง และโหลด select2 ให้ถ้าหน้านั้นยังไม่มี)
+ใช้กับ <select> ในฟอร์มค้นหา (method=get) ที่ชื่อ field อยู่ใน USER_FIELDS{% endcomment %}
+{% include '_thai_similar_js.html' %}
+{% include '_text_filter_suggest.html' %}
+<style>
+  .uf-dd .select2-results__option { padding: .3rem .6rem; font-size: .88rem; }
+  .uf-dd .select2-search__field { padding: .25rem .5rem; border-radius: 4px; }
+  .uf-dd mark { padding: 0 1px; background: #ffe58a; color: inherit; border-radius: 2px; }
+  .uf-dd .select2-results__option--highlighted mark { background: #ffe066; color: #212529; }
+  /* select2 ใส่ span.dropdown-wrapper (inline-block ว่างๆ) ไว้ใต้กล่อง ทำให้เกิดบรรทัดว่างสูง ~24px
+     ช่องนี้เลยสูงกว่าช่องอื่น ป้ายชื่อลอยขึ้นไม่อยู่ระนาบเดียวกัน (dropdown จริงแปะที่ body อยู่แล้ว ซ่อนได้) */
+  .uf-wrap .select2-container { display: block; }
+  .uf-wrap .select2-container .dropdown-wrapper { display: none; }
+  /* ให้สูงเท่าช่องอื่นของตัวกรอง */
+  .uf-wrap .select2-container .select2-selection--single { height: calc(1.75rem + 2px); border-color: #ced4da; }
+  .uf-wrap .select2-container .select2-selection--single .select2-selection__rendered { line-height: calc(1.75rem); font-size: .85rem; padding-left: .5rem; }
+  .uf-wrap .select2-container .select2-selection--single .select2-selection__arrow { height: calc(1.75rem); }
+</style>
+<script>
+(function () {
+  var USER_FIELDS = ['organizer', 'purchase_user', 'stockman_user', 'chief_approve_user_name'];
+  var TS = window.ThaiSimilar;
+  function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  var term = '';
+  function matcher(params, data) {
+    term = params.term || '';
+    if (!$.trim(term)) return data;
+    if (!data.id) return null;
+    var m = TS.match(data.text, term);
+    return m ? $.extend({}, data, { similar: m.similar }) : null;
+  }
+  function result(data) {
+    if (!data.id || data.loading) return data.text;
+    return $('<span>').html(TS.mark(escHtml(data.text), term) + (data.similar ? TS.badge : ''));
+  }
+  function userSelects($) {
+    return $('form[method="get"] select, form[method="GET"] select').filter(function () {
+      return USER_FIELDS.indexOf(this.name) > -1;
+    });
+  }
+
+  function init() {
+    userSelects($).filter(function () { return !$(this).data('select2'); }).each(function () {
+      var $s = $(this);
+      $s.parent().addClass('uf-wrap');
+      $s.select2({
+        width: '100%',
+        dropdownCssClass: 'uf-dd',
+        matcher: matcher,
+        templateResult: result,
+        language: { noResults: function () { return 'ไม่พบชื่อที่ค้นหา'; } }
+      });
+      $s.on('select2:open', function () {
+        setTimeout(function () {
+          var f = document.querySelector('.select2-container--open .select2-search__field');
+          if (f) { f.placeholder = 'พิมพ์ชื่อหรือนามสกุล (สะกดคล้ายก็เจอ)'; f.focus(); }
+        }, 0);
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var $ = window.jQuery;
+    if (!$ || !userSelects($).length) return;
+    window.loadSelect2Once(init);   // ประกาศใน _text_filter_suggest.html
+  });
+})();
+</script>
