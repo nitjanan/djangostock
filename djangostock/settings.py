@@ -135,13 +135,13 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '',
     },
-    'pg_db': {  # Remote PostgreSQL Server
+    'pg_db': {  # Remote PostgreSQL Server (โปรแกรมบัญชี Express) ค่าอ่านจาก .env / environment
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dbslc',
-        'USER': 'silachai', #'silachai'
-        'PASSWORD': 'Suratthani89/*' ,#'Suratthani89/*'
-        'HOST': '27.254.142.147',  #'27.254.142.147'
-        'PORT': '5432',
+        'NAME': os.environ.get('PG_DB_NAME', ''),
+        'USER': os.environ.get('PG_DB_USER', ''),
+        'PASSWORD': os.environ.get('PG_DB_PASSWORD', ''),
+        'HOST': os.environ.get('PG_DB_HOST', ''),
+        'PORT': os.environ.get('PG_DB_PORT', '5432'),
         'CONN_MAX_AGE': 60,   # หรือ 0 ถ้าอยากปิดทุก request
         'OPTIONS': {
             'connect_timeout': 10,
