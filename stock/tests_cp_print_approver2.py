@@ -102,7 +102,9 @@ class ComparisonPricePrintApprover2TestCase(EditAuthzBase):
         html = response.content.decode('utf-8')
         self.assertIn('class="cp-sign cp-sign-action"', html)
         self.assertIn("name = 'status' value = 'อนุมัติ'", html)
-        self.assertIn("name = 'status' value = 'ไม่อนุมัติ'", html)
+        #ปุ่มไม่อนุมัติเปิด modal ให้กรอกเหตุผล แล้วค่อย submit status จาก modal
+        self.assertIn('data-target="#rejectReasonModal"', html)
+        self.assertIn('name="status" value="ไม่อนุมัติ"', html)
         self.assertIn('class="cp-doc-head"', html)
         self.assertIn('cp-compare-table', html)
 

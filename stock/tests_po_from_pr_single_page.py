@@ -136,7 +136,7 @@ class PurchaseOrderFromPRSinglePageTestCase(TestCase):
         _, po = self._create_po_from_pr()
         item = PurchaseOrderItem.objects.get(po=po)
         response = self.client.post(self._edit_url(po), self._edit_data(po, item))
-        self.assertRedirects(response, reverse('viewPO'), fetch_redirect_response=False)
+        self.assertRedirects(response, f"{reverse('viewPO')}?tab=process&focus={po.id}", fetch_redirect_response=False)
 
         po.refresh_from_db()
         self.assertEqual(po.distributor_id, self.distributor.id)
@@ -173,7 +173,7 @@ class PurchaseOrderFromPRSinglePageTestCase(TestCase):
     def test_approver_can_be_blank_when_saving_draft(self):
         po, item, _ = self._po_for_approver_chooser()
         response = self.client.post(self._edit_url(po), self._edit_data(po, item, approver_user='', save_draft='1'))
-        self.assertRedirects(response, reverse('viewPO'), fetch_redirect_response=False)
+        self.assertRedirects(response, f"{reverse('viewPO')}?tab=draft&focus={po.id}", fetch_redirect_response=False)
         po.refresh_from_db()
         self.assertTrue(po.is_draft)
         self.assertIsNone(po.approver_user)
@@ -181,7 +181,7 @@ class PurchaseOrderFromPRSinglePageTestCase(TestCase):
     def test_approver_selected_saves(self):
         po, item, approver = self._po_for_approver_chooser()
         response = self.client.post(self._edit_url(po), self._edit_data(po, item, approver_user=approver.id))
-        self.assertRedirects(response, reverse('viewPO'), fetch_redirect_response=False)
+        self.assertRedirects(response, f"{reverse('viewPO')}?tab=process&focus={po.id}", fetch_redirect_response=False)
         po.refresh_from_db()
         self.assertEqual(po.approver_user, approver)
 

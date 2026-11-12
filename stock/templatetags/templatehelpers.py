@@ -139,10 +139,14 @@ def thai_similar_rules():
     import json
     from django.utils.safestring import mark_safe
     from stock import thai_search as ts
-    return mark_safe(json.dumps({
+    from django.core.serializers.json import DjangoJSONEncoder
+    from django.utils.html import _json_script_escapes
+    data = json.dumps({
         'groups': ts.THAI_SIMILAR_GROUPS,
         'finals': ts.THAI_FINAL_GROUPS,
         'marks': ts.THAI_MARKS,
         'leading': ts.THAI_LEADING_VOWELS,
         'beforeFinal': ts.THAI_BEFORE_FINAL,
-    }, ensure_ascii=False))
+    }, ensure_ascii=False, cls=DjangoJSONEncoder)
+    #escape < > & แบบเดียวกับ json_script ของ Django จึงฝังใน <script> ได้อย่างปลอดภัย
+    return mark_safe(data.translate(_json_script_escapes))  # nosec B308 B703

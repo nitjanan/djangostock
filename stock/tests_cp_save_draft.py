@@ -72,7 +72,7 @@ class ComparisonPriceSaveDraftTestCase(TestCase):
         data = self._post_data()
         data['btnSaveDraft'] = ''
         response = self.client.post(self.url, data)
-        self.assertRedirects(response, reverse('viewComparePricePO'), fetch_redirect_response=False)
+        self.assertRedirects(response, f"{reverse('viewComparePricePO')}?tab=draft&focus={self.cp.id}", fetch_redirect_response=False)
 
         self.cp.refresh_from_db()
         self.assertTrue(self.cp.is_draft)
