@@ -1,0 +1,2 @@
+{% comment %}ป้ายสถานะอนุมัติ (BaseApproveStatus: 1 รอ, 2 อนุมัติ, 3 ไม่อนุมัติ) ส่ง status และ label (ไม่บังคับ){% endcomment %}
+{% if status %}<span class="lt-pill st-{{ status.id }}">{% if label %}<small>{{ label }}:</small> {% endif %}{{ status }}</span>{% endif %}

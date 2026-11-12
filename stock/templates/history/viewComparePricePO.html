@@ -4,149 +4,97 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% include '_user_filter_search.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h3 align="center">ประวัติใบเปรียบเทียบราคาที่สำเร็จ</h3>
-    <div class="card my-3 bg-light div-shadow">
+    <div class="card my-3 bg-light div-shadow lf">
         <div class="card-body">
           <form method="get">
-            {% csrf_token %}
-            <div class="form-row">
-              <div class="form-group col-md-2 mb-0">
-                {{ filter.form.ref_no|as_crispy_field }}
-              </div>
-              <div class="form-group col-md-3 mb-0">
-                {{filter.form.organizer|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-3 mb-0">
-                {{filter.form.select_bidder|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.unit_price_min|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.unit_price_max|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.pr_ref_no|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.item_product_id|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-3 mb-0">
-                {{filter.form.item_product_name|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.start_created|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-2 mb-0">
-                {{filter.form.end_created|as_crispy_field}}
-              </div>
-              <div class="form-group col-md-1 mb-0">
-                <div>
-                  <label for=""></label>
-                  <div class="my-2">
-                    <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </form>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.pr_ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.organizer|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-box-open"></i> สินค้าและร้าน</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.item_product_id|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.item_product_name|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.distributor|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.select_bidder|as_crispy_field }}</div>
+        </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="fas fa-coins"></i> ราคา / วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.unit_price_min|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.unit_price_max|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.end_created|as_crispy_field }}</div>
+          <div class="col-12 col-md-3 lf-btns">
+            <button type="submit" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+            <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+          </div>
+        </div>
+      </div>
+    </form>
         </div>
       </div>
     <div class="card div-shadow">
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-bordered my-3">
+            <table class="table table-striped lt">
               <thead class="table-info">
                 <tr>
-                  <th scope="col">วันที่สร้าง</th>
                   <th scope="col">รหัส CM</th>
-                  <th scope="col">รหัส PR</th>
-                  <th scope="col" class="text-center">ชื่อผู้จำหน่าย</th>
+                  <th scope="col" class="lt-hide-lg">รหัส PR</th>
+                  <th scope="col">ผู้จำหน่าย</th>
+                  <th scope="col" class="text-right">ราคา</th>
                   <th scope="col">ผู้จัดทำ</th>
-                  <th scope="col">ราคา</th>
-                  <th scope="col">ลงวันที่ตรวจสอบ</th>
-                  <th scope="col">ลงวันที่อนุมัติ</th>
+                  <th scope="col">ตรวจสอบ / อนุมัติ</th>
                 </tr>
               </thead>
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <td>{% if cp.select_bidder_update %}{{cp.select_bidder_update | date:"d/m/Y"}}{% else %}{{cp.created | date:"d/m/Y"}}{% endif %}</td>
-                  <th scope="row"><a class="{% if cp.is_re_approve %}text-danger{%endif%}" href="{%url 'showComparePricePO' cp.id 4 %}">{{cp.ref_no}}</a></th>
+                  <th scope="row">
+                    <a class="lt-ref {% if cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' cp.id 4 %}">{{ cp.ref_no }}</a>
+                    <span class="lt-sub">{% if cp.select_bidder_update %}{{ cp.select_bidder_update|date:"d/m/Y" }}{% else %}{{ cp.created|date:"d/m/Y" }}{% endif %}</span>
+                    <div class="lt-inline">{% for pr in prs %}{% if cp.id == pr.cp %}{% ifchanged pr.item__requisit__pr_ref_no %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endifchanged %}{% endif %}{% endfor %}</div>
+                  </th>
+                  <td class="lt-hide-lg">{% for pr in prs %}{% if cp.id == pr.cp %}{% ifchanged pr.item__requisit__pr_ref_no %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endifchanged %}{% endif %}{% endfor %}</td>
+                  <td class="lt-name">
+                    {% include "comparePricePO/_cp_bidder_list.html" %}
+                  </td>
+                  <td class="lt-num">{% for bd in bidder %}{% if cp.id == bd.cp_id and bd.distributor__id == cp.select_bidder.id %}{% if bd.amount %}{{ bd.amount|intcomma }}{% endif %}{% endif %}{% endfor %}</td>
                   <td>
-                    {% for pr in prs %}
-                        {% if cp.id == pr.cp %}
-                          {% ifchanged pr.item__requisit__pr_ref_no %}
-                            <a href="/purchaseRequisition/show/{{pr.item__requisit__purchase_requisition_id}}/4">{{pr.item__requisit__pr_ref_no}}</a><br>
-                          {% endifchanged %}
-                        {%endif%}
-                    {%endfor%}
+                    {{ cp.organizer }}
                   </td>
                   <td>
-                    {% for item in cp.comparisonpricedistributor_set.all %}
-                      <li>{{ item.distributor.name }}</li>
-                    {% endfor %}
-                  </td>
-                  <td>{{cp.organizer}}</td>
-                  <td>
-                    {% for bd in bidder %}
-                      {% if cp.id == bd.cp_id  and bd.distributor__id == cp.select_bidder.id %}
-                        {% if  bd.amount %}{{bd.amount | intcomma}}{%endif%}
-                      {% endif %}
-                    {% endfor %} 
-                  </td>
-                  <td>
-                    {% if cp.examiner_status.id == 1 or cp.examiner_status.id == 3%}
-                      <button type="button"
-                      class="btn btn-block btn-sm
-                      {% if cp.examiner_status.id == 1 %}
-                        btn-outline-warning
-                      {% elif cp.examiner_status.id == 3 %}
-                        btn-outline-danger
-                      {% endif %}"
-                      >{{cp.examiner_status}}</button>
-                    {% else %}
-                      {{cp.examiner_update |date:"d/m/Y"}}
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if cp.approver_status.id == 1 or cp.approver_status.id == 3%}
-                      <button type="button"
-                      class="btn btn-block btn-sm
-                      {% if cp.approver_status.id == 1 %}
-                        btn-outline-warning
-                      {% elif cp.approver_status.id == 3 %}
-                        btn-outline-danger
-                      {% endif %}"
-                      >{{cp.approver_status}}</button>
-                    {% else %}
-                      {{cp.approver_update |date:"d/m/Y"}}
-                    {% endif %}
-                    <br>
-                    {% if cp.special_approver_status %}
-                      {% if cp.special_approver_status.id == 1 or cp.special_approver_status.id == 3%}
-                        <button type="button"
-                        class="btn btn-block btn-sm
-                        {% if cp.special_approver_status.id == 1 %}
-                          btn-outline-warning
-                        {% elif cp.special_approver_status.id == 3 %}
-                          btn-outline-danger
-                        {% endif %}"
-                        >{{cp.special_approver_status}}</button>
-                      {% else %}
-                        {{cp.special_approver_update |date:"d/m/Y"}}
-                      {% endif %}
+                    {% if cp.examiner_status.id == 2 %}<span class="lt-pill st-2"><small>ตรวจสอบ:</small> {{ cp.examiner_update|date:"d/m/Y" }}</span>{% else %}{% include '_status_pill.html' with status=cp.examiner_status label="ตรวจสอบ" %}{% endif %}<br>
+                    {% if cp.approver_status.id == 2 %}<span class="lt-pill st-2"><small>อนุมัติ:</small> {{ cp.approver_update|date:"d/m/Y" }}</span>{% else %}{% include '_status_pill.html' with status=cp.approver_status label="อนุมัติ" %}{% endif %}
+                    {% if cp.special_approver_status and cp.special_approver_status.id != 4 %}<br>
+                      {% if cp.special_approver_status.id == 2 %}<span class="lt-pill st-2"><small>อนุมัติพิเศษ:</small> {{ cp.special_approver_update|date:"d/m/Y" }}</span>{% else %}{% include '_status_pill.html' with status=cp.special_approver_status label="อนุมัติพิเศษ" %}{% endif %}
                     {% endif %}
                   </td>
                 </tr>
+              {% empty %}
+                <tr class="lt-empty-row"><td colspan="6">ไม่พบใบเปรียบเทียบราคา</td></tr>
               {% endfor %}
               </tbody>
             </table>
           </div>
         </div>
     </div>
+    {% include '_list_count.html' with page=cps %}
     <br/>
     <!--Pagination-->
     <nav aria-label="Page navigation example">

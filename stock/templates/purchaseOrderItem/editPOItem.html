@@ -147,6 +147,18 @@
   .po-items .input-group > .quantity { flex: 0 0 105px; max-width: 105px; }
   .po-items .c-unit,
   .po-items .input-group > select[id$="-unit"] { flex: 0 0 110px; max-width: 110px; }
+  /* หน่วยแบบค้นหาได้ (select2) กว้างเท่าช่องเดิม */
+  .po-items .input-group > select[id$="-unit"] + .select2-container { flex: 0 0 110px !important; width: 110px !important; max-width: 110px !important; }
+  /* span ว่างของ select2 (dropdown-wrapper) ทำให้แถวสูงเกิน 1 บรรทัด จึงซ่อน (แบบเดียวกับช่องเครดิต) */
+  .po-items .input-group > select[id$="-unit"] + .select2-container .dropdown-wrapper { display: none; }
+  /* สูงเท่าช่องอื่นในแถว (38px) ตัวหนังสืออยู่กลาง */
+  .po-items .input-group > select[id$="-unit"] + .select2-container .select2-selection--single {
+    height: calc(1.5em + .75rem + 2px) !important;
+    display: flex !important; align-items: center;
+    border-radius: 0; border-color: #ced4da;
+  }
+  .po-items .input-group > select[id$="-unit"] + .select2-container .select2-selection__rendered { line-height: normal !important; flex: 1 1 auto; text-align: center; }
+  .po-items .input-group > select[id$="-unit"] + .select2-container .select2-selection__arrow { top: 50% !important; transform: translateY(-50%); }
   .po-items .c-uprice,
   .po-items .input-group > .unit-price { flex: 0 0 150px; max-width: 150px; }
   .po-items .c-disc,
@@ -543,7 +555,13 @@
               <div class="po-form-grid">
                 <div class="form-group" id="div-form-distributor">
                   <label for="id-form-distributor">{{ form.distributor.label }}</label>
+                  {% if isLockDistributor %}
+                  {# ใบที่สร้างจากใบเปรียบเทียบราคา: ผู้จำหน่าย = ร้านที่เลือกในใบเปรียบ เปลี่ยนไม่ได้ #}
+                  <input type="text" name="form-distributor" id="id-form-distributor" class="form-control lock-po-item" autocomplete="off" readonly="readonly" title="ผู้จำหน่ายมาจากใบเปรียบเทียบราคา เปลี่ยนไม่ได้">
+                  <small class="form-text text-muted"><i class="fas fa-lock"></i> ผู้จำหน่ายมาจากใบเปรียบเทียบราคา เปลี่ยนไม่ได้</small>
+                  {% else %}
                   <input type="text" name="form-distributor" id="id-form-distributor" class="form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off" onfocusout="searchDataDistributor();getRateDistributor();" required>
+                  {% endif %}
                   <!--input id="id-form-distributor" name="form-distributor" type="text" list="idDistributorList" class="distributor form-control" Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off">
                   <datalist-- id="idDistributorList">
                   {% for results in distributorList %}
@@ -881,8 +899,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 <script type="text/javascript">
 
-$('div#div_id_quotation_pdf a').addClass('btn btn-outline-success btn-sm');
-$('div#div_id_quotation_pdf a').text('Download');
 
 $('#div_id_counsel').addClass('d-none');
 
@@ -1303,11 +1319,11 @@ $(".express" ).change(function() {
       $("#id_purchaseorderitem_set-"+suffix+"-express").val(show);
       $("#id_purchaseorderitem_set-"+suffix+"-item").val(id);
       $("#id_purchaseorderitem_set-"+suffix+"-quantity").val(quantity);
-      $("#id_purchaseorderitem_set-"+suffix+"-unit").val(unit);      
+      $("#id_purchaseorderitem_set-"+suffix+"-unit").val(unit).trigger('change.select2');      
     }else{
       $("#id_purchaseorderitem_set-"+suffix+"-item").val("");
       $("#id_purchaseorderitem_set-"+suffix+"-quantity").val("");
-      $("#id_purchaseorderitem_set-"+suffix+"-unit").val("");
+      $("#id_purchaseorderitem_set-"+suffix+"-unit").val("").trigger('change.select2');
     }
 
 });
@@ -1330,12 +1346,14 @@ $("#id_vat_type").change(function() {
   $("#id_amount").val(amount.toFixed(2));
 });
 
+{% if not isLockDistributor %}
 $(function () {
     $("#id-form-distributor").autocomplete({
         source: '{% url "autocompalteDistributor" %}',
         minLength: 1,
     });
 });
+{% endif %}
 
 function searchDataDistributor(){
     tmp_dist = '{{rate_dist.distributor.id}}'; //ลูกค้าเก่าที่ประเมิน
@@ -1776,4 +1794,5 @@ function setDateTimePrint(){
     });
     {% endif %}
 </script>
+{% include 'comparePricePOItem/_cp_search.html' with skip_credit=True %}
 {% endblock%}

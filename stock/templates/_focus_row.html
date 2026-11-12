@@ -1,0 +1,30 @@
+{% comment %}เลื่อนไปที่แถวของเอกสารที่เพิ่งบันทึก แล้วไฮไลต์สีเหลืองค่อยๆ จางหาย
+เหมือนหน้าใบขอเบิกตอนเพิ่ม/แก้ไขสินค้า (rq-row-flash ใน editAllRequisition.html)
+ใช้กับหน้ารายการ (ใบขอซื้อ / ใบเปรียบเทียบราคา / ใบสั่งซื้อ) ที่เปิดด้วย ?tab=...&focus=<id>
+(views.redirect_list_focus + views.focus_page) — ใส่ไว้ท้าย {% block content %}:
+  <tr id="row-{{ obj.id }}"{% if obj.id == focus_id %} class="row-focus"{% endif %}>
+  ...
+  {% include '_focus_row.html' with page_number=xxx.number %}{% endcomment %}
+<style>
+  @keyframes rowFocusFlash { 0%, 40% { background-color: #fff3b0; } 100% { background-color: transparent; } }
+  table > tbody > tr.row-focus-flash > * { animation: rowFocusFlash 3s ease-out; }
+  table > tbody > tr.row-focus-flash { outline: 2px solid #ffc107; outline-offset: -2px; }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var row = document.querySelector('tr.row-focus');
+    if (!row) return;
+    setTimeout(function () { //รอให้ select2/layout จัดหน้าเสร็จก่อน (เหมือนหน้าใบขอเบิก)
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('row-focus-flash');
+      setTimeout(function () { row.classList.remove('row-focus-flash'); }, 3000);
+    }, 300);
+    //ลบ focus ออกจาก URL กันเลื่อนซ้ำตอนรีเฟรช แต่คงหน้าเดิมไว้
+    try {
+      var u = new URL(window.location.href);
+      u.searchParams.delete('focus');
+      if (!u.searchParams.get('page') && {{ page_number|default:1 }} > 1) u.searchParams.set('page', '{{ page_number }}');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+  });
+</script>

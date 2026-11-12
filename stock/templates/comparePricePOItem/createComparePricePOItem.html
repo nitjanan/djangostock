@@ -577,11 +577,11 @@ $(".express" ).change(function()  {
         $("#id_form-"+suffix+"-express").val(show);
         $("#id_form-"+suffix+"-item").val(id);
         $("#id_form-"+suffix+"-quantity").val(quantity);
-        $("#id_form-"+suffix+"-unit").val(unit);
+        $("#id_form-"+suffix+"-unit").val(unit).trigger('change.select2');
     }else{
         $("#id_form-"+suffix+"-item").val("");
         $("#id_form-"+suffix+"-quantity").val("");
-        $("#id_form-"+suffix+"-unit").val("");
+        $("#id_form-"+suffix+"-unit").val("").trigger('change.select2');
     }
   });
 
@@ -710,5 +710,6 @@ $(".distributor" ).change(function() {
 
 */
 </script>
+{% include 'comparePricePOItem/_cp_search.html' %}
 
 {% endblock %}

@@ -90,7 +90,8 @@
   .ad-doc .ad-items thead th {
     background: #f8f9fb;
     vertical-align: middle;
-    white-space: nowrap;
+    /* หัวคอลัมน์ยาวขึ้นบรรทัดใหม่ได้ ไม่ให้ตารางล้นจอเมื่อมีหลายคอลัมน์ */
+    white-space: normal;
     font-size: .85rem;
   }
   .ad-doc .ad-items tbody tr:hover {
@@ -190,6 +191,30 @@
     justify-content: flex-end;
     text-align: right;
     font-size: .85rem;
+  }
+
+  /* ช่องกรอกข้อมูล (หน้าสร้าง/แก้ไขใบขอซื้อ): ชื่อช่อง | ช่องกรอก */
+  .ad-doc .ad-form {
+    display: grid;
+    grid-template-columns: minmax(140px, max-content) minmax(0, 1fr);
+    align-items: center;
+    gap: .5rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .ad-doc .ad-form > label {
+    margin: 0;
+    font-size: .9rem;
+    color: #495057;
+  }
+  .ad-doc .ad-form > label.ad-required {
+    color: #dc3545;
+  }
+  .ad-doc .ad-notes textarea {
+    width: 100%;
+  }
+  /* ช่องค้นหารหัสสินค้าในตาราง */
+  .ad-doc .ad-items .ad-input {
+    min-width: 170px;
   }
 
   /* แถบปุ่มกลับ/ปริ้น ติดด้านล่าง */
@@ -301,6 +326,19 @@
     .ad-doc .ad-items td:empty {
       display: none;
     }
+    .ad-doc .ad-items .ad-input {
+      min-width: 0;
+      flex: 1 1 auto;
+      max-width: 60%;
+    }
+    /* ช่องกรอก: ชื่อช่องอยู่บน ช่องกรอกอยู่ล่าง */
+    .ad-doc .ad-form {
+      grid-template-columns: minmax(0, 1fr);
+      gap: .25rem;
+    }
+    .ad-doc .ad-form > label:not(:first-child) {
+      margin-top: .4rem;
+    }
 
     .ad-doc .ad-summary {
       grid-template-columns: minmax(0, 1fr);
@@ -335,8 +373,13 @@
       padding: .5rem .75rem;
       border-radius: 0 0 6px 6px;
     }
+    /* ปุ่มทุกกลุ่มเรียงต่อกัน แถวเดียวถ้าพอ ขึ้นแถวใหม่เมื่อไม่พอ (แบบเดียวกับใบสั่งซื้อ) */
+    .ad-doc .ad-actions-bar > div {
+      display: contents !important; /* ชนะ .d-flex ของ Bootstrap */
+    }
     .ad-doc .ad-actions-bar .btn {
-      flex: 1 1 0;
+      flex: 1 1 auto;
+      white-space: nowrap;
     }
 
     /* modal รายการที่ซื้อล่าสุด */
@@ -366,14 +409,21 @@
     .ad-doc .ad-items tfoot td {
       background: none !important;
     }
+    /* ช่องหัวรายการสำหรับมือถือ (d-md-none) จะโผล่เมื่อกระดาษแคบกว่า 768px
+       ทำให้แถวมีคอลัมน์เกินหัวตาราง 1 ช่อง หัวตารางเลื่อนผิดคอลัมน์ จึงซ่อนตอนปริ้นเสมอ */
+    .ad-doc .ad-items td.ad-cell-title {
+      display: none !important;
+    }
+    /* กล่องลงชื่อเส้นจาง (แนวเดียวกับใบขอซื้อแบบเดิม) */
     .ad-doc .ad-signatures {
-      border-color: #000;
+      border-color: #dee2e6;
     }
     .ad-doc .ad-sign + .ad-sign {
-      border-left-color: #000;
+      border-left-color: #dee2e6;
     }
-    /* display:flex ของแถบปุ่มชนะ .hidden-print จึงต้องซ่อนตรงนี้ */
-    .ad-doc .ad-actions-bar {
+    /* display:flex/grid ของแถบปุ่ม/ช่องกรอกชนะ .hidden-print จึงต้องซ่อนตรงนี้ */
+    .ad-doc .ad-actions-bar,
+    .ad-doc .ad-form {
       display: none !important;
     }
   }

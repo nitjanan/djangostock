@@ -1,0 +1,60 @@
+{% load templatehelpers %}
+{% comment %}ช่องลงชื่อ + เหตุผลไม่อนุมัติ + รหัส ISO ของใบขอซื้อ (.ad-doc) ใช้ร่วมกันทุกหน้าใบขอซื้อ
+ตอนสร้างใบขอซื้อ (ยังไม่มีผู้ลงชื่อ) แสดงผู้ใช้ปัจจุบันเป็นเจ้าหน้าที่พัสดุ และหัวหน้าในใบขอเบิกเป็นผู้ขอซื้อ{% endcomment %}
+<div class="ad-signatures">
+  <div class="ad-sign">
+    <div class="ad-sign-title">เจ้าหน้าที่พัสดุ</div>
+    {% if pr.stockman_user %}
+      <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+      <div>{{pr.stockman_user.first_name}}</div>
+      <div class="text-muted small">{{pr.stockman_user.userprofile.position}}{% if pr.stockman_update %} วันที่ {{pr.stockman_update | format_datetime }}{% endif %}</div>
+    {% else %}
+      <img src="/media/{{request.user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+      <div>{{request.user.first_name}}</div>
+      <div class="text-muted small">{{request.user.userprofile.position}}</div>
+    {% endif %}
+  </div>
+
+  <div class="ad-sign">
+    <div class="ad-sign-title">ผู้ขอซื้อ/ขอซ่อม</div>
+    {% if pr.purchase_user %}
+      <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
+      {% if pr.purchase_status_id == 2 %}
+        <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+      {% else %}
+        <span class="badge {% if pr.purchase_status_id == 3 %}badge-danger{% else %}badge-secondary{% endif %} ad-status">{{pr.purchase_status}}</span>
+      {% endif %}
+      <div>{{pr.purchase_user.first_name}}</div>
+      <div class="text-muted small">{{pr.purchase_user.userprofile.position}}{% if pr.purchase_update %} วันที่ {{pr.purchase_update | format_datetime }}{% endif %}</div>
+    {% else %}
+      <span class="badge badge-secondary ad-status">รอดำเนินการ</span>
+      <div>{{requisition.chief_approve_user_name.first_name}}</div>
+      <div class="text-muted small">{{requisition.chief_approve_user_name.userprofile.position}}</div>
+    {% endif %}
+  </div>
+
+  <div class="ad-sign">
+    <div class="ad-sign-title">ผู้อนุมัติ</div>
+    <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
+    {% if pr.approver_status_id == 2 %}
+      <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" class="ad-sign-img"/>
+    {% elif pr.approver_status %}
+      <span class="badge {% if pr.approver_status_id == 3 %}badge-danger{% else %}badge-secondary{% endif %} ad-status">{{pr.approver_status}}</span>
+    {% endif %}
+    {% if pr.approver_user %}
+      <div>{{pr.approver_user.first_name}}</div>
+      <div class="text-muted small">{{pr.approver_user.userprofile.position}}</div>
+    {% endif %}
+    {% if pr.approver_update %}
+      <div class="text-muted small">วันที่ {{pr.approver_update | format_datetime }}</div>
+    {% endif %}
+  </div>
+</div>
+{% if pr.reject_reason %}
+<div class="text-danger mb-3"><strong>เหตุผลการไม่อนุมัติ:</strong> {{pr.reject_reason|linebreaksbr}}</div>
+{% endif %}
+
+<div class="ad-footer">
+  <div>{{bc.affiliated.iso_code.pr_code|safe}}</div>
+  <div id="dt_print" class="js-dt-print d-none d-print-block"></div>
+</div>

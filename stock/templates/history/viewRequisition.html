@@ -3,103 +3,88 @@
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% include '_user_filter_search.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
 <h3 align="center">ประวัติใบขอเบิกที่สำเร็จ</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
-    <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-1 mb-0">
-          {{ filter.form.ref_no|as_crispy_field }}
+    <form method="get" id="lf-filter-form">
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.name|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.section|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.organizer|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.name|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.section|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.organizer|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.start_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.end_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
-          </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.end_created|as_crispy_field }}</div>
         </div>
       </div>
     </form>
-    <div class="row">
-        <div class="col-2">
-          <a  style="background-color:#5CB899;color:white;"  class="btn" href="{% url 'exportExcelRQ' %}?{{request.GET.urlencode}}">รายงานใบขอเบิก <i class="fas fa-file-excel"></i></a>
-        </div>
+    <div class="lf-foot">
+      <div class="lf-export">
+        <a class="btn btn-excel" style="--xl:#5CB899;" href="{% url 'exportExcelRQ' %}?{{request.GET.urlencode}}">รายงานใบขอเบิก <i class="fas fa-file-excel"></i></a>
+      </div>
+      <div class="lf-btns">
+        <button type="submit" form="lf-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+      </div>
     </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-bordered my-3">
+      <table class="table table-striped lt">
         <thead class="table-info">
           <tr>
-            <th scope="col">วันที่ตั้งเบิก</th>
             <th scope="col">รหัสใบขอเบิก</th>
-            <th scope="col">รหัสใบแจ้งซ่อม</th>
-            <th scope="col">ชื่อผู้ตั้งเบิก</th>
-            <!--<th scope="col">ความเร่งด่วน</th>-->
-            <th scope="col">สินค้า</th>
+            <th scope="col" class="dl-items-col">สินค้า</th>
+            <th scope="col">ผู้ตั้งเบิก</th>
             <th scope="col">ใบขอซื้อ</th>
-            <!--th scope="col">ใบจ่ายสินค้าภายใน</th-->
             <th scope="col">บันทึก</th>
           </tr>
         </thead>
         <tbody>
         {% for requisition in requisitions %}
           <tr>
-            <td>{{requisition.created |date:"d/m/Y" }}</td>
-            <th scope="row"><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></th>
-            <td>{% if requisition.ma_ref_no%}<a href="{%url 'showMA' requisition.ma_id 1 %}">{{requisition.ma_ref_no}}</a>{%endif%}</td>
-            <td>{{requisition.name}}</td>
+            <th scope="row">
+              <a class="lt-ref" href="{% url 'showRequisition' requisition.id 4 %}">{{ requisition.ref_no }}</a>
+              <span class="lt-sub">{{ requisition.created|date:"d/m/Y" }}</span>
+              {% if requisition.ma_ref_no %}<span class="lt-sub">แจ้งซ่อม <a href="{% url 'showMA' requisition.ma_id 1 %}">{{ requisition.ma_ref_no }}</a></span>{% endif %}
+            </th>
+            <td class="dl-items-col">{% include '_doc_item_list.html' with items=requisition.requisitionitem_set.all %}</td>
             <td>
-              <ul>
-                {% for item in requisition.requisitionitem_set.all %}
-                    <li>{{ item.product_name }}</li>
-                {% endfor %}
-              </ul>
+              {{ requisition.name }}
             </td>
-            <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
             <td>
               {% if requisition.purchase_requisition_id %}
-                <a href="{% url 'showPR' requisition.purchase_requisition_id 4 %}"><button type="button" class="btn btn-outline-info btn-block btn-sm">{{requisition.pr_ref_no}}</button></a>
-              {%endif %}
+                <a class="lt-pill st-info" href="{% url 'showPR' requisition.purchase_requisition_id 4 %}">{{ requisition.pr_ref_no }}</a>
+              {% else %}<span class="text-muted">-</span>{% endif %}
             </td>
-            <!--td>
-              {% if requisition.invoice_id %}
-                <a href="{% url 'showInvoice' requisition.invoice_id 1 %}"><button type="button" class="btn btn-outline-warning btn-block btn-sm">{{requisition.iv_ref_no}}</button></a>
-              {%endif %}
-            </td-->
-            <td>
-              {% if requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
-              {% endif %}
+            <td class="lt-actions">
+              {% if requisition.memorandum_pdf %}<a href="/media/{{ requisition.memorandum_pdf }}" class="btn btn-outline-success btn-sm" target="_blank"><i class="fas fa-file-download"></i> ไฟล์แนบ</a>{% endif %}
             </td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="5">ไม่พบใบขอเบิก</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=requisitions %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

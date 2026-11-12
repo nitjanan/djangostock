@@ -1,0 +1,2 @@
+{% comment %}บรรทัด "แสดง x–y จาก N รายการ" ใต้ตารางหน้ารายการ ส่ง page = page object ของ Paginator{% endcomment %}
+{% if page.paginator.count %}<div class="lt-count">แสดง {{ page.start_index }}–{{ page.end_index }} จาก {{ page.paginator.count }} รายการ</div>{% endif %}

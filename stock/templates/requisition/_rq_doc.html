@@ -1,0 +1,230 @@
+{% comment %}เอกสารใบขอเบิก (แบบหน้า requisition/show) ใช้ร่วมกัน: หน้า show แสดงบนจอ+ปริ้น
+หน้า requisitionItem/editAll ใช้ตอนปริ้นอย่างเดียว (print_only=True) ให้หน้าตาปริ้นเหมือนกัน
+ต้องมีตัวแปร requisition, items (มี alert_level), baseUrgency และ include _approve_doc_styles.html ในหน้าแม่{% endcomment %}
+<style>
+@media print {
+  .hidden-print { display: none !important; }
+}
+/* ---- หน้าแสดงใบขอเบิก: รูปแบบเดียวกับใบขอเบิกแบบเดิม (ต่อยอดจาก .ad-doc) ---- */
+.rq-show { font-size: .92rem; }
+.rq-show .rq-lbl { font-weight: 700; color: #212529; }
+
+/* หัวเอกสาร: โลโก้ | ชื่อบริษัท + ชื่อเอกสาร | เลขที่ + ความเร่งด่วน */
+.rq-show .rq-head {
+  display: grid;
+  /* ซ้าย/ขวากว้างเท่ากัน เพื่อให้ชื่อบริษัท + ชื่อเอกสารอยู่กึ่งกลางหน้าจริง */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem 1.5rem;
+  padding-bottom: .75rem;
+  margin-bottom: .9rem;
+  border-bottom: 2px solid #343a40;
+}
+.rq-show .rq-logo { width: 90px; height: 90px; object-fit: contain; }
+.rq-show .rq-head-center { text-align: center; }
+.rq-show .rq-head-right { justify-self: end; }
+.rq-show .rq-head-center h4 { margin: 0 0 .5rem; font-weight: 600; }
+.rq-show .rq-head-right { text-align: right; min-width: 190px; }
+.rq-show .rq-head-right h5 { margin: 0 0 .5rem; font-weight: 600; }
+.rq-show .rq-urgency {
+  display: inline-block; font-weight: 700;
+  padding: 0 .45rem; border-radius: 4px;
+  background: #fff3cd; color: #856404;
+}
+
+/* ข้อมูล: ป้าย: ค่า เรียง 3 คอลัมน์แบบเดิม */
+.rq-show .rq-fields {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr 1fr;
+  gap: .55rem 1.5rem;
+  margin-bottom: .55rem;
+}
+.rq-show .rq-fields > div { min-width: 0; word-break: break-word; }
+.rq-show .rq-fields .rq-end { text-align: right; }
+.rq-show .rq-ma-link { color: #F28A18; font-weight: 700; text-decoration: underline; }
+.rq-show .rq-expense { white-space: nowrap; margin-left: .5rem; }
+.rq-show .rq-expense i { font-size: .6rem; vertical-align: middle; margin-right: .2rem; }
+.rq-show .rq-note { margin-bottom: 1rem; white-space: pre-line; }
+
+.rq-show .rq-section-title { font-weight: 700; font-size: 1.05rem; margin-bottom: .4rem; }
+.rq-show .ad-items .rq-num { font-variant-numeric: tabular-nums; }
+.rq-show .rq-alert { color: #dc3545; font-weight: 700; margin-right: .2rem; }
+
+/* แถวล่าง คั่นด้วยเส้นแบบเดิม */
+.rq-show .rq-line {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: .4rem 1.5rem;
+  padding: .6rem 0;
+  border-top: 1px solid #dee2e6;
+}
+.rq-show .rq-iso { font-weight: 600; margin-left: auto; }
+.rq-show .rq-legend { color: #dc3545; font-size: .85rem; }
+.rq-show .rq-legend b { font-size: .92rem; }
+.rq-show #dt_print { margin-left: auto; text-align: right; }
+
+@media screen and (max-width: 767.98px) {
+  .rq-show .rq-head { grid-template-columns: auto minmax(0, 1fr); gap: .5rem .75rem; }
+  .rq-show .rq-logo { width: 56px; height: 56px; }
+  .rq-show .rq-head-center { text-align: left; }
+  .rq-show .rq-head-center h4 { font-size: 1.05rem; margin-bottom: .25rem; }
+  .rq-show .rq-head-center h4.rq-doc-title { font-size: 1.15rem; margin: 0; }
+  .rq-show .rq-head-right {
+    grid-column: 1 / -1; justify-self: stretch; text-align: left; min-width: 0;
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .35rem 1rem;
+    padding-top: .5rem; border-top: 1px dashed #dee2e6;
+  }
+  .rq-show .rq-head-right h5 { font-size: 1rem; margin: 0; }
+  /* ข้อมูลเรียงทีละบรรทัด: ป้ายซ้าย ค่าขวา */
+  .rq-show .rq-fields { grid-template-columns: minmax(0, 1fr); gap: 0; margin-bottom: 0; }
+  .rq-show .rq-fields > div,
+  .rq-show .rq-note {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 .75rem;
+    padding: .35rem 0; border-bottom: 1px dashed #e9ecef; text-align: right;
+  }
+  /* ค่ายาวขึ้นบรรทัดใหม่ทั้งก้อน (ชิดขวา) แทนการบีบเป็นคอลัมน์แคบ */
+  .rq-show .rq-fields > div > span:last-child,
+  .rq-show .rq-note > span:last-child { margin-left: auto; }
+  .rq-show .rq-fields .rq-lbl,
+  .rq-show .rq-note .rq-lbl { flex: 0 0 auto; text-align: left; font-weight: 600; color: #6c757d; }
+  .rq-show .rq-fields .rq-empty { display: none; }
+  .rq-show .rq-note { margin-bottom: .9rem; white-space: normal; }
+  .rq-show .rq-line { flex-direction: column; }
+  .rq-show .rq-iso, .rq-show #dt_print { margin-left: 0; text-align: left; }
+  .rq-show .ad-items .rq-num::before { font-weight: normal; }
+}
+@media print {
+  .rq-show .rq-head { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+}
+</style>
+
+<div class="container ad-doc rq-show my-3{% if print_only %} d-none d-print-block{% endif %}">
+  <div class="ad-paper">
+    <!-- ======== หัวเอกสาร ======== -->
+    <div class="rq-head">
+      <div><!-- ใบขอเบิก QR Code 10-02-2025 -->
+        {% if requisition.qr_code %}
+          <img src="{{ requisition.qr_code.url }}" class="rq-logo" alt="QR">
+        {% else %}
+          <img src="/media/{{requisition.address_company.logo}}" class="rounded rq-logo" alt=""/>
+        {% endif %}
+      </div>
+      <div class="rq-head-center">
+        <h4>{{requisition.address_company.name_th}}</h4>
+        <h4 class="rq-doc-title">ใบขอเบิก{% if requisition.rq_type %} ({{requisition.rq_type}}){%endif%}</h4>
+      </div>
+      <div class="rq-head-right">
+        <h5>
+          เลขที่. {{requisition.ref_no}}
+          {% if requisition.memorandum_pdf %}
+            <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm py-0 hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
+          {% endif %}
+        </h5>
+        <div>
+          <span class="rq-lbl">ระดับความเร่งด่วน:</span>
+          {% if requisition.urgency %}
+            <span class="rq-urgency">{{requisition.urgency}}</span>
+          {% else %}
+            {% for bu in baseUrgency %}{% if items.1.urgency == bu.id %}<span class="rq-urgency">{{bu.name}} {{bu.description}}</span>{% endif %}{% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== ข้อมูลใบขอเบิก ======== -->
+    <div class="rq-fields">
+      <div><span class="rq-lbl">ผู้ขอตั้งเบิก:</span> <span>{{requisition.name}}</span></div>
+      <div><span class="rq-lbl">ใบแจ้งซ่อมเลขที่:</span> <span>{% if requisition.ma_ref_no %}<a class="rq-ma-link" href="{%url 'showMA' requisition.ma_id 1 %}">{{requisition.ma_ref_no}}</a>{% else %}-{% endif %}</span></div>
+      <div class="rq-end"><span class="rq-lbl">วันที่:</span> <span>{{requisition.created | date:"d/m/Y"}}</span></div>
+
+      <div><span class="rq-lbl">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน:</span> <span>{{requisition.car|default:"-"}}</span></div>
+      <div><span class="rq-lbl">แผนกคชจ.:</span> <span>{{requisition.expense_dept|default:"-"}}</span></div>
+      <div class="rq-end{% if not requisition.expenses.all %} rq-empty{% endif %}">
+        <span class="rq-lbl d-md-none d-print-none">ค่าใช้จ่าย:</span>
+        <span>{% for expense in requisition.expenses.all %}<span class="rq-expense"><i class="fas fa-circle"></i>{{ expense.name }}</span>{% endfor %}</span>
+      </div>
+    </div>
+    <div class="rq-note"><span class="rq-lbl">หมายเหตุ/เหตุผล:</span> <span>{{requisition.note|default_if_none:""|truncatechars:450}}</span></div>
+
+    <!-- ======== รายการขอเบิก ======== -->
+    <div class="rq-section-title">รายการใบขอเบิก{% if items|length > 1 %} <small class="text-muted">({{ items|length }} รายการ)</small>{% endif %}</div>
+    <div class="table-responsive ad-items-wrap">
+      <table id="{% if print_only %}rqPrintTable{% else %}userTable{% endif %}" class="table table-bordered table-sm ad-items">
+        <thead>
+          <tr>
+            <th class="text-center">ลำดับ</th>
+            <th class="text-center">รหัสวัสดุ/อุปกรณ์</th>
+            <th class="text-center">สินค้า</th>
+            <th class="text-center">จำนวนที่ขอเบิก</th>
+            <th class="text-center text-success">จำนวนที่ซื้อแล้ว</th>
+            <th class="text-center">หน่วย</th>
+            <th class="text-center">วันที่ต้องการ</th>
+            <th class="text-center">รายละเอียด/ประเภทการซ่อม</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <!-- หัวการ์ดบนมือถือ (ไม่ปริ้น) -->
+            <td class="ad-cell-title d-md-none">{% if item.alert_level %}<span class="rq-alert">{{item.alert_level}}</span>{% endif %}{{ forloop.counter }}. {{item.product_name}}</td>
+            <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
+            <td class="text-center" name="product" data-label="รหัสวัสดุ/อุปกรณ์"><span>{% if item.alert_level %}<span class="rq-alert d-none d-md-inline d-print-inline">{{item.alert_level}}</span>{% endif %}{{item.product.id}}</span></td>
+            <td class="ad-hide-m" name="name">{{item.product_name}}</td>
+            <td class="text-center rq-num" name="quantity" data-label="จำนวนที่ขอเบิก"><span>{{item.quantity|floatformat:"-4"}} <span class="d-md-none d-print-none">{{item.unit}}</span></span></td>
+            <td class="text-center rq-num text-success" name="quantityUsed" data-label="ซื้อแล้ว">{{item.quantity_used|floatformat:"-4"}}</td>
+            <td class="text-center ad-hide-m" name="unit">{{item.unit}}</td>
+            <td class="text-center" name="desireddate" data-label="วันที่ต้องการ">{{item.desired_date|date:"d/m/Y"}}</td>
+            <td class="text-center" name="description" data-label="รายละเอียด">{{item.description|default_if_none:""}}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center">
+              <div class="alert alert-warning mb-0" role="alert">ไม่มีสินค้า</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ======== สาเหตุ ======== -->
+    <div class="rq-line">
+      <div><span class="rq-lbl">สาเหตุ:</span> {{requisition.broke_type|default_if_none:""}}</div>
+      {% if requisition.rq_type.id == 2 %}
+      <div><span class="rq-lbl">เลขไมล์/เลขชั่วโมง:</span> {{requisition.mile|default_if_none:""}}</div>
+      {% endif %}
+    </div>
+
+    <!-- ======== ผู้อนุมัติ ======== -->
+    <div class="rq-line">
+      <div><span class="rq-lbl">หัวหน้างาน:</span> {{requisition.chief_approve_user_name|default_if_none:""}}</div>
+      <div><span class="rq-lbl">เจ้าหน้าที่พัสดุ:</span> {{requisition.supplies_approve_user_name|default_if_none:""}}</div>
+      <div class="rq-iso">{{requisition.rq_type.iso_code}}</div>
+    </div>
+
+    <!-- ======== หมายเหตุเบิกซ้ำ + เวลาปริ้น ======== -->
+    <div class="rq-line">
+      {% if requisition.rq_type.id == 1 or requisition.rq_type.id == 2 %}
+      <div class="rq-legend">
+        <b>หากมีการเบิกสินค้านี้ซ้ำ ในทะเบียนรถหรือเครื่องจักรเดียวกัน</b><br>
+        ภายใน 30 วัน *** , ภายใน 90 วัน ** , ภายใน 365 วัน *
+      </div>
+      {% endif %}
+      <div id="dt_print"></div>
+    </div>
+
+    {% if not print_only %}
+    <!-- ======== แถบปุ่ม (ไม่ปริ้น) ======== -->
+    <div class="ad-actions-bar hidden-print">
+      <div class="d-flex flex-wrap" style="gap: .5rem;">
+        <button type="button" class="btn btn-secondary" onclick="history.back();"><i class="fas fa-arrow-left"></i> กลับไป</button>
+      </div>
+      <div class="d-flex flex-wrap" style="gap: .5rem;">
+        <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
+          <i class="fas fa-print"></i>
+          ปริ้น<span class="d-none d-sm-inline">ใบขอเบิก</span>
+        </button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>

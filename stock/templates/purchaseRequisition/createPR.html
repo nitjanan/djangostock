@@ -8,325 +8,184 @@
 {% block css %}
 <style>
   @media print {
-  .hidden-print {
-    display: none;
-  }
-
-  @page {
-    margin: 0mm 10mm 0mm 0mm;
+    .hidden-print {
+      display: none;
     }
     body {
-        font-size: 10pt;
-        font-family: serif;
-        color: black;
-        float: right;
+      color: black;
     }
-}
-u.dotted {
-  border-bottom: 1px dashed #999;
-  text-decoration: none;
-}
+  }
+  u.dotted {
+    border-bottom: 1px dashed #999;
+    text-decoration: none;
+  }
 
+  /* ช่องค้นหารหัสวัสดุ/อุปกรณ์ */
+  .pr-ps { position: relative; min-width: 170px; }
+  .pr-ps-icon { position: absolute; left: 9px; top: 8px; font-size: .8rem; color: #28a745; pointer-events: none; }
+  .ad-doc .pr-ps .pr-ps-q { padding-left: 26px; font-weight: 600; }
+  .ad-doc .pr-ps .pr-ps-q:focus { border-color: #28a745; box-shadow: 0 0 0 3px rgba(40, 167, 69, .2); }
+  .ad-doc .pr-ps .pr-ps-q.is-bad { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220, 53, 69, .2); }
+  .pr-ps-picked { margin-top: .2rem; font-size: .78rem; line-height: 1.25; text-align: left; color: #1e7e34; }
+  .pr-ps-picked:empty { display: none; }
+  .pr-ps-picked.is-bad { color: #dc3545; }
+  .pr-ps-list {
+    position: fixed; z-index: 2000; display: none;
+    max-height: 320px; overflow-y: auto; background: #fff;
+    border: 1px solid #b7e2c4; border-radius: 8px; box-shadow: 0 8px 24px rgba(16, 24, 40, .18);
+    font-size: .9rem; text-align: left;
+  }
+  .pr-ps-list.show { display: block; }
+  .pr-ps-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .45rem .75rem; border-bottom: 1px solid #eef3ef; cursor: pointer; }
+  .pr-ps-row:hover, .pr-ps-row.is-active { background: #e3f4e8; }
+  .pr-ps-row.is-current { box-shadow: inset 3px 0 0 #28a745; }
+  .pr-ps-code { font-weight: 700; color: #155724; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pr-ps-name { color: #343a40; }
+  .ps-similar { display: inline-block; margin-left: .4rem; font-size: .72rem; padding: 0 .4rem; border-radius: 3px; background: #fff3e0; color: #c25e00; border: 1px solid #ffcc80; white-space: nowrap; vertical-align: middle; }
+  .pr-ps-unit { font-size: .75rem; padding: .05rem .45rem; border-radius: 3px; background: #eef1f4; color: #495057; white-space: nowrap; }
+  .pr-ps-msg { padding: .6rem .75rem; color: #6c757d; }
+  .pr-ps-list mark { padding: 0 1px; background: #ffe58a; color: inherit; border-radius: 2px; }
+  .pr-ps-more { display: block; width: 100%; padding: .45rem; border: 0; background: #f6fbf7; color: #1e7e34; font-weight: 600; }
+  @media print { .pr-ps-icon { display: none; } .ad-doc .pr-ps .pr-ps-q { padding-left: 0; } }
 </style>
+{% include '_approve_doc_styles.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="container my-3">
-  <form method="post">
-    <!-- {% crispy form %} -->
+<div class="container ad-doc my-3">
+  <div class="ad-paper">
+  <form method="post" class="mb-0">
     {% csrf_token %}
-    <div class="row my-2">
-      {% if pr.address_company %}
-        <div class="col col-md-2">
-          <img src="/media/{{pr.address_company.logo}}" class="rounded float-left" width="120" height="120"/>
-        </div>
-        <div class="text-left col">
-          <description>
-            <strong>{{pr.address_company.name_eng}}</strong>
-            <br>{{pr.address_company.name_th}}
-            <br>{{pr.address_company.address}}
-            <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
-          </description>
-        </div>
+    {% comment %}บันทึกไม่สำเร็จต้องเห็นเหตุผล (เดิมหน้าโหลดซ้ำเฉยๆ ดูเหมือนไม่ไปหน้า purchaseRequisition/){% endcomment %}
+    {% for message in messages %}
+      {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+        <div class="alert alert-danger hidden-print" role="alert"><i class="fas fa-exclamation-circle mr-1"></i><b>บันทึกใบขอซื้อไม่สำเร็จ:</b> {{ message }}</div>
       {% else %}
-        <div class="col col-md-2">
-          <img src="/media/{{company.address.logo}}" class="rounded float-left" width="120" height="120"/>
-        </div>
-        <div class="text-left col">
-          <description>
-            <strong>{{company.address.name_eng}}</strong>
-            <br>{{company.address.name_th}}
-            <br>{{company.address.address}}
-            <br>{% if company.address.tel %}โทร {{company.address.tel}}{%endif%}{% if company.address.tex %} เลขที่ผู้เสียภาษี {{company.address.tex}}{%endif%}{% if company.address.branch %} สาขา{{company.address.branch}}{%endif%}
-          </description>
-        </div>
-      {%endif%}
+        <div class="alert alert-info hidden-print" role="alert"><i class="fas fa-info-circle mr-1"></i>{{ message }}</div>
+      {% endif %}
+    {% endfor %}
+    {% if form.errors %}
+    <div class="alert alert-danger hidden-print" role="alert">
+      <b><i class="fas fa-exclamation-circle mr-1"></i>บันทึกใบขอซื้อไม่สำเร็จ กรุณาตรวจสอบข้อมูล</b>
+      <ul class="mb-0">
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        {% for field in form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+      </ul>
     </div>
-    <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
-    <div class="row">
-        <div class="col invoice-title text-left">
-          <h5>รหัสใบขอเบิก # <u><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></u></h5>
-        </div>
-        <div class="col invoice-title text-right">
-          <h5>รหัสใบขอซื้อ # {{pr.ref_no}}
-          {% if requisition.memorandum_pdf %}
-            {% ifchanged requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-            {% endifchanged %}
-          {% endif %}
-        </h5>
+    {% endif %}
+    <!-- ======== หัวเอกสาร ======== -->
+    {% include 'purchaseRequisition/_pr_doc_head.html' %}
+
+    <!-- ======== รายการขอซื้อ ======== -->
+    <div class="ad-section-title">รายการขอซื้อ ({{ items|length }} รายการ)</div>
+    <div class="table-responsive ad-items-wrap">
+      <table id="userTable" class="table table-bordered table-sm ad-items">
+        <thead>
+          <tr>
+            <th class="text-center">ลำดับที่</th>
+            <th class="text-center">รหัสวัสดุ/อุปกรณ์</th>
+            <th class="text-center">รายการ</th>
+            <th class="text-center">รายละเอียด/ประเภทการซ่อม</th>
+            <th class="text-center">จำนวน</th>
+            <th class="text-center">หน่วย</th>
+            <th class="text-center">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</th>
+            <th class="text-center">วันที่ต้องการ</th>
+            <th class="text-center">ระดับความเร่งด่วน</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
+            <td name="name" class="ad-cell-title d-md-none"><span>{{ forloop.counter }}. </span>{{item.product_name}}</td>
+            <td class="text-center" data-label="รหัสวัสดุ/อุปกรณ์">
+              <input type='hidden' value='{{item.id}}' name='id'>
+              <div class="pr-ps">
+                <i class="fas fa-search pr-ps-icon hidden-print"></i>
+                <input id="product-{{forloop.counter}}" name="product" type="text" Placeholder="พิมพ์รหัสหรือชื่อสินค้า..." class="form-control form-control-sm ad-input pr-ps-q" autocomplete="off" value="{{item.product.id}}" data-orig="{{item.product.id}}" required>
+                <div class="pr-ps-picked hidden-print"></div>
+              </div>
+            </td>
+            <td name="name" class="ad-hide-m">{{item.product_name}}</td>
+            <td name="description" data-label="รายละเอียด">{{item.description}}</td>
+            <td class="text-center" name="quantity" data-label="จำนวน"><span>{{item.quantity_pr |floatformat:"-4"}} <span class="d-md-none">{{item.unit}}</span></span></td>
+            <td class="text-center ad-hide-m" name="unit">{{item.unit}}</td>
+            <td name="machine" data-label="ทะเบียนรถ/เครื่องจักร">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
+            <td class="text-center" name="desireddate" data-label="วันที่ต้องการ">{{item.desired_date | date:"d/m/Y"}}</td>
+            <td class="text-center" name="urgency" data-label="ความเร่งด่วน">{% for bu in baseUrgency %}{% if item.urgency == bu.id %}{{bu.name}}{% endif %}{% endfor %}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" class="text-center ad-cell-title">
+              <div class="alert alert-warning mb-0" role="alert">
+                ไม่มีสินค้า
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="ad-hide-m">
+          <tr>
+            <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
+            <td class="text-center">{{items | length}}</td>
+            <td class="text-center">รายการ</td>
+            <td colspan="3" class="text-center"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ======== ข้อมูลใบขอซื้อ ======== -->
+    <div class="ad-form hidden-print">
+      <label for="{{ form.address_company.id_for_label }}">{{ form.address_company.label}}</label>
+      <div>{{ form.address_company | add_class:"form-control" }}</div>
+      <label for="{{ form.organizer.id_for_label }}" class="ad-required">{{ form.organizer.label}}</label>
+      <div>{{ form.organizer | add_class:"form-control is-invalid" }}</div>
+      <label for="{{ form.approver_user.id_for_label }}" class="ad-required">{{ form.approver_user.label}}</label>
+      <div>{{ form.approver_user | add_class:"form-control is-invalid" }}</div>
+    </div>
+
+    <div class="ad-summary">
+      <div class="ad-notes">
+        <div class="ad-label">หมายเหตุ :</div>
+        {{ form.note | add_class:"form-control" }}
+        {{ form.branch_company }}
+      </div>
+      <div class="small">
+        <div class="font-weight-bold">ระดับความเร่งด่วน</div>
+        A = ภายใน 48 ชม.&emsp;B = 3-5 วัน&emsp;C = 7 วัน&emsp;D = 15 วัน
       </div>
     </div>
-    <hr>
-    <div class="row">
-      <div class="col-md-12">
-      <div class="row">
-        <div class="col-4">
-          <description>
-          <strong>ผู้ขอซื้อ/ขอซ่อม: </strong>{{requisition.chief_approve_user_name}}
-          <br>
-          <br>
-          </description>
-        </div>
-        <div class="col-4 text-center">
-            <description>
-              <strong>แผนก: </strong>{{requisition.section}}<br>
-              <br>
-            </description>
-          </div>
-        <div class="col-4 text-right">
-          <description>
-            <strong>วันที่ขอซื้อ: </strong>
-            {% if pr.created %}
-              {{ pr.created | date:"d/m/Y" }}
-            {% else %}
-              {% now "d/m/Y" %}
-            {% endif %}
-            <br>
-            <br>
-          </description>
-        </div>
+
+    <!-- ======== ลงชื่อ ======== -->
+    {% include 'purchaseRequisition/_pr_doc_signs.html' %}
+
+    <!-- ======== แถบปุ่ม ติดด้านล่าง (ไม่ปริ้น) ======== -->
+    <div class="ad-actions-bar hidden-print">
+      <div class="d-flex flex-wrap" style="gap: .5rem;">
+        {% if create_mode or pr.approver_status_id == 1 %}
+          <input type="hidden" name="save_draft" id="id_save_draft" value="">
+          <button type="submit" class="btn btn-secondary" onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
+            บันทึกแบบร่าง
+          </button>
+          <button type="submit" class="btn btn-primary" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
+            บันทึกและส่งอนุมัติ
+          </button>
+        {% else %}
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i>
+            บันทึกการแก้ไข
+          </button>
+        {% endif %}
       </div>
+      <button type="button" class="btn btn-outline-info" onclick="scrollToTop();setDateTimePrint();window.print();">
+        <i class="fas fa-print"></i>
+        ปริ้น<span class="d-none d-sm-inline">ใบขอซื้อ</span>
+      </button>
     </div>
-  </div>
-  <div class="row">
-    <div class="col-md-12">
-      <div class="panel panel-default">
-            <!-- div class="panel-heading">
-                <h3 class="panel-title">
-                  <strong>รายการใบขอซื้อ</strong>
-                </h3>
-            </div -->
-        <div class="panel-body">
-          <div class="table-responsive">
-            <table id="userTable" class="table table-bordered">
-              <thead>
-                <tr>
-                    <td class="text-center"><strong>ลำดับที่</strong></td>
-                    <td><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
-                    <td class="text-center"><strong>รายการ</strong></td>
-                    <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
-                    <td class="text-center"><strong>จำนวน</strong></td>
-                    <td class="text-center"><strong>หน่วย</strong></td>
-                    <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
-                    <td class="text-center"><strong>วันที่ต้องการ</strong></td>
-                    <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                    
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in items %}
-                <tr>
-                    <td class="text-center">{{ forloop.counter }}</td>
-                    <td class="text-center">
-                      <input type='hidden' value='{{item.id}}' name='id'>
-                      <input id="product" name="product" type="text" list="idExpresslist" Placeholder="ค้นหารหัส express..." class="form-control" style="width:190px;" autocomplete="off" value="{{item.product.id}}" required>
-                      <datalist id="idExpresslist">
-                      {% for results in baseProduct %}
-                        <option value="{{results.id}}">{{results.name}}</option>
-                      {% endfor %}
-                      </datalist>
-                    </td>
-                    <td name="name">{{item.product_name}}</td>
-                    <td name="description">{{item.description}}</td>
-                    <td class="text-center" name="quantity">{{item.quantity_pr |floatformat:"-4"}}</td>
-                    <td class="text-center" name="unit">
-                      {{item.unit}}
-                    </td>
-                    <td name="machine">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
-                    <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
-                    <td class="text-center" name="urgency">
-                      {% for bu in baseUrgency %}
-                        {% if item.urgency == bu.id %}
-                          {{bu.name}}
-                        {% endif %}
-                      {% endfor %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="9" class="text-center">
-                    <div class="alert alert-warning" role="alert">
-                      ไม่มีสินค้า
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-                <tr>
-                  <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
-                  <td class="text-center">{{items | length}}</td>
-                  <td class="text-center">รายการ</td>
-                  <td colspan="3" class="text-center"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="row my-2">
-            <div class="col-2">{{ form.address_company.label}}</div>
-            <div class="col">{{ form.address_company | add_class:"form-control" }}</div>
-          </div>
-          <div class="row my-2">
-            <div class="col-2 text-danger">{{ form.organizer.label}}</div>
-            <div class="col">{{ form.organizer | add_class:"form-control is-invalid" }}</div>
-          </div>
-          <div class="row my-2">
-            <div class="col-2 text-danger">{{ form.approver_user.label}}</div>
-            <div class="col">{{ form.approver_user | add_class:"form-control is-invalid" }}</div>
-          </div>
-          <div class="row">
-            <div class="card-group col">
-              <div class="card col">
-                <div class="card-body">
-                  <strong>หมายเหตุ: </strong>
-                    {{ form.note }}
-                    {{ form.branch_company }}
-                </div>
-              </div>
-              <div class="card col-4">
-                <div class="card-body">
-                  <h5 class="card-title">ระดับความเร่งด่วน</h5>
-                  <p class="card-text">A = ภายใน 48 ชม.&emsp;B = 3-5 วัน<br>C = 7 วัน&emsp;&emsp;&emsp;&emsp;&emsp;D = 15 วัน</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="card-group col">
-              <div class="card">
-                <div class="card-body">
-                  {% if pr.stockman_user %}
-                    <h5 class="card-title">เจ้าหน้าที่พัสดุ
-                      <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;" />
-                    </h5>
-                    <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
-                    <div class="row">
-                      <div class="col-sm-8">
-                        <p class="card-text">วันที่ {{pr.stockman_update | date:"d/m/Y"}}</p>
-                      </div>
-                    </div>
-                  {% else %}
-                    <h5 class="card-title">เจ้าหน้าที่พัสดุ
-                      <img src="/media/{{request.user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;" />
-                    </h5>
-                    <p class="card-text">{{request.user.first_name}} ตำแหน่ง {{request.user.userprofile.position}}</p>
-                    <div class="row">
-                      <div class="col-sm-8">
-                        <p class="card-text">วันที่ </p>
-                      </div>
-                    </div>
-                  {% endif %} 
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-body">
-                  {% if pr.purchase_user %}
-                    <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                    {% if pr.purchase_status_id == 2 %}
-                      <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                        <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                      </h5>
-                    {% else %}
-                      <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                          #{{pr.purchase_status}}
-                      </h5>
-                    {% endif %}
-                    <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
-                    <div class="row">
-                      <div class="col-sm-8">
-                        <p class="card-text">วันที่ {{pr.purchase_update | date:"d/m/Y"}}</p>
-                      </div>
-                    </div>
-                  {% else %}
-                      <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                        #รอดำเนินการ
-                    </h5>
-                    <p class="card-text">{{requisition.chief_approve_user_name.first_name}} ตำแหน่ง {{requisition.chief_approve_user_name.userprofile.position}}</p>
-                    <div class="row">
-                      <div class="col-sm-8">
-                        <p class="card-text">วันที่ </p>
-                      </div>
-                    </div>
-                  {% endif %}
-                </div>
-              </div>
-              <div class="card">
-                <div class="card-body">
-                  <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                  {% if pr.approver_status_id == 2 %}
-                    <h5 class="card-title">ผู้อนุมัติ
-                      <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                    </h5>
-                  {% else %}
-                    <h5 class="card-title">ผู้อนุมัติ
-                      #{{pr.approver_status}}
-                    </h5>
-                  {% endif %}
-                  <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
-                  <div class="row">
-                    <div class="col-sm-8">
-                      <p class="card-text">วันที่ {{pr.approver_update | date:"d/m/Y"}}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="invoice-title text-right my-2">
-            <h6>{{bc.affiliated.iso_code.pr_code|safe}}</h6>
-          </div>
-          <div class="text-right my-2">
-            <description id="dt_print"></description>
-          </div>
-            <div class="row my-2">
-              <div class="col">
-                {% if create_mode or pr.approver_status_id == 1 %}
-                  <input type="hidden" name="save_draft" id="id_save_draft" value="">
-                  <button type="submit" class="btn btn-secondary hidden-print" onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
-                    บันทึกแบบร่าง
-                  </button>
-                  <button type="submit" class="btn btn-primary hidden-print" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
-                    บันทึกและส่งอนุมัติ
-                  </button>
-                {% else %}
-                <button type="submit" class="btn btn-primary hidden-print">
-                  <i class="fas fa-save"></i>
-                  บันทึกการแก้ไข
-                </button>
-                {% endif %}
-              </div>
-              <div class="col-6 col-md-2 text-right">
-                <button type="button" class="btn btn-outline-info pull-right hidden-print my-2" onclick="scrollToTop();setDateTimePrint();window.print();">
-                  <i class="fas fa-print"></i>
-                  ปริ้นใบขอซื้อ
-                </button>
-              </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  </div>
   </form>
   </div>
+</div>
 {% endblock %}
 //script
 {% block javascript %}
@@ -341,5 +200,153 @@ u.dotted {
   var datetime = "@ " + currentdate.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'medium' })+ " (" + "{{request.user}}"+ ")";
   $("#dt_print").text(datetime);
   }
+
+  //ช่องรหัสวัสดุ/อุปกรณ์: พิมพ์รหัสหรือชื่อ (หลายคำได้) แล้วเลือกจากรายการ ↑ ↓ Enter
+  (function () {
+    var URL = "{% url 'product_search' %}";
+    var list = $('<div class="pr-ps-list"></div>').appendTo('body');
+    var cur = null, timer = null, tok = 0;
+
+    function esc(v) {
+      return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function place() {
+      if (!cur) return;
+      var r = cur[0].getBoundingClientRect();
+      var w = Math.min(Math.max(r.width, 420), window.innerWidth - 16);
+      var left = Math.min(r.left, window.innerWidth - w - 8);
+      list.css({ left: Math.max(left, 8), top: r.bottom + 4, width: w });
+    }
+    function hide() { list.removeClass('show'); tok++; }
+    //ไฮไลต์สีเหลืองตรงคำที่พิมพ์ค้นหา (ทุกคำ) — q เป็น array regex จาก server (data.hl รวมตัวสะกดคล้าย ส/ศ) หรือข้อความ
+    function mark(text, q) {
+      var out = esc(text);
+      var pats = $.isArray(q) ? q : String(q || '').split(/\s+/).filter(Boolean).map(function (t) {
+        return esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      });
+      pats.forEach(function (p) {
+        try { out = out.replace(new RegExp('(' + p + ')(?![^<]*>)', 'ig'), '<mark>$1</mark>'); } catch (e) {}
+      });
+      return out;
+    }
+    function rowHtml(p, current, q) {
+      return '<div class="pr-ps-row' + (String(p.id) === current ? ' is-current' : '') + '" data-id="' + esc(p.id) + '" data-name="' + esc(p.name) + '">' +
+        '<span class="pr-ps-code">' + mark(p.id, q) + '</span><span class="pr-ps-name">' + mark(p.name, q) + (p.similar ? '<span class="ps-similar">ชื่อคล้าย</span>' : '') + '</span>' +
+        (p.unit ? '<span class="pr-ps-unit">' + esc(p.unit) + '</span>' : '<span></span>') + '</div>';
+    }
+    function search(page) {
+      var q = cur.val().trim(), my = ++tok;
+      if (!q) { list.html('<div class="pr-ps-msg">พิมพ์รหัสหรือชื่อสินค้าเพื่อค้นหา เช่น <b>pin plate</b></div>'); place(); list.addClass('show'); return; }
+      if (page === 1) { list.html('<div class="pr-ps-msg"><i class="fas fa-spinner fa-spin mr-1"></i>กำลังค้นหา...</div>'); place(); list.addClass('show'); }
+      $.getJSON(URL, { q: q, page: page }, function (data) {
+        if (my !== tok) return;
+        var current = cur.data('picked') || cur.data('orig') + '';
+        var html = $.map(data.results, function (p) { return rowHtml(p, current, data.hl || q); }).join('');
+        list.find('.pr-ps-more').remove();
+        if (page === 1) {
+          list.html(html || '<div class="pr-ps-msg">ไม่พบสินค้า "' + esc(q) + '"</div>').scrollTop(0);
+          list.find('.pr-ps-row').first().addClass('is-active');
+        } else {
+          list.append(html);
+        }
+        if (data.pagination && data.pagination.more) {
+          list.append('<button type="button" class="pr-ps-more" data-page="' + (page + 1) + '">แสดงเพิ่ม (ทั้งหมด ' + data.total + ' รายการ)</button>');
+        }
+        place(); list.addClass('show');
+      });
+    }
+    function setState(input, ok, msg) {
+      input.toggleClass('is-bad', !ok);
+      input.siblings('.pr-ps-picked').toggleClass('is-bad', !ok).html(msg || '');
+    }
+    function pick(row) {
+      var id = String(row.data('id'));
+      cur.val(id).data('picked', id);
+      if (id === String(cur.data('orig'))) setState(cur, true, '');
+      else setState(cur, true, '<i class="fas fa-check-circle"></i> เปลี่ยนเป็น: ' + esc(row.data('name')));
+      hide();
+    }
+    //ค่าที่พิมพ์เองโดยไม่ได้เลือก: ยอมรับถ้าเป็นรหัสเดิม หรือรหัสตรงกับสินค้าพอดี
+    function validate(input) {
+      var v = input.val().trim();
+      if (v === String(input.data('orig')) || v === input.data('picked')) return;
+      input.data('picked', '');
+      if (!v) { setState(input, false, 'กรุณาเลือกสินค้า'); return; }
+      $.getJSON(URL, { q: v, page: 1 }, function (data) {
+        if (input.val().trim() !== v) return;
+        var hit = $.grep(data.results, function (p) { return String(p.id).toLowerCase() === v.toLowerCase(); })[0];
+        if (hit) { input.val(String(hit.id)).data('picked', String(hit.id)); setState(input, true, '<i class="fas fa-check-circle"></i> เปลี่ยนเป็น: ' + esc(hit.name)); }
+        else setState(input, false, '<i class="fas fa-exclamation-circle"></i> ไม่พบรหัสนี้ กรุณาเลือกจากรายการ');
+      });
+    }
+
+    $(document).on('focus', '.pr-ps-q', function () {
+      cur = $(this);
+      this.select();
+      search(1);
+    });
+    $(document).on('input', '.pr-ps-q', function () {
+      cur = $(this);
+      cur.data('picked', '');
+      setState(cur, true, '');
+      clearTimeout(timer);
+      timer = setTimeout(function () { search(1); }, 250);
+    });
+    $(document).on('keydown', '.pr-ps-q', function (e) {
+      var rows = list.find('.pr-ps-row'), idx = rows.index(rows.filter('.is-active'));
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!list.hasClass('show')) { search(1); return; }
+        if (!rows.length) return;
+        idx = e.key === 'ArrowDown' ? Math.min(idx + 1, rows.length - 1) : Math.max(idx - 1, 0);
+        rows.removeClass('is-active').eq(idx).addClass('is-active')[0].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault(); //ไม่ให้ Enter ส่งฟอร์ม
+        if (list.hasClass('show') && idx >= 0) pick(rows.eq(idx));
+      } else if (e.key === 'Escape') {
+        hide();
+      } else if (e.key === 'Tab' && list.hasClass('show') && idx >= 0 && $(this).val().trim() !== String($(this).data('orig'))) {
+        pick(rows.eq(idx));
+      }
+    });
+    $(document).on('blur', '.pr-ps-q', function () {
+      var input = $(this);
+      setTimeout(function () { if (!cur || cur[0] !== document.activeElement) hide(); validate(input); }, 150);
+    });
+    //ใช้ mousedown เพื่อเลือกก่อนช่องเสีย focus
+    list.on('mousedown', '.pr-ps-row', function (e) { e.preventDefault(); pick($(this)); });
+    list.on('mousedown', '.pr-ps-more', function (e) { e.preventDefault(); search(parseInt($(this).data('page'), 10)); });
+    $(window).on('resize', place);
+    window.addEventListener('scroll', function () { if (list.hasClass('show')) place(); }, true);
+
+    //กันส่งฟอร์มเมื่อมีรหัสที่ไม่ถูกต้อง
+    $('.pr-ps-q').closest('form').on('submit', function (e) {
+      var bad = $(this).find('.pr-ps-q.is-bad').first();
+      if (bad.length) {
+        e.preventDefault();
+        bad[0].scrollIntoView({ block: 'center' });
+        bad.trigger('focus');
+      }
+    });
+  })();
+
+  //กันกดบันทึกซ้ำ (ดับเบิลคลิก): ส่งฟอร์มแล้วปิดปุ่มบันทึกทั้งหมด และแสดงว่ากำลังบันทึก
+  (function () {
+    var form = $('.ad-actions-bar').closest('form');
+    form.on('submit', function (e) {
+      var f = $(this);
+      if (f.data('submitting')) { e.preventDefault(); return; }
+      setTimeout(function () {
+        if (e.isDefaultPrevented()) return; //ถูกยกเลิก (เช่น รหัสสินค้าไม่ถูกต้อง) ยังกดใหม่ได้
+        f.data('submitting', true);
+        var clicked = $(document.activeElement).filter('button[type="submit"]');
+        f.find('button[type="submit"]').prop('disabled', true);
+        (clicked.length ? clicked : f.find('button[type="submit"]').last())
+          .html('<i class="fas fa-spinner fa-spin mr-1"></i> กำลังบันทึก...');
+      }, 0);
+    });
+    //กลับมาหน้านี้ด้วยปุ่ม Back ของเบราว์เซอร์ (bfcache) ให้ปุ่มกลับมาใช้ได้
+    window.addEventListener('pageshow', function (ev) { if (ev.persisted) window.location.reload(); });
+  })();
 </script>
 {% endblock %}

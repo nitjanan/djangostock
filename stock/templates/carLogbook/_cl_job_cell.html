@@ -1,0 +1,18 @@
+{% load templatehelpers %}{% comment %}ช่อง "งานที่ N" ในหน้ารายการใบใช้รถ (/carLogBook/ และ /report/carLogBook/)
+ส่ง job, start, end, ms (ไมล์เริ่ม), me (ไมล์สิ้นสุด) ของงานนั้น ๆ — ถ้าไม่มีงานแสดง "-"
+แสดงป้าย ชม. (จากเวลาเริ่ม-สิ้นสุด) และ ระยะ (จากไมล์เริ่ม-สิ้นสุด) แบบเดียวกับหน้าแก้ไข
+extra=1 สำหรับงานที่ 3-6: ซ่อนไว้ก่อน กดปุ่ม "แสดงงานที่ 3-6" (_cl_job_toggle.html) เพื่อแสดง{% endcomment %}
+<td class="lt-note{% if extra %} cl-job-extra{% endif %}">
+  {% if job or start or end or ms or me %}
+    {{ job|default:"" }}
+    {% if start or ms %}<span class="lt-sub">เริ่ม {% if start %}{{ start }}{% endif %} {% if ms %}{% if start %}· {% endif %}ไมล์ {{ ms }}{% endif %}</span>{% endif %}
+    {% if end or me %}<span class="lt-sub">สิ้นสุด {% if end %}{{ end }}{% endif %} {% if me %}{% if end %}· {% endif %}ไมล์ {{ me }}{% endif %}</span>{% endif %}
+    {% cl_job_hours start end as hrs %}{% cl_job_dist ms me as dist %}
+    {% if hrs or dist %}<span class="cl-pills">
+      {% if hrs %}<span class="cl-pill {% if hrs.bad %}bad{% else %}hrs{% endif %}" title="ชั่วโมงงาน"><i class="far fa-clock"></i> {{ hrs.text }}{% if not hrs.bad %} ชม.{% endif %}</span>{% endif %}
+      {% if dist %}<span class="cl-pill {% if dist.bad %}bad{% else %}dist{% endif %}" title="ระยะทาง"><i class="fas fa-route"></i> {% if dist.bad %}ไมล์ผิด{% else %}{{ dist.value|floatformat:"-2g" }}{% endif %}</span>{% endif %}
+    </span>{% endif %}
+  {% else %}
+    <span class="text-muted">-</span>
+  {% endif %}
+</td>

@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.views.generic import RedirectView
 from stock import views
 from django.conf.urls.static import static
 from django.conf import settings
@@ -72,7 +73,8 @@ urlpatterns = [
     path('requisitionItem/remove/<int:item_id>',views.removeRequisitionItem,name="removeRequisitionItem"),
     path('requisitionItem/edit/<int:item_id>',views.editRequisitionItem,name="editRequisitionItem"),
     path('requisitionItem/view/<int:requisition_id>',views.crudRequisitionItemView,name="crudRequisitionItemView"),
-    path('requisitionItem/crud/<int:requisition_id>', login_required(views.CrudView.as_view()), name='crud_ajax'),
+    #รวมกับหน้า editAll แล้ว: ลิงก์เดิมให้ไปหน้า editAll แทน
+    path('requisitionItem/crud/<int:requisition_id>', login_required(RedirectView.as_view(pattern_name='editAllRequisition')), name='crud_ajax'),
     path('ajax/crud/create/<int:requisition_id>',  login_required(views.CreateCrudUser.as_view()), name='crud_ajax_create'),
     path('ajax/crud/update/<int:requisition_id>',  login_required(views.UpdateCrudUser.as_view()), name='crud_ajax_update'),
     path('ajax/crud/delete/',  views.DeleteCrudUser.as_view(), name='crud_ajax_delete'),
@@ -209,6 +211,7 @@ urlpatterns = [
     path('ex/export/excel/all',views.exportExcelExAll,name="exportExcelExAll"),
 
     path('car-search/', views.car_search, name='car_search'),
+    path('product-search/', views.product_search, name='product_search'),
 
     path('login/api/', views.LoginApiView.as_view(), name="login_api"),
     path('signup/api/', views.SignUpApiView.as_view(), name="signup_api"),

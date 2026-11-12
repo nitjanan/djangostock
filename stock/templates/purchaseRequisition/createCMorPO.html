@@ -25,249 +25,123 @@ u.dotted {
   border-bottom: 1px dashed #999;
   text-decoration: none;
 }
+/* ช่องเลือกรายการบนมือถือ: ไม่ให้ตัว checkbox ใหญ่ดันแถว */
+.ad-doc .ad-items .custom-checkbox {
+  display: inline-block;
+  padding-top: 0;
+  padding-bottom: 0;
+  min-height: 1.85rem;
+}
+/* ช่อง ยังไม่ได้ซื้อ: ตัวหนาสีน้ำเงินเมื่อยังเหลือ (สีเดียวกับหน้า /purchaseRequisition/) / สีเทาเมื่อซื้อครบแล้ว */
+.ad-items .pr-remain { font-weight: 700; font-variant-numeric: tabular-nums; color: #0056b3; }
+/* เลื่อนเมาส์บนแถว: สีเข้มขึ้นให้เห็นชัดว่ากำลังชี้แถวไหน (เฉพาะหน้าจอ) */
+@media screen {
+  .ad-doc #userTable.ad-items tbody tr:hover { background: #dde5ef; }
+}
+.ad-items .pr-remain.is-done { font-weight: 400; color: #adb5bd; }
+.ad-items .pr-remain::before { font-weight: 400; color: #6c757d; }
 </style>
+{% include '_approve_doc_styles.html' %}
 {% endblock %}
 
 {% block content %}
-<div class="container my-3">
-    <div class="row my-2">
-      <div class="col col-md-2">
-        <img src="/media/{{pr.address_company.logo}}" class="rounded float-left" width="120" height="120"/>
-      </div>
-      <div class="text-left col">
-        <description>
-          <strong>{{pr.address_company.name_eng}}</strong>
-          <br>{{pr.address_company.name_th}}
-          <br>{{pr.address_company.address}}
-          <br>{% if pr.address_company.tel %}โทร {{pr.address_company.tel}}{%endif%}{% if pr.address_company.tex %} เลขที่ผู้เสียภาษี {{pr.address_company.tex}}{%endif%}{% if pr.address_company.branch %} สาขา{{pr.address_company.branch}}{%endif%}
-        </description>
-      </div>
-    </div>
-    <h3 align="center">ใบขอซื้อ/ใบขอซ่อม</h3>
-    <div class="row">
-      <div class="col invoice-title text-left">
-        <h5>รหัสใบขอเบิก # <u><a href="{% url 'showRequisition' requisition.id 4 %}">{{requisition.ref_no}}</a></u></h5>
-      </div>
-      <div class="col invoice-title text-right">
-        <h5>รหัสใบขอซื้อ # {{pr.ref_no}}
-          {% if requisition.memorandum_pdf %}
-            {% ifchanged requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-outline-success btn-sm hidden-print"><i class="fas fa-file-download"></i> เอกสารแนบ</a>
-            {% endifchanged %}
-          {% endif %}
-        </h5>
-      </div>
-    </div>
-    <hr>
-    <div class="row">
-      <div class="col-md-12">
-      <div class="row">
-        <div class="col-4">
-          <description>
-          <strong>ผู้ขอซื้อ/ขอซ่อม: </strong>{{requisition.chief_approve_user_name}}
-          <br>
-          <br>
-          </description>
-        </div>
-        <div class="col-4 text-center">
-            <description>
-              <strong>แผนก: </strong>{{requisition.section}}<br>
-              <br>
-            </description>
-          </div>
-        <div class="col-4 text-right">
-          <description>
-            <strong>วันที่ขอซื้อ: </strong>
-            {% if pr.created %}
-              {{ pr.created | date:"d/m/Y" }}
-            {% else %}
-              {% now "d/m/Y" %}
-            {% endif %}
-            <br>
-            <br>
-          </description>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-12">
-      <div class="panel panel-default">
-            <!-- div class="panel-heading">
-                <h3 class="panel-title">
-                  <strong>รายการใบขอซื้อ</strong>
-                </h3>
-            </div -->
-        <form method="POST">
-            {% csrf_token %}
-          <div class="panel-body">
-            <div class="table-responsive">
-              <table id="userTable" class="table table-bordered">
-                <thead>
-                  <tr>
-                      <td class="text-center"><strong>ลำดับที่</strong></td>
-                      <td><strong>รหัสวัสดุ/อุปกรณ์</strong></td>
-                      <td class="text-center"><strong>รายการ</strong></td>
-                      <td class="text-center"><strong>รายละเอียด/ประเภทการซ่อม</strong></td>
-                      <td class="text-center"><strong>จำนวน</strong></td>
-                      <td class="text-center text-success"><strong>ซื้อแล้ว</strong></td>
-                      <td class="text-center"><strong>หน่วย</strong></td>
-                      <td class="text-center"><strong>ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</strong></td>
-                      <td class="text-center"><strong>วันที่ต้องการ</strong></td>
-                      <td class="text-center"><strong>ระดับความเร่งด่วน</strong></td>
-                      <td class="text-center text-primary"><strong>เลือก</strong></td>          
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for item in items %}
-                  <tr>
-                      <td class="text-center">{{ forloop.counter }}</td>
-                      <td class="text-center">{{item.product.id}}</td>
-                      <td name="name">{{item.product_name}}</td>
-                      <td name="description">{{item.description}}</td>
-                      <td class="text-center" name="quantity">{{item.quantity_pr | floatformat:"-4"}}</td>
-                      <td class="text-center text-success" name="used">
-                        {% for q in itemUseQuantity%}
-                          {% if forloop.counter == forloop.parentloop.counter %}
-                            {{q | floatformat:"-4"}}
-                          {%endif%}
-                        {% endfor %}
-                      </td>
-                      <td class="text-center" name="unit">
-                        {{item.unit}}
-                      </td>
-                      <td name="machine">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
-                      <td class="text-center" name="desireddate">{{item.desired_date | date:"d/m/Y"}}</td>
-                      <td class="text-center" name="urgency">
-                        {% for bu in baseUrgency %}
-                          {% if item.urgency == bu.id %}
-                            {{bu.name}}
-                          {% endif %}
-                        {% endfor %}
-                      </td>
-                      <td class="text-center">
-                        <div class="custom-control form-control-lg custom-checkbox">
-                          <input type="checkbox" name="choices" value="{{item.id}}" class="custom-control-input" id="customCheck{{forloop.counter}}" {% if item.is_used %}disabled{% endif %}>
-                          <label class="custom-control-label" for="customCheck{{forloop.counter}}"></label>
-                      </div>
-                      </td>
-                  </tr>
-                  {% empty %}
-                  <tr>
-                    <td colspan="9" class="text-center">
-                      <div class="alert alert-warning" role="alert">
-                        ไม่มีสินค้า
-                      </div>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                  <tr>
-                    <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
-                    <td class="text-center">{{items | length}}</td>
-                    <td class="text-center">รายการ</td>
-                    <td colspan="4" class="text-center"></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="row">
-              <div class="card-group col">
-                <div class="card col">
-                  <div class="card-body">
-                    <strong>หมายเหตุ: </strong>
-                    <u class="dotted">
-                      {{ pr.note |truncatechars:450}}
-                    </u>
-                  </div>
-                </div>
-                <div class="card col-4">
-                  <div class="card-body">
-                    <h5 class="card-title">ระดับความเร่งด่วน</h5>
-                    <p class="card-text">A = ภายใน 48 ชม.&emsp;B = 3-5 วัน<br>C = 7 วัน&emsp;&emsp;&emsp;&emsp;&emsp;D = 15 วัน</p>
-                  </div>
-                </div>
+<div class="container ad-doc my-3">
+  <div class="ad-paper">
+  <form method="POST" class="mb-0">
+    {% csrf_token %}
+    <!-- ======== หัวเอกสาร ======== -->
+    {% include 'purchaseRequisition/_pr_doc_head.html' %}
+
+    <!-- ======== รายการขอซื้อ: เลือกรายการที่จะสร้างใบเปรียบเทียบราคา/ใบสั่งซื้อ ======== -->
+    <div class="ad-section-title">รายการขอซื้อ ({{ items|length }} รายการ) <span class="small text-primary font-weight-normal hidden-print">— เลือกรายการที่ต้องการ</span></div>
+    <div class="table-responsive ad-items-wrap">
+      <table id="userTable" class="table table-bordered table-sm ad-items">
+        <thead>
+          <tr>
+            <th class="text-center">ลำดับที่</th>
+            <th class="text-center">รหัสวัสดุ/อุปกรณ์</th>
+            <th class="text-center">รายการ</th>
+            <th class="text-center">รายละเอียด/ประเภทการซ่อม</th>
+            <th class="text-center">จำนวน</th>
+            <th class="text-center text-success">ซื้อแล้ว</th>
+            <th class="text-center">ยังไม่ได้ซื้อ</th>
+            <th class="text-center">หน่วย</th>
+            <th class="text-center">ทะเบียนรถ/ เครื่องจักร/ หน่วยงาน</th>
+            <th class="text-center">วันที่ต้องการ</th>
+            <th class="text-center">ระดับความเร่งด่วน</th>
+            <th class="text-center text-primary">เลือก</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="text-center ad-hide-m">{{ forloop.counter }}</td>
+            <td class="text-center" data-label="รหัสวัสดุ/อุปกรณ์">{{item.product.id}}</td>
+            <td name="name" class="ad-cell-title"><span class="d-md-none d-print-none">{{ forloop.counter }}. </span>{{item.product_name}}</td>
+            <td name="description" data-label="รายละเอียด">{{item.description}}</td>
+            <td class="text-center" name="quantity" data-label="จำนวน"><span>{{item.quantity_pr | floatformat:"-4"}} <span class="d-md-none d-print-none">{{item.unit}}</span></span></td>
+            <td class="text-center text-success" name="used" data-label="ซื้อแล้ว">{% for q in itemUseQuantity%}{% if forloop.counter == forloop.parentloop.counter %}{{q | floatformat:"-4"}}{%endif%}{% endfor %}</td>
+            <!-- ยังไม่ได้ซื้อ = จำนวน - ซื้อแล้ว -->
+            <td class="text-center pr-remain{% if not item.remain_quantity %} is-done{% endif %}" name="remain" data-label="ยังไม่ได้ซื้อ"><span>{{item.remain_quantity|floatformat:"-4"}} <span class="d-md-none d-print-none">{{item.unit}}</span></span></td>
+            <td class="text-center ad-hide-m" name="unit">{{item.unit}}</td>
+            <td name="machine" data-label="ทะเบียนรถ/เครื่องจักร">{%if item.requisit.car %}{{item.requisit.car}}{%else%}{{item.machine}}{%endif%}</td>
+            <td class="text-center" name="desireddate" data-label="วันที่ต้องการ">{{item.desired_date | date:"d/m/Y"}}</td>
+            <td class="text-center" name="urgency" data-label="ความเร่งด่วน">{% for bu in baseUrgency %}{% if item.urgency == bu.id %}{{bu.name}}{% endif %}{% endfor %}</td>
+            <td class="text-center" data-label="เลือก">
+              <div class="custom-control form-control-lg custom-checkbox">
+                <input type="checkbox" name="choices" value="{{item.id}}" class="custom-control-input" id="customCheck{{forloop.counter}}" {% if item.is_used %}disabled{% endif %}>
+                <label class="custom-control-label" for="customCheck{{forloop.counter}}"></label>
               </div>
-            </div>
-            <div class="row">
-              <div class="card-group col">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5 class="card-title">เจ้าหน้าที่พัสดุ
-                        <img src="/media/{{pr.stockman_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;" />
-                      </h5>
-                      <p class="card-text">{{pr.stockman_user.first_name}} ตำแหน่ง {{pr.stockman_user.userprofile.position}}</p>
-                      <div class="row">
-                        <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.stockman_update | date:"d/m/Y"}}</p>
-                        </div>
-                      </div>  
-                    </div>
-                  </div>
-                  <div class="card">
-                    <div class="card-body">
-                      <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                      {% if pr.purchase_status_id == 2 %}
-                        <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                          <img src="/media/{{pr.purchase_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                        </h5>
-                      {% else %}
-                        <h5 class="card-title">ผู้ขอซื้อ/ขอซ่อม
-                            #{{pr.purchase_status}}
-                        </h5>
-                      {% endif %}
-                      <p class="card-text">{{pr.purchase_user.first_name}} ตำแหน่ง {{pr.purchase_user.userprofile.position}}</p>
-                      <div class="row">
-                        <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.purchase_update | date:"d/m/Y"}}</p>
-                        </div>
-                      </div>  
-                    </div>
-                  </div>
-                  <div class="card">
-                    <div class="card-body">
-                      <!-- 2 คืออนุมัติจะแสดงลายเซ็น-->
-                      {% if pr.approver_status_id == 2 %}
-                        <h5 class="card-title">ผู้อนุมัติ
-                          <img src="/media/{{pr.approver_user.userprofile.signature}}" width="100" height="40" style="border-bottom: 1px dashed #999;text-decoration: none;"/>
-                        </h5>
-                      {% else %}
-                        <h5 class="card-title">ผู้อนุมัติ
-                          #{{pr.approver_status}}
-                        </h5>
-                      {% endif %}
-                      <p class="card-text">{{pr.approver_user.first_name}} ตำแหน่ง {{pr.approver_user.userprofile.position}}</p>
-                      <div class="row">
-                        <div class="col-sm-8">
-                          <p class="card-text">วันที่ {{pr.approver_update | date:"d/m/Y"}}</p>
-                        </div>
-                      </div>  
-                    </div>
-                  </div>
-                </div>  
-            </div>
-            <div class="invoice-title text-right my-2">
-              <h6>{{bc.affiliated.iso_code.pr_code|safe}}</h6>
-            </div>
-              <div class="row my-2">
-                <div class="col">
-                  <button type="submit" name="btnformCM" class="btn btn-success hidden-print">
-                    <i class="fas fa-save"></i>
-                    สร้างใบเปรียบเทียบราคา
-                  </button>
-                </div>
-                <div class="col-6 col-md-2 text-right">
-                  <button type="submit" name="btnformPO" class="btn btn-info hidden-print">
-                    <i class="fas fa-save"></i>
-                    สร้างใบสั่งซื้อ
-                  </button>
-                </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="12" class="text-center ad-cell-title">
+              <div class="alert alert-warning mb-0" role="alert">
+                ไม่มีสินค้า
               </div>
-          </div>          
-        </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="ad-hide-m">
+          <tr>
+            <td colspan="4" class="text-right">รวมรายการขอซื้อ</td>
+            <td class="text-center">{{items | length}}</td>
+            <td class="text-center">รายการ</td>
+            <td colspan="6" class="text-center"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="ad-summary">
+      <div class="ad-notes">
+        <p><span class="ad-label">หมายเหตุ :</span> <u class="dotted">{{pr.note|truncatechars:450}}</u></p>
+      </div>
+      <div class="small">
+        <div class="font-weight-bold">ระดับความเร่งด่วน</div>
+        A = ภายใน 48 ชม.&emsp;B = 3-5 วัน&emsp;C = 7 วัน&emsp;D = 15 วัน
       </div>
     </div>
+
+    <!-- ======== ลงชื่อ ======== -->
+    {% include 'purchaseRequisition/_pr_doc_signs.html' %}
+
+    <!-- ======== แถบปุ่ม ติดด้านล่าง (ไม่ปริ้น) ======== -->
+    <div class="ad-actions-bar hidden-print">
+      <button type="submit" name="btnformCM" class="btn btn-success">
+        <i class="fas fa-save"></i>
+        สร้างใบเปรียบเทียบราคา
+      </button>
+      <button type="submit" name="btnformPO" class="btn btn-info">
+        <i class="fas fa-save"></i>
+        สร้างใบสั่งซื้อ
+      </button>
+    </div>
+  </form>
   </div>
-  </div>
+</div>
 {% endblock %}
 {% block javascript %}
 <script>

@@ -1,0 +1,59 @@
+{% load templatehelpers %}{% comment %}
+window.ThaiSimilar: ค้นหาไทยแบบสะกดคล้ายในหน้าเว็บ (กฎเดียวกับ stock/thai_search.py)
+  ThaiSimilar.pattern(word)      -> regex string เช่น "รอดสุก" เจอ "รอดสุข", "สรี" เจอ "ศรี"
+  ThaiSimilar.match(text, term)  -> null (ไม่เจอ) | {similar: true/false} ทุกคำที่พิมพ์ต้องเจอ
+  ThaiSimilar.mark(html, term)   -> ไฮไลต์ <mark> ใน html ที่ escape แล้ว (รวมตัวสะกดคล้าย)
+  ThaiSimilar.badge              -> ป้าย "ชื่อคล้าย" (class ts-similar)
+include ได้หลายครั้งในหน้าเดียว (ทำงานครั้งแรกครั้งเดียว){% endcomment %}
+<style>
+  .ts-similar { display: inline-block; margin-left: .35rem; padding: 0 .4rem; border-radius: 999px; background: #fd7e14; color: #fff; font-size: .7rem; font-weight: 600; white-space: nowrap; vertical-align: middle; line-height: 1.5; }
+</style>
+<script>
+window.ThaiSimilar = window.ThaiSimilar || (function () {
+  var R = {% thai_similar_rules %};
+  var SIM = {}, FIN = {};
+  R.groups.forEach(function (g) { g.split('').forEach(function (c) { SIM[c] = g; }); });
+  R.finals.forEach(function (g) { g.split('').forEach(function (c) { FIN[c] = g; }); });
+  var MARKS_OPT = '(' + R.marks.split('').join('|') + ')*';
+  function isThai(c) { return c >= '฀' && c <= '๿'; }
+  function isCons(c) { return c >= 'ก' && c <= 'ฮ'; }
+  function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  //เหมือน thai_similar_pattern ใน stock/thai_search.py
+  function pattern(word) {
+    var chars = word.split('').filter(function (c) { return R.marks.indexOf(c) < 0; });
+    if (!chars.some(isThai)) return reEsc(word);
+    return chars.map(function (c, i) {
+      if (!isThai(c)) return reEsc(c);
+      var prev = i > 0 ? chars[i - 1] : '', nxt = chars[i + 1] || '';
+      var isFinal = i > 0 && FIN[c] && R.leading.indexOf(prev) < 0 &&
+        (!nxt || (isCons(nxt) && R.beforeFinal.indexOf(prev) > -1));
+      var g = isFinal ? FIN[c] : SIM[c];
+      return (g ? '(' + g.split('').join('|') + ')' : c) + MARKS_OPT;
+    }).join('') || reEsc(word);
+  }
+  var cache = {};
+  function regex(word) {
+    if (!(word in cache)) { try { cache[word] = new RegExp(pattern(word), 'i'); } catch (e) { cache[word] = null; } }
+    return cache[word];
+  }
+  function words(term) { return String(term || '').trim().split(/\s+/).filter(Boolean); }
+  function match(text, term) {
+    var low = String(text || '').toLowerCase(), similar = false, ws = words(term);
+    for (var i = 0; i < ws.length; i++) {
+      if (low.indexOf(ws[i].toLowerCase()) > -1) continue;
+      var re = regex(ws[i]);
+      if (re && re.test(text)) { similar = true; continue; }
+      return null;
+    }
+    return { similar: similar };
+  }
+  function mark(html, term) {
+    words(term).forEach(function (w) {
+      var re = regex(w);
+      if (re) html = html.replace(new RegExp('(' + re.source + ')(?![^<]*>)', 'ig'), '<mark>$1</mark>');
+    });
+    return html;
+  }
+  return { pattern: pattern, match: match, mark: mark, badge: '<span class="ts-similar">ชื่อคล้าย</span>' };
+})();
+</script>

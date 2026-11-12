@@ -62,9 +62,20 @@ def po_approver_user_queryset(branch_company_code, include_user=None):
 
 
 class MyClearableFileInput(ClearableFileInput):
+    """ช่องแนบไฟล์แบบแถวเดียว: ชื่อไฟล์ปัจจุบัน (คลิกดาวน์โหลด) | เลือก/เปลี่ยนไฟล์ | ลบ, ลากไฟล์มาวางได้
+    หน้าตาและสคริปต์อยู่ใน stock/templates/widgets/compact_file.html (ใช้ร่วมทุกหน้า)"""
+    template_name = 'widgets/compact_file.html'
     initial_text = 'ไฟล์ปัจจุบัน'
     input_text = 'เปลี่ยนไฟล์'
     clear_checkbox_label = 'ลบไฟล์'
+    max_upload_size = 5242880  # ตรงกับ ContentTypeRestrictedFileField ทุกช่องที่ใช้ widget นี้
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        file_name = getattr(context['widget'].get('value'), 'name', '') or ''
+        context['widget']['file_name'] = os.path.basename(file_name)
+        context['widget']['max_upload_size'] = self.max_upload_size
+        return context
 
 
 class SignUpForm(UserCreationForm):
@@ -651,22 +662,22 @@ BOOL_CHOICES = ((True, 'Yes'), (False, 'No'))
 
 class MaintenanceForm(forms.ModelForm):
     repair_name = forms.ModelChoiceField(
-        queryset = User.objects.all(),
+        queryset = User.objects.order_by('first_name', 'last_name'),
         label='ช่างช่อม',
         required=False
     )
     chief_name = forms.ModelChoiceField(
-        queryset = User.objects.filter(groups__name='หัวหน้างาน'),
+        queryset = User.objects.filter(groups__name='หัวหน้างาน').order_by('first_name', 'last_name'),
         label='หัวช่างซ่อมบำรุง',
         required=True
     )
     contact_name = forms.ModelChoiceField(
-        queryset = User.objects.all(),
+        queryset = User.objects.order_by('first_name', 'last_name'),
         label='ผู้ติดต่อ',
         required=False
     )
     sender_name = forms.ModelChoiceField(
-        queryset = User.objects.all(),
+        queryset = User.objects.order_by('first_name', 'last_name'),
         label='ผู้จัดส่งงาน',
         required=False
     )
@@ -719,7 +730,7 @@ class CarLogbookForm(forms.ModelForm):
         self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 
     name = forms.ModelChoiceField(
-        queryset = User.objects.all(),
+        queryset = User.objects.order_by('first_name', 'last_name'),
         label='ชื่อ',
         required=True
     )    
@@ -787,7 +798,7 @@ class RoiCarLogbookForm(forms.ModelForm):
         self.fields['car'].label_from_instance = lambda obj: f"{obj.code} : {obj.name}"  #มี car1 และ car2
 
     name = forms.ModelChoiceField(
-        queryset = User.objects.all(),
+        queryset = User.objects.order_by('first_name', 'last_name'),
         label='ชื่อ',
         required=True
     )    

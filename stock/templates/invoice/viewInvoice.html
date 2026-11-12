@@ -4,95 +4,94 @@
 {% load templatehelpers %}
 {% load humanize %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
 <h3 align="center">ใบจ่ายสินค้าภายใน</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
-    <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-1 mb-0">
-          {{ filter.form.ref_no|as_crispy_field }}
+    <form method="get" id="lf-filter-form">
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.bring_name|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.payer_name|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.expense_dept|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.bring_name|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.payer_name|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-            {{ filter.form.expense_dept|as_crispy_field }}
-          </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.start_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.end_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
-          </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md-3">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md-3">{{ filter.form.end_created|as_crispy_field }}</div>
         </div>
       </div>
     </form>
-    <div class="row">
-      <div class="col-2">
-        <a class="btn"style="background-color:#5CB881;color:white;" href="{% url 'exportExcelIVToExpress' %}?{{request.GET.urlencode}}">IB to Express <i class="far fa-file-excel"></i></a>
+    <div class="lf-foot">
+      <div class="lf-export">
+        <a class="btn btn-excel" style="--xl:#5CB881;" href="{% url 'exportExcelIVToExpress' %}?{{request.GET.urlencode}}">IB to Express <i class="far fa-file-excel"></i></a>
       </div>
-  </div>
+      <div class="lf-btns">
+        <button type="submit" form="lf-filter-form" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
+      </div>
+    </div>
   </div>
 </div>
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table class="table table-striped lt">
         <thead class="thead-dark">
           <tr>
             <th scope="col">รหัสใบจ่ายสินค้าภายใน</th>
-            <th scope="col">รหัสใบขอเบิก</th>
-            <th scope="col">วันที่จ่าย</th>
-            <th scope="col">สินค้า</th>
-            <th scope="col">ชื่อผู้เบิก</th>
-            <th scope="col">ชื่อผู้จ่าย</th>
+            <th scope="col" class="dl-items-col">สินค้า</th>
+            <th scope="col">ผู้เบิก / ผู้จ่าย</th>
             <th scope="col">หมายเหตุ</th>
             <th scope="col">แผนกคชจ.</th>
-            <th scope="col">Action</th>
+            <th scope="col">จัดการ</th>
           </tr>
         </thead>
         <tbody>
         {% for iv in ivs %}
           <tr>
-            <th scope="row"><a href="{% url 'showInvoice' iv.id 1 %}">{{iv.ref_no}}</a></th>
-            <td><a href="{% url 'showRequisition' iv.requisit.id 1 %}">{{iv.requisit.ref_no}}</a></td>
-            <td>{{iv.created |date:"d/m/Y" }}</td>
-            <td>
-              {% for i in iv.invoiceitem_set.all %}
-                <li>{{ i.item.product_name }}</li>
-              {% endfor %}
+            <th scope="row">
+              <a class="lt-ref" href="{% url 'showInvoice' iv.id 1 %}">{{ iv.ref_no }}</a>
+              <span class="lt-sub">{{ iv.created|date:"d/m/Y" }}</span>
+              <span class="lt-sub">ใบขอเบิก <a href="{% url 'showRequisition' iv.requisit.id 1 %}">{{ iv.requisit.ref_no }}</a></span>
+            </th>
+            <td class="dl-items-col">
+              <div class="dl-items">
+                {% for i in iv.invoiceitem_set.all %}<div class="dl-item"><span class="dl-item-name">{{ i.item.product_name }}</span><span class="dl-item-qty">{{ i.quantity|floatformat:"-4" }} <small>{{ i.unit }}</small></span></div>{% empty %}<span class="text-muted small">ไม่มีรายการ</span>{% endfor %}
+              </div>
             </td>
-            <td>{{iv.bring_name}}</td>
-            <td>{{iv.payer_name}}</td>
-            <td>{{iv.car}}</td>
-            <td>{{iv.expense_dept}}</td>
             <td>
+              {{ iv.bring_name|default:"-" }}
+              <span class="lt-sub">ผู้จ่าย: {{ iv.payer_name|default:"-" }}</span>
+            </td>
+            <td class="lt-note">{{ iv.car|default:"" }}</td>
+            <td>{{ iv.expense_dept|default:"-" }}</td>
+            <td class="lt-actions">
               {% if request.user.is_superuser %}
-                <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+                <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
               {% elif iv.requisit.invoice_id and iv.requisit.purchase_requisition_id is None and isSupplies %}<!-- เคสที่ออกใบจ่ายอย่างเดียวลบได้ -->
-                <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
+                <a onclick="return confirm('คุณต้องการลบใบจ่ายสินค้าภายในนี้หรือไม่ ?')" href="{% url 'removeInvoice' iv.id %}" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> ลบ</a>
               {% endif %}
             </td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="6">ไม่พบใบจ่ายสินค้าภายใน</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=ivs %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

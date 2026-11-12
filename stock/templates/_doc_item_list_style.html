@@ -1,0 +1,17 @@
+<style>
+  /* ช่องรายการสินค้า (หน้ารายการใบเปรียบเทียบราคา / ใบสั่งซื้อ) */
+  .dl-items-col { min-width: 260px; vertical-align: top !important; }
+  .dl-item { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding: .2rem 0; }
+  .dl-item + .dl-item { border-top: 1px dashed #ced4da; }
+  .dl-item-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .dl-item-qty { flex: 0 0 auto; white-space: nowrap; text-align: right; color: #0056b3; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dl-item-qty small { font-weight: 400; color: #6c757d; }
+  .dl-extra { display: none; }
+  .dl-items.is-open .dl-extra { display: flex; }
+  .dl-more { border: 0; background: none; padding: .2rem 0 0; color: #0056b3; font-size: .85rem; cursor: pointer; }
+  .dl-more:hover { text-decoration: underline; }
+  .dl-more:focus { outline: 0; }
+  .dl-more:focus-visible { outline: 2px solid #80bdff; border-radius: 3px; }
+  .dl-more i { transition: transform .15s; }
+  .dl-items.is-open .dl-more i { transform: rotate(180deg); }
+</style>

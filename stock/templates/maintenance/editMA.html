@@ -17,213 +17,311 @@
 .select2-container .select2-selection--single,
 .select2-container .select2-selection--multiple{display:block !important;width:100% !important;box-sizing:border-box !important;}
 .input-group > .select2-container{flex:1 1 auto;width:1% !important;}
+.select2-container .select2-selection--single{height:38px !important;padding:4px 12px;border-radius:6px;border:1px solid #ced4da;}
+.select2-container .select2-selection--single .select2-selection__rendered{line-height:28px !important;padding-left:0;}
+.select2-container .select2-selection--single .select2-selection__arrow{height:36px !important;top:0;right:6px;}
+.select2-container .select2-dropdown{border-radius:6px;border:1px solid #ced4da;}
+.select2-container .select2-selection__clear{line-height:28px !important;}
+.select2-container .dropdown-wrapper{display:none;}
 
-    /* Fill the parent column / form-group width */
-    .form-group .select2-container .select2-selection--single,
-    .col-md-6 .select2-container .select2-selection--single {
-        width: 100% !important;
-    }
+/* ===== ใบแจ้งซ่อม (การ์ดเดียว แบ่งหมวดด้วยเส้นคั่น — เน้นกระชับ) ===== */
+.ma-edit{max-width:1040px;margin:0 auto;padding-bottom:.75rem;}
+.ma-edit .ma-card{background:#fff;border:1px solid #e3e6ea;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);padding:.75rem 1.1rem .9rem;}
 
-    /* Adjust the Select2 container */
-    .select2-container .select2-selection--single {
-        height: 37px !important;
-        line-height: 50px !important;
-        padding: 5px 12px;
-        border-radius: 4px;
-        border: 1px solid #ced4da;
-    }
+/* หัวเอกสาร */
+.ma-edit .ma-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.5rem 1rem;padding-bottom:.6rem;border-bottom:1px solid #e3e6ea;}
+.ma-edit .ma-ref{font-size:1.1rem;font-weight:600;line-height:1.3;}
+.ma-edit .ma-ref .no{color:#0d6efd;}
+.ma-edit .ma-meta{color:#6c757d;font-size:.85rem;}
+.ma-edit .ma-meta span{margin-right:.9rem;white-space:nowrap;}
+.ma-edit .ma-meta i{margin-right:.3rem;}
+.ma-edit .ma-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .9rem;margin-top:.15rem;}
+.ma-edit .ma-meta > span{margin-right:0;}
 
-    /* Adjust the dropdown arrow height and alignment */
-    .select2-container .select2-selection--single .select2-selection__arrow {
-        height: 37px !important;
-        top: 0;
-        right: 6px;
-    }
+/* ป้ายทะเบียนรถ */
+.ma-edit .ma-plate{display:inline-flex;align-items:stretch;border:2px solid #1c3d7a;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 1px 0 rgba(28,61,122,.15);line-height:1;}
+.ma-edit .ma-plate .pi{display:flex;align-items:center;background:#1c3d7a;color:#ffd43b;padding:0 .5rem;font-size:.9rem;}
+.ma-edit .ma-plate .pi i{margin:0;}
+.ma-edit .ma-plate .pt{display:flex;align-items:center;padding:.28rem .65rem;font-size:1.15rem;font-weight:700;letter-spacing:.06em;color:#1c3d7a;font-variant-numeric:tabular-nums;}
+.ma-edit .ma-plate .pc{display:flex;align-items:center;background:#ffd43b;color:#1c3d7a;font-weight:700;font-size:.8rem;padding:0 .55rem;border-left:2px solid #1c3d7a;letter-spacing:.04em;}
+.ma-edit .ma-photos{display:flex;align-items:center;gap:.4rem;padding-left:1rem;border-left:1px solid #e3e6ea;font-size:.85rem;color:#6c757d;}
+.ma-edit .ma-photos span{white-space:nowrap;margin-right:.1rem;}
+.ma-edit .ma-photos a{display:block;width:46px;height:46px;border-radius:6px;overflow:hidden;border:1px solid #dee2e6;flex:0 0 auto;transition:transform .15s;}
+.ma-edit .ma-photos a:hover{transform:scale(1.06);border-color:#86b7fe;}
+.ma-edit .ma-photos img{width:100%;height:100%;object-fit:cover;}
+.ma-edit .ma-loc{display:flex;align-items:center;margin-left:auto;gap:.5rem;font-size:.85rem;color:#6c757d;}
 
-    /* Ensure dropdown menu adapts properly */
-    .select2-container .select2-dropdown {
-        border-radius: 4px;
-        border: 1px solid #ced4da;
-    }
+/* ข้อมูลการแจ้งซ่อม (อ่านอย่างเดียว) */
+.ma-edit .ma-report{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.25fr) minmax(0,1.3fr) minmax(0,1.4fr);gap:.5rem;margin-top:.6rem;}
+.ma-edit .ma-ri{--c:#495057;--bg:#f8f9fa;--bd:#e9ecef;--ic:#e9ecef;display:flex;align-items:flex-start;gap:.6rem;background:var(--bg);border:1px solid var(--bd);border-left:4px solid var(--c);border-radius:8px;padding:.45rem .7rem;min-width:0;}
+.ma-edit .ma-ri .ic{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--ic);color:var(--c);display:inline-flex;align-items:center;justify-content:center;font-size:.9rem;margin-top:.1rem;}
+.ma-edit .ma-ri .tx{min-width:0;}
+.ma-edit .ma-ri .k{font-size:.75rem;color:var(--c);font-weight:600;margin-bottom:.05rem;}
+.ma-edit .ma-ri .k .by{font-weight:400;opacity:.85;}
+.ma-edit .ma-ri .v{font-size:.95rem;color:#212529;font-weight:500;line-height:1.35;word-break:break-word;}
+.ma-edit .ri-red{--c:#c92a2a;--bg:#fff5f5;--bd:#ffd8d8;--ic:#ffe3e3;}
+.ma-edit .ri-green{--c:#2b8a3e;--bg:#f4fbf6;--bd:#d3f0db;--ic:#d3f9d8;}
+.ma-edit .ri-orange{--c:#d9480f;--bg:#fff8f1;--bd:#ffe0c7;--ic:#ffe8cc;}
+.ma-edit .ri-blue{--c:#1864ab;--bg:#f3f8ff;--bd:#d0e4ff;--ic:#dbe9ff;}
+.ma-edit .ri-amber{--c:#946200;--bg:#fff9e6;--bd:#ffe8a3;--ic:#fff0bf;}
+.ma-edit .ri-gray{--c:#868e96;}
+.ma-edit .ri-green .v{color:#2b8a3e;}
+.ma-edit .ri-orange .v{color:#d9480f;}
+.ma-edit .ri-blue .v{font-variant-numeric:tabular-nums;font-size:1.05rem;}
+.ma-edit .ma-ri .none{color:#adb5bd;font-weight:400;}
 
-    /* Align the clear button */
-    .select2-container .select2-selection__clear {
-        line-height: 37px !important;
-    }
+/* ปุ่มสลับ (segmented) */
+.ma-edit .ma-seg{display:inline-flex;border:1px solid #ced4da;border-radius:8px;overflow:hidden;background:#fff;}
+.ma-edit .ma-seg button{border:0;background:transparent;padding:.3rem .85rem;font-size:.9rem;color:#495057;cursor:pointer;}
+.ma-edit .ma-seg button + button{border-left:1px solid #ced4da;}
+.ma-edit .ma-seg button.active{background:#e7f1ff;color:#0d6efd;font-weight:600;}
+.ma-edit .ma-seg button:focus{outline:2px solid #86b7fe;outline-offset:-2px;}
 
-    .custom-control-label::before{
-        background-color:lightblue;
-        width: 1.85rem;
-        height: 1.85rem;
-    }
-    .custom-control-label::after {
-        width: 1.85rem;
-        height: 1.85rem;
-    }
+/* หัวหมวด */
+.ma-edit .ma-sec{display:flex;align-items:center;gap:.45rem;font-weight:600;font-size:.92rem;color:#343a40;margin:.7rem 0 .4rem;}
+.ma-edit .ma-sec + .form-row, .ma-edit .ma-sec + .form-group{margin-top:0;}
+.ma-edit .ma-divider{border-top:1px dashed #e3e6ea;margin-top:.15rem;}
+.ma-edit .ma-num{width:20px;height:20px;border-radius:50%;background:#e7f1ff;color:#0d6efd;font-size:.75rem;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;}
 
-    .big-checkbox{
-        width: 16px; /* Adjust the width as needed */
-        height: 16px; /* Adjust the height as needed */
-        transform: scale(1.15); /* Adjust the scale as needed */
-        -webkit-transform: scale(1.15); /* For Safari and Chrome */
-        -moz-transform: scale(1.15); /* For Firefox */
-        -ms-transform: scale(1.15); /* For Internet Explorer */
-        -o-transform: scale(1.15); /* For Opera */
-    }
+.ma-edit .form-group{margin-bottom:.55rem;}
+.ma-edit label{font-size:.8rem;color:#495057;margin-bottom:.15rem;}
+.ma-edit .req::after{content:" *";color:#dc3545;}
+.ma-edit textarea.form-control{min-height:0;}
 
-    .inline-checkboxes{
-        display: inline-block;
-        margin-right: 15px; /* Adjust spacing as needed */
-    }
+/* radio ประเภทใบแจ้งซ่อม → segmented */
+.ma-edit #id_ma_type{display:inline-flex;flex-wrap:wrap;padding:0;margin:0;border:1px solid #ced4da;border-radius:6px;overflow:hidden;background:#fff;}
+.ma-edit #id_ma_type > div + div{border-left:1px solid #ced4da;}
+.ma-edit #id_ma_type > div:has(input[value=""]){display:none;}
+.ma-edit #id_ma_type > div:has(input[value=""]) + div{border-left:0;}
+.ma-edit #id_ma_type label{display:block;margin:0;padding:0 .9rem;line-height:36px;cursor:pointer;font-size:.92rem;color:#495057;white-space:nowrap;}
+.ma-edit #id_ma_type input{position:absolute;opacity:0;pointer-events:none;}
+.ma-edit #id_ma_type label.checked{background:#e7f1ff;color:#0d6efd;font-weight:600;}
+.ma-edit #id_ma_type label:hover{background:#f4f8ff;}
 
-    .radio-inline {
-        display: inline-flex;
-        gap: 50px;           /* ← spacing between options */
-        padding: 2px;     /* remove default <ul> padding */
-        margin: 0;
-        border: 1px solid #ced4da;
-        border-radius: 5px;
-    }
+/* ความเห็นผู้ใช้หลังตรวจรับ */
+.ma-edit #id_is_complete{margin-bottom:.35rem;}
+.ma-edit #id_is_complete label{display:flex;align-items:center;gap:.5rem;margin:0;padding:.35rem .65rem;border:1px solid #ced4da;border-radius:6px;cursor:pointer;color:#212529;font-size:.88rem;}
+.ma-edit #id_is_complete label.checked{border-color:#198754;background:#e9f7ef;color:#146c43;}
+.ma-edit #id_is_complete input{width:16px;height:16px;flex:0 0 auto;}
 
+/* ไฟล์แนบ + ปุ่มบันทึก ในแถวเดียว */
+.ma-edit .ma-foot{display:flex;align-items:flex-end;gap:.75rem 1rem;border-top:1px solid #e3e6ea;padding-top:.7rem;margin-top:.2rem;}
+.ma-edit .ma-foot .pdf{flex:1 1 auto;min-width:0;}
+/* แถบปุ่ม ติดด้านล่าง (แบบเดียวกับใบขอเบิก) */
+.ma-edit .ma-actions-bar{position:sticky;bottom:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin-top:1rem;padding:.75rem 1.25rem;background:#fff;border:1px solid #e4e8ee;border-radius:12px;box-shadow:0 -4px 16px rgba(16,24,40,.06);}
+
+@media (max-width:1199.98px){
+  .ma-edit .ma-report{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:575.98px){
+  .ma-edit .ma-report{grid-template-columns:minmax(0,1fr);gap:.4rem;}
+  .ma-edit .ma-ri{padding:.35rem .6rem;}
+  .ma-edit .ma-ri-wide{grid-column:1 / -1;}
+  .ma-edit .ma-card{padding:.75rem;}
+  .ma-edit .ma-loc{width:100%;margin-left:0;}
+  .ma-edit .ma-photos{width:100%;padding-left:0;border-left:0;}
+  .ma-edit .ma-seg{display:flex;flex:1;}
+  .ma-edit .ma-seg button{flex:1;white-space:nowrap;padding:.3rem .4rem;}
+  .ma-edit #id_ma_type{display:flex;}
+  .ma-edit #id_ma_type > div{flex:1;}
+  .ma-edit #id_ma_type label{padding:0 .25rem;text-align:center;}
+  .ma-edit .ma-actions-bar{padding:.5rem .75rem;}
+  .ma-edit .ma-actions-bar .btn{flex:1 1 auto;white-space:nowrap;}
+}
 </style>
 {% endblock %}
 {% block content %}
-<div class="container">
-    <h2 align="center">ใบแจ้งซ่อม</h2>
-    <h6 class="text-right">รายละเอียดใบแจ้งซ่อม</h6>
-    <form class="form" method="post" method="POST" enctype="multipart/form-data">
+<div class="container ma-edit">
+    <form class="form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-    <div class="card div-shadow my-2">
-        <div class="card-content">
-          <div class="card-body">
-            <div class="row">
-                <div class="col-6">
-                    <h5 class="card-title text-primary">เลขที่ {{ma.ref_no}}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">วันที่ {{ma.created |date:"d/m/Y" }} ทะเบียนรถ {{ma.car}}</h6>
-                </div>
-                <div class="col-6" style="display: flex; align-items: center;">
-                {{form.location | add_class:"form-control form-control border border-primary"}}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="ma-card">
+
+        <!-- หัวเอกสาร -->
+        <div class="ma-head">
+            <div>
+                <div class="ma-ref">ใบแจ้งซ่อม <span class="no">{{ma.ref_no}}</span></div>
+                <div class="ma-meta">
+                    {% if ma.car %}
+                    <span class="ma-plate" title="ทะเบียนรถ / รหัสเครื่องจักร">
+                        <span class="pi"><i class="fas fa-truck"></i></span>
+                        <span class="pt">{{ ma.car.name|default:ma.car }}</span>
+                        {% if ma.car.code %}<span class="pc">{{ ma.car.code }}</span>{% endif %}
+                    </span>
+                    {% endif %}
+                    <span><i class="far fa-calendar-alt"></i>{{ma.created|date:"d/m/Y"}}</span>
                 </div>
             </div>
-            <hr>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                    <label>{{form.repair_type.label}}</label> 
-                    {{form.repair_type | add_class:"form-control"}}
-                    </div>
-                    <div class="form-group col-md-6">
-                    <label>{{form.ma_type.label}}</label><br>
-                    {{form.ma_type}}
-                    </div>
+            <div class="ma-loc">
+                <span>{{form.location.label}}</span>
+                <div class="ma-seg" id="loc-seg" role="group" aria-label="{{form.location.label}}">
+                    <button type="button" data-val="ซ่อมเอง"><i class="fas fa-tools mr-1"></i>ซ่อมเอง</button>
+                    <button type="button" data-val="ส่งซ่อมนอก"><i class="fas fa-store mr-1"></i>ส่งซ่อมนอก</button>
                 </div>
-
-                <div class="in_rp form-group">
-                    <label>{{form.repair_name.label}}</label>
-                    {{form.repair_name | add_class:"form-control in_input"}}
-                </div>
-                <div class="form-row out_rp">
-                    <div class="form-group col-md-8">
-                    <label>{{form.distributor.label}}</label>
-                    {{form.distributor | add_class:"form-control is-valid out_input"}}
-
-                    <input type="text" name="form-distributor" id="id-form-distributor" class="form-control is-valid"
-                        Placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"
-                        onfocusout="searchDataDistributor();">
-                    
-                    </div>
-                    <div class="form-group col-md-4">
-                    <label>{{form.amount.label}}</label>
-                    {{form.amount | add_class:"form-control is-valid out_input"}}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                    <label>{{form.start_rp.label}}</label>
-                    {{form.start_rp | add_class:"form-control"}}
-                    </div>
-                    <div class="form-group col-md-6">
-                    <label>{{form.end_rp.label}}</label>
-                    {{form.end_rp | add_class:"form-control"}}
-                    </div>
-                </div>
-                <div class="in_rp form-group">
-                    <label>{{form.detail.label}}</label>
-                    {{form.detail | add_class:"form-control in_input"}}
-                </div>
-                <div class="in_rp form-row">
-                    <div class="form-group col-md-6">
-                    <label>{{form.work_hour.label}}</label>
-                    {{form.work_hour | add_class:"form-control in_input"}}
-                    </div>
-                    <div class="form-group col-md-4">
-                    <label>{{form.force_day.label}}</label>
-                    {{form.force_day | add_class:"form-control in_input"}}
-                    </div>
-                    <div class="form-group col-md-2">
-                    <label>{{form.force_hour.label}}</label>
-                    {{form.force_hour | add_class:"form-control in_input"}}
-                    </div>
-                </div>
-                <div class="out_rp form-row">
-                    <div class="form-group col-md-6">
-                    <label>{{form.contact_name.label}}</label>
-                    {{form.contact_name | add_class:"form-control out_input"}}
-                    </div>
-                    <div class="form-group col-md-6">
-                    <label>{{form.sender_name.label}}</label>
-                    {{form.sender_name | add_class:"form-control out_input"}}
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                    <label>{{form.chief_name.label}}</label>
-                    {{form.chief_name | add_class:"form-control"}}
-                    </div>
-                    <div class="form-group col-md-6">
-                    <label>{{form.chief_update.label}}</label>
-                    {{form.chief_update | add_class:"form-control"}}
-                    </div>
-                </div>
-          </div>
+                {{form.location|add_class:"d-none"}}
+            </div>
+            {% if ma.image1 or ma.image2 or ma.image3 or ma.image4 %}
+            <div class="ma-photos" aria-label="รูปภาพแจ้งซ่อม">
+                <span><i class="far fa-images"></i> รูปภาพ</span>
+                {% if ma.image1 %}<a href="{{ ma.image1.url }}" target="_blank" title="รูปภาพที่ 1"><img src="{{ ma.image1.url }}" alt="รูปภาพที่ 1" loading="lazy"></a>{% endif %}
+                {% if ma.image2 %}<a href="{{ ma.image2.url }}" target="_blank" title="รูปภาพที่ 2"><img src="{{ ma.image2.url }}" alt="รูปภาพที่ 2" loading="lazy"></a>{% endif %}
+                {% if ma.image3 %}<a href="{{ ma.image3.url }}" target="_blank" title="รูปภาพที่ 3"><img src="{{ ma.image3.url }}" alt="รูปภาพที่ 3" loading="lazy"></a>{% endif %}
+                {% if ma.image4 %}<a href="{{ ma.image4.url }}" target="_blank" title="รูปภาพที่ 4"><img src="{{ ma.image4.url }}" alt="รูปภาพที่ 4" loading="lazy"></a>{% endif %}
+            </div>
+            {% endif %}
         </div>
-      </div>
-    <h6 class="my-3 text-right">สรุปงานซ่อม</h6>
-    <div class="card div-shadow my-2">
-        <div class="card-content">
-          <div class="card-body">
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                    <label>{{form.sum_up.label}}</label>
-                    {{form.sum_up | add_class:"form-control"}}
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label>ความเห็นผู้ใช้งานหลังตรวจรับงาน</label>
-                        {{form.is_complete}}
-                        <div class="row">
-                            <div class="col">
-                                {{form.fail_reason | add_class:"form-control"}}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <div class="pdf">
-                        {% if form.ma_pdf.errors %}
-                        <div class="alert alert-warning" role="alert">
-                            {{ form.ma_pdf.errors }}
-                        </div>
-                        {% endif %}
-                        ไฟล์แนบ {{form.ma_pdf | add_class:"form-control text-right"}}
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col text-right">
-                        <button type="submit" class="btn btn-primary">บันทึก</button>
-                    </div>
+        <!-- ข้อมูลการแจ้งซ่อม (อ่านอย่างเดียว) -->
+        <div class="ma-report">
+            <div class="ma-ri ma-ri-wide ri-red">
+                <span class="ic"><i class="fas fa-exclamation-triangle"></i></span>
+                <div class="tx">
+                    <div class="k">อาการ/ สาเหตุที่เสีย</div>
+                    <div class="v">{{ ma.broke_reason|default:"-" }}</div>
                 </div>
-          </div>
+            </div>
+            {% if not ma.car_state %}<div class="ma-ri ri-gray">{% elif 'ไม่' in ma.car_state %}<div class="ma-ri ri-orange">{% else %}<div class="ma-ri ri-green">{% endif %}
+                <span class="ic"><i class="fas fa-truck-moving"></i></span>
+                <div class="tx">
+                    <div class="k">สถานะรถ</div>
+                    <div class="v">{{ ma.car_state|default:"-" }}</div>
+                </div>
+            </div>
+            <div class="ma-ri ri-blue">
+                <span class="ic"><i class="fas fa-tachometer-alt"></i></span>
+                <div class="tx">
+                    <div class="k">เลขไมล์/ เลขชั่วโมง ตอนแจ้งซ่อม</div>
+                    <div class="v">{% if ma.mile is not None %}{{ ma.mile|intcomma }}{% else %}-{% endif %}</div>
+                </div>
+            </div>
+            <div class="ma-ri ma-ri-wide {% if ma.approve_note %}ri-amber{% else %}ri-gray{% endif %}">
+                <span class="ic"><i class="fas fa-comment-dots"></i></span>
+                <div class="tx">
+                    <div class="k">ความคิดเห็นผู้อนุมัติซ่อม
+                        {% if ma.approve_name %}<span class="by">— {{ ma.approve_name }}{% if ma.approve_update %} · {{ ma.approve_update|get_localtime|date:"d/m/Y H:i" }}{% endif %}</span>{% endif %}
+                    </div>
+                    <div class="v">{% if ma.approve_note %}{{ ma.approve_note|linebreaksbr }}{% else %}<span class="none">ไม่มีความคิดเห็น</span>{% endif %}</div>
+                </div>
+            </div>
         </div>
+
+        <!-- 1. ข้อมูลงานซ่อม -->
+        <div class="ma-sec"><span class="ma-num">1</span>ข้อมูลงานซ่อม</div>
+        <div class="form-row align-items-end">
+            <div class="form-group col-md-5">
+                <label>{{form.repair_type.label}}</label>
+                {{form.repair_type|add_class:"form-control"}}
+                {{form.repair_type.errors}}
+            </div>
+            <div class="form-group col-md-7">
+                <label class="d-block">{{form.ma_type.label}}</label>
+                {{form.ma_type}}
+                {{form.ma_type.errors}}
+            </div>
+        </div>
+        <div class="in_rp form-group">
+            <label>{{form.detail.label}}</label>
+            {{form.detail|add_class:"form-control in_input"|attr:"rows:2"}}
+        </div>
+        <div class="form-row out_rp">
+            <div class="form-group col-md-8">
+                <label>{{form.distributor.label}}</label>
+                {{form.distributor|add_class:"form-control out_input"}}
+                <input type="text" name="form-distributor" id="id-form-distributor" class="form-control"
+                    placeholder="ค้นหาผู้จำหน่าย ..." autocomplete="off"
+                    onfocusout="searchDataDistributor();">
+            </div>
+            <div class="form-group col-md-4">
+                <label>{{form.amount.label}}</label>
+                <div class="input-group">
+                    {{form.amount|add_class:"form-control text-right out_input"}}
+                    <div class="input-group-append"><span class="input-group-text">บาท</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. ผู้รับผิดชอบและเวลา -->
+        <div class="ma-divider"></div>
+        <div class="ma-sec"><span class="ma-num">2</span>ผู้รับผิดชอบและเวลา</div>
+        <div class="form-row">
+            <div class="in_rp form-group col-md">
+                <label>{{form.repair_name.label}}</label>
+                {{form.repair_name|add_class:"form-control in_input"}}
+            </div>
+            <div class="out_rp form-group col-md">
+                <label>{{form.contact_name.label}}</label>
+                {{form.contact_name|add_class:"form-control out_input"}}
+            </div>
+            <div class="out_rp form-group col-md">
+                <label>{{form.sender_name.label}}</label>
+                {{form.sender_name|add_class:"form-control out_input"}}
+            </div>
+            <div class="form-group col-md">
+                <label class="req">{{form.chief_name.label}}</label>
+                {{form.chief_name|add_class:"form-control"}}
+                {{form.chief_name.errors}}
+            </div>
+            <div class="form-group col-md">
+                <label>{{form.chief_update.label}}</label>
+                {{form.chief_update|add_class:"form-control"}}
+                {{form.chief_update.errors}}
+            </div>
+        </div>
+        <div class="form-row align-items-end">
+            <div class="form-group col-sm-6 col-md">
+                <label>{{form.start_rp.label}}</label>
+                {{form.start_rp|add_class:"form-control"}}
+                {{form.start_rp.errors}}
+            </div>
+            <div class="form-group col-sm-6 col-md">
+                <label>{{form.end_rp.label}}</label>
+                {{form.end_rp|add_class:"form-control"}}
+                {{form.end_rp.errors}}
+            </div>
+            <div class="in_rp form-group col-4 col-md-2">
+                <label>{{form.work_hour.label}}</label>
+                {{form.work_hour|add_class:"form-control in_input"}}
+            </div>
+            <div class="in_rp form-group col-4 col-md-2">
+                <label>{{form.force_day.label}}</label>
+                {{form.force_day|add_class:"form-control in_input"}}
+            </div>
+            <div class="in_rp form-group col-4 col-md-2">
+                <label>{{form.force_hour.label}}</label>
+                {{form.force_hour|add_class:"form-control in_input"}}
+            </div>
+        </div>
+
+        <!-- 3. สรุปงานซ่อม -->
+        <div class="ma-divider"></div>
+        <div class="ma-sec"><span class="ma-num">3</span>สรุปงานซ่อม</div>
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label>{{form.sum_up.label}}</label>
+                {{form.sum_up|add_class:"form-control"|attr:"rows:3"}}
+            </div>
+            <div class="form-group col-md-6">
+                <label>ความเห็นผู้ใช้งานหลังตรวจรับงาน</label>
+                {{form.is_complete}}
+                {{form.fail_reason|add_class:"form-control"|attr:"rows:1"|attr:"style:"|attr:"placeholder:เหตุผลที่ปิดสรุปไม่ได้ (ถ้ามี)"}}
+            </div>
+        </div>
+
+        <div class="ma-foot">
+            <div class="pdf">
+                <label>ไฟล์แนบ</label>
+                {% if form.ma_pdf.errors %}
+                <div class="alert alert-warning py-1 mb-1" role="alert">{{ form.ma_pdf.errors }}</div>
+                {% endif %}
+                {{form.ma_pdf}}
+            </div>
+        </div>
+    </div>
+
+    <!-- แถบปุ่ม ติดด้านล่าง (แบบเดียวกับใบขอเบิก / บันทึกการใช้รถ) -->
+    <div class="ma-actions-bar">
+        <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> บันทึกการแก้ไข</button>
+        <a href="{% url 'viewMA' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> กลับ</a>
     </div>
     </form>
 </div>
@@ -238,21 +336,20 @@
 
 <!-- Select2 JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+{% include '_select2_search.html' %}
 
 <script>
-    $('div.pdf a').addClass('btn btn-outline-success btn-sm');
-    $('div.pdf a').text('Download');
 
     //after load
     $(document).ready(function() {
         $('#id_start_rp').val('{{ ma.start_rp|get_localtime|date:"Y-m-d\\TH:i"}}');
         $('#id_end_rp').val('{{ ma.end_rp|get_localtime|date:"Y-m-d\\TH:i"}}');
         $('#id_chief_update').val('{{ ma.chief_update|get_localtime|date:"Y-m-d\\TH:i"}}');
-        $('#id_repair_name').select2({ width: '100%' });
-        $('#id_chief_name').select2({ width: '100%' });
-        $('#id_repair_type').select2({ width: '100%' });
-        $('#id_contact_name').select2({ width: '100%' });
-        $('#id_sender_name').select2({ width: '100%' });
+        initSearchSelect('#id_repair_type', 'เลือกประเภทการซ่อม', true);
+        initSearchSelect('#id_repair_name', 'เลือกช่างซ่อม', true);
+        initSearchSelect('#id_chief_name', 'เลือกหัวช่างซ่อมบำรุง', false);
+        initSearchSelect('#id_contact_name', 'เลือกผู้ติดต่อ', true);
+        initSearchSelect('#id_sender_name', 'เลือกผู้จัดส่งงาน', true);
         visibleRepair();
         requiredFail();
         setDataDistributor();
@@ -295,8 +392,26 @@
         visibleRepair();
     });
 
+    // ปุ่มสลับสถานที่ซ่อม → ตั้งค่า select #id_location (ซ่อนไว้) แล้วให้ logic เดิมทำงาน
+    $('#loc-seg').on('click', 'button', function(){
+        $('#id_location').val($(this).data('val')).trigger('change');
+    });
+
+    // ไฮไลต์ตัวเลือก radio ที่ถูกเลือก (ประเภทใบแจ้งซ่อม / ความเห็นหลังตรวจรับ)
+    function markChecked(){
+        $('.ma-edit input[type="radio"]').each(function(){
+            $(this).closest('label').toggleClass('checked', this.checked);
+        });
+    }
+    $(document).on('change', '.ma-edit input[type="radio"]', markChecked);
+    $(markChecked);
+
     function visibleRepair(){
         val = $('#id_location').val();
+        $('#loc-seg button').each(function(){
+            var on = $(this).data('val') == val;
+            $(this).toggleClass('active', on).attr('aria-pressed', on);
+        });
         if(val == 'ซ่อมเอง'){
             $(".in_rp").removeClass("d-none");
             $(".out_rp").addClass("d-none");
@@ -384,10 +499,12 @@
                                 $("#id_repair_type").find('option').not(':first').remove();
                                 //set option 
                                 for(var i = 0; i < data.repair_type_list.length; i++){
-                                    $("#id_repair_type").append(new Option(data.repair_type_list[i].name, data.repair_type_list[i].id));
+                                    var rt = data.repair_type_list[i];
+                                    $("#id_repair_type").append(new Option(rt.id + ' · ' + rt.name, rt.id));
                                 }
                         }
-                        $('#id_repair_type option[value="'+tempRepairType +'"]').attr('selected','selected');
+                        // ต้อง trigger change ให้ select2 แสดงค่าที่เลือกไว้เดิม
+                        $('#id_repair_type').val(tempRepairType || '').trigger('change.select2');
                     }
                 });
             }

@@ -1,0 +1,122 @@
+{% comment %}
+สไตล์กลางของหน้ารายการ (view*.html) ใส่ใน {% block css %}
+- ตัวกรอง: ใส่ class "lf" ที่ card ของตัวกรอง แล้วแบ่งช่องเป็นกลุ่มด้วย
+    <div class="lf-row"><div class="lf-sec"><i class="..."></i> ชื่อกลุ่ม</div><div class="form-row"> ...ช่อง... </div></div>
+  ปุ่มกรอง/ล้าง ใส่ใน <div class="lf-btns">
+- ตาราง: ใส่ class "lt" ที่ <table> แสดงเป็นตาราง (list) เสมอทุกขนาดจอ ถ้ากว้างเกินจอให้เลื่อนซ้ายขวาใน .table-responsive
+{% endcomment %}
+{% include '_doc_item_list_style.html' %}
+<style>
+  /* ---------- ตัวกรอง (ตัวหนังสือเล็ก กล่องเตี้ย) ---------- */
+  .lf .card-body { padding: .5rem 1rem .15rem; }
+  .lf-row { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); column-gap: .75rem; align-items: end; }
+  .lf-row + .lf-row { border-top: 1px dashed #dee2e6; padding-top: .2rem; }
+  .lf-sec { font-size: .82rem; font-weight: 600; color: #6c757d; white-space: nowrap; padding-bottom: .55rem; }
+  .lf-sec i { width: 1rem; opacity: .7; }
+  .lf .form-row > [class*="col"] { margin-bottom: .35rem; }
+  .lf .form-group { margin-bottom: 0; }
+  .lf label { font-size: .78rem; color: #6c757d; margin-bottom: .05rem; }
+  .lf .form-control,
+  .lf input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+  .lf select,
+  .lf select.form-control:not([size]):not([multiple]) { /* ชนะ bootstrap 4.1 ที่ให้ select.form-control สูง 38px */
+    display: block; width: 100%; height: calc(1.75rem + 2px); padding: .15rem .5rem;
+    font-size: .88rem; color: #495057; background-color: #fff;
+    border: 1px solid #ced4da; border-radius: .25rem;
+  }
+  /* select2 ในตัวกรอง (เช่น ช่องเลือกผู้ใช้ _user_filter_search.html): ให้สูงเท่าช่องอื่น
+     ต้อง !important เพราะ static/css/layouts.css บังคับ select2 สูง ~38px ด้วย !important */
+  .lf .select2-container--default .select2-selection--single {
+    height: calc(1.75rem + 2px) !important; padding: 0 .5rem !important; border-color: #ced4da;
+  }
+  .lf .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.75rem !important; padding-left: 0; font-size: .88rem;
+  }
+  .lf .select2-container--default .select2-selection--single .select2-selection__arrow { height: 1.75rem !important; }
+  .lf .select2-container--default .select2-selection--multiple { min-height: calc(1.75rem + 2px) !important; font-size: .88rem; }
+  .lf input:focus, .lf select:focus { outline: 0; border-color: #80bdff; box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .2); }
+  .lf .invalid-feedback, .lf small.form-text { font-size: .75rem; }
+  .lf-btns { display: flex; gap: .4rem; }
+  .lf-btns .btn { flex: 1 1 0; height: calc(1.75rem + 2px); padding: .15rem .5rem; font-size: .85rem; white-space: nowrap; }
+  @media (max-width: 767.98px) {
+    .lf-row { grid-template-columns: 1fr; }
+    .lf-sec { padding: .3rem 0 .1rem; }
+  }
+  /* แถวล่างของตัวกรอง (วางหลัง </form>): ปุ่ม export Excel ซ้าย, ปุ่มกรอง/ล้าง ขวา
+       <div class="lf-foot"><div class="lf-export">...ปุ่ม btn-excel...</div>
+         <div class="lf-btns">ปุ่มกรอง (type submit + attribute form ชี้ไปที่ id ของฟอร์ม) และปุ่มล้าง</div></div>
+     ช่องกรองทุกแถวใช้ col-md-3 / col-md-6 / col-md-9 ให้ตรงกันเป็น grid 4 คอลัมน์ */
+  .lf .card-body:has(> .lf-foot) { padding-bottom: .75rem; }
+  .lf-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem;
+             margin-top: .5rem; padding-top: .75rem; border-top: 1px solid #dee2e6; }
+  .lf-export { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .lf-export .btn-excel { font-size: .875rem; font-weight: 500; }
+  .lf-foot .lf-btns { width: 13rem; margin-left: auto; }
+  .lf-foot .lf-btns .btn { height: auto; padding: .4rem .5rem; }
+  @media (max-width: 767.98px) { .lf-foot .lf-btns { width: 100%; } }
+
+  /* ---------- ตาราง: ตัวหนังสือขนาดปกติ ---------- */
+  .lt { margin-top: 0 !important; }
+  .lt > thead > tr > th { white-space: nowrap; vertical-align: middle; }
+  .lt > tbody > tr > td, .lt > tbody > tr > th { vertical-align: top; overflow-wrap: break-word; }
+  .lt-ref { font-weight: 700; white-space: nowrap; }
+  .lt-link { display: block; white-space: nowrap; }
+  /* ป้ายทะเบียนรถ (_car_plate.html) */
+  .lt-plate { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .55rem; border-radius: 999px; background: #fff4e6; color: #d9480f; font-size: .88rem; font-weight: 600; line-height: 1.4; white-space: nowrap; vertical-align: middle; max-width: 100%; }
+  .lt-plate > i { font-size: .8em; }
+  .lt-plate .pc { margin-left: .1rem; padding: 0 .4rem; border-radius: 999px; background: #fff; color: #d9480f; font-size: .78rem; font-weight: 700; }
+  .lt-sub .lt-plate, .lt-name .lt-plate { margin-top: .2rem; }
+  .lt-sub { display: block; font-size: .9rem; font-weight: 400; color: #6c757d; }
+  .lt-reason { margin-top: .3rem; font-size: .9rem; font-weight: 400; color: #a71d2a; max-width: 240px; overflow-wrap: anywhere; }
+  .lt-num { text-align: right; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+  /* ชื่อยาว (ผู้จำหน่าย/ลูกค้า/หมายเหตุ) ตัดบรรทัด ไม่ดันตารางเกินจอ */
+  .lt-name { max-width: 200px; overflow-wrap: anywhere; }
+  .lt-note { max-width: 240px; overflow-wrap: anywhere; }
+  /* สถานะ: ป้ายเล็ก (st-1 รอ, st-2 อนุมัติ, st-3 ไม่อนุมัติ, st-info ฟ้า, st-muted เทา) */
+  .lt-pill { display: inline-block; margin-bottom: .2rem; padding: .05rem .55rem; border-radius: 1rem; font-size: .88rem; font-weight: 600; white-space: nowrap; background: #e9ecef; color: #495057; }
+  .lt-pill small { font-size: .88rem; font-weight: 400; opacity: .85; }
+  .lt-pill.st-1 { background: #fff3cd; color: #8a6100; }
+  .lt-pill.st-2 { background: #d4edda; color: #155724; }
+  .lt-pill.st-3 { background: #f8d7da; color: #a71d2a; }
+  .lt-pill.st-info { background: #d6e9fb; color: #0b4f8a; }
+  .lt-pill.st-muted { background: #e9ecef; color: #6c757d; }
+  /* ปุ่มในคอลัมน์จัดการ: เรียงลงล่าง กว้างเท่ากัน */
+  .lt-actions { white-space: nowrap; }
+  .lt-actions .btn, .lt-actions form { display: block; }
+  .lt-actions .btn { width: 100%; min-width: 90px; }
+  .lt-actions > * + * { margin-top: .3rem; }
+  /* รูปภาพย่อ */
+  .lt-photos { display: flex; flex-wrap: wrap; gap: .25rem; max-width: 100px; }
+  .lt-photos img { width: 46px; height: 46px; object-fit: cover; border-radius: .25rem; border: 1px solid #dee2e6; }
+  /* รายชื่อร้านที่เสนอราคา (comparePricePO/_cp_bidder_list.html): บรรทัดละร้าน คั่นด้วยเส้นประแบบรายการสินค้า */
+  .cp-bd { padding: .2rem 0; overflow-wrap: anywhere; }
+  .cp-bd + .cp-bd { border-top: 1px dashed #ced4da; }
+  .cp-bd-other { font-size: .9rem; color: #6c757d; }
+  .lt-empty-row td { padding: 2rem 1rem !important; text-align: center; color: #6c757d; }
+  .lt-count { color: #6c757d; font-size: .95rem; text-align: center; margin-top: .75rem; }
+  /* จอ < 1400px: ซ่อนคอลัมน์รอง (lt-hide-lg) แล้วแสดงข้อมูลเดียวกันใต้ช่องแรก (lt-inline) ยังเป็นตาราง */
+  .lt-inline { display: none; }
+  .lt-inline .lt-link { display: inline-block; margin-right: .5rem; font-weight: 400; }
+  @media (max-width: 1399.98px) {
+    .lt .lt-hide-lg { display: none; }
+    .lt-inline { display: block; }
+  }
+
+  /* ---------- ปุ่มสร้างเอกสารหลักของหน้า (ใส่ class "lt-create" ที่ปุ่ม) ---------- */
+  .lt-create {
+    display: flex; align-items: center; justify-content: center; gap: .5rem;
+    width: 100%; margin-bottom: .75rem; padding: .5rem 1rem;
+    font-size: 1.05rem; font-weight: 700; color: #fff !important;
+    background: linear-gradient(135deg, #007bff 0%, #0062cc 100%);
+    border: 0; border-radius: .45rem;
+    box-shadow: 0 3px 10px rgba(0, 123, 255, .35);
+    transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+    text-decoration: none !important;
+  }
+  .lt-create i { font-size: 1.15rem; }
+  .lt-create:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0, 123, 255, .45); filter: brightness(1.07); }
+  .lt-create:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(0, 123, 255, .35); }
+  .lt-create:focus { outline: 0; box-shadow: 0 0 0 .2rem rgba(0, 123, 255, .4), 0 3px 10px rgba(0, 123, 255, .35); }
+  @media print { .lt-create { display: none !important; } }
+
+</style>

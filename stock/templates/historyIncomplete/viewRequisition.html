@@ -3,38 +3,34 @@
 {% load crispy_forms_tags %}
 {% load templatehelpers %}
 
+{% block css %}
+{% include '_list_page_style.html' %}
+{% include '_user_filter_search.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container my-3">
 <h3 align="center">ประวัติใบขอเบิกที่ไม่สำเร็จ</h3>
-<div class="card my-3 bg-light div-shadow">
+<div class="card my-3 bg-light div-shadow lf">
   <div class="card-body">
     <form method="get">
-      {% csrf_token %}
-      <div class="form-row">
-        <div class="form-group col-md-1 mb-0">
-          {{ filter.form.ref_no|as_crispy_field }}
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-file-alt"></i> เอกสาร</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.ref_no|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.name|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.section|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.urgency|as_crispy_field }}</div>
         </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.name|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.section|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.urgency|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.start_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-2 mb-0">
-          {{ filter.form.end_created|as_crispy_field }}
-        </div>
-        <div class="form-group col-md-1 mb-0">
-          <div>
-            <label for=""></label>
-            <div class="my-2">
-              <button type="submit" class="btn btn-info">กรอง<i class="fas fa-filter"></i></button>
-            </div>
+      </div>
+      <div class="lf-row">
+        <div class="lf-sec"><i class="far fa-calendar-alt"></i> วันที่</div>
+        <div class="form-row align-items-end">
+          <div class="col-6 col-md">{{ filter.form.start_created|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.end_created|as_crispy_field }}</div>
+          <div class="col-12 col-md-3 lf-btns">
+            <button type="submit" class="btn btn-info"><i class="fas fa-filter"></i> กรอง</button>
+            <a href="{{ request.path }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i> ล้าง</a>
           </div>
         </div>
       </div>
@@ -44,14 +40,12 @@
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-bordered my-3">
+      <table class="table table-striped lt">
         <thead class="table-danger">
           <tr>
             <th scope="col">รหัสใบขอเบิก</th>
-            <th scope="col">ชื่อผู้ตั้งเบิก</th>
-            <th scope="col">แผนก</th>
+            <th scope="col">ผู้ตั้งเบิก / แผนก</th>
             <th scope="col">วันที่ตั้งเบิก</th>
-            <!--<th scope="col">ความเร่งด่วน</th>-->
             <th scope="col">สถานะใบขอซื้อ</th>
             <th scope="col">ใบบันทึก</th>
           </tr>
@@ -59,30 +53,28 @@
         <tbody>
         {% for requisition in requisitions %}
           <tr>
-            <th scope="row"><a href="{% url 'showRequisition' requisition.id 1 %}">{{requisition.ref_no}}</a></th>
-            <td>{{requisition.name}}</td>
-            <td>{{requisition.section}}</td>
-            <td>{{requisition.created |date:"d/m/Y" }}</td>
-            <!--<td class="text-center">{{requisition.urgency.name}}</td>-->
+            <th scope="row"><a class="lt-ref" href="{% url 'showRequisition' requisition.id 1 %}">{{ requisition.ref_no }}</a></th>
             <td>
-              {% if requisition.purchase_requisition_id %}
-                <button type="button" class="btn btn-outline-info btn-block btn-sm">มีใบขอซื้อ</button>
-              {% else %}
-                <button type="button" class="btn btn-outline-warning btn-block btn-sm">ไม่มีใบขอซื้อ</button>
-              {% endif %}
+              {{ requisition.name }}
+              {% if requisition.section %}<span class="lt-sub">{{ requisition.section }}</span>{% endif %}
             </td>
+            <td>{{ requisition.created|date:"d/m/Y" }}</td>
             <td>
-              {% if requisition.memorandum_pdf %}
-              <a href="/media/{{requisition.memorandum_pdf}}" class="btn btn-success btn-block btn-sm" target="_blank"><i class="fas fa-file-download"></i></a>
-              {% endif %}
+              {% if requisition.purchase_requisition_id %}<span class="lt-pill st-info">มีใบขอซื้อ</span>{% else %}<span class="lt-pill st-1">ไม่มีใบขอซื้อ</span>{% endif %}
+            </td>
+            <td class="lt-actions">
+              {% if requisition.memorandum_pdf %}<a href="/media/{{ requisition.memorandum_pdf }}" class="btn btn-outline-success btn-sm" target="_blank"><i class="fas fa-file-download"></i> ไฟล์แนบ</a>{% endif %}
             </td>
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="5">ไม่พบใบขอเบิก</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+      {% include '_list_count.html' with page=requisitions %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

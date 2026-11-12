@@ -4,6 +4,7 @@
 {% load templatehelpers %}
 
 {% block css %}
+{% include '_list_page_style.html' %}
 <style>
 .cl{
   border: 1px solid #ddd;
@@ -47,7 +48,7 @@
 <div class="card div-shadow">
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-striped my-3">
+      <table class="table table-striped lt">
         <thead class="thead-dark">
           <tr>
             <th scope="col">รหัสใบใช้รถ</th>
@@ -57,69 +58,36 @@
         <tbody>
         {% for cl in cls %}
           <tr>
-            <th scope="row">{{cl.ref_no}}<br>
-                {{cl.created |date:"d/m/Y"}}<br>
-                {{cl.name.first_name}}<br>
-                {{cl.car.name}}
+            <th scope="row">
+              <span class="lt-ref">{{ cl.ref_no }}</span>
+              <span class="lt-sub">{{ cl.created|date:"d/m/Y" }}</span>
+              <span class="lt-sub"><i class="fas fa-user"></i> {{ cl.name.first_name }}</span>
+              <span class="lt-sub"><i class="fas fa-car"></i> {{ cl.car.name }}</span>
             </th>
             {% if user_in_comp == "L1" or user_in_comp == "I1" %}
             <td>
-                <ul>
-                    <li>
-                        <b>{{cl.orig1}}</b> ไป <b>{{cl.job1}}</b> {{cl.mile_start_job1}}-{{cl.mile_end_job1}}
-                    </li>
-                    {% if cl.job2 %}
-                        <li>
-                            <b>{{cl.orig2}}</b> ไป <b>{{cl.job2}}</b> {{cl.mile_start_job2}}-{{cl.mile_end_job2}}
-                        </li>
-                    {% endif %}
-                    {% if cl.job3 %}
-                        <li>
-                            <b>{{cl.orig3}}</b> ไป <b>{{cl.job3}}</b> {{cl.mile_start_job3}}-{{cl.mile_end_job3}}
-                        </li>
-                    {% endif %}
-                    {% if cl.job4 %}
-                        <li>
-                            <b>{{cl.orig4}}</b> ไป <b>{{cl.job4}}</b> {{cl.mile_start_job4}}-{{cl.mile_end_job4}}
-                        </li>
-                    {% endif %}
-                    {% if cl.job5 %}
-                        <li>
-                            <b>{{cl.orig5}}</b> ไป <b>{{cl.job5}}</b> {{cl.mile_start_job5}}-{{cl.mile_end_job5}}
-                        </li>
-                    {% endif %}
-                    {% if cl.job6 %}
-                        <li>
-                            <b>{{cl.orig6}}</b> ไป <b>{{cl.job6}}</b> {{cl.mile_start_job6}}-{{cl.mile_end_job6}}
-                        </li>
-                    {% endif %}
-                </ul>
+              <ul class="pl-3 mb-0">
+                <li><b>{{ cl.orig1 }}</b> ไป <b>{{ cl.job1 }}</b> <span class="text-muted">{{ cl.mile_start_job1 }}-{{ cl.mile_end_job1 }}</span></li>
+                {% if cl.job2 %}<li><b>{{ cl.orig2 }}</b> ไป <b>{{ cl.job2 }}</b> <span class="text-muted">{{ cl.mile_start_job2 }}-{{ cl.mile_end_job2 }}</span></li>{% endif %}
+                {% if cl.job3 %}<li><b>{{ cl.orig3 }}</b> ไป <b>{{ cl.job3 }}</b> <span class="text-muted">{{ cl.mile_start_job3 }}-{{ cl.mile_end_job3 }}</span></li>{% endif %}
+                {% if cl.job4 %}<li><b>{{ cl.orig4 }}</b> ไป <b>{{ cl.job4 }}</b> <span class="text-muted">{{ cl.mile_start_job4 }}-{{ cl.mile_end_job4 }}</span></li>{% endif %}
+                {% if cl.job5 %}<li><b>{{ cl.orig5 }}</b> ไป <b>{{ cl.job5 }}</b> <span class="text-muted">{{ cl.mile_start_job5 }}-{{ cl.mile_end_job5 }}</span></li>{% endif %}
+                {% if cl.job6 %}<li><b>{{ cl.orig6 }}</b> ไป <b>{{ cl.job6 }}</b> <span class="text-muted">{{ cl.mile_start_job6 }}-{{ cl.mile_end_job6 }}</span></li>{% endif %}
+              </ul>
             </td>
-            {%else%}
+            {% else %}
             <td>
-                <ul>
-                    <li>
-                        <b>{{cl.job1}}</b> {{cl.start_job1}}-{{cl.end_job1}}
-                    </li>
-                    {% if cl.job2 %}
-                        <li>
-                            <b>{{cl.job2}}</b> {{cl.start_job2}}-{{cl.end_job2}}
-                        </li>
-                    {% endif %}
-                    {% if cl.job3 %}
-                        <li>
-                            <b>{{cl.job3}}</b> {{cl.start_job3}}-{{cl.end_job3}}
-                        </li>
-                    {% endif %}
-                    {% if cl.job4 %}
-                        <li>
-                            <b>{{cl.job4}}</b> {{cl.start_job4}}-{{cl.end_job4}}
-                        </li>
-                    {% endif %}
-                </ul>
+              <ul class="pl-3 mb-0">
+                <li><b>{{ cl.job1 }}</b> <span class="text-muted">{{ cl.start_job1 }}-{{ cl.end_job1 }}</span></li>
+                {% if cl.job2 %}<li><b>{{ cl.job2 }}</b> <span class="text-muted">{{ cl.start_job2 }}-{{ cl.end_job2 }}</span></li>{% endif %}
+                {% if cl.job3 %}<li><b>{{ cl.job3 }}</b> <span class="text-muted">{{ cl.start_job3 }}-{{ cl.end_job3 }}</span></li>{% endif %}
+                {% if cl.job4 %}<li><b>{{ cl.job4 }}</b> <span class="text-muted">{{ cl.start_job4 }}-{{ cl.end_job4 }}</span></li>{% endif %}
+              </ul>
             </td>
-            {%endif%}
+            {% endif %}
           </tr>
+        {% empty %}
+          <tr class="lt-empty-row"><td colspan="2">ไม่พบใบบันทึกการใช้รถ</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -131,6 +99,7 @@
         </a>
     </div>
 </div>
+      {% include '_list_count.html' with page=cls %}
       <br/>
       <!--Pagination-->
       <nav aria-label="Page navigation example">

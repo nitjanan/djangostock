@@ -42,7 +42,7 @@ import json
 from django.core.serializers import serialize
 from django.db.models import Count, Avg
 import xlwt
-from django.db.models import F, Func, Value, CharField,When, Q, Case, ExpressionWrapper
+from django.db.models import F, Func, Value, CharField,When, Q, Case, ExpressionWrapper, IntegerField
 from django.views.decorators.cache import cache_control
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import pandas as pd
@@ -94,6 +94,60 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from dateutil.rrule import rrule, MONTHLY
 
+#ค้นหารหัสวัสดุ/อุปกรณ์ (Select2) ด้วยรหัสหรือชื่อสินค้า: ทุกคำที่พิมพ์ต้องตรงกับรหัสหรือชื่อ, รหัสที่ตรง/ขึ้นต้นด้วยคำค้นขึ้นก่อน
+#แบ่งหน้าละ 30 รายการ (Select2 โหลดหน้าถัดไปเมื่อเลื่อนลงสุด) เพื่อให้ค้นเจอทุกรายการแม้คำค้นจะกว้าง
+#ชื่อสินค้าค้นแบบสะกดคล้ายกันได้ด้วย เช่น พิมพ์ "สาย" เจอ "ศาย", "สต็อก" เจอ "สต็อค"/"สตอก" (ชื่อที่สะกดตรงเป๊ะขึ้นก่อน)
+from .filter_suggest import filter_suggest_response
+from .thai_search import THAI_SIMILAR_GROUPS, thai_similar_pattern
+
+def product_search(request):
+    term = request.GET.get('q', '').strip()
+    if not term:
+        return JsonResponse({'results': [], 'pagination': {'more': False}, 'total': 0})
+
+    try:
+        page = max(int(request.GET.get('page', 1)), 1)
+    except ValueError:
+        page = 1
+    page_size = 30
+
+    q = Q()
+    exact_q = Q()
+    hl = []  #regex สำหรับไฮไลต์คำที่เจอในหน้าเว็บ (รวมตัวสะกดคล้าย)
+    for word in term.split():
+        exact = Q(id__icontains=word) | Q(name__icontains=word)
+        exact_q &= exact
+        pattern = thai_similar_pattern(word)
+        q &= (exact | Q(name__iregex=pattern)) if pattern else exact
+        hl.append(pattern or re.escape(word))
+
+    qs = Product.objects.filter(q)
+    total = qs.count()
+    start = (page - 1) * page_size
+
+    products = (qs.annotate(rank=Case(
+                    When(id__iexact=term, then=Value(0)),
+                    When(id__istartswith=term, then=Value(1)),
+                    When(exact_q, then=Value(2)),
+                    default=Value(3),
+                    output_field=IntegerField()))
+                .order_by('rank', 'id')
+                .values('id', 'name', 'unit__name', 'rank')[start:start + page_size])
+
+    results = [{
+        'id': p['id'],
+        'text': f"{p['id']} : {p['name'].strip()}",
+        'name': p['name'].strip(),
+        'unit': p['unit__name'] or '',
+        'similar': p['rank'] == 3,  #เจอเพราะสะกดคล้าย (ไม่ตรงเป๊ะ) → หน้าเว็บแสดงป้าย "ชื่อคล้าย"
+    } for p in products]
+    return JsonResponse({
+        'results': results,
+        'pagination': {'more': start + page_size < total},
+        'total': total,
+        'hl': hl,
+    })
+
 #ใช้ในระบบงาน ค้นหาด้วย code or name
 def car_search(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -101,12 +155,50 @@ def car_search(request):
         rq_type = request.GET.getlist('rq_type[]') or request.GET.getlist('rq_type')
 
 
-        cars = BaseCar.objects.filter(Q(name__icontains=search_term) | Q(code__icontains=search_term), (Q(rq_type__in = rq_type)| Q(rq_type = 4))).values('id', 'name', 'code')
+        from django.db.models import Case, When, Value, IntegerField
+        from django.db.models.functions import Replace
+
+        def _norm(s):
+            return s.replace('-', '').replace(' ', '')
+
+        cars = BaseCar.objects.filter(Q(rq_type__in = rq_type) | Q(rq_type = 4))
+
+        #ค้นหาได้หลายคำ (ทุกคำต้องเจอใน code หรือ ชื่อ) และไม่สนขีด/ช่องว่าง เช่น 701234 เจอ 70-1234
+        terms = search_term.split()
+        if terms:
+            cars = cars.annotate(
+                code_n = Replace(Replace('code', Value('-'), Value('')), Value(' '), Value('')),
+                name_n = Replace(Replace('name', Value('-'), Value('')), Value(' '), Value('')),
+            )
+            for t in terms:
+                tn = _norm(t)
+                cond = Q(code__icontains = t) | Q(name__icontains = t)
+                if tn:
+                    cond |= Q(code_n__icontains = tn) | Q(name_n__icontains = tn)
+                cars = cars.filter(cond)
+
+            #เรียงที่ตรงที่สุดขึ้นก่อน: code ตรงทั้งหมด > code ขึ้นต้นด้วย > ชื่อขึ้นต้นด้วย > อื่นๆ
+            first = search_term.strip()
+            cars = cars.annotate(rank = Case(
+                When(code__iexact = first, then = Value(0)),
+                When(code__istartswith = first, then = Value(1)),
+                When(name__istartswith = first, then = Value(2)),
+                default = Value(3),
+                output_field = IntegerField(),
+            )).order_by('rank', 'code')
+        else:
+            cars = cars.order_by('code')
+
+        cars = cars.select_related('car_dep', 'car_type')[:50]
         results = []
         for car in cars:
             results.append({
-                'id': car['id'],
-                'text': f"{car['code']} : {car['name']}"
+                'id': car.id,
+                'text': f"{car.code} : {car.name}",
+                'code': car.code or '',
+                'name': car.name or '',
+                'dep': car.car_dep.name if car.car_dep else '',
+                'car_type': car.car_type.name if car.car_type else '',
             })
         return JsonResponse({'results': results})
     return JsonResponse({'results': []})
@@ -1255,15 +1347,21 @@ def requisition(request):
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
+    #?focus=<id> หลังบันทึก: เปิดหน้าที่มีใบนั้นอยู่ แล้วเลื่อนไปที่แถว
     p = Paginator(data, 10)
-    page = request.GET.get('page')
+    page, focus_id = focus_page(request, data, p)
     dataPage = p.get_page(page)
 
     context = {
             'requisitions':dataPage,
+            'focus_id':focus_id,
             'filter':myFilter,
             'requisitions_page': "tab-active",
             'requisitions_show': "show",
@@ -1305,12 +1403,22 @@ def createRequisition(request):
                 
                 # บันทึก ManyToMany relationships
                 form.save_m2m()
-                return HttpResponseRedirect(reverse('crud_ajax', args=(new_contact.pk,)))
+                #รวมหน้าสร้างใบขอเบิกกับหน้าเพิ่มรายการ: ไปหน้า editAll แล้วเปิดหน้าต่างเพิ่มสินค้าให้อัตโนมัติ (?new=1)
+                return HttpResponseRedirect(reverse('editAllRequisition', args=(new_contact.pk,)) + '?new=1')
     except ValueError:
         pass
 
+    #ใช้หน้าตาเดียวกับ requisitionItem/editAll (create_mode = ยังไม่มีใบขอเบิก ยังเพิ่มรายการไม่ได้)
+    #ที่อยู่บริษัทในหัวเอกสาร หาแบบเดียวกับ Requisition.save()
+    company_address = BranchCompanyBaseAdress.objects.filter(branch_company__code = company.code).first()
     context = {
         'form':form,
+        'create_mode': True,
+        'requisition': Requisition(branch_company=company, address_company=company_address.address if company_address else None),
+        'users': [],
+        'baseUrgency': BaseUrgency.objects.all(),
+        'baseUnit': BaseUnit.objects.all(),
+        'bc': company,
         #'requestName':requestName,
         #'chiefName':chiefName,
         'requisitions_page': "tab-active",
@@ -1319,7 +1427,7 @@ def createRequisition(request):
         "disableTab":"disableTab",
         "colorNav":"disableNav"
     }
-    return render(request, "requisition/createRequisition.html", context)
+    return render(request, "requisition/editAllRequisition.html", context)
 
 def removeRequisition(request, id):
     requisition = Requisition.objects.get(id = id)
@@ -1344,7 +1452,8 @@ def editRequisition(request, id):
                 obj.save()
             except PurchaseRequisition.DoesNotExist :
                 pass
-            return redirect('requisition')
+            #กลับหน้ารายการ แล้วเลื่อนไปที่แถวของใบนี้
+            return redirect_list_focus('requisition', new_contact)
 
     context = {
         'form':form,
@@ -1775,7 +1884,6 @@ def editAllRequisition(request, requisition_id):
             
     baseUrgency = BaseUrgency.objects.all()
     baseUnit = BaseUnit.objects.all()
-    baseProduct = Product.objects.all().values('id', 'name')
 
     #หากมีการเบิกสินค้านี้ ของทะเบียนรถหรือเครื่องจักรเดียวกัน ภายใน 30, 90, 365
     distinct_products = {
@@ -1836,10 +1944,19 @@ def editAllRequisition(request, requisition_id):
 
             ''' 24/10/2024 เปลี่ยน flow ออกใบจ่ายสินค้า จากการกดสร้างใบขอซื้อและใบจ่ายสินค้าภายในแทน
             #crate or update invoid
-            CUInvoiceAndItem(requisition)            
+            CUInvoiceAndItem(requisition)
             '''
 
-            return redirect('requisition')
+            #ปุ่ม "บันทึกการแก้ไขและสร้างใบขอซื้อ": บันทึกแล้วไปสร้างใบขอซื้อ/ใบจ่ายสินค้าภายในต่อ (เฉพาะใบที่ยังรอดำเนินการ)
+            if (request.POST.get('action') == 'save_create_pr'
+                    and r_item.exists() #ต้องมีรายการสินค้าก่อน
+                    and new_contact.invoice_id is None
+                    and new_contact.purchase_requisition_id is None
+                    and new_contact.is_edit):
+                return redirect('CUInvoiceAndItem', new_contact.pk)
+
+            #กลับหน้ารายการ แล้วเลื่อนไปที่แถวของใบนี้
+            return redirect_list_focus('requisition', new_contact)
 
     context = {
         'form':form,
@@ -1849,7 +1966,6 @@ def editAllRequisition(request, requisition_id):
         'pr': pr,
         'baseUrgency': baseUrgency,
         'baseUnit': baseUnit,
-        'baseProduct': baseProduct,
         #'requestName':requestName,
         'bc':bc,
         'requisitions_page':"tab-active",
@@ -1942,28 +2058,35 @@ def viewPR(request):
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter, rejected)
+    if suggest:
+        return suggest
     data = myFilter.qs
     rejected = PurchaseRequisitionFilter(request.GET, queryset = rejected).qs
 
-    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ เห็นเฉพาะกลุ่มพัสดุ
-    #กลุ่มอื่นเห็นแค่รายการกำลังดำเนินการ (ไม่รวมแบบร่าง)
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ เห็นทุกคนที่ไม่ใช่กลุ่มจัดซื้อ
+    #กลุ่มจัดซื้อเห็นแค่รายการกำลังดำเนินการ (ไม่รวมแบบร่าง)
     isSupplies = is_supplies(request.user)
-    if isSupplies:
+    showDraftTabs = not isPurchasing
+    if showDraftTabs:
         data, tab_context = split_draft_tab(request, data, rejected)
     else:
         data, tab_context = data.filter(is_draft = False), {'tab': 'process'}
 
     baseUrgency = BaseUrgency.objects.all()
-    #สร้าง page
+    #สร้าง page (?focus=<id> หลังบันทึก: เปิดหน้าที่มีใบนั้นอยู่ แล้วเลื่อนไปที่แถว)
     p = Paginator(data, 10)
-    page = request.GET.get('page')
+    page, focus_id = focus_page(request, data, p)
     dataPage = p.get_page(page)
 
     context = {
                 'prs':dataPage,
+                'focus_id':focus_id,
                 'filter':myFilter,
                 'isPurchasing':isPurchasing,
                 'isSupplies':isSupplies,
+                'showDraftTabs':showDraftTabs,
                 'baseUrgency':baseUrgency,
                 'pr_page': "tab-active",
                 'pr_show': "show",
@@ -1977,6 +2100,8 @@ def viewPR(request):
 def preparePR(request):
     active = request.session.get('company_code', 'ALL')
     requisitions = Requisition.objects.filter(Q(invoice_id__isnull = True) & Q(purchase_requisition_id__isnull = True) & Q(is_edit = True), branch_company__code = active)
+    #แสดงเฉพาะใบขอเบิกที่มีรายการสินค้าแล้ว (ใบที่ยังไม่มี item สร้างใบขอซื้อไม่ได้)
+    requisitions = requisitions.filter(Exists(RequisitionItem.objects.filter(requisit = OuterRef('pk'))))
 
     #สร้าง page
     paginator = Paginator(requisitions,10) #หมายถึงให้แสดงสินค้า 4 ต่อ 1 หน้า
@@ -2272,10 +2397,14 @@ def createPR(request, requisition_id):
     company = BaseBranchCompany.objects.get(code = active)
 
     items= RequisitionItem.objects.filter(requisition_id = requisition_id, quantity_pr__gt=0)
-    try:
-        requisition = Requisition.objects.get(id=requisition_id, purchase_requisition_id__isnull = True)
-    except:
-        return redirect('preparePR')
+    requisition = Requisition.objects.filter(id=requisition_id).first()
+    if requisition is None:
+        return redirect('viewPR')
+    if requisition.purchase_requisition_id is not None:
+        #ใบขอเบิกนี้ออกใบขอซื้อแล้ว (เช่น กดบันทึกซ้ำ/ดับเบิลคลิก หรือกดย้อนกลับแล้วส่งอีกครั้ง) ไปหน้า purchaseRequisition/
+        if request.method == 'POST':
+            messages.info(request, "ใบขอเบิก " + str(requisition.ref_no) + " ออกใบขอซื้อ " + str(requisition.pr_ref_no) + " แล้ว")
+        return redirect('viewPR')
 
     baseUrgency = BaseUrgency.objects.all() #ระดับความเร่งด่วน
     baseUnit = BaseUnit.objects.all()
@@ -2307,6 +2436,12 @@ def createPR(request, requisition_id):
     #form
     form = PurchaseRequisitionForm(request, request.POST or None, initial={'note': requisition.note, 'branch_company': company, 'organizer': requisition.organizer,})
     if form.is_valid():
+      #ล็อกแถวใบขอเบิกระหว่างสร้างใบขอซื้อ กันคำขอที่ส่งมาพร้อมกัน (ดับเบิลคลิก) สร้างใบขอซื้อซ้ำ
+      with transaction.atomic():
+        locked = Requisition.objects.select_for_update().get(id = requisition_id)
+        if locked.purchase_requisition_id is not None:
+            messages.info(request, "ใบขอเบิก " + str(locked.ref_no) + " ออกใบขอซื้อ " + str(locked.pr_ref_no) + " แล้ว")
+            return redirect('viewPR')
         #save id express
         bool = saveIdExpressPR(request)
         if bool is None:
@@ -2343,10 +2478,10 @@ def createPR(request, requisition_id):
                 messages.info(request, "สร้างใบขอซื้อ " + str(new_contact.ref_no) + " เรียบร้อยแล้ว")
             if iv:
                 messages.success(request, "สร้างใบจ่ายสินค้าภายใน " + str(iv.ref_no)+ " เรียบร้อยแล้ว")
-            if new_contact.is_draft:
-                return HttpResponseRedirect(reverse('viewPR') + '?tab=draft')
-            return HttpResponseRedirect(reverse('viewPR'))
+            #ทั้งบันทึกแบบร่างและบันทึกและส่งอนุมัติ กลับไปหน้า purchaseRequisition/ แล้วเลื่อนไปที่แถวของใบนี้
+            return redirect_list_focus('viewPR', new_contact)
         else:
+            messages.error(request, "รหัสวัสดุ/อุปกรณ์ไม่ถูกต้อง กรุณาเลือกสินค้าจากรายการอีกครั้ง")
             return HttpResponseRedirect(reverse('createPR', args=(requisition_id,)))
 
     #ที่อยู่และหัวบริษัท
@@ -2392,6 +2527,9 @@ def createCMorPO(request, pr_id):
     for i in items:
         quantity = calculateSumQuantityCPAndPOItem(i)
         itemUseQuantity.append(quantity)
+        #ยังไม่ได้ซื้อ = จำนวนในใบขอซื้อ - ซื้อแล้ว (ตัวเลขเดียวกับช่อง ซื้อแล้ว ในหน้านี้) ไม่ต่ำกว่า 0
+        remain = (i.quantity_pr or 0) - (quantity or 0)
+        i.remain_quantity = remain if remain > 0 else 0
 
     requisition = Requisition.objects.get(id=pr.requisition.id)
     baseUrgency = BaseUrgency.objects.all()
@@ -2580,9 +2718,8 @@ def editPR(request, pr_id):
             #save id express
             saveIdExpressPR(request)
 
-            if new_contact.is_draft:
-                return HttpResponseRedirect(reverse('viewPR') + '?tab=draft')
-            return redirect('viewPR')
+            #ทั้งบันทึกแบบร่างและบันทึกและส่งอนุมัติ กลับไปหน้า purchaseRequisition/ แล้วเลื่อนไปที่แถวของใบนี้
+            return redirect_list_focus('viewPR', new_contact)
 
     context = {
         'items':items,
@@ -2753,6 +2890,10 @@ def viewPRApprove(request):
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -2893,6 +3034,39 @@ def editPRApprove(request, pr_id, isFromHome):
 
     return render(request, "purchaseRequisitionApprove/editPRApprove.html", context)
 
+
+#รายการสินค้าในหน้ารายการใบเปรียบเทียบราคา / ใบสั่งซื้อ (แสดง 3 รายการแรก + และอีก N รายการ)
+def _doc_item_rows(qs):
+    rows = []
+    for it in qs:
+        ri = it.item
+        name = ''
+        if ri:
+            name = ri.product_name or (str(ri.product) if ri.product_id else '')
+        rows.append({'code': ri.product_id if ri else '', 'name': name, 'quantity': it.quantity, 'unit': it.unit.name if it.unit_id else ''})
+    return rows
+
+def attach_po_item_list(pos):
+    ids = [po.id for po in pos]
+    items = PurchaseOrderItem.objects.filter(po_id__in=ids).select_related('item__product', 'unit').order_by('id')
+    by_po = {}
+    for it in items:
+        by_po.setdefault(it.po_id, []).append(it)
+    for po in pos:
+        po.item_list = _doc_item_rows(by_po.get(po.id, []))
+
+def attach_cp_item_list(cps):
+    #รายการของร้านที่เลือก ถ้ายังไม่เลือกใช้ร้านแรก (ทุกร้านเสนอรายการเดียวกัน)
+    ids = [cp.id for cp in cps]
+    items = ComparisonPriceItem.objects.filter(bidder__cp_id__in=ids).select_related('item__product', 'unit', 'bidder').order_by('bidder_id', 'id')
+    by_cp = {}
+    for it in items:
+        by_cp.setdefault(it.bidder.cp_id, {}).setdefault(it.bidder_id, {'select': it.bidder.is_select, 'items': []})['items'].append(it)
+    for cp in cps:
+        bidders = by_cp.get(cp.id, {})
+        chosen = next((b for b in bidders.values() if b['select']), None) or next(iter(bidders.values()), None)
+        cp.item_list = _doc_item_rows(chosen['items'] if chosen else [])
+
 @login_required(login_url='signIn')
 def viewPO(request):
     active = request.session.get('company_code', 'ALL')
@@ -2902,26 +3076,32 @@ def viewPO(request):
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter, rejected)
+    if suggest:
+        return suggest
     data = myFilter.qs
     rejected = PurchaseOrderFilter(request.GET, queryset = rejected).qs
 
     #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ
     data, tab_context = split_draft_tab(request, data, rejected)
 
-    #สร้าง page
+    #สร้าง page (?focus=<id> หลังบันทึก: เปิดหน้าที่มีใบนั้นอยู่ แล้วเลื่อนไปที่แถว)
     p = Paginator(data, 10)
-    page = request.GET.get('page')
+    page, focus_id = focus_page(request, data, p)
     dataPage = p.get_page(page)
 
     #แท็ปไม่อนุมัติ: ปุ่มขอเปลี่ยนแปลงรายละเอียดรายการ (สิทธิเดียวกับหน้า showPO)
     if tab_context['tab'] == 'reject':
         for po in dataPage:
             po.can_re_approve = can_request_po_re_approve(request.user, po)
+    attach_po_item_list(dataPage)
 
     prs = PurchaseOrderItem.objects.filter(po__in=data).values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','po')
 
     context = {
         'pos':dataPage,
+        'focus_id':focus_id,
         'filter':myFilter,
         'prs': prs,
         'po_page': "tab-active",
@@ -2966,7 +3146,7 @@ def editPO(request, po_id):
     po = PurchaseOrder.objects.get(id=po_id)
     form = PurchaseOrderForm(instance=po)
     if request.method == 'POST':
-        form = PurchaseOrderForm(request.POST, instance=po)
+        form = PurchaseOrderForm(request.POST, request.FILES, instance=po) #ต้องส่ง request.FILES ด้วย ไม่งั้นไฟล์ใบเสนอราคาที่เลือกใหม่จะไม่ถูกบันทึก
         if form.is_valid():
             form.save()
             return redirect('viewPO')
@@ -3387,6 +3567,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #ใบสั่งซื้อที่สร้างจากใบเปรียบเทียบราคา ล็อกไม่ให้แก้ไขรายการสินค้าและราคา
     #ยกเว้นกรณีขอเปลี่ยนแปลงรายละเอียดรายการ (re approve) ให้แก้ไขได้
     isLockPOItem = po_data.cp_id is not None and not inReApprove
+    #ผู้จำหน่ายของใบที่สร้างจากใบเปรียบเทียบราคา = ร้านที่เลือกในใบเปรียบ เปลี่ยนไม่ได้ (รวมกรณี re approve)
+    isLockDistributor = po_data.cp_id is not None and po_data.distributor_id is not None
     locked_price_value = {}
     if isLockPOItem:
         for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
@@ -3410,6 +3592,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             require_approver_user_po(form)
         if isLockPOItem:
             lock_vat_type_po(form)
+        if isLockDistributor:
+            lock_distributor_po(form)
         if isDraft:
             relax_required_for_draft(form)
             relax_required_for_draft(price_form)
@@ -3450,6 +3634,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             rate_contact = form_rate.save(commit=False)
             rate_contact.po = po_data
             rate_contact.organizer_user = po_data.stockman_user
+            if isLockDistributor:
+                rate_contact.distributor_id = po_data.distributor_id
             if rate_contact.distributor_id and rate_contact.price_rate and rate_contact.quantity_rate and rate_contact.service_rate and rate_contact.safety_rate:
                 rate_contact.save()
 
@@ -3465,7 +3651,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             # save po item
             #ไม่บันทึกการแก้ไขรายการสินค้า ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
             if isLockPOItem:
-                return redirect('viewPO')
+                return redirect_list_focus('viewPO', price) #กลับหน้ารายการ แล้วเลื่อนไปที่แถวของใบนี้
 
             instances = formset.save(commit=False)
             for instance in instances:
@@ -3517,7 +3703,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
                     pass
                 obj.delete()
             formset.save_m2m()
-            return redirect('viewPO')
+            return redirect_list_focus('viewPO', price) #กลับหน้ารายการ แล้วเลื่อนไปที่แถวของใบนี้
         #บันทึกไม่ผ่าน แจ้งเตือนช่องที่ผิด (บางช่องอยู่ใน hidden input ผู้ใช้มองไม่เห็น)
         messages.error(request, 'บันทึก' + ('แบบร่าง' if isDraft else '') + 'ไม่สำเร็จ: ' + ', '.join(collect_form_errors([form, price_form, form_rate], formset)))
     else:
@@ -3529,6 +3715,8 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             require_approver_user_po(form)
         if isLockPOItem:
             lock_vat_type_po(form)
+        if isLockDistributor:
+            lock_distributor_po(form)
 
     #ตั้งค่า readonly ให้ช่องรายการสินค้าและราคา ถ้าใบสั่งซื้อสร้างจากใบเปรียบเทียบราคา
     if isLockPOItem:
@@ -3570,6 +3758,7 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
         'form_rate': form_rate,
         'isFromPR':isFromPR,
         'isLockPOItem':isLockPOItem,
+        'isLockDistributor':isLockDistributor,
         'canSaveDraft':canSaveDraft,
         'itemList':itemList,
         'new_pr':new_pr,
@@ -3593,6 +3782,10 @@ def viewPOApprove(request):
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -3739,7 +3932,7 @@ def split_draft_tab(request, data, rejected = None):
 
     #query string ของตัวกรอง (ไม่รวม tab และ page) ใช้ต่อท้ายลิงก์แท็ป
     tab_qs = request.GET.copy()
-    for key in ('tab', 'page'):
+    for key in ('tab', 'page', 'focus'):
         tab_qs.pop(key, None)
 
     tab_context = {
@@ -3754,6 +3947,27 @@ def split_draft_tab(request, data, rejected = None):
         return rejected, tab_context
     return data.filter(is_draft = (tab == 'draft')), tab_context
 
+def redirect_list_focus(url_name, doc):
+    """หลังบันทึก กลับไปหน้ารายการแล้วเลื่อนไปที่แถวของเอกสารนี้ (_focus_row.html)
+    แบบร่าง → แท็ปแบบร่าง / บันทึกและส่งอนุมัติ → แท็ปกำลังดำเนินการ
+    เอกสารที่ไม่มีแบบร่าง (เช่น ใบขอเบิก) ไม่ส่ง tab"""
+    tab = ''
+    if hasattr(doc, 'is_draft'):
+        tab = 'tab=' + ('draft' if doc.is_draft else 'process') + '&'
+    return redirect(reverse(url_name) + '?' + tab + 'focus=' + str(doc.id))
+
+def focus_page(request, data, paginator):
+    """?focus=<id>: ถ้าไม่ได้ระบุหน้า ให้เปิดหน้าที่มีเอกสารนั้นอยู่
+    คืน (page, focus_id) — focus_id ใช้ไฮไลต์แถวใน template"""
+    page = request.GET.get('page')
+    focus_id = request.GET.get('focus', '')
+    focus_id = int(focus_id) if focus_id.isdigit() else None
+    if focus_id and not page:
+        ids = list(data.values_list('id', flat = True))
+        if focus_id in ids:
+            page = ids.index(focus_id) // paginator.per_page + 1
+    return page, focus_id
+
 @login_required(login_url='signIn')
 def viewComparePricePO(request):
     active = request.session.get('company_code', 'ALL')
@@ -3765,6 +3979,10 @@ def viewComparePricePO(request):
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter, rejected)
+    if suggest:
+        return suggest
     data = myFilter.qs
     rejected = ComparisonPriceFilter(request.GET, queryset = rejected).qs
 
@@ -3772,21 +3990,24 @@ def viewComparePricePO(request):
     data, tab_context = split_draft_tab(request, data, rejected)
 
     prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
-    bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
+    #ผู้จำหน่าย/ราคา และสถานะ แสดงในตารางทุกแถว ดึงมาทีเดียว
+    data = data.select_related('organizer', 'examiner_status', 'approver_status', 'special_approver_status').prefetch_related('comparisonpricedistributor_set__distributor')
     #สร้าง page
     p = Paginator(data, 10)
-    page = request.GET.get('page')
+    #?focus=<cp id> (หลังบันทึก): เปิดหน้าที่มีใบนั้นอยู่ แล้วเลื่อนไปที่แถว
+    page, focus_id = focus_page(request, data, p)
     dataPage = p.get_page(page)
 
     #แท็ปไม่อนุมัติ: ปุ่มขอเปลี่ยนแปลงรายละเอียดรายการ (สิทธิเดียวกับหน้า showComparePricePO)
     if tab_context['tab'] == 'reject':
         for cp in dataPage:
             cp.can_re_approve = can_request_cp_re_approve(request.user, cp)
+    attach_cp_item_list(dataPage)
     context = {
         'cps':dataPage,
+        'focus_id': focus_id,
         'prs': prs,
         'filter':myFilter,
-        'bidder':bidder,
         'cp_page': "tab-active",
         'cp_show': "show",
         active :"active show",
@@ -4053,7 +4274,126 @@ def createComparePricePOItem(request, cp_id, isReApprove):
     }
     return render(request, 'comparePricePOItem/createComparePricePOItem.html',context)
 
+#ตัดสิ่งที่มักพิมพ์ต่างกัน (ช่องว่าง เครื่องหมาย วรรณยุกต์ การันต์) และรวมตัวอักษรที่สับสนบ่อย ใช้เทียบชื่อใกล้เคียง
+_SIMILAR_DROP = re.compile(r'[\s \-._,()/"\'่-๎็]')
+#ตัวอักษรเสียงเดียวกันที่มักสะกดผิด ให้ถือเป็นตัวเดียวกัน (กลุ่มเดียวกับ THAI_SIMILAR_GROUPS ของช่องค้นหาสินค้า)
+_SIMILAR_MAP = str.maketrans({c: g[0] for g in THAI_SIMILAR_GROUPS for c in g[1:]})
+
+def _similar_fold(s):
+    return _SIMILAR_DROP.sub('', (s or '').lower()).translate(_SIMILAR_MAP)
+
+def _similar_score(q, text):
+    """ความใกล้เคียง 0-1 ของคำค้น q กับชื่อ (ทั้งคู่ผ่าน _similar_fold แล้ว)
+    ใช้ช่วงของชื่อที่ยาวพอๆ กับคำค้นที่เหมือนที่สุด เพื่อให้หาเจอแม้ชื่อเต็มยาวกว่าคำที่พิมพ์มาก"""
+    from difflib import SequenceMatcher
+    if not q or not text:
+        return 0
+    if q in text:
+        return 1
+    best = 0
+    n = len(q)
+    sm = SequenceMatcher(None, autojunk = False)
+    sm.set_seq2(q)
+    for size in {max(1, n - 1), n, n + 1}:
+        if size >= len(text):
+            sm.set_seq1(text)
+            best = max(best, sm.ratio())
+            continue
+        for i in range(0, len(text) - size + 1):
+            sm.set_seq1(text[i:i + size])
+            if sm.real_quick_ratio() <= best or sm.quick_ratio() <= best:
+                continue
+            best = max(best, sm.ratio())
+            if best == 1:
+                return 1
+    return best
+
+def _distributor_similar(term, exclude = (), limit = 10, threshold = 0.75):
+    """ผู้จำหน่ายที่ชื่อ/รหัสใกล้เคียงคำค้น เรียงจากใกล้ที่สุด คืน [(Distributor, score)]"""
+    q = _similar_fold(term)
+    if len(q) < 3:
+        return []
+    scored = []
+    for d in Distributor.objects.exclude(id__in = list(exclude)).select_related('credit').only('id', 'name', 'credit'):
+        s = max(_similar_score(q, _similar_fold(d.name)), _similar_score(q, _similar_fold(d.id)))
+        if s >= threshold:
+            scored.append((d, s))
+    scored.sort(key = lambda x: (-x[1], x[0].name or ''))
+    return scored[:limit]
+
 def autocompalteDistributor(request):
+    #rich=1 (หน้าใบเปรียบเทียบราคา): ค้นหาได้หลายคำ ไม่สนขีด/ช่องว่าง เรียงที่ตรงที่สุดก่อน คลิกช่องว่างก็แสดงรายการ
+    #คืน {value: "รหัส-ชื่อ" (รูปแบบเดิมที่หน้าเว็บใช้แยกรหัส), id, name, credit}
+    if request.GET.get('rich'):
+        from django.db.models import Case, When, Value, IntegerField
+        from django.db.models.functions import Replace
+
+        def _norm(s):
+            return s.replace('-', '').replace(' ', '')
+
+        term = request.GET.get('term', '').strip()
+        qs = Distributor.objects.all()
+        similar_conds = []  #เงื่อนไขแบบสะกดคล้าย (ส/ศ, ตัวสะกด, วรรณยุกต์) ใช้หาเพิ่มต่อท้ายผลที่ตรงตัว
+        hl = []  #regex สำหรับไฮไลต์ในหน้าเว็บ
+        norm_fields = {
+            'id_n': Replace(Replace('id', Value('-'), Value('')), Value(' '), Value('')),
+            'name_n': Replace(Replace('name', Value('-'), Value('')), Value(' '), Value('')),
+        }
+        if term:
+            qs = qs.annotate(**norm_fields)
+            for t in term.split():
+                tn = _norm(t)
+                cond = Q(id__icontains = t) | Q(name__icontains = t)
+                if tn:
+                    cond |= Q(id_n__icontains = tn) | Q(name_n__icontains = tn)
+                qs = qs.filter(cond)
+                pattern = thai_similar_pattern(t)
+                similar_conds.append((cond | Q(name__iregex = pattern)) if pattern else cond)
+                hl.append(pattern or re.escape(t))
+            if not any(thai_similar_pattern(t) for t in term.split()):
+                similar_conds = []
+            qs = qs.annotate(rank = Case(
+                When(id__iexact = term, then = Value(0)),
+                When(id__istartswith = term, then = Value(1)),
+                When(name__istartswith = term, then = Value(2)),
+                default = Value(3),
+                output_field = IntegerField(),
+            )).order_by('rank', 'name')
+        else:
+            qs = qs.order_by('name')
+
+        LIMIT = 30
+        found = list(qs.select_related('credit')[:LIMIT])
+        def _row(d, fuzzy = False):
+            r = {
+                'value': '%s-%s' % (d.id, d.name or ''),
+                'id': d.id,
+                'name': d.name or '',
+                'credit': str(d.credit) if d.credit_id else '',
+                'hl': hl,
+            }
+            if fuzzy:
+                r['fuzzy'] = True  #หน้าเว็บแสดงป้าย "ชื่อคล้าย"
+            return r
+        data = [_row(d) for d in found]
+        found_ids = {d.id for d in found}
+
+        #ชื่อสะกดคล้าย (กฎเดียวกับช่องค้นหาสินค้า): เช่น "สต็อก" เจอ "สต๊อค", "ศรี" เจอ "สรี"
+        if similar_conds and len(found) < LIMIT:
+            sq = Distributor.objects.annotate(**norm_fields).exclude(id__in = list(found_ids))
+            for c in similar_conds:
+                sq = sq.filter(c)
+            more = list(sq.select_related('credit').order_by('name')[:LIMIT - len(found)])
+            data += [_row(d, True) for d in more]
+            found_ids |= {d.id for d in more}
+
+        #ชื่อใกล้เคียง: ต่อท้ายผลที่ตรงตัว เมื่อพิมพ์ผิด/สะกดต่างเล็กน้อย เช่น "กลาส" เจอ "กล๊าส", "พาณิช" เจอ "พานิช"
+        if term and len(data) < LIMIT:
+            for d, score in _distributor_similar(term, exclude = found_ids, limit = LIMIT - len(data)):
+                data.append(_row(d, True))
+        return JsonResponse(data, safe=False)
+
+    titles = list()
     if 'term' in request.GET:
         term = request.GET.get('term')
         qs = Distributor.objects.filter(Q(id__icontains = term) | Q(name__icontains = term))[:15]
@@ -4455,7 +4795,8 @@ def printComparePricePO(request, cp_id):
                 f_cp.is_special_approve_cm = False
             #save
             f_cp.save()
-            return redirect('viewComparePricePO')
+            #กลับไปหน้ารายการ แล้วเลื่อนไปที่แถวของใบนี้ (แบบร่าง → แท็ปแบบร่าง / ส่งอนุมัติ → กำลังดำเนินการ)
+            return redirect_list_focus('viewComparePricePO', f_cp)
 
     #ordering เรียงตามราคา แต่ต้อง tie-break ด้วย bidder id (ลำดับที่คีย์ร้านค้า) ให้ทั้ง 2 queryset
     #ให้ลำดับร้านค้าตรงกันเสมอ ไม่งั้นตอนที่ amount/total_after_discount เท่ากัน คอลัมน์ร้านค้ากับ
@@ -4599,6 +4940,11 @@ def lock_vat_type_po(form):
         form.fields['vat_type'].disabled = True
         form.fields['vat_type'].widget.attrs['class'] = (form.fields['vat_type'].widget.attrs.get('class', '') + ' lock-po-item').strip()
 
+def lock_distributor_po(form):
+    """ล็อกผู้จำหน่ายของใบสั่งซื้อที่ตัดมาจากใบเปรียบเทียบราคา (disabled: ไม่รับค่าที่ส่งมา ใช้ค่าเดิมของใบ)"""
+    if 'distributor' in form.fields:
+        form.fields['distributor'].disabled = True
+
 def auto_approve_po_from_cp(po, cp):
     """อนุมัติใบสั่งซื้ออัตโนมัติ ถ้าใบเปรียบเทียบราคาอนุมัติแล้ว และใบสั่งซื้อมียอดเงินมากกว่า 0"""
     if cp.is_draft:
@@ -4716,7 +5062,12 @@ def viewCPApprove(request):
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
+    data = data.prefetch_related('comparisonpricedistributor_set__distributor')  # รายชื่อร้านที่เสนอราคาในตาราง
 
     bidder = ComparisonPriceDistributor.objects.filter(cp__in=data)
     #สร้าง page
@@ -5361,6 +5712,10 @@ def viewRequisitionHistory(request):
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -5389,6 +5744,10 @@ def viewPRHistory(request):
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -5454,6 +5813,10 @@ def viewPOHistory(request):
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -5461,6 +5824,7 @@ def viewPOHistory(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
 
+    attach_po_item_list(dataPage)
     prs = PurchaseOrderItem.objects.filter(po__in=data).values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','item__product_name','po')
     context = {
         'pos':dataPage,
@@ -5481,7 +5845,12 @@ def viewComparePricePOHistory(request):
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
+    data = data.prefetch_related('comparisonpricedistributor_set__distributor')  # รายชื่อร้านที่เสนอราคาในตาราง
 
     bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
@@ -5515,6 +5884,10 @@ def viewRequisitionHistoryIncomplete(request):
 
     #กรองข้อมูล
     myFilter = RequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -5541,6 +5914,10 @@ def viewPRHistoryIncomplete(request):
 
     #กรองข้อมูล
     myFilter = PurchaseRequisitionFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -5567,6 +5944,10 @@ def viewPOHistoryIncomplete(request):
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -5592,7 +5973,12 @@ def viewComparePricePOHistoryIncomplete(request):
 
     #กรองข้อมูล
     myFilter = ComparisonPriceFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
+    data = data.prefetch_related('comparisonpricedistributor_set__distributor')  # รายชื่อร้านที่เสนอราคาในตาราง
 
     bidder = ComparisonPriceDistributor.objects.values('cp_id','distributor__name','distributor__id','amount').filter(cp__in=data)
     #สร้าง page
@@ -5618,6 +6004,10 @@ def viewPOReport(request):
 
     #กรองข้อมูล
     myFilter = PurchaseOrderFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
     data = data.select_related(
         'cp',
@@ -6296,6 +6686,10 @@ def viewPOItemReport(request):
 
     #กรองข้อมูล
     myFilter = PurchaseOrderItemFilter(request.GET, queryset = data)
+    #dropdown ค่าแนะนำของช่องกรอง (?_suggest=...) ดึงจากเอกสารของหน้านี้
+    suggest = filter_suggest_response(request, myFilter)
+    if suggest:
+        return suggest
     data = myFilter.qs
 
     #สร้าง page
@@ -9322,10 +9716,29 @@ def cancelMA(request, ma_id):
 def autocompalte_maintenance(request):
     active = request.session.get('company_code', 'ALL')
 
-    if 'term' in request.GET:
-        term = request.GET.get('term')
-        qs = Maintenance.objects.filter(Q(ref_no__icontains = term), branch_company__code = active, is_cancel = False, is_complete__isnull = True)[:15]
-        titles = list()
+    term = (request.GET.get('term') or '').strip()
+    base = Maintenance.objects.filter(branch_company__code = active, is_cancel = False, is_complete__isnull = True)
+
+    #แบบละเอียด (rich=1): ค้นได้ทั้งเลขที่ / ทะเบียนรถ / อาการเสีย หลายคำ และไม่พิมพ์ก็แสดงใบล่าสุด
+    if request.GET.get('rich'):
+        qs = base.select_related('car')
+        for t in term.split():
+            qs = qs.filter(Q(ref_no__icontains = t) | Q(car__code__icontains = t) | Q(car__name__icontains = t) | Q(broke_reason__icontains = t))
+        qs = qs.order_by('-created')[:20]
+        items = []
+        for obj in qs:
+            items.append({
+                'value': obj.ref_no,
+                'label': obj.ref_no,
+                'car': f"{obj.car.code} : {obj.car.name}" if obj.car else '',
+                'reason': obj.broke_reason or '',
+                'date': (timezone.localtime(obj.created) if is_aware(obj.created) else obj.created).strftime('%d/%m/%Y') if obj.created else '',
+            })
+        return JsonResponse(items, safe=False)
+
+    titles = list()
+    if term:
+        qs = base.filter(ref_no__icontains = term)[:15]
         for obj in qs:
             titles.append(obj.ref_no)
     return JsonResponse(titles, safe=False)

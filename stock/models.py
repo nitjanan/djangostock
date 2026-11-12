@@ -841,6 +841,12 @@ class RequisitionItem(models.Model):
     def __str__(self):
         return str(self.product)
 
+    @property
+    def quantity_not_bought(self):
+        """จำนวนที่ยังไม่ได้ซื้อ = จำนวนในใบขอซื้อ (quantity_pr) - ซื้อแล้ว (quantity_used) ไม่ต่ำกว่า 0"""
+        remain = (self.quantity_pr or 0) - (self.quantity_used or 0)
+        return remain if remain > 0 else 0
+
 class Invoice(models.Model):
     ref_no = models.CharField(max_length = 255, null = True, blank = True)
     bring_name = models.ForeignKey(

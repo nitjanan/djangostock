@@ -1,0 +1,9 @@
+{% load templatehelpers %}{% comment %}ช่อง "เลขไมล์" ในหน้ารายการใบใช้รถ: ไมล์เริ่ม–สิ้นสุด + ระยะทางรวม + ชั่วโมงงานรวม (แบบเดียวกับแถบสรุปหน้าแก้ไข){% endcomment %}
+{% cl_summary cl as sm %}
+<td class="text-right text-nowrap">
+  {{ cl.mile_start|default_if_none:"" }} – {{ cl.mile_end|default_if_none:"" }}
+  {% if sm.dist is not None or sm.hours %}<span class="cl-pills justify-content-end">
+    {% if sm.dist is not None %}<span class="cl-pill {% if sm.dist_bad %}bad{% else %}dist{% endif %}" title="ระยะทาง{% if sm.trips %}รวม {{ sm.trips }} เที่ยว{% endif %}"><i class="fas fa-route"></i> {% if sm.dist_bad %}ไมล์ผิด{% else %}{{ sm.dist|floatformat:"-2g" }}{% endif %}</span>{% endif %}
+    {% if sm.hours %}<span class="cl-pill hrs" title="ชั่วโมงงานรวม"><i class="far fa-clock"></i> {{ sm.hours }} ชม.</span>{% endif %}
+  </span>{% endif %}
+</td>

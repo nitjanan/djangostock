@@ -195,8 +195,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 <script type="text/javascript">
 
-$('div.pdf a').addClass('btn btn-outline-success btn-sm');
-$('div.pdf a').text('Download');
 
 //แสดงครั้งแรกเมื่อเปิด page
 $(function() {
@@ -225,6 +223,15 @@ $(function() {
     setDataDistributor();
     tempTotal.innerHTML = $("#id_total_price").val();
     changeNumberOrder();
+
+    //เลื่อนลงมาที่ฟอร์มแก้ไขร้านค้าอัตโนมัติ (หลังกดปุ่มแก้ไขจากรายการร้านค้า)
+    var card = document.getElementById('card');
+    if (card) {
+        var nav = document.querySelector('.navbar.fixed-top, .navbar.sticky-top');
+        var offset = nav ? nav.offsetHeight + 8 : 8;
+        var top = card.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+    }
 
 });
 
@@ -562,11 +569,11 @@ $(".express").change(function() {
         $("#id_comparisonpriceitem_set-"+suffix+"-express").val(show);
         $("#id_comparisonpriceitem_set-"+suffix+"-item").val(id);
         $("#id_comparisonpriceitem_set-"+suffix+"-quantity").val(quantity);
-        $("#id_comparisonpriceitem_set-"+suffix+"-unit").val(unit);        
+        $("#id_comparisonpriceitem_set-"+suffix+"-unit").val(unit).trigger('change.select2');        
     }else{
         $("#id_comparisonpriceitem_set-"+suffix+"-item").val("");
         $("#id_comparisonpriceitem_set-"+suffix+"-quantity").val("");
-        $("#id_comparisonpriceitem_set-"+suffix+"-unit").val("");
+        $("#id_comparisonpriceitem_set-"+suffix+"-unit").val("").trigger('change.select2');
     }
 
   });
@@ -683,4 +690,5 @@ function openModal(instance) {
   */
 
 </script>
+{% include 'comparePricePOItem/_cp_search.html' %}
 {% endblock %}
