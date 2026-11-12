@@ -13,6 +13,7 @@
 
 {% block content %}
 <div class="container">
+  {% include '_messages_alert.html' %}
     <h3 align="center">ใบสั่งซื้อ</h3>
     <div class="card my-3 bg-light div-shadow lf">
         <div class="card-body">
@@ -76,6 +77,12 @@
                     <a class="lt-ref {% if po.is_re_approve %}text-danger{% endif %}" href="{% url 'showPO' po.id 1 %}">{{ po.ref_no }}</a>
                     {% if po.is_draft %}<span class="badge badge-secondary">แบบร่าง</span>{% endif %}
                     <span class="lt-sub">{{ po.created|date:"d/m/Y" }}</span>
+                    {% if po.over_amount_max is not None %}
+                    <div class="mt-1" title="ยอดเงินตั้งแต่ {{ po.over_amount_max|floatformat:2|intcomma }} บาทขึ้นไป (วงเงินอนุมัติใบสั่งซื้อ) กรุณาออกใบเปรียบเทียบราคาก่อน">
+                      <span class="lt-pill st-3"><i class="fas fa-exclamation-triangle"></i> ต้องมีใบเปรียบเทียบราคา</span>
+                      <span class="lt-sub text-danger">ยอดตั้งแต่ {{ po.over_amount_max|floatformat:2|intcomma }} บาทขึ้นไป</span>
+                    </div>
+                    {% endif %}
                     <div class="lt-inline">
                       {% if po.cp %}<a class="lt-link {% if po.cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' po.cp.id 1 %}">{{ po.cp.ref_no }}</a>{% endif %}
                       {% if po.pr %}{% for pr in prs %}{% if po.id == pr.po %}{% ifchanged pr.item__requisit__pr_ref_no %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endifchanged %}{% endif %}{% endfor %}{% endif %}

@@ -130,7 +130,6 @@
     <fieldset {% if read_only %}disabled class="cl-read-only"{% endif %}>
         {{form.id}}
         {{ form.branch_company }}
-        {{ form.created | add_class:"form-control d-none" }}
         {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
 
         <div class="cl-grid">
@@ -172,6 +171,13 @@
             <div class="cl-main">
                 <div class="cl-card">
                     <div class="cl-sec"><i class="fas fa-id-card"></i>ผู้ขับและรถ</div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="id_created" class="text-danger font-weight-bold">วันที่</label>
+                            {{ form.created|attr:"class:form-control is-invalid"|attr:"required:true" }}
+                            {{ form.created.errors }}
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group col-md-6 mb-md-0">
                             <label>{{ form.name.label }}</label>
@@ -248,8 +254,6 @@
 {% include '_select2_search.html' %}
 <script>
     // คงวันที่เดิมของใบ (เดิมตั้งเป็นวันนี้ ทำให้วันที่เปลี่ยนทุกครั้งที่แก้ไข)
-    $('#id_created').val('{{cl_data.created|date:"Y-m-d"}}');
-
     // ===== ทะเบียนรถ: เปิดแล้วเห็นรายการทันที พิมพ์ทะเบียน/รหัสได้ =====
     var carTerms = [];
     initSearchSelect('#id_car', 'เลือกทะเบียนหัว', true, {

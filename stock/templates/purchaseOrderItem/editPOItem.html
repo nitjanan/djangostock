@@ -789,7 +789,7 @@
           <button type="submit" class="btn btn-secondary hidden-print" formnovalidate onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
             บันทึกแบบร่าง
           </button>
-          <button id="submit" type="submit" class="btn btn-primary hidden-print" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
+          <button id="submit" type="submit" class="btn btn-primary hidden-print" data-amount-max="{{ poAmountMax|default_if_none:'' }}" onclick="$('#id_save_draft').val('');"><i class="fas fa-paper-plane"></i>
             บันทึกและส่งอนุมัติ
           </button>
           {% else %}
@@ -1364,6 +1364,8 @@ function searchDataDistributor(){
         var idInput = items[0];
         // Create Ajax Call
         if(idInput){
+            //รีเซ็ตดาวเฉพาะตอนเปลี่ยนผู้จำหน่ายจริง (focusout เฉยๆ ไม่ล้างคะแนนที่กดไว้)
+            var distChanged = ($("#id_distributor").val() || '') != idInput;
             //set id_distributor
             $("#id_distributor").val(idInput);
             $("#f-rate #id_distributor").val(idInput);
@@ -1387,10 +1389,12 @@ function searchDataDistributor(){
                 }
                 updateHeaderDistributor(data);
                 //ถ้าเป็นการเปลี่ยนแปลงร้านค้า ให้ประเมินใหม่
-                if(tmp_dist != idInput){
-                  resetRate();
-                }else{
-                  setDataRate();
+                if(distChanged){
+                  if(tmp_dist && tmp_dist == idInput){
+                    setDataRate();
+                  }else{
+                    resetRate();
+                  }
                 }
             }
             });
@@ -1733,6 +1737,11 @@ function setDateTimePrint(){
     $('#submit').on('click', function (e) {
       if (!validateRequired(true)) {
         e.preventDefault();
+        return;
+      }
+      //บันทึกและส่งอนุมัติ: ยอดตั้งแต่วงเงินสิทธิอนุมัติใบสั่งซื้อ (CAAPO) ขึ้นไป ไม่ให้บันทึก
+      if (!checkPOAmountOverMax(this)) {
+        e.preventDefault();
       }
     });
     //กรอกแล้วเอาเครื่องหมายออก ถ้าแจ้งเตือนอยู่ให้ตรวจใหม่
@@ -1793,6 +1802,8 @@ function setDateTimePrint(){
         .prop("readonly", true).addClass("lock-po-item");
     });
     {% endif %}
+
+{% include 'purchaseOrderItem/_po_amount_max_check_js.html' %}
 </script>
 {% include 'comparePricePOItem/_cp_search.html' with skip_credit=True %}
 {% endblock%}
