@@ -100,6 +100,7 @@ from dateutil.rrule import rrule, MONTHLY
 from .filter_suggest import filter_suggest_response
 from .thai_search import THAI_SIMILAR_GROUPS, thai_similar_pattern
 
+@login_required(login_url='signIn')
 def product_search(request):
     term = request.GET.get('q', '').strip()
     if not term:
@@ -149,6 +150,7 @@ def product_search(request):
     })
 
 #ใช้ในระบบงาน ค้นหาด้วย code or name
+@login_required(login_url='signIn')
 def car_search(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         search_term = request.GET.get('q', '')
@@ -4310,7 +4312,7 @@ def _similar_score(q, text):
 
 def _distributor_similar(term, exclude = (), limit = 10, threshold = 0.75):
     """ผู้จำหน่ายที่ชื่อ/รหัสใกล้เคียงคำค้น เรียงจากใกล้ที่สุด คืน [(Distributor, score)]"""
-    q = _similar_fold(term)
+    q = _similar_fold(term[:50])
     if len(q) < 3:
         return []
     scored = []
@@ -4321,6 +4323,7 @@ def _distributor_similar(term, exclude = (), limit = 10, threshold = 0.75):
     scored.sort(key = lambda x: (-x[1], x[0].name or ''))
     return scored[:limit]
 
+@login_required(login_url='signIn')
 def autocompalteDistributor(request):
     #rich=1 (หน้าใบเปรียบเทียบราคา): ค้นหาได้หลายคำ ไม่สนขีด/ช่องว่าง เรียงที่ตรงที่สุดก่อน คลิกช่องว่างก็แสดงรายการ
     #คืน {value: "รหัส-ชื่อ" (รูปแบบเดิมที่หน้าเว็บใช้แยกรหัส), id, name, credit}
@@ -4331,7 +4334,7 @@ def autocompalteDistributor(request):
         def _norm(s):
             return s.replace('-', '').replace(' ', '')
 
-        term = request.GET.get('term', '').strip()
+        term = request.GET.get('term', '').strip()[:50]  #จำกัดความยาว กัน fuzzy match ใช้ CPU มากเกิน
         qs = Distributor.objects.all()
         similar_conds = []  #เงื่อนไขแบบสะกดคล้าย (ส/ศ, ตัวสะกด, วรรณยุกต์) ใช้หาเพิ่มต่อท้ายผลที่ตรงตัว
         hl = []  #regex สำหรับไฮไลต์ในหน้าเว็บ
@@ -9713,6 +9716,7 @@ def cancelMA(request, ma_id):
     ma.save()
     return redirect('viewMA')
 
+@login_required(login_url='signIn')
 def autocompalte_maintenance(request):
     active = request.session.get('company_code', 'ALL')
 
