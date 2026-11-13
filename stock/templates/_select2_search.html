@@ -14,6 +14,11 @@ include หลัง <script select2.full.min.js> แล้วเรียก:
 .select2-results > .select2-results__options{max-height:300px;}
 .select2-results__option .s2-sub{display:block;font-size:.78em;color:#6c757d;line-height:1.3;}
 .select2-results__option--highlighted .s2-sub{color:#e9ecef;}
+/* รายการรถ (s2CarResult): รหัสเป็นป้ายกว้างคงที่ทางซ้าย ชื่อตัวหนาทางขวา */
+.s2-car{display:flex;align-items:flex-start;gap:.75rem;}
+.s2-car-code{flex:0 0 4.5em;text-align:center;font-weight:700;color:#1c5aa6;background:#e7f0fa;border-radius:.35rem;padding:.15rem .25rem;}
+.s2-car-body{flex:1;min-width:0;}
+.select2-results__option--highlighted .s2-car-code{background:#fff;}
 </style>
 <script>
     function s2EscHtml(s){ return $('<div>').text(s == null ? '' : s).html(); }
@@ -42,13 +47,28 @@ include หลัง <script select2.full.min.js> แล้วเรียก:
     }
 
     // เปิด dropdown แล้วโฟกัสช่องค้นหา
+    // มือถือ (โดยเฉพาะ iOS) จะเด้งแป้นพิมพ์ให้เฉพาะ focus() ที่เกิดระหว่างนิ้วแตะเท่านั้น
+    // จึงต้องโฟกัสทันทีใน select2:open (ยังอยู่ในจังหวะแตะ) ส่วน setTimeout เป็นตัวสำรองบนเดสก์ท็อป
     function s2AutoFocus($el, hint){
         $el.on('select2:open', function(){
-            setTimeout(function(){
+            function focusSearch(){
                 var f = document.querySelector('.select2-container--open .select2-search__field');
                 if (f){ if (hint) f.placeholder = hint; f.focus(); }
-            }, 0);
+            }
+            focusSearch();
+            setTimeout(focusSearch, 0);
         });
+    }
+
+    // templateResult ของรายการรถจาก car_search (มี code, name, car_type, dep)
+    function s2CarResult(d, terms){
+        if (d.loading || !d.id) return d.text;
+        if (!d.name && !d.code) return $('<span>').html(s2Highlight(d.text, terms));
+        var sub = [d.car_type, d.dep].filter(Boolean).join(' · ');
+        return $('<div class="s2-car">').html(
+            '<span class="s2-car-code">' + (d.code ? s2Highlight(d.code, terms) : '') + '</span>' +
+            '<div class="s2-car-body"><b>' + s2Highlight(d.name, terms) + '</b>' +
+            (sub ? '<span class="s2-sub">' + s2EscHtml(sub) + '</span>' : '') + '</div>');
     }
 
     function initSearchSelect(sel, placeholder, allowClear, extra){

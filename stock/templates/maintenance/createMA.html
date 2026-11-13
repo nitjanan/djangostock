@@ -80,6 +80,30 @@
     .ma-photo:has(.preview-image[style*="block"]) {
         border-style: solid;
     }
+
+    /* ประเภท: ยังไม่เลือก = ขาวเทาตามปกติ, เลือกแล้ว แจ้งซ่อม = เหลือง / ทำ PM = น้ำเงิน */
+    .cl-page .cl-choice input:checked + label.ma-type-repair {
+        color: #664d03;
+        background: #ffe08a;
+        border-color: #ffe08a;
+    }
+    .cl-page .cl-choice input:checked + label.ma-type-pm {
+        color: #084298;
+        background: #a8cbfe;
+        border-color: #a8cbfe;
+    }
+
+    /* สภาพรถ: ยังไม่เลือก = ขาวเทาตามปกติ, เลือกแล้ว เคลื่อนย้ายได้ = เขียว / ไม่ได้ = แดง */
+    .cl-page .cl-choice input:checked + label.ma-state-yes {
+        color: #0f5132;
+        background: #a3dbb3;
+        border-color: #a3dbb3;
+    }
+    .cl-page .cl-choice input:checked + label.ma-state-no {
+        color: #842029;
+        background: #f5b3b9;
+        border-color: #f5b3b9;
+    }
 </style>
 {% endblock %}
 
@@ -98,7 +122,7 @@
                 {{ form.name.label_tag }}
                 {{ form.name }}
             </div>
-            <div class="cl-field">
+            <div class="cl-field cl-search">
                 <label for="id_car">{{ form.car.label }} <span class="cl-req">*</span></label>
                 {{ form.car }}
             </div>
@@ -110,9 +134,9 @@
                 <label>ประเภท</label>
                 <div class="cl-choice">
                     <input type="radio" name="name_pm" value="0" id="id_pm_0" checked>
-                    <label for="id_pm_0"><i class="bi bi-tools"></i> แจ้งซ่อม</label>
+                    <label for="id_pm_0" class="ma-type-repair"><i class="bi bi-tools"></i> แจ้งซ่อม</label>
                     <input type="radio" name="name_pm" value="1" id="id_pm_1">
-                    <label for="id_pm_1"><i class="bi bi-calendar-check"></i> ทำ PM</label>
+                    <label for="id_pm_1" class="ma-type-pm"><i class="bi bi-calendar-check"></i> ทำ PM</label>
                 </div>
             </div>
             <div class="cl-field">
@@ -128,7 +152,11 @@
                 <div class="cl-choice">
                     {% for value, text in form.car_state.field.choices %}{% if value %}
                     <input type="radio" name="car_state" value="{{ value }}" id="id_car_state_{{ forloop.counter }}" required {% if form.car_state.value == value %}checked{% endif %}>
-                    <label for="id_car_state_{{ forloop.counter }}">{{ text }}</label>
+                    {% if 'ไม่' in value %}
+                    <label for="id_car_state_{{ forloop.counter }}" class="ma-state-no"><i class="bi bi-x-circle"></i> {{ text }}</label>
+                    {% else %}
+                    <label for="id_car_state_{{ forloop.counter }}" class="ma-state-yes"><i class="bi bi-check-circle"></i> {{ text }}</label>
+                    {% endif %}
                     {% endif %}{% endfor %}
                 </div>
             </div>
@@ -212,6 +240,8 @@
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% include '_select2_search.html' %}
+{% include 'carLogbook/_cl_search.html' %}
 
 
 <script>
@@ -256,12 +286,15 @@
         });
     }
 
+    var carTerms = [];
     $('#id_car').select2({
+        templateResult: function (d) { return s2CarResult(d, carTerms); },
         ajax: {
             url: "{% url 'car_search' %}",
             dataType: 'json',
             delay: 250,
             data: function (params) {
+                carTerms = s2Terms(params.term);
                 return {
                     q: params.term, // search term
                     'rq_type': [1,2],
@@ -275,9 +308,12 @@
             cache: true
         },
         placeholder: 'ค้นหาด้วย code หรือ ทะเบียนรถ ...',
+        width: '100%',
         minimumInputLength: 2,
         allowClear: true
     });
+    s2AutoFocus($('#id_car'), 'พิมพ์ทะเบียน รหัส หรือ ชื่อ…');
+    clScrollOnOpen('#id_car');
 
     //after load
     $(document).ready(function() {

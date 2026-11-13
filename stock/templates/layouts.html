@@ -285,51 +285,19 @@
         $(document).ready(function() {
             const totalAlertCount = parseInt("{{ global_notification_badge_count|default:0 }}") || 0;
             setBrowserNotificationBadge(totalAlertCount);
-
-            function adjustTabs() {
+            // แท็บบริษัท (#nav-tabs): ทุกช่องกว้างเท่ากัน ไม่เกิน 2 แถว
+            // ถ้าจอกว้างพอให้ทุกแท็บกว้าง >= TAB_MIN_WIDTH ในแถวเดียว ใช้แถวเดียว ไม่งั้นแบ่งครึ่งเป็น 2 แถว
+            const TAB_MIN_WIDTH = 110;
+            function setCompanyTabCols() {
                 const navTabs = document.getElementById('nav-tabs');
                 if (!navTabs) return;
-
-                if (window.innerWidth < 768) {
-                    return;
-                }
-
-                const tabs = navTabs.querySelectorAll('.nav-item');
-                const numTabs = tabs.length;
+                const numTabs = navTabs.querySelectorAll('.nav-item').length;
                 if (numTabs === 0) return;
-
-                const containerWidth = navTabs.parentElement.clientWidth;
-                let cols;
-                if (numTabs <= 8) {
-                    cols = numTabs;
-                } else {
-                    cols = Math.ceil(numTabs / 2);
-                }
-
-                const minTabWidth = 140; // minimum readable width in px
-                const requiredWidth = cols * minTabWidth;
-
-                if (requiredWidth > containerWidth) {
-                    navTabs.style.setProperty('display', 'grid', 'important');
-                    navTabs.style.setProperty('grid-template-rows', 'repeat(2, min-content)', 'important');
-                    navTabs.style.setProperty('grid-auto-flow', 'column', 'important');
-                    navTabs.style.setProperty('grid-auto-columns', 'minmax(140px, 1fr)', 'important');
-                    navTabs.style.setProperty('grid-template-columns', 'none', 'important');
-                    navTabs.style.setProperty('overflow-x', 'auto', 'important');
-                    navTabs.style.setProperty('overflow-y', 'hidden', 'important');
-                    navTabs.style.setProperty('white-space', 'nowrap', 'important');
-                } else {
-                    navTabs.style.setProperty('display', 'grid', 'important');
-                    navTabs.style.setProperty('grid-template-rows', 'none', 'important');
-                    navTabs.style.setProperty('grid-auto-flow', 'row', 'important');
-                    navTabs.style.setProperty('grid-template-columns', `repeat(${cols}, 1fr)`, 'important');
-                    navTabs.style.setProperty('overflow-x', 'visible', 'important');
-                    navTabs.style.setProperty('white-space', 'normal', 'important');
-                }
+                const cols = numTabs * TAB_MIN_WIDTH <= navTabs.clientWidth ? numTabs : Math.ceil(numTabs / 2);
+                navTabs.style.setProperty('--tab-cols', cols);
             }
-
-            adjustTabs();
-            $(window).on('resize', adjustTabs);
+            setCompanyTabCols();
+            $(window).on('resize', setCompanyTabCols);
         });
 
         // ---------------------------------------------------

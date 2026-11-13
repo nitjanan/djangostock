@@ -310,7 +310,8 @@ a.article:hover {
 /* Make nav-tabs equal width grid and look like clean premium cards */
 #nav-tabs {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    /* ทุกช่องกว้างเท่ากัน --tab-cols ตั้งจาก JS ใน layouts.html (1 แถว ถ้าจอพอ ไม่งั้น 2 แถว) */
+    grid-template-columns: repeat(var(--tab-cols, 9), minmax(0, 1fr)) !important;
     gap: 0 !important;
     padding: 0 !important;
     border: none !important;
@@ -358,10 +359,78 @@ a.article:hover {
 #nav-tabs .nav-item {
     margin: 0 !important;
     display: flex !important;
+    min-width: 0 !important;
+}
+
+/* รหัสบริษัทตัวใหญ่ ชื่อบริษัทตัวเล็กห้อยด้านล่าง ชื่อยาวเกินช่องตัดเป็น … (ชื่อเต็มอยู่ใน title) */
+#nav-tabs .nav-link {
+    position: relative !important;
+}
+
+#nav-tabs .nav-link .tab-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.15;
+}
+
+#nav-tabs .nav-link .tab-code {
+    font-size: 14.5px;
+}
+
+#nav-tabs .nav-link .tab-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+    font-weight: normal;
+    text-transform: none;
+    opacity: 0.85;
+}
+
+#nav-tabs .nav-link .badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+}
+
+/* จอคอมพิวเตอร์ใหญ่: กลับเป็นรูปแบบเดิม "รหัส-ชื่อ" บรรทัดเดียว ตัวหนาขนาดเท่ากัน */
+@media (min-width: 1800px) {
+    #nav-tabs .nav-link .tab-label {
+        flex-direction: row;
+        line-height: 1.2;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    #nav-tabs .nav-link .tab-code {
+        flex-shrink: 0;
+    }
+
+    #nav-tabs .nav-link .tab-name {
+        min-width: 0;
+        font-size: 14.5px;
+        font-weight: bold;
+        opacity: 1;
+    }
+
+    #nav-tabs .nav-link .tab-name::before {
+        content: "-";
+    }
+
+    #nav-tabs .nav-link .badge {
+        position: static;
+        margin-left: 4px !important;
+        flex-shrink: 0;
+    }
 }
 
 #nav-tabs .nav-link {
     width: 100% !important;
+    min-width: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
