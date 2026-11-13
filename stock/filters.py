@@ -63,17 +63,19 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
     #ค้นจากชื่อหรือนามสกุล ได้หลายคำ และสะกดคล้ายก็เจอ (ส/ศ, ตัวสะกด, วรรณยุกต์)
     requisition__name = django_filters.CharFilter(method='filter_requisition_name', widget=SuggestInput('requisition__name', kind='user'))
     organizer =  django_filters.ModelChoiceFilter(field_name="organizer", queryset= User.objects.filter(groups__name='จัดซื้อ'))
+    #ช่องที่กรองจากรายการสินค้า (ใบหนึ่งมีหลายรายการ) ใช้ Exists แทนการ join ตรงๆ
+    #ไม่งั้นใบที่มีหลายรายการตรงคำค้นจะขึ้นซ้ำในตาราง และจำนวนในแท็บ/การแบ่งหน้าเพี้ยน
     item_product_name = django_filters.CharFilter(
-        field_name="requisition__requisitionitem__product_name",
-        lookup_expr='icontains', widget=SuggestInput('requisition__requisitionitem__product_name')
+        method='filter_requisition_item',
+        widget=SuggestInput('requisition__requisitionitem__product_name')
     )
     item_product_id = django_filters.CharFilter(
-        field_name="requisition__requisitionitem__product__id",
-        lookup_expr='icontains', widget=SuggestInput('requisition__requisitionitem__product__id', label='requisition__requisitionitem__product__name')
+        method='filter_requisition_item',
+        widget=SuggestInput('requisition__requisitionitem__product__id', label='requisition__requisitionitem__product__name')
     )
     item_machine = django_filters.CharFilter(
-        field_name="requisition__requisitionitem__machine",
-        lookup_expr='icontains', widget=SuggestInput('requisition__requisitionitem__machine')
+        method='filter_requisition_item',
+        widget=SuggestInput('requisition__requisitionitem__machine')
     )
     item_rq_note = django_filters.CharFilter(
         field_name="requisition__note",
@@ -86,6 +88,17 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
 
     def filter_requisition_name(self, queryset, name, value):
         return queryset.filter(user_name_q('requisition__name__', value))
+
+    REQUISITION_ITEM_LOOKUPS = {
+        'item_product_name': 'product_name__icontains',
+        'item_product_id': 'product__id__icontains',
+        'item_machine': 'machine__icontains',
+    }
+
+    def filter_requisition_item(self, queryset, name, value):
+        items = RequisitionItem.objects.filter(
+            requisit=OuterRef('requisition_id'), **{self.REQUISITION_ITEM_LOOKUPS[name]: value})
+        return queryset.filter(Exists(items))
 
 PurchaseRequisitionFilter.base_filters['id'].label = 'รหัสใบขอซื้อ'
 PurchaseRequisitionFilter.base_filters['ref_no'].label = 'รหัสใบขอซื้อ'

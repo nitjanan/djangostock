@@ -1,0 +1,83 @@
+{% comment %}ช่องค้นหา (select2) ของฟอร์มบันทึกการใช้รถบนมือถือ — ใช้ร่วม createCL, createCLRoi
+include หลัง _select2_search.html แล้วใส่ class "cl-search" ที่ div ครอบช่อง และเรียก clScrollOnOpen('#id_x, #id_y'){% endcomment %}
+<style>
+    /* dropdown ค้นหา (select2) สำหรับมือถือ: ช่องพิมพ์ 16px กัน iOS zoom, ตัวเลือกสูงพอให้นิ้วแตะ */
+    .select2-container--open .select2-search--dropdown .select2-search__field {
+        min-height: 44px;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+    .select2-container--open .select2-results__option {
+        padding: 10px 12px;
+        font-size: 15px;
+        line-height: 1.35;
+        border-bottom: 1px solid #f0f1f4;
+    }
+    /* ช่องที่ค้นหาได้: หน้าตาเหมือนช่องค้นหาในแอป (ทรงแคปซูล + แว่นขยาย ไม่มีลูกศร dropdown) ให้รู้ว่าพิมพ์ค้นได้ */
+    .cl-page .cl-search .select2-container .select2-selection--single {
+        position: relative;
+        height: 48px;
+        background: #efe9fb;
+        border: 2px solid #9b7fd9;
+        border-radius: 24px;
+    }
+    .cl-page .cl-search .select2-container--open .select2-selection--single,
+    .cl-page .cl-search .select2-container--focus .select2-selection--single {
+        background: #fff;
+        border-color: #6f42c1;
+        box-shadow: 0 0 0 3px rgba(111, 66, 193, .2);
+    }
+    .cl-page .cl-search .select2-selection--single .select2-selection__rendered {
+        line-height: 44px;
+        color: #1f2937;
+        font-weight: 600;
+    }
+    .cl-page .cl-search .select2-selection--single .select2-selection__placeholder {
+        color: #5b3fa0;
+        font-weight: normal;
+    }
+    .cl-search .select2-selection--single::before {
+        content: "\F52A"; /* bi-search */
+        font-family: "bootstrap-icons";
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6f42c1;
+        font-size: 19px;
+        pointer-events: none;
+    }
+    .cl-page .cl-search .select2-selection--single .select2-selection__rendered {
+        padding-left: 46px;
+        padding-right: 16px;
+    }
+    .cl-search .select2-selection--single .select2-selection__arrow {
+        display: none;
+    }
+    .cl-search .select2-selection--single .select2-selection__clear {
+        font-size: 22px;
+        color: #888;
+        margin-right: 4px;
+    }
+    .select2-container--open .select2-results > .select2-results__options {
+        max-height: 50vh;
+        -webkit-overflow-scrolling: touch;
+    }
+    .select2-container--open .select2-dropdown {
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .15);
+    }
+</style>
+<script>
+    // มือถือ: เลื่อนช่องที่แตะขึ้นไปบนสุด จะได้เห็นผลค้นหาเต็มๆ ไม่ถูกคีย์บอร์ดบัง
+    // ต้องเลื่อนหลังเปิดแล้ว (select2:open) ถ้าเลื่อนตอน opening ช่องจะขยับใต้นิ้วแล้ว dropdown ปิดทันที
+    function clScrollOnOpen(sel){
+        $(sel).on('select2:open', function(){
+            if (window.innerWidth >= 768) return;
+            var box = $(this).next('.select2-container')[0];
+            setTimeout(function(){
+                if (box) window.scrollTo(0, box.getBoundingClientRect().top + window.pageYOffset - 70);
+            }, 50);
+        });
+    }
+</script>

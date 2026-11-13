@@ -11,48 +11,7 @@
     .hidden-print {
         display: none;
     }
-
-    @page {
-        size: A4 landscape;
-        margin: 0;
-    }
-
-    /* Print */
-    body, html {
-        font-size: 8pt;
-        font-family: serif;
-        color: black;
-        margin: 1;
-        padding: 1;
-        width: 100%;
-        height: 100%;
-    }
-
-    .container {
-        width: 98vw !important;
-        max-width: 98vw !important;
-        margin: 1 !important;
-        padding: 1 !important;
-    }
-
-    table {
-        width: 95vw !important;
-        max-width: 95vw !important;
-        border-collapse: collapse;
-    }
-
-    tr, td, th {
-        padding: 1;
-        margin: 1;
-        border: 1px solid black;
-    }
-
-    * {
-        margin: 1 !important;
-        padding: 1 !important;
-        box-sizing: border-box;
-    }
-
+    /* ขอบกระดาษ / ฟอนต์ / ขนาดตัวอักษรตอนปริ้น อยู่ใน _cp_doc_styles.html และ _cp_compare_table_styles.html */
 }
     /* No Print */
    .container {
@@ -87,7 +46,7 @@
 {% include 'comparePricePO/_cp_mobile_styles.html' %}
 {% endblock %}
 {% block content %}
-<div class="container cp-print cp-show cp-mobile my-3">
+<div class="container cp-print print-doc cp-show cp-mobile my-3">
     {% if cp.is_cancel %}
     <div class="cp-cancel-banner">
         <i class="fas fa-ban mr-1"></i>*ยกเลิก <span>({{cp.cancel_reason}})</span>

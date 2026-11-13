@@ -1,5 +1,7 @@
 {% comment %}หน้าตาเอกสารใบเปรียบเทียบราคา (.cp-print): กระดาษ หัวเอกสาร สรุปผล ช่องลงชื่อ แถบปุ่มด้านล่าง
 ใช้ร่วมกันระหว่างหน้าเลือกร้านค้า (printComparePricePO) และหน้าอนุมัติ (printCPApprove){% endcomment %}
+{% comment %}ฟอนต์/สีตอนปริ้นแบบเดียวกับใบขอเบิก/ใบขอซื้อ/ใบสั่งซื้อ (ต้องมาก่อน _cp_compare_table_styles ที่ตั้งกระดาษแนวนอน){% endcomment %}
+{% include '_print_doc_base.html' %}
 <style>
   /* ตารางเปรียบเทียบหลายร้านกว้าง ให้หน้านี้กว้างกว่าหน้าอื่น */
   .container.cp-print {
@@ -25,6 +27,13 @@
   .cp-print .cp-doc-title {
     text-align: center;
   }
+  /* ขนาดตัวอักษรเทียบเท่าใบขอเบิก/ใบขอซื้อ (_approve_doc_styles.html) */
+  .cp-print .cp-doc-title h5 {
+    font-size: 1.15rem;
+  }
+  .cp-print .cp-doc-title .font-weight-bold {
+    font-size: 1.05rem;
+  }
   .cp-print .cp-doc-address {
     font-size: .85rem;
     color: #495057;
@@ -35,7 +44,7 @@
     column-gap: .75rem;
     row-gap: .1rem;
     margin: 0;
-    font-size: .88rem;
+    font-size: .9rem;
   }
   .cp-print .cp-doc-meta dt {
     font-weight: normal;
@@ -136,35 +145,57 @@
       box-shadow: none;
       padding: 0;
     }
+    /* หัวเอกสาร */
     .cp-print .cp-doc-head {
-      border-bottom-width: 1px;
+      column-gap: 12pt;
+      padding-bottom: 5pt;
+      margin-bottom: 7pt;
+      border-bottom: 1.5px solid #000;
     }
-    /* กล่องผู้จัดทำ/ผู้ตรวจสอบ/ผู้อนุมัติ: เส้นจาง (แนวเดียวกับใบขอซื้อ) */
+    .cp-print .cp-doc-title h5 { font-size: 15pt; font-weight: 700; margin-bottom: 1pt !important; }
+    .cp-print .cp-doc-title h5 small { font-size: 10.5pt; }
+    .cp-print .cp-doc-title .font-weight-bold { font-size: 11.5pt; }
+    .cp-print .cp-doc-address { font-size: 9.5pt; }
+    .cp-print .cp-doc-meta { font-size: 10pt; row-gap: 0; }
+    .cp-print .cp-doc-meta dt { color: #000; }
+
+    /* สรุปส่วนต่างราคา / ร้านที่ขออนุมัติ */
+    .cp-print .cp-conclusion {
+      font-size: 10.5pt;
+      padding: 4pt 0;
+      margin-bottom: 6pt;
+      border-color: var(--pd-line);
+    }
+    .cp-print #txtSelectBidderPrice { color: #000 !important; }
+
+    /* กล่องผู้จัดทำ/ผู้ตรวจสอบ/ผู้อนุมัติ: เส้นจาง ตัวหนังสือกึ่งกลาง */
     .cp-print .cp-signatures {
-      border-color: #dee2e6;
-    }
-    .cp-print .cp-sign + .cp-sign {
-      border-left-color: #dee2e6;
-    }
-    /* ลดความสูงกล่องลงชื่อ (ขนาดตัวอักษรเท่าเดิม) */
-    .cp-print .cp-signatures {
-      margin-top: 6px !important;
-      margin-bottom: 6px !important;
+      margin-top: 6pt !important;
+      margin-bottom: 5pt !important;
+      border: 1px solid var(--pd-line);
+      border-radius: 4px;
+      break-inside: avoid;
     }
     .cp-print .cp-sign {
-      padding: 2px 8px !important;
-      line-height: 1.2;
+      padding: 4pt 8pt 5pt !important;
+      line-height: 1.35;
+      font-size: 10pt;
     }
-    .cp-print .cp-sign-title {
-      margin-bottom: 0 !important;
-    }
+    .cp-print .cp-sign + .cp-sign { border-left: 1px solid var(--pd-line); }
+    .cp-print .cp-sign-title { font-size: 10.5pt; font-weight: 700; margin-bottom: 1pt !important; }
+    .cp-print .cp-sign .small { font-size: 9pt; }
     .cp-print .cp-sign-img {
-      width: 80px;
-      height: 32px;
+      display: block;
+      margin: 0 auto 2pt;
+      width: auto;
+      max-width: 130px;
+      height: 40px;
+      object-fit: contain;
+      border-bottom: 1px dotted #000;
     }
-    .cp-print .cp-status {
-      margin-top: 0 !important;
-    }
+    .cp-print .cp-status { margin-top: 0 !important; }
+    /* รหัส ISO / เวลาที่ปริ้น */
+    .cp-print #dt_print { font-size: 9pt; }
     /* display:flex ของแถบปุ่มชนะ .hidden-print จึงต้องซ่อนตรงนี้ */
     .cp-print .cp-actions-bar {
       display: none !important;

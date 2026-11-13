@@ -1381,10 +1381,13 @@ function searchDataDistributor(){
                     //set id_credit , id_vat_type
                     $('#id_credit').val(data.credit).trigger('change');
                     {% if not isLockPOItem %}
-                    $("#id_vat_type").val(data.vat_type);
-                    //ชนิดภาษีเปลี่ยนตามผู้จำหน่าย คำนวณยอดเงินใหม่
-                    document.getElementById("vat-type").innerHTML = data.vat_type;
-                    calculateAll();
+                    //ผู้จำหน่ายที่ไม่ได้ตั้งชนิดภาษีให้คงค่าเดิม
+                    if (data.vat_type) {
+                      $("#id_vat_type").val(data.vat_type);
+                      //ชนิดภาษีเปลี่ยนตามผู้จำหน่าย คำนวณยอดเงินใหม่
+                      document.getElementById("vat-type").innerHTML = data.vat_type;
+                      calculateAll();
+                    }
                     {% endif %}
                 }
                 updateHeaderDistributor(data);

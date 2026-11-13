@@ -404,7 +404,7 @@
                         if (data.credit) {
                             //set id_credit , id_vat_type
                             $('#id_credit').val(data.credit).trigger('change');
-                            $("#id_vat_type").val(data.vat_type);
+                            if (data.vat_type) $("#id_vat_type").val(data.vat_type); //ผู้จำหน่ายที่ไม่ได้ตั้งชนิดภาษีให้คงค่าเดิม
                         }
                     }
                 });

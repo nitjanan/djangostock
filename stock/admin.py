@@ -198,7 +198,21 @@ class BranchCompanyBaseAdressAdmin(ImportExportModelAdmin):
     list_display = ['id','branch_company', 'address'] #แสดงรายการสินค้าในรูปแบบตาราง
     list_per_page = 20 #แสดงผล 20 รายการต่อ 1 หน้า
 
+class VatTypeWidget(ForeignKeyWidget):
+    """ForeignKeyWidget ปกติมอง 0 เป็นค่าว่าง (if val:) แต่ BaseVatType id 0 = 'ไม่มี vat'
+    และคอลัมน์ vat_type_id ใน DB เป็น NOT NULL จึงต้องรับ 0 และใช้ 0 เมื่อช่องว่าง"""
+    def clean(self, value, row=None, *args, **kwargs):
+        if value is None or str(value).strip() == '':
+            value = 0
+        return self.get_queryset(value, row, *args, **kwargs).get(**{self.field: int(float(value))})
+
+
 class DistributorResource(resources.ModelResource):
+
+    vat_type = fields.Field(
+        column_name='vat_type',
+        attribute='vat_type',
+        widget=VatTypeWidget(BaseVatType, 'id'))
 
     prefix = fields.Field(
         column_name='prefix',
