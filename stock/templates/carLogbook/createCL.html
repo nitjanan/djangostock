@@ -233,15 +233,7 @@
             processResults: function (data) { return { results: data.results }; },
             cache: true
         },
-        templateResult: function (d) {
-            if (d.loading || !d.id) return d.text;
-            if (!d.name && !d.code) return $('<span>').html(s2Highlight(d.text, carTerms));
-            var sub = [d.dep, d.car_type].filter(Boolean).join(' · ');
-            return $('<span>').html(
-                '<b>' + s2Highlight(d.name, carTerms) + '</b>' +
-                (d.code ? ' <span class="badge badge-warning">' + s2Highlight(d.code, carTerms) + '</span>' : '') +
-                (sub ? '<span class="s2-sub">' + s2EscHtml(sub) + '</span>' : ''));
-        }
+        templateResult: function (d) { return s2CarResult(d, carTerms); }
     });
 
     $('#id_name').css('pointer-events','none');
