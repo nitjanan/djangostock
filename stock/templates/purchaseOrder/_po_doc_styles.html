@@ -7,7 +7,7 @@ layout ตามแบบเดิม (branch main) + ตกแต่งเฉ�
       display: none;
     }
     body {
-        font-size: 11pt;
+        font-size: 9pt;
         color: black;
     }
   }
@@ -60,22 +60,38 @@ layout ตามแบบเดิม (branch main) + ตกแต่งเฉ�
     .po-doc hr {
       border-top-color: #e9ecef;
     }
+    /* ขนาดตัวอักษรให้สมส่วนกับตารางรายการ (ตัวตาราง 1rem) */
+    .po-doc p {
+      font-size: 1rem;
+    }
     .po-doc .ps-head h4 {
+      font-size: 1.2rem;
       font-weight: 700;
     }
     .po-doc .ps-head description {
+      font-size: .95rem;
       color: #495057;
     }
+    .po-doc .po-qr ul {
+      font-size: .95rem;
+    }
     .po-doc .ps-parties address {
+      font-size: .95rem;
       line-height: 1.7;
     }
-    .po-doc .ps-parties .text-right strong {
-      font-size: 1.2rem;
+    .po-doc .ps-parties strong {
+      font-size: 1rem;
+    }
+    .po-doc .ps-parties .text-right > address > strong {
+      font-size: 1.35rem;
+    }
+    .po-doc .ps-parties h6 {
+      font-size: .85rem;
     }
 
     /* หัวข้อ "รายการสั่งซื้อ" */
     .po-doc .panel-title {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       margin: .75rem 0 .5rem;
     }
 
@@ -85,12 +101,13 @@ layout ตามแบบเดิม (branch main) + ตกแต่งเฉ�
       border-top: 1px solid #e3e6ea;
       border-bottom: 2px solid #dee2e6;
       font-size: .85rem;
-      font-weight: 600;
-      color: #495057;
+      font-weight: 700;
+      color: #212529;
       white-space: nowrap;
       vertical-align: middle;
     }
     .po-doc .ps-items tbody td {
+      font-size: 1rem;
       vertical-align: top;
     }
     .po-doc .ps-items tbody tr:hover {
@@ -117,7 +134,7 @@ layout ตามแบบเดิม (branch main) + ตกแต่งเฉ�
       margin-bottom: .4rem;
     }
     .po-doc .ps-summary > .col-2-25:nth-child(2) p {
-      color: #6c757d;
+      color: #495057;
     }
     .po-doc .ps-grand {
       margin-top: .25rem;
@@ -129,7 +146,7 @@ layout ตามแบบเดิม (branch main) + ตกแต่งเฉ�
       color: #212529 !important;
     }
     .po-doc .ps-grand > .col-2-25:last-child p {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       color: #0056b3 !important;
     }
     .po-doc .ps-grand #total-spell {
@@ -342,37 +359,116 @@ layout ตามแบบเดิม (branch main) + ตกแต่งเฉ�
     }
   }
 
-  /* ---------- ปริ้น: ย่อความสูงหัว/ท้ายเอกสาร (ขนาดตัวอักษรเท่าเดิม) ---------- */
+  /* ---------- ปริ้น: ตัวอักษรใหญ่ อ่านง่าย จัดเป็นสัดส่วน (ฟอนต์/ขอบกระดาษจาก _print_doc_base.html) ---------- */
   @media print {
-    /* เว้นระยะพอดีๆ ให้สมส่วน (ยังเตี้ยกว่าใบเดิม) */
-    .po-doc .row.my-2 { margin-top: 0 !important; margin-bottom: 4px !important; }
-    .po-doc h3 { margin-bottom: 6px; }
-    .po-doc h4 { margin-bottom: 4px; }
-    .po-doc h6 { margin: 0; }
-    .po-doc hr { margin: 8px 0; }
-    .po-doc address { margin-bottom: 2px; }
-    .po-doc .po-qr img { width: 70px; height: 70px; }
-    .po-doc .po-qr ul { margin: 0 !important; line-height: 1.25; }
-    .po-doc .ps-summary p { margin-bottom: 3px; }
-    .po-doc .ps-grand { margin-top: 4px; }
-    .po-doc .ps-signs { margin-top: 12px !important; margin-bottom: 6px !important; }
-    .po-doc .ps-signs p { margin-bottom: 3px; }
-    .po-doc .ps-signs p.line75 { line-height: 1.3; }
-    .po-doc .ps-signs img[width="100"] { width: 80px; height: 32px; }
-    .po-doc .ps-signs img[width="160"] { width: 110px; height: 52px; }
+    .po-doc .row.my-2 { margin-top: 0 !important; margin-bottom: 0 !important; }
+    .po-doc hr { margin: 6.5pt 0; border-top: 1px solid var(--pd-soft); }
 
-    /* ตารางรายการ: หน้าตาเดิม (Bootstrap .table เส้นแนวนอน) แต่ช่องแคบ ใส่รายการได้มาก */
+    /* หัวเอกสาร: บริษัท | QR + ประเภทการสั่งซื้อ */
+    .po-doc .ps-head { align-items: center; flex-wrap: nowrap; }
+    .po-doc .ps-head description { font-size: 9pt; line-height: 1.45; }
+    .po-doc .ps-head h4 { font-size: 13.5pt; font-weight: 700; margin-bottom: 1.5pt; }
+    .po-doc .ps-head h3 { font-size: 15pt; margin-bottom: 1.5pt; }
+    .po-doc .po-qr { flex: 0 0 auto; max-width: none; width: auto; justify-content: flex-end; }
+    .po-doc .po-qr img { width: 76px; height: 76px; }
+    .po-doc .po-qr ul { margin: 0 !important; font-size: 9pt; line-height: 1.35; }
+
+    /* ผู้จำหน่าย | ใบสั่งซื้อ */
+    .po-doc .ps-parties { margin-top: 1.5pt; }
+    .po-doc .ps-parties address { margin-bottom: 0; line-height: 1.5; }
+    .po-doc .ps-parties strong { font-size: 11pt; }
+    .po-doc .ps-parties .text-right > address > strong { font-size: 17pt; line-height: 1.2; }
+    .po-doc .ps-parties h6 { font-size: 9pt !important; margin: 1.5pt 0 0; }
+
+    /* ตารางรายการ */
+    .po-doc .panel-title { font-size: 11.5pt; margin: 6.5pt 0 3.5pt; }
     .po-doc table.ps-items {
-      margin: 6px 0 10px 0;
-      line-height: 1.25;
+      margin: 0 0 5pt 0;
+      font-size: 9pt;
+      line-height: 1.35;
       color: #000;
+      border-collapse: collapse;
     }
     .po-doc table.ps-items th,
     .po-doc table.ps-items td {
-      padding: 2px 4px;
+      padding: 3.5pt 4pt;
+      border: 0;
+      border-bottom: 1px solid var(--pd-soft);
+      vertical-align: top;
     }
-    .po-doc table.ps-items thead { display: table-header-group; }
-    .po-doc table.ps-items tr { page-break-inside: avoid; break-inside: avoid; }
+    .po-doc table.ps-items thead th {
+      font-size: 9pt;
+      font-weight: 700;
+      white-space: nowrap;
+      background: var(--pd-head-bg) !important;
+      border-top: 1px solid var(--pd-line);
+      border-bottom: 1px solid var(--pd-line);
+    }
+    /* แถวสุดท้ายไม่มีเส้นล่าง (มีเส้นคั่น hr ใต้ตารางอยู่แล้ว) */
+    .po-doc table.ps-items tbody tr:last-child td { border-bottom: 0; }
+    .po-doc table.ps-items td:last-child { font-weight: 600; }
     .po-doc table.ps-items .pi-nowrap { white-space: nowrap; }
+    .po-doc table.ps-items td b.text-success { font-weight: 600; }
+
+    /* หมายเหตุ / สรุปยอดเงิน */
+    .po-doc .panel-body > .row { margin-left: 0; margin-right: 0; }
+    .po-doc .panel-body > .row > [class*="col"] { padding-left: 0; padding-right: 0; }
+    .po-doc .ps-summary { break-inside: avoid; }
+    .po-doc .ps-summary p { margin-bottom: 1.5pt; font-variant-numeric: tabular-nums; }
+    /* หมายเหตุ 50% | ชื่อรายการ 30% | จำนวนเงิน 20% */
+    .po-doc .ps-summary > .col-7-5 { flex: 0 0 50%; max-width: 50%; padding-right: 10pt !important; }
+    .po-doc .ps-summary > .col-2-25:nth-child(2) { flex: 0 0 30%; max-width: 30%; }
+    .po-doc .ps-summary > .col-2-25:last-child { flex: 0 0 20%; max-width: 20%; padding-left: 5pt !important; }
+    .po-doc .ps-summary > .col-2-25 p { white-space: nowrap; }
+    .po-doc .ps-grand {
+      margin-top: 3.5pt;
+      padding: 4pt 0;
+      border-top: 1.5px solid #000;
+      border-bottom: 3px double #000;
+      align-items: center;
+    }
+    .po-doc .ps-grand > .col-2-25 p { font-weight: 700; font-size: 11pt; margin: 0; }
+    .po-doc .ps-grand #total-spell { margin: 0; font-weight: 600; }
+
+    /* เส้นเทา (hr) เหนือช่องลงชื่อ: ไม่ปริ้น */
+    .po-doc hr:has(+ .ps-signs) { display: none; }
+    /* ลงชื่อ: 2 ช่องเท่ากัน ตัวหนังสือกึ่งกลาง ไม่มีกรอบ */
+    .po-doc .ps-signs {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+      margin: 10pt 0 0 !important;
+      break-inside: avoid;
+    }
+    .po-doc .ps-signs > .col {
+      max-width: none;
+      padding: 0 8pt;
+      text-align: center;
+    }
+    .po-doc .ps-signs p,
+    .po-doc .ps-signs p.line75 { margin-bottom: 1pt; line-height: 1.4; }
+    .po-doc .ps-signs > .col > p:first-child,
+    .po-doc .ps-signs > .col p.line75:nth-of-type(2) { font-weight: 700; }
+    .po-doc .ps-signs img {
+      width: auto !important;
+      max-width: 140px;
+      height: 50px !important;
+      margin: 2pt 0;
+      object-fit: contain;
+      border-bottom: 1px dotted #000 !important;
+    }
+    /* รหัส ISO + เวลาที่ปริ้น อยู่ใต้กล่องลงชื่อ */
+    .po-doc .ps-signs > .float-right {
+      grid-column: 1 / -1;
+      float: none !important;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-direction: row-reverse;
+      padding: 5pt 0 0;
+      font-size: 9pt;
+    }
+    .po-doc .ps-signs > .float-right h6 { font-size: 9pt; font-weight: 700; margin: 0; }
   }
 </style>
+{% include '_print_doc_base.html' %}

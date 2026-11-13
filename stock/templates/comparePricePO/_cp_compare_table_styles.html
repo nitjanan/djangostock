@@ -1,7 +1,7 @@
 <style>
   /* ตารางเปรียบเทียบราคา */
   .cp-compare-table {
-    font-size: .88rem;
+    font-size: 1rem;
   }
   .cp-compare-table thead th,
   .cp-compare-table thead td {
@@ -23,7 +23,7 @@
     color: #495057;
   }
   .cp-compare-table .cp-col-heads th {
-    font-size: .8rem;
+    font-size: .85rem;
     white-space: nowrap;
   }
   .cp-compare-table .cp-col-item {
@@ -47,7 +47,7 @@
     background: #fbfbfc;
   }
   .cp-compare-table .cp-sum-grand td {
-    font-size: .95rem;
+    font-size: 1.05rem;
   }
   .cp-compare-table .cp-note {
     font-size: .8rem;
@@ -87,12 +87,33 @@
     .cp-compare-table {
       width: 100% !important;
       max-width: 100% !important;
-      font-size: 7.5pt !important;
+      font-size: 9pt !important;
+      line-height: 1.3;
+      border-collapse: collapse;
+    }
+    /* เส้นตารางสีจาง (แบบเดียวกับใบขอซื้อ/ใบสั่งซื้อ) */
+    .cp-compare-table,
+    .cp-compare-table th,
+    .cp-compare-table td {
+      border-color: var(--pd-line, #dee2e6) !important;
     }
     .cp-compare-table th,
     .cp-compare-table td {
-      padding: 1px 3px !important;
+      padding: 2pt 3pt !important;
     }
+    /* ตัวเลขไม่ตัดกลางบรรทัด (ข้อความ ชื่อสินค้า/ยี่ห้อ ขึ้นบรรทัดใหม่ได้ตามปกติ) */
+    .cp-compare-table tbody td.text-right {
+      white-space: nowrap;
+    }
+    /* หัวตาราง (รวมแถว โทร / เกรด / เครดิต): พื้นเทาอ่อน ชื่อร้านตัวหนา */
+    .cp-compare-table .cp-bidder-name,
+    .cp-compare-table .cp-col-heads th,
+    .cp-compare-table thead > tr:first-child > th,
+    .cp-compare-table thead .cp-sub {
+      background: var(--pd-head-bg, #ececec) !important;
+    }
+    .cp-compare-table .cp-bidder-name { font-size: 1.05em; }
+    .cp-compare-table .cp-sum-grand td { font-size: 1em !important; font-weight: 700; }
     .cp-compare-table .cp-col-item,
     .cp-compare-table .cp-note {
       min-width: 0 !important;
@@ -105,24 +126,30 @@
     .cp-compare-table .cp-col-heads th,
     .cp-compare-table .cp-col-spares,
     .cp-compare-table .cp-note {
-      font-size: 6.5pt !important;
+      font-size: 8pt !important;
     }
     /* ร้านค้าเยอะ ตัวอักษรเล็กลงเพื่อให้พอดีหน้า */
     .cp-compare-table.cp-bidders-4 {
-      font-size: 6.8pt !important;
+      font-size: 8pt !important;
+    }
+    .cp-compare-table.cp-bidders-4 .cp-sub,
+    .cp-compare-table.cp-bidders-4 .cp-col-heads th,
+    .cp-compare-table.cp-bidders-4 .cp-col-spares,
+    .cp-compare-table.cp-bidders-4 .cp-note {
+      font-size: 7pt !important;
     }
     .cp-compare-table.cp-bidders-5 {
-      font-size: 5.8pt !important;
+      font-size: 7pt !important;
     }
     .cp-compare-table.cp-bidders-5 th,
     .cp-compare-table.cp-bidders-5 td {
-      padding: 1px 2px !important;
+      padding: 1.5pt 2pt !important;
     }
     .cp-compare-table.cp-bidders-5 .cp-sub,
     .cp-compare-table.cp-bidders-5 .cp-col-heads th,
     .cp-compare-table.cp-bidders-5 .cp-col-spares,
     .cp-compare-table.cp-bidders-5 .cp-note {
-      font-size: 5.5pt !important;
+      font-size: 6.5pt !important;
     }
   }
 </style>

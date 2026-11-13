@@ -1,0 +1,66 @@
+{% comment %}พื้นฐานตอนปริ้นเอกสาร (ใบขอเบิก / ใบขอซื้อ / ใบสั่งซื้อ) ใช้ร่วมกัน
+- กระดาษ A4 ขอบ 10 มม. ทุกด้าน
+- ฟอนต์ Sarabun (ฟอนต์มาตรฐานเอกสารไทย) อ่านง่ายเมื่อปริ้น ถ้าโหลดไม่ได้ใช้ Tahoma แทน
+- ตัวอักษรสีดำทั้งหมด (layout หลักทำให้ p / description เป็นสีเทาอ่อน ปริ้นแล้วจาง)
+ใส่ class .print-doc ที่กล่องเอกสาร (มีผลเฉพาะตอนปริ้น หน้าจอไม่เปลี่ยน){% endcomment %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+<style>
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  @media print {
+    /* Bootstrap 4 ตั้ง body/.container min-width: 992px ตอนปริ้น ทำให้ Chrome ย่อทั้งหน้าเหลือ ~72%
+       (ตัวหนังสือเล็กกว่าที่ตั้งไว้มาก) จึงยกเลิกเฉพาะหน้าที่มีเอกสาร .print-doc */
+    body:has(.print-doc),
+    body:has(.print-doc) .container {
+      min-width: 0 !important;
+    }
+    #content:has(.print-doc) {
+      padding: 0 !important;
+    }
+    .print-doc {
+      --pd-line: #dee2e6;      /* เส้นตาราง/กรอบ สีจางแบบใบเดิม */
+      --pd-soft: #dee2e6;      /* เส้นคั่นบางๆ */
+      --pd-head-bg: #ececec;   /* พื้นหัวตาราง */
+      font-family: 'Sarabun', Tahoma, 'Leelawadee UI', sans-serif !important;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #000 !important;
+      max-width: none !important;
+      width: 100% !important;
+      /* เว้นด้านบนเล็กน้อย: วรรณยุกต์ที่ซ้อนบนสระ (เช่น ซื้อ) สูงเกินบรรทัด
+         ถ้าบรรทัดแรกชิดขอบบนสุดของหน้า วรรณยุกต์จะถูกตัดหาย ("ใบขอซื้อ" เป็น "ใบขอซือ") */
+      padding: 6pt 0 0 !important;
+      margin: 0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .print-doc h1, .print-doc h2, .print-doc h3, .print-doc h4, .print-doc h5, .print-doc h6,
+    .print-doc p, .print-doc description, .print-doc address, .print-doc strong, .print-doc b,
+    .print-doc label, .print-doc small, .print-doc span, .print-doc div, .print-doc td, .print-doc th,
+    .print-doc .text-muted {
+      font-family: inherit !important;
+    }
+    .print-doc p, .print-doc description, .print-doc address, .print-doc label,
+    .print-doc .text-muted, .print-doc .card-text {
+      color: #000 !important;
+    }
+    /* layouts.css ตั้ง p เป็นตัวบาง 1.1em สีเทา */
+    .print-doc p {
+      font-size: inherit;
+      font-weight: 400;
+      line-height: 1.45;
+    }
+    /* ลิงก์ในเอกสาร (เลขที่อ้างอิง) ปริ้นเป็นตัวหนังสือธรรมดา */
+    .print-doc a {
+      color: #000 !important;
+      text-decoration: none !important;
+    }
+    /* ตารางรายการ: หัวตารางซ้ำทุกหน้า ไม่ตัดแถวกลางหน้า */
+    .print-doc table thead { display: table-header-group; }
+    .print-doc table tr { page-break-inside: avoid; break-inside: avoid; }
+  }
+</style>

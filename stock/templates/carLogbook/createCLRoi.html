@@ -45,11 +45,11 @@
 
             <div class="cl-job">
                 <div class="cl-job-head"><span class="cl-job-no">1</span> เที่ยวที่ 1</div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_orig1">ต้นทาง <span class="cl-req">*</span></label>
                     {{ form.orig1 }}
                 </div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_job1">สถานที่จัดส่ง <span class="cl-req">*</span></label>
                     {{ form.job1 }}
                     {{ form.job1_id }}
@@ -86,11 +86,11 @@
             </div>
             <details class="cl-job">
                 <summary><span class="cl-job-no">2</span> เที่ยวที่ 2 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_orig2">ต้นทาง</label>
                     {{ form.orig2 }}
                 </div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_job2">สถานที่จัดส่ง</label>
                     {{ form.job2 }}
                     {{ form.job2_id }}
@@ -108,11 +108,11 @@
             </details>
             <details class="cl-job">
                 <summary><span class="cl-job-no">3</span> เที่ยวที่ 3 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_orig3">ต้นทาง</label>
                     {{ form.orig3 }}
                 </div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_job3">สถานที่จัดส่ง</label>
                     {{ form.job3 }}
                     {{ form.job3_id }}
@@ -130,11 +130,11 @@
             </details>
             <details class="cl-job">
                 <summary><span class="cl-job-no">4</span> เที่ยวที่ 4 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_orig4">ต้นทาง</label>
                     {{ form.orig4 }}
                 </div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_job4">สถานที่จัดส่ง</label>
                     {{ form.job4 }}
                     {{ form.job4_id }}
@@ -152,11 +152,11 @@
             </details>
             <details class="cl-job">
                 <summary><span class="cl-job-no">5</span> เที่ยวที่ 5 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_orig5">ต้นทาง</label>
                     {{ form.orig5 }}
                 </div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_job5">สถานที่จัดส่ง</label>
                     {{ form.job5 }}
                     {{ form.job5_id }}
@@ -174,11 +174,11 @@
             </details>
             <details class="cl-job">
                 <summary><span class="cl-job-no">6</span> เที่ยวที่ 6 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_orig6">ต้นทาง</label>
                     {{ form.orig6 }}
                 </div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     <label for="id_job6">สถานที่จัดส่ง</label>
                     {{ form.job6 }}
                     {{ form.job6_id }}
@@ -233,24 +233,19 @@
 <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 <!-- Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% include '_select2_search.html' %}
+{% include 'carLogbook/_cl_search.html' %}
 <script>
     let today = new Date().toISOString().split('T')[0];
     $('#id_created').val(today);
 
     $(function() {
-        $('#id_orig1').select2({ width: '100%' });
-        $('#id_orig2').select2({ width: '100%' });
-        $('#id_orig3').select2({ width: '100%' });
-        $('#id_orig4').select2({ width: '100%' });
-        $('#id_orig5').select2({ width: '100%' });
-        $('#id_orig6').select2({ width: '100%' });
-
-        $('#id_job1').select2({ width: '100%' });
-        $('#id_job2').select2({ width: '100%' });
-        $('#id_job3').select2({ width: '100%' });
-        $('#id_job4').select2({ width: '100%' });
-        $('#id_job5').select2({ width: '100%' });
-        $('#id_job6').select2({ width: '100%' });
+        // ต้นทาง / สถานที่จัดส่ง: ช่องค้นหาแบบแอป ค้นได้หลายคำ ไม่สนลำดับ ไฮไลต์คำค้น โฟกัสช่องค้นหาทันที
+        for (let i = 1; i <= 6; i++) {
+            initSearchSelect('#id_orig' + i, 'ค้นหาต้นทาง', i > 1, { searchHint: 'พิมพ์ชื่อต้นทางเพื่อค้นหา…' });
+            initSearchSelect('#id_job' + i, 'ค้นหาสถานที่จัดส่ง', i > 1, { searchHint: 'พิมพ์ชื่อสถานที่เพื่อค้นหา…' });
+            clScrollOnOpen('#id_orig' + i + ', #id_job' + i);
+        }
 
         //setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
         //setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");

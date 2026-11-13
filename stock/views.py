@@ -124,26 +124,30 @@ def product_search(request):
         q &= (exact | Q(name__iregex=pattern)) if pattern else exact
         hl.append(pattern or re.escape(word))
 
-    qs = Product.objects.filter(q)
-    total = qs.count()
+    #regex สะกดคล้ายต้องสแกนทั้งตาราง (ส่วนที่ช้าที่สุด) จึงค้นครั้งเดียว: ดึงรหัส+ลำดับของที่เจอทั้งหมด
+    #แล้วนับจำนวน/ตัดหน้าใน Python แทนการ count() แยกอีกรอบ จากนั้นดึงชื่อ/หน่วยเฉพาะหน้าที่แสดง
+    ranked = list(Product.objects.filter(q)
+                  .annotate(rank=Case(
+                      When(id__iexact=term, then=Value(0)),
+                      When(id__istartswith=term, then=Value(1)),
+                      When(exact_q, then=Value(2)),
+                      default=Value(3),
+                      output_field=IntegerField()))
+                  .order_by('rank', 'id')
+                  .values_list('id', 'rank'))
+    total = len(ranked)
     start = (page - 1) * page_size
-
-    products = (qs.annotate(rank=Case(
-                    When(id__iexact=term, then=Value(0)),
-                    When(id__istartswith=term, then=Value(1)),
-                    When(exact_q, then=Value(2)),
-                    default=Value(3),
-                    output_field=IntegerField()))
-                .order_by('rank', 'id')
-                .values('id', 'name', 'unit__name', 'rank')[start:start + page_size])
+    page_rows = ranked[start:start + page_size]
+    info = {p['id']: p for p in Product.objects.filter(id__in=[pid for pid, _ in page_rows])
+                                               .values('id', 'name', 'unit__name')}
 
     results = [{
-        'id': p['id'],
-        'text': f"{p['id']} : {p['name'].strip()}",
-        'name': p['name'].strip(),
-        'unit': p['unit__name'] or '',
-        'similar': p['rank'] == 3,  #เจอเพราะสะกดคล้าย (ไม่ตรงเป๊ะ) → หน้าเว็บแสดงป้าย "ชื่อคล้าย"
-    } for p in products]
+        'id': info[pid]['id'],
+        'text': f"{info[pid]['id']} : {info[pid]['name'].strip()}",
+        'name': info[pid]['name'].strip(),
+        'unit': info[pid]['unit__name'] or '',
+        'similar': rank == 3,  #เจอเพราะสะกดคล้าย (ไม่ตรงเป๊ะ) → หน้าเว็บแสดงป้าย "ชื่อคล้าย"
+    } for pid, rank in page_rows if pid in info]
     return JsonResponse({
         'results': results,
         'pagination': {'more': start + page_size < total},
@@ -1718,7 +1722,7 @@ class CrudView(TemplateView):
 
         #set alert_level text ภายใน 30, 90, 365
         for item in users:
-            created = distinct_products.get(item.product.id)
+            created = distinct_products.get(item.product_id) if item.product_id else None #รายการที่ไม่ได้ผูกสินค้า (product = None) ไม่ต้องเช็ค
             if created:
                 diff_days = (item.requisit.created - created).days
                 if diff_days <= 30:
@@ -1920,7 +1924,7 @@ def editAllRequisition(request, requisition_id):
 
     #set alert_level text ภายใน 30, 90, 365
     for item in users:
-        created = distinct_products.get(item.product.id)
+        created = distinct_products.get(item.product_id) if item.product_id else None #รายการที่ไม่ได้ผูกสินค้า (product = None) ไม่ต้องเช็ค
         if created:
             diff_days = (item.requisit.created - created).days
             if diff_days <= 30:
@@ -2023,7 +2027,7 @@ def showRequisition(request, requisition_id, mode):
 
     #set alert_level text ภายใน 30, 90, 365
     for item in items:
-        created = distinct_products.get(item.product.id)
+        created = distinct_products.get(item.product_id) if item.product_id else None #รายการที่ไม่ได้ผูกสินค้า (product = None) ไม่ต้องเช็ค
         if created:
             diff_days = (item.requisit.created - created).days
             if diff_days <= 30:
@@ -2064,10 +2068,15 @@ def viewPR(request):
 
     #ถ้า user login เป็นจัดซื้อ
     isPurchasing = is_purchasing(request.user)
+    isSupplies = is_supplies(request.user)
 
     #ถ้าเป็นจัดซื้อให้ดึงมาเฉพาะที่ ผู้ขอซื้อ กับ ผู้อนุมัติ อนุมัติแล้ว
     if isPurchasing:
         data = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user , is_complete = 0, branch_company__code = active)
+        if isSupplies:
+            #อยู่ทั้งกลุ่มจัดซื้อและพัสดุ: เห็นใบแบบร่างของบริษัทด้วย (เงื่อนไขเดียวกับที่กลุ่มพัสดุเห็น)
+            #ไม่งั้นใบที่กดขอเปลี่ยนแปลงรายละเอียด/บันทึกแบบร่างไว้จะหาไม่เจอในหน้านี้
+            data = data | PurchaseRequisition.objects.filter(Q(purchase_status_id = 1) | Q(approver_status_id = 1) & ~Q(purchase_status_id = 3), is_draft = True, is_complete = 0, branch_company__code = active)
         #requisit = PurchaseRequisition.objects.filter(purchase_status_id = 2, approver_status_id = 2, organizer = request.user, is_complete = 0).values("requisition")
         #ri_not_used = RequisitionItem.objects.filter(is_used = False, quantity_pr__gt=0, requisit__in = requisit).defer('requisition_id', 'product_name', 'urgency')
     else:
@@ -2086,10 +2095,9 @@ def viewPR(request):
     data = myFilter.qs
     rejected = PurchaseRequisitionFilter(request.GET, queryset = rejected).qs
 
-    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ เห็นทุกคนที่ไม่ใช่กลุ่มจัดซื้อ
-    #กลุ่มจัดซื้อเห็นแค่รายการกำลังดำเนินการ (ไม่รวมแบบร่าง)
-    isSupplies = is_supplies(request.user)
-    showDraftTabs = not isPurchasing
+    #แท็ป กำลังดำเนินการ (ไม่ใช่แบบร่าง) / แบบร่าง / ไม่อนุมัติ เห็นทุกคนที่ไม่ใช่กลุ่มจัดซื้อ (รวมคนที่อยู่ทั้งกลุ่มจัดซื้อและพัสดุ)
+    #กลุ่มจัดซื้ออย่างเดียวเห็นแค่รายการกำลังดำเนินการ (ไม่รวมแบบร่าง)
+    showDraftTabs = not isPurchasing or isSupplies
     if showDraftTabs:
         data, tab_context = split_draft_tab(request, data, rejected)
     else:
@@ -2110,7 +2118,9 @@ def viewPR(request):
                 'prs':dataPage,
                 'focus_id':focus_id,
                 'filter':myFilter,
-                'isPurchasing':isPurchasing,
+                #หน้าตาแบบจัดซื้อ (สินค้าที่ยังไม่ได้ซื้อ, ปุ่มสร้างใบ CM/PO) ใช้เฉพาะแท็ปกำลังดำเนินการ
+                #คนที่อยู่ทั้งกลุ่มจัดซื้อและพัสดุ แท็ปแบบร่าง/ไม่อนุมัติ ใช้หน้าตาแบบพัสดุ
+                'isPurchasing':isPurchasing and tab_context['tab'] == 'process',
                 'isSupplies':isSupplies,
                 #แก้ไขใบขอซื้อแบบร่างที่ขอเปลี่ยนแปลงรายละเอียด (reApprovePR) เฉพาะกลุ่มพัสดุ — server เช็คบริษัทซ้ำใน can_request_pr_re_approve
                 'canReApprovePR': isSupplies,
@@ -2825,8 +2835,13 @@ def showPR(request, pr_id, mode):
     #ต้องเป็นผู้จัดทำ, มาจากการ CLOSE และยังมีรายการคงเหลือ
     isRePr = isOrganizer and isFromClose and isHasRemainItem
 
-    #ปุ่ม ขอเปลี่ยนแปลงรายละเอียดรายการ: ซ่อนถ้าสินค้าถูกดึงไปออกใบเปรียบเทียบราคา/ใบสั่งซื้อแล้ว
-    isItemInCPorPO = pr.approver_status_id == 2 and isSupplies and is_pr_item_in_cp_or_po(pr)
+    #ปุ่ม ขอเปลี่ยนแปลงรายละเอียดรายการ: ใบที่อนุมัติแล้ว หรือไม่อนุมัติ (ผู้อนุมัติ/ผู้ขอซื้อ) เหมือนแท็ปไม่อนุมัติในหน้า viewPR
+    #ซ่อนถ้าสินค้าถูกดึงไปออกใบเปรียบเทียบราคา/ใบสั่งซื้อแล้ว (เงื่อนไขเดียวกับ requestPRReApprove)
+    isItemInCPorPO = False
+    canRequestReApprovePR = False
+    if (pr.approver_status_id in (2, 3) or pr.purchase_status_id == 3) and isSupplies:
+        isItemInCPorPO = is_pr_item_in_cp_or_po(pr)
+        canRequestReApprovePR = not isItemInCPorPO
 
     #ที่อยู่และหัวบริษัท
     company = BranchCompanyBaseAdress.objects.filter(branch_company__code = active).first()
@@ -2864,6 +2879,7 @@ def showPR(request, pr_id, mode):
             'isSupplies': isSupplies,
             'is_staff': is_staff,
             'isItemInCPorPO': isItemInCPorPO,
+            'canRequestReApprovePR': canRequestReApprovePR,
             'bc':bc,
             'create_mode': False,
             page: "tab-active",
@@ -4381,16 +4397,23 @@ _SIMILAR_MAP = str.maketrans({c: g[0] for g in THAI_SIMILAR_GROUPS for c in g[1:
 def _similar_fold(s):
     return _SIMILAR_DROP.sub('', (s or '').lower()).translate(_SIMILAR_MAP)
 
-def _similar_score(q, text):
+def _similar_score(q, text, threshold = 0, q_count = None, text_count = None):
     """ความใกล้เคียง 0-1 ของคำค้น q กับชื่อ (ทั้งคู่ผ่าน _similar_fold แล้ว)
-    ใช้ช่วงของชื่อที่ยาวพอๆ กับคำค้นที่เหมือนที่สุด เพื่อให้หาเจอแม้ชื่อเต็มยาวกว่าคำที่พิมพ์มาก"""
+    ใช้ช่วงของชื่อที่ยาวพอๆ กับคำค้นที่เหมือนที่สุด เพื่อให้หาเจอแม้ชื่อเต็มยาวกว่าคำที่พิมพ์มาก
+    threshold: ถ้าได้คะแนนไม่ถึงค่านี้ ค่าที่คืนอาจต่ำกว่าคะแนนจริง (ข้ามการคำนวณที่ไม่มีทางถึง) คะแนนที่ถึงยังตรงเป๊ะ"""
     from difflib import SequenceMatcher
     if not q or not text:
         return 0
     if q in text:
         return 1
-    best = 0
     n = len(q)
+    if threshold and q_count is not None and text_count is not None:
+        #ช่วงใดๆ ของชื่อมีตัวอักษรตรงกับคำค้นได้ไม่เกินจำนวนที่ตรงกันทั้งชื่อ -> คะแนนสูงสุดที่เป็นไปได้
+        common = sum((q_count & text_count).values())
+        if 2.0 * common / (n + min(max(1, n - 1), len(text))) < threshold:
+            return 0
+    best = 0
+    floor = threshold - 1e-9 if threshold else 0  #ช่วงที่คะแนนสูงสุดยังไม่ถึง threshold ไม่ต้องคำนวณ
     sm = SequenceMatcher(None, autojunk = False)
     sm.set_seq2(q)
     for size in {max(1, n - 1), n, n + 1}:
@@ -4400,7 +4423,8 @@ def _similar_score(q, text):
             continue
         for i in range(0, len(text) - size + 1):
             sm.set_seq1(text[i:i + size])
-            if sm.real_quick_ratio() <= best or sm.quick_ratio() <= best:
+            cut = max(best, floor)
+            if sm.real_quick_ratio() <= cut or sm.quick_ratio() <= cut:
                 continue
             best = max(best, sm.ratio())
             if best == 1:
@@ -4409,16 +4433,43 @@ def _similar_score(q, text):
 
 def _distributor_similar(term, exclude = (), limit = 10, threshold = 0.75):
     """ผู้จำหน่ายที่ชื่อ/รหัสใกล้เคียงคำค้น เรียงจากใกล้ที่สุด คืน [(Distributor, score)]"""
+    from collections import Counter
     q = _similar_fold(term[:50])
     if len(q) < 3:
         return []
+    q_count = Counter(q)
+    exclude = set(exclude)
     scored = []
-    for d in Distributor.objects.exclude(id__in = list(exclude)).select_related('credit').only('id', 'name', 'credit'):
-        s = max(_similar_score(q, _similar_fold(d.name)), _similar_score(q, _similar_fold(d.id)))
+    for d_id, name, f_name, c_name, f_id, c_id in _distributor_fold_rows():
+        if d_id in exclude:
+            continue
+        s = _similar_score(q, f_name, threshold, q_count, c_name)
+        if s < 1:
+            s = max(s, _similar_score(q, f_id, threshold, q_count, c_id))
         if s >= threshold:
-            scored.append((d, s))
-    scored.sort(key = lambda x: (-x[1], x[0].name or ''))
-    return scored[:limit]
+            scored.append((d_id, name, s))
+    scored.sort(key = lambda x: (-x[2], x[1]))
+    scored = scored[:limit]
+    objs = Distributor.objects.select_related('credit').in_bulk([x[0] for x in scored])
+    return [(objs[d_id], s) for d_id, _, s in scored if d_id in objs]
+
+_DISTRIBUTOR_FOLD_CACHE = {'at': 0, 'rows': []}
+_DISTRIBUTOR_FOLD_TTL = 60  #วินาที: ร้านใหม่/ชื่อที่แก้ จะค้นแบบชื่อคล้ายเจอภายในเวลานี้ (ค้นแบบตรงตัวเจอทันที)
+
+def _distributor_fold_rows():
+    """[(id, name, ชื่อที่ fold แล้ว, Counter ชื่อ, id ที่ fold แล้ว, Counter id)] ของผู้จำหน่ายทั้งหมด
+    เก็บไว้ในหน่วยความจำชั่วคราว ไม่ต้องดึงทั้งตารางและ fold ใหม่ทุกครั้งที่พิมพ์"""
+    import time
+    from collections import Counter
+    now = time.monotonic()
+    cache = _DISTRIBUTOR_FOLD_CACHE
+    if not cache['rows'] or now - cache['at'] > _DISTRIBUTOR_FOLD_TTL:
+        rows = []
+        for d_id, name in Distributor.objects.values_list('id', 'name'):
+            f_name, f_id = _similar_fold(name), _similar_fold(d_id)
+            rows.append((d_id, name or '', f_name, Counter(f_name), f_id, Counter(f_id)))
+        cache['rows'], cache['at'] = rows, now
+    return cache['rows']
 
 @login_required(login_url='signIn')
 def autocompalteDistributor(request):
@@ -4508,8 +4559,9 @@ def searchDataDistributor(request):
         qs = Distributor.objects.get(id = id)
 
     data = {
-        'credit': qs.credit.id,
-        'vat_type': qs.vat_type.id,
+        #ผู้จำหน่ายบางรายไม่ได้ตั้งเครดิต / ชนิดภาษี (NULL) ส่งค่า null กลับไปแทน ไม่ให้ view error
+        'credit': qs.credit_id,
+        'vat_type': qs.vat_type_id,
         #ใช้แสดงผู้จำหน่ายที่หัวเอกสารหน้าแก้ไขใบสั่งซื้อ (editPOItem)
         'id': qs.id,
         'prefix': str(qs.prefix) if qs.prefix else '',
@@ -5118,6 +5170,12 @@ def createPOFromComparisonPrice(request, cp_id):
         return redirect('viewComparePricePO')
 
     with transaction.atomic():
+        #ล็อกแถวใบเปรียบเทียบ แล้วเช็คซ้ำ กันคำขอที่ส่งมาพร้อมกัน (ดับเบิลคลิก) สร้างใบสั่งซื้อ 2 ใบ
+        cp = ComparisonPrice.objects.select_for_update().get(id = cp.id)
+        po = PurchaseOrder.objects.filter(cp = cp, is_cancel = False).order_by('-id').first()
+        if po:
+            return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'False')
+
         po = PurchaseOrder(
             cp = cp,
             distributor = cp.select_bidder,
@@ -5151,7 +5209,16 @@ def createPOItemFromComparisonPrice(request, po_id):
     if forbidden:
         return forbidden
     if po.cp_id and not PurchaseOrderItem.objects.filter(po = po).exists():
-        copy_cp_price_and_items_to_po(po, po.cp)
+        #ลิงก์เดิมเปิดด้วย GET: ล็อกแถวใบสั่งซื้อแล้วเช็คซ้ำ กันเปิดพร้อมกันแล้วคัดลอกรายการ 2 ชุด
+        try:
+            with transaction.atomic():
+                po = PurchaseOrder.objects.select_for_update().get(id = po.id)
+                if not PurchaseOrderItem.objects.filter(po = po).exists():
+                    copy_cp_price_and_items_to_po(po, po.cp)
+        except (ComparisonPriceDistributor.DoesNotExist, ComparisonPriceDistributor.MultipleObjectsReturned):
+            #ใบเปรียบเทียบยังไม่ได้เลือกผู้จำหน่าย (หรือเลือกไม่ชัดเจน) ดึงรายการมาไม่ได้
+            messages.error(request, 'ไม่สามารถดึงรายการสินค้าจากใบเปรียบเทียบราคา ' + str(po.cp.ref_no) + ' ได้ เนื่องจากยังไม่ได้เลือกผู้จำหน่าย')
+            return redirect('viewPO')
     return redirect('editPOItem', po_id = po.id, isFromPR = 'False', isReApprove = 'False')
 
 @login_required(login_url='signIn')

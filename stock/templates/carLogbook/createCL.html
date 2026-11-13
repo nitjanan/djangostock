@@ -35,7 +35,7 @@
                 {{ form.name.label_tag }}
                 {{ form.name }}
             </div>
-            <div class="cl-field">
+            <div class="cl-field cl-search">
                 {{ form.car.label_tag }}
                 {{ form.car }}
             </div>
@@ -79,7 +79,7 @@
 
             <div class="cl-job">
                 <div class="cl-job-head"><span class="cl-job-no">1</span> งานที่ 1</div>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     {{ form.job1.label_tag }}
                     {{ form.job1 }}
                     {{ form.job1_id }}
@@ -102,7 +102,7 @@
 
             <details class="cl-job">
                 <summary><span class="cl-job-no">2</span> งานที่ 2 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     {{ form.job2.label_tag }}
                     {{ form.job2 }}
                     {{ form.job2_id }}
@@ -125,7 +125,7 @@
 
             <details class="cl-job">
                 <summary><span class="cl-job-no">3</span> งานที่ 3 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     {{ form.job3.label_tag }}
                     {{ form.job3 }}
                     {{ form.job3_id }}
@@ -148,7 +148,7 @@
 
             <details class="cl-job">
                 <summary><span class="cl-job-no">4</span> งานที่ 4 <span class="text-muted font-weight-normal small">(ถ้ามี)</span></summary>
-                <div class="cl-field">
+                <div class="cl-field cl-search">
                     {{ form.job4.label_tag }}
                     {{ form.job4 }}
                     {{ form.job4_id }}
@@ -211,42 +211,48 @@
 
 <!-- Select2 JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+{% include '_select2_search.html' %}
+{% include 'carLogbook/_cl_search.html' %}
 <script>
     let today = new Date().toISOString().split('T')[0];
     $('#id_created').val(today);
 
-    $('#id_car').select2({
+    // ===== ทะเบียนรถ: แตะแล้วเห็นรายการทันที พิมพ์ทะเบียน/รหัส/ชื่อได้หลายคำ (ไม่สนขีด/ช่องว่าง เช่น 801234 เจอ 80-1234) =====
+    var carTerms = [];
+    initSearchSelect('#id_car', 'ค้นหาทะเบียนหรือรหัสรถ', true, {
+        searchHint: 'พิมพ์ทะเบียน รหัส หรือ ชื่อ…',
+        minimumInputLength: 0,
         ajax: {
             url: "{% url 'car_search' %}",
             dataType: 'json',
-            delay: 250,
+            delay: 200,
             data: function (params) {
-                return {
-                    q: params.term, // search term
-                    'rq_type': 2,
-                };
+                carTerms = s2Terms(params.term);
+                return { q: params.term || '', 'rq_type': 2 };
             },
-            processResults: function (data) {
-                return {
-                    results: data.results
-                };
-            },
+            processResults: function (data) { return { results: data.results }; },
             cache: true
         },
-        placeholder: 'ค้นหาด้วย code หรือ ชื่อ',
-        minimumInputLength: 2,
-        allowClear: true,
+        templateResult: function (d) {
+            if (d.loading || !d.id) return d.text;
+            if (!d.name && !d.code) return $('<span>').html(s2Highlight(d.text, carTerms));
+            var sub = [d.dep, d.car_type].filter(Boolean).join(' · ');
+            return $('<span>').html(
+                '<b>' + s2Highlight(d.name, carTerms) + '</b>' +
+                (d.code ? ' <span class="badge badge-warning">' + s2Highlight(d.code, carTerms) + '</span>' : '') +
+                (sub ? '<span class="s2-sub">' + s2EscHtml(sub) + '</span>' : ''));
+        }
     });
 
-
-
     $('#id_name').css('pointer-events','none');
-    
+
     $(function() {
-        $('#id_job1').select2({ width: '100%' });
-        $('#id_job2').select2({ width: '100%' });
-        $('#id_job3').select2({ width: '100%' });
-        $('#id_job4').select2({ width: '100%' });
+        // รายละเอียดงาน: ค้นได้หลายคำ ไม่สนลำดับ ไฮไลต์คำค้น โฟกัสช่องค้นหาทันที
+        initSearchSelect('#id_job1', 'ค้นหารายละเอียดงาน', false, { searchHint: 'พิมพ์ชื่องานเพื่อค้นหา…' });
+        initSearchSelect('#id_job2', 'ค้นหารายละเอียดงาน', true, { searchHint: 'พิมพ์ชื่องานเพื่อค้นหา…' });
+        initSearchSelect('#id_job3', 'ค้นหารายละเอียดงาน', true, { searchHint: 'พิมพ์ชื่องานเพื่อค้นหา…' });
+        initSearchSelect('#id_job4', 'ค้นหารายละเอียดงาน', true, { searchHint: 'พิมพ์ชื่องานเพื่อค้นหา…' });
+        clScrollOnOpen('#id_car, #id_job1, #id_job2, #id_job3, #id_job4');
         //setupAutocomplete("#job1_autocomplete", "#id_job1", "#job1-show-all", "{% url 'job_car_dep_autocomplete' %}");
         //setupAutocomplete("#job2_autocomplete", "#id_job2", "#job2-show-all", "{% url 'job_car_dep_autocomplete' %}");
         //setupAutocomplete("#job3_autocomplete", "#id_job3", "#job3-show-all", "{% url 'job_car_dep_autocomplete' %}");

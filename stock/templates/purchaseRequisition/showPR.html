@@ -11,16 +11,7 @@
   .hidden-print {
     display: none;
   }
-
-  @page {
-      margin: 0mm 10mm 0mm 0mm;
-      }
-      body {
-          font-size: 10pt;
-          font-family: serif;
-          color: black;
-          float: right;
-      }
+  /* ขอบกระดาษ / ฟอนต์ตอนปริ้น กำหนดใน _print_doc_base.html (include จาก _showPR_print.html) */
 }
 u.dotted {
   border-bottom: 1px dashed #999;
@@ -184,7 +175,7 @@ u.dotted {
     <div class="ad-actions-bar hidden-print">
         <div class="d-flex flex-wrap" style="gap: .5rem;">
           <button type="button" class="btn btn-secondary" onclick="history.back();"><i class="fas fa-arrow-left"></i> กลับไป</button>
-          {%if isSupplies and pr.approver_status.id == 2 and not isItemInCPorPO %}<!-- ขอเปลี่ยนแปลงได้เฉพาะกลุ่มพัสดุ / ซ่อนถ้าสินค้าถูกดึงไปออก CM/PO แล้ว -->
+          {%if canRequestReApprovePR %}<!-- ขอเปลี่ยนแปลงได้เฉพาะกลุ่มพัสดุ ใบที่อนุมัติ/ไม่อนุมัติแล้ว / ซ่อนถ้าสินค้าถูกดึงไปออก CM/PO แล้ว -->
             <!-- POST: ใบขอซื้อกลับเป็นรอดำเนินการแบบร่างก่อน แล้วไปหน้าแก้ไข (ส่งอนุมัติใหม่ด้วยปุ่ม บันทึกและส่งอนุมัติ) -->
             <form method="post" action="{% url 'requestPRReApprove' pr.id %}" class="d-inline mb-0" onsubmit="return confirm('คุณต้องการขอเปลี่ยนแปลงรายละเอียดรายการนี้หรือไม่ ?\n *** หากทำรายการนี้จะต้องทำการอนุมัติใหม่ทั้งหมด')">
               {% csrf_token %}
