@@ -3453,7 +3453,11 @@ def po_amount_max_without_cp(po):
     return str(amount_max) if amount_max is not None else None
 
 def po_amount_over_max_message(amount_max):
-    return 'ไม่สามารถบันทึกและส่งอนุมัติได้ กรุณาออกใบเปรียบเทียบราคาก่อน เนื่องจากยอดเงินตั้งแต่ {:,.2f} บาทขึ้นไป'.format(Decimal(amount_max))
+    #ข้อความเดียวกับ alert ฝั่ง JS (_po_amount_max_check_js.html) วงเงินเต็มจำนวนแสดงไม่มีทศนิยม (5,000)
+    max_text = '{:,.2f}'.format(Decimal(amount_max))
+    if max_text.endswith('.00'):
+        max_text = max_text[:-3]
+    return 'ไม่สามารถบันทึกและส่งอนุมัติได้ เนื่องจากยอดเงินตั้งแต่ {} บาทขึ้นไปต้องมีใบเปรียบเทียบราคา กรุณาออกใบเปรียบเทียบราคาก่อนออกใบสั่งซื้อ'.format(max_text)
 
 def attach_po_over_amount_max(pos):
     """หน้ารายการใบสั่งซื้อ: ตั้ง po.over_amount_max = วงเงิน CAAPO (Decimal) ให้ใบที่ยังรออนุมัติ
@@ -3649,8 +3653,9 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
     #ใบสั่งซื้อที่สร้างจากใบเปรียบเทียบราคา ล็อกไม่ให้แก้ไขรายการสินค้าและราคา
     #ยกเว้นกรณีขอเปลี่ยนแปลงรายละเอียดรายการ (re approve) ให้แก้ไขได้
     isLockPOItem = po_data.cp_id is not None and not inReApprove
-    #ผู้จำหน่ายของใบที่สร้างจากใบเปรียบเทียบราคา = ร้านที่เลือกในใบเปรียบ เปลี่ยนไม่ได้ (รวมกรณี re approve)
-    isLockDistributor = po_data.cp_id is not None and po_data.distributor_id is not None
+    #ผู้จำหน่ายของใบที่สร้างจากใบเปรียบเทียบราคา = ร้านที่เลือกในใบเปรียบ เปลี่ยนไม่ได้
+    #ยกเว้นฉบับแก้ไข (re approve) ให้เปลี่ยนผู้จำหน่ายได้
+    isLockDistributor = po_data.cp_id is not None and po_data.distributor_id is not None and not inReApprove
     locked_price_value = {}
     if isLockPOItem:
         for field in ('total_price', 'discount', 'total_after_discount', 'freight', 'vat', 'amount'):
@@ -4577,7 +4582,8 @@ def getRateDistributor(request):
         company_code = request.GET.get('company_code')
 
         rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor = id, counsel__isnull = False, po__branch_company__code = company_code).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
-        num_grade_all = RateDistributor.objects.filter(distributor = id, po__branch_company__code = company_code).count()
+        #นับเฉพาะรายการที่คำนวนคะแนนรวมแล้ว (total_rate คำนวนตอนรับของ) ให้ตรงกับค่าเฉลี่ย avg_total_rate
+        num_grade_all = RateDistributor.objects.filter(distributor = id, po__branch_company__code = company_code, total_rate__isnull = False).count()
         ratings = RateDistributor.objects.filter(distributor = id, po__branch_company__code = company_code).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
     data = {
@@ -6956,7 +6962,8 @@ def showRateDistributor(request, pk):
     
     #ประเมินร้านค้า
     rate_counsel = RateDistributor.objects.filter(~Q(counsel = ""), distributor__id = pk, counsel__isnull = False, po__branch_company__code__in = company_in).values('counsel','organizer_user__first_name','organizer_user__last_name','organizer_update').order_by('-id')[:5]
-    num_grade_all = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).count()
+    #นับเฉพาะรายการที่คำนวนคะแนนรวมแล้ว (total_rate คำนวนตอนรับของ) ให้ตรงกับค่าเฉลี่ย avg_total_rate
+    num_grade_all = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in, total_rate__isnull = False).count()
     ratings = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).aggregate(avg_total_rate = Avg('total_rate'),  avg_price_rate = Avg('price_rate'), avg_quantity_rate = Avg('quantity_rate'), avg_duration_rate = Avg('duration_rate'), avg_service_rate = Avg('service_rate'), avg_safety_rate = Avg('safety_rate'))
 
     rd_data = RateDistributor.objects.filter(distributor__id = pk, po__branch_company__code__in = company_in).order_by('-po__created')

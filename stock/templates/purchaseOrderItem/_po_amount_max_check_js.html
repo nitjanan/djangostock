@@ -6,7 +6,9 @@
     if (isNaN(max)) return true;
     var amount = parseFloat(String($('#id_amount').val() || '').replace(/,/g, '')) || 0;
     if (amount < max) return true;
-    var maxText = max.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    alert('ไม่สามารถบันทึกและส่งอนุมัติได้\nกรุณาออกใบเปรียบเทียบราคาก่อน เนื่องจากยอดเงินตั้งแต่ ' + maxText + ' บาทขึ้นไป');
+    //วงเงินเต็มจำนวนแสดงไม่มีทศนิยม (5,000) ถ้ามีเศษสตางค์แสดง 2 ตำแหน่ง
+    var digits = Number.isInteger(max) ? 0 : 2;
+    var maxText = max.toLocaleString('th-TH', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    alert('ไม่สามารถบันทึกและส่งอนุมัติได้\nเนื่องจากยอดเงินตั้งแต่ ' + maxText + ' บาทขึ้นไปต้องมีใบเปรียบเทียบราคา กรุณาออกใบเปรียบเทียบราคาก่อนออกใบสั่งซื้อ');
     return false;
   }

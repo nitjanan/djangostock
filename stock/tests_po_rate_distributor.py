@@ -42,3 +42,22 @@ class PurchaseOrderRateDistributorTestCase(TestCase):
         start = html.index('function searchDataDistributor')
         body = html[start:html.index('function setDataDistributor', start)]
         self.assertIn('if(distChanged)', body)
+
+    def test_rating_summary_counts_only_received_ratings(self):
+        #total_rate คำนวนตอนรับของ รายการที่ยังไม่รับของ (total_rate ว่าง) ไม่นับใน ratings ให้ตรงกับค่าเฉลี่ย
+        po_received, _ = self._create_po(with_item=True, is_draft=True)
+        po_pending, _ = self._create_po(ref_no="PO-DRAFT-002")
+        RateDistributor.objects.create(
+            po=po_received, distributor=self.distributor, price_rate=4, quantity_rate=4,
+            duration_rate=4, service_rate=4, safety_rate=4, total_rate=100,
+        )
+        RateDistributor.objects.create(
+            po=po_pending, distributor=self.distributor, price_rate=1, quantity_rate=1,
+            service_rate=1, safety_rate=1,
+        )
+        data = self.client.get(reverse('getRateDistributor'), {
+            'id_distributor': self.distributor.id,
+            'company_code': po_received.branch_company.code,
+        }).json()
+        self.assertEqual(data['num_grade_all'], 1)
+        self.assertEqual(data['ratings']['avg_total_rate'], 100)

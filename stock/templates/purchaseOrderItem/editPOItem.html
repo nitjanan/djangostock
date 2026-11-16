@@ -100,7 +100,12 @@
     overflow-x: auto;
   }
   .po-items {
-    min-width: 1140px;
+    /* ผลรวมความกว้างคอลัมน์ (40+300+160+105+110+150+100+160+40) ถ้าน้อยกว่านี้ปุ่ม -/+ ตกบรรทัด */
+    min-width: 1170px;
+  }
+  /* ช่องกรอกและปุ่ม -/+ ของแต่ละรายการอยู่แถวเดียวกันเสมอ (input-group ของ bootstrap ตั้ง flex-wrap: wrap) */
+  .po-items .input-group {
+    flex-wrap: nowrap;
   }
   .po-items-head {
     display: flex;
