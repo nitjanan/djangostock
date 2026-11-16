@@ -111,7 +111,7 @@ class POAmountMaxTestCase(TestCase):
         form = PurchaseOrderPriceForm(self._price_data('5000.00'), instance=po)
         self.assertTrue(form.is_valid())
         self.assertFalse(check_po_amount_over_max(form, po))
-        self.assertIn('กรุณาออกใบเปรียบเทียบราคาก่อน เนื่องจากยอดเงินตั้งแต่ 5,000.00 บาทขึ้นไป', form.errors['amount'][0])
+        self.assertIn('เนื่องจากยอดเงินตั้งแต่ 5,000 บาทขึ้นไปต้องมีใบเปรียบเทียบราคา กรุณาออกใบเปรียบเทียบราคาก่อนออกใบสั่งซื้อ', form.errors['amount'][0])
 
     def test_check_passes_when_amount_below_max(self):
         po = self._create_po()

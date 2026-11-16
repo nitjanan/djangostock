@@ -418,3 +418,61 @@ class EditPOItemLockFromComparisonPriceTestCase(TestCase):
         #re approve ต้องกลับไปรออนุมัติใหม่
         self.assertEqual(po.approver_status_id, 1)
         self.assertTrue(po.is_re_approve)
+
+    # ---------- ผู้จำหน่าย: ล็อกเฉพาะใบจากใบเปรียบที่ไม่ใช่ฉบับแก้ไข ----------
+
+    def test_distributor_locked_for_po_from_cp(self):
+        po, item = self._create_po(self.cp)
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'False'})
+        response = self.client.get(url)
+        self.assertTrue(response.context['isLockDistributor'])
+        self.assertTrue(response.context['form'].fields['distributor'].disabled)
+
+    def test_re_approve_unlocks_distributor(self):
+        po, item = self._create_po(self.cp)
+        self._mark_re_approve(po)
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'True'})
+        response = self.client.get(url)
+        self.assertFalse(response.context['isLockDistributor'])
+        self.assertFalse(response.context['form'].fields['distributor'].disabled)
+
+    def test_re_approve_saves_distributor_change(self):
+        other = Distributor.objects.create(
+            id="dist_lock_2", name="Other Distributor", credit=self.credit, vat_type=self.vat_type
+        )
+        po, item = self._create_po(self.cp)
+        self._mark_re_approve(po)
+        url = reverse('editPOItem', kwargs={'po_id': po.id, 'isFromPR': 'False', 'isReApprove': 'True'})
+        post_data = {
+            'purchaseorderitem_set-TOTAL_FORMS': '1',
+            'purchaseorderitem_set-INITIAL_FORMS': '1',
+            'purchaseorderitem_set-MIN_NUM_FORMS': '0',
+            'purchaseorderitem_set-MAX_NUM_FORMS': '1000',
+            'purchaseorderitem_set-0-id': item.id,
+            'purchaseorderitem_set-0-po': po.id,
+            'purchaseorderitem_set-0-item': self.req_item.id,
+            'purchaseorderitem_set-0-quantity': '2.0000',
+            'purchaseorderitem_set-0-unit': self.unit.id,
+            'purchaseorderitem_set-0-unit_price': '50.0000',
+            'purchaseorderitem_set-0-price': '100.00',
+            'total_price': '100.00',
+            'discount': '0.00',
+            'total_after_discount': '100.00',
+            'freight': '0.00',
+            'vat': '0.00',
+            'amount': '100.00',
+            'note': '',
+            'delivery': self.delivery.id,
+            'distributor': other.id,
+            'credit': self.credit.id,
+            'shipping': 'EMS',
+            'vat_type': self.vat_type.id,
+            'address_company': self.address.id,
+            'approver_user': self.user.id,
+            'due_receive_update': '2026-08-25',
+            'po_type': self.po_type.id,
+        }
+        response = self.client.post(url, data=post_data)
+        self.assertEqual(response.status_code, 302)
+        po.refresh_from_db()
+        self.assertEqual(po.distributor_id, other.id)
