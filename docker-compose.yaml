@@ -28,7 +28,8 @@ services:
       # ชื่อตารางตัวเล็กเหมือน DB เดิมบน Windows ไม่งั้น db_table แบบ CamelCase (เช่น 'Requisition') หาไม่เจอ
       - --lower-case-table-names=1
     ports:
-      - "3306:3306"
+      # รับเฉพาะจากเครื่องนี้: root ไม่มีรหัสผ่าน ถ้าเปิดทุก IP เครื่องอื่นในวงแลนจะต่อเข้ามาแก้/ลบข้อมูลได้
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
