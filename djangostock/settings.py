@@ -133,7 +133,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
-        'PORT': '3305',
+        'PORT': '',
     },
     'pg_db': {  # Remote PostgreSQL Server (โปรแกรมบัญชี Express) ค่าอ่านจาก .env / environment
         'ENGINE': 'django.db.backends.postgresql',
