@@ -29,7 +29,7 @@ services:
       - --lower-case-table-names=1
     ports:
       # รับเฉพาะจากเครื่องนี้: root ไม่มีรหัสผ่าน ถ้าเปิดทุก IP เครื่องอื่นในวงแลนจะต่อเข้ามาแก้/ลบข้อมูลได้
-      - "127.0.0.1:3306:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
