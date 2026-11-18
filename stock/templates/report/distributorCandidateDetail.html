@@ -50,6 +50,7 @@
         <div class="col-md-6 mb-1">EMAIL: {{candidate.email|default:"-"}}</div>
         <div class="col-md-6 mb-1">ประเภทธุรกิจ/สินค้า/บริการ: {{candidate.business_type|default:candidate.shop_type|default:"-"}}</div>
         <div class="col-md-6 mb-1">เครดิต: {{candidate.credit.name|default:"-"}}</div>
+        <div class="col-md-6 mb-1">ชนิดภาษี: {{candidate.vat_type.name|default:"-"}}</div>
         <div class="col-md-6 mb-1">ชนิดผู้จัดจำหน่าย: {{candidate.type.name|default:"-"}}</div>
         <div class="col-md-6 mb-1">ประเภทผู้จัดจำหน่าย: {{candidate.genre.name|default:"-"}}</div>
         {% if candidate.latitude is not None and candidate.longitude is not None %}
@@ -121,8 +122,9 @@
         <p class="text-danger">ไม่ผ่านเกณฑ์บังคับ อนุมัติไม่ได้ บันทึกผลเป็น "ไม่ผ่านการคัดเลือก" ได้อย่างเดียว</p>
       {% endif %}
       <div class="row">
-        <div class="col-md-6">
-          <form method="post" action="{% url 'approveDistributorCandidate' candidate.pk %}" class="border rounded p-2 mb-2">
+        {# สองกล่องสูงเท่ากัน ปุ่มชิดล่างระดับเดียวกัน #}
+        <div class="col-md-6 d-flex mb-2">
+          <form method="post" action="{% url 'approveDistributorCandidate' candidate.pk %}" class="border rounded p-2 w-100 d-flex flex-column">
             {% csrf_token %}
             <strong>ผ่าน: บันทึกในทะเบียนรายชื่อผู้ขาย (สร้างใหม่)</strong>
             <div class="form-group mb-1 mt-1">
@@ -133,17 +135,15 @@
                 <small class="text-muted d-block">ตั้งให้อัตโนมัติไม่ได้ เพราะชื่อร้านไม่ขึ้นต้นด้วยตัวอักษรไทยหรืออังกฤษ</small>
               {% endif %}
             </div>
-            <div class="form-group mb-1">
-              <label class="small mb-0" for="new-vat-type">ชนิดภาษี <span class="text-danger">*</span></label>
-              <select id="new-vat-type" name="vat_type" class="form-control form-control-sm" required>
-                {% for v in vat_types %}<option value="{{v.pk}}" {% if forloop.first %}selected{% endif %}>{{v.name}}</option>{% endfor %}
-              </select>
-            </div>
-            <button type="submit" class="btn btn-sm btn-success" {% if not evaluation.mandatory_passed or evaluation.missing %}disabled{% endif %}>อนุมัติ + สร้างใหม่</button>
+            {# ชนิดภาษีผู้ขอเลือกในใบแล้ว (แสดงในส่วนข้อมูลผู้ขายด้านบน) ผู้อนุมัติไม่ต้องเลือกซ้ำ #}
+            {% if candidate.vat_type_id is None %}
+              <small class="text-danger d-block mb-1">ใบนี้ยังไม่ได้ระบุชนิดภาษี อนุมัติไม่ได้</small>
+            {% endif %}
+            <button type="submit" class="btn btn-sm btn-success mt-auto align-self-start" {% if not evaluation.mandatory_passed or evaluation.missing or candidate.vat_type_id is None %}disabled{% endif %}>อนุมัติ + สร้างใหม่</button>
           </form>
         </div>
-        <div class="col-md-6">
-          <form method="post" action="{% url 'rejectDistributorCandidate' candidate.pk %}" class="border rounded p-2 mb-2"
+        <div class="col-md-6 d-flex mb-2">
+          <form method="post" action="{% url 'rejectDistributorCandidate' candidate.pk %}" class="border rounded p-2 w-100 d-flex flex-column"
                 onsubmit="return confirm('บันทึกผล ไม่ผ่านการคัดเลือก?');">
             {% csrf_token %}
             <strong>ไม่ผ่านการคัดเลือก</strong>
@@ -151,7 +151,7 @@
               <label class="small mb-0" for="reject-reason">เหตุผล</label>
               <textarea id="reject-reason" name="reject_reason" class="form-control form-control-sm" rows="3"></textarea>
             </div>
-            <button type="submit" class="btn btn-sm btn-outline-danger">ไม่อนุมัติ</button>
+            <button type="submit" class="btn btn-sm btn-outline-danger mt-auto align-self-start">ไม่อนุมัติ</button>
           </form>
         </div>
       </div>

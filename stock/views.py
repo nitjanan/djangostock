@@ -14134,9 +14134,10 @@ def _apply_candidate_header(request, candidate):
         value = (request.POST.get(field) or "").strip()
         setattr(candidate, field, value or (candidate.name if field == "name" else None))
     candidate.name = name_with_branch(candidate.name, candidate.branch)
-    # dropdown คำนำหน้า / เครดิต / ชนิด / ประเภท (รหัสของ Express) ค่าที่ไม่มีในตารางถือว่าไม่เลือก
+    # dropdown คำนำหน้า / เครดิต / ชนิดภาษี / ชนิด / ประเภท (รหัสของ Express) ค่าที่ไม่มีในตารางถือว่าไม่เลือก
     candidate.prefix = BasePrefix.objects.filter(pk=request.POST.get("prefix") or None).first()
     candidate.credit = BaseCredit.objects.filter(pk=request.POST.get("credit") or None).first()
+    candidate.vat_type = BaseVatType.objects.filter(pk=request.POST.get("vat_type") or None).first()
     candidate.type = BaseDistributorType.objects.filter(pk=request.POST.get("type") or None).first()
     candidate.genre = BaseDistributorGenre.objects.filter(pk=request.POST.get("genre") or None).first()
 
@@ -14195,6 +14196,10 @@ def _save_candidate_form(request, candidate):
             codes = ", ".join(r.code for r in evaluation["missing"])
             messages.error(request, f"ยังส่งฟอร์มไม่ได้ กรุณาตอบหลักเกณฑ์ให้ครบ (ข้อ {codes})")
             return redirect("distributorCandidateForm", candidate.pk)
+        # ผู้อนุมัติไม่ได้เลือกชนิดภาษีแล้ว ใช้ค่าจากใบ (Distributor.vat_type_id ใน DB จริงเป็น NOT NULL)
+        if candidate.vat_type_id is None:
+            messages.error(request, "ยังส่งฟอร์มไม่ได้ กรุณาเลือกชนิดภาษี")
+            return redirect("distributorCandidateForm", candidate.pk)
         candidate.status = DistributorCandidate.STATUS_SUBMITTED
         candidate.submitted_at = timezone.now()
         candidate.save()
@@ -14212,6 +14217,7 @@ def _render_candidate_form(request, candidate, evaluation):
         "ans_choices": DistributorForm.ANS_CHOICES,
         "prefix_options": BasePrefix.objects.order_by("id"),
         "credit_options": _credit_options(),
+        "vat_type_options": BaseVatType.objects.order_by("id"),
         "type_options": BaseDistributorType.objects.order_by("id"),
         "genre_options": BaseDistributorGenre.objects.order_by("id"),
         **_vendor_menu("cand"),
@@ -14389,7 +14395,6 @@ def distributorApproveDetail(request, pk):
     context = _candidate_detail_context(request, pk)
     context["approve_view"] = True
     context["can_approve"] = context["candidate"].status == DistributorCandidate.STATUS_SUBMITTED
-    context["vat_types"] = BaseVatType.objects.order_by("id")
     context["suggested_distributor_id"] = suggest_distributor_id(context["candidate"].type_id, context["candidate"].name)
     context.update(_vendor_menu("ap"))
     return render(request, "report/distributorCandidateDetail.html", context)
@@ -14512,9 +14517,10 @@ def approveDistributorCandidate(request, pk):
                     return redirect("distributorApproveDetail", pk)
                 renumbered_from, distributor_id = distributor_id, new_id
             # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL (โมเดลเขียน null=True) ต้องใส่ทุกครั้ง
-            vat_type = BaseVatType.objects.filter(pk=request.POST.get("vat_type")).first()
+            # ใช้ชนิดภาษีที่ผู้ขอเลือกในใบ (บังคับเลือกตอนส่งฟอร์ม) ไม่รับค่าจากหน้าอนุมัติ
+            vat_type = candidate.vat_type
             if vat_type is None:
-                messages.error(request, "กรุณาเลือกชนิดภาษี")
+                messages.error(request, "ใบนี้ยังไม่ได้ระบุชนิดภาษี อนุมัติไม่ได้")
                 return redirect("distributorApproveDetail", pk)
             distributor = Distributor(
                 id=distributor_id,
