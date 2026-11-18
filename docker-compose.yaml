@@ -1,0 +1,42 @@
+# MySQL 8 สำหรับเครื่อง dev (เฉพาะ DB)
+#
+# ข้อมูลเชื่อมต่อ (ตรงกับ DATABASES['default'] ใน djangostock/settings.py)
+#   Host     : localhost (127.0.0.1)
+#   Port     : 3306          -> settings.py 'PORT': '' (ค่าว่าง = 3306)
+#   Database : djangostockdb
+#   User     : root
+#   Password : (ไม่มีรหัสผ่าน ค่าว่าง)
+#
+#   docker compose up -d      เปิด DB (ครั้งแรกสร้างฐาน djangostockdb ว่างๆ ให้ แล้วรัน manage.py migrate ต่อ)
+#   docker compose down       ปิด DB ข้อมูลยังอยู่ใน volume mysql_data
+#   docker compose down -v    ปิดและลบข้อมูลทิ้งทั้งหมด
+#
+# ถ้าจะเปลี่ยนพอร์ต แก้เลขตัวแรกใน ports (เช่น "127.0.0.1:13307:3306") แล้วแก้ 'PORT' ใน settings.py ให้ตรงกัน
+services:
+  db:
+    image: mysql:8.0
+    container_name: djangostock-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: djangostockdb
+      # user root ไม่มีรหัสผ่าน ตาม settings.py ใช้เฉพาะเครื่อง dev เท่านั้น
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    command:
+      - --character-set-server=utf8mb4
+      # ไม่สนตัวพิมพ์เล็ก/ใหญ่ เหมือน production ('nt-g0-151' กับ 'NT-G0-151' คือรหัสเดียวกัน)
+      - --collation-server=utf8mb4_unicode_ci
+      # ชื่อตารางตัวเล็กเหมือน DB เดิมบน Windows ไม่งั้น db_table แบบ CamelCase (เช่น 'Requisition') หาไม่เจอ
+      - --lower-case-table-names=1
+    ports:
+      # รับเฉพาะจากเครื่องนี้: root ไม่มีรหัสผ่าน ถ้าเปิดทุก IP เครื่องอื่นในวงแลนจะต่อเข้ามาแก้/ลบข้อมูลได้
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
