@@ -84,7 +84,7 @@
             <label for="f-email">EMAIL</label>
             <input type="text" class="form-control" id="f-email" name="email" value="{{candidate.email|default:''}}" maxlength="255">
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-3">
             <label for="f-credit">เครดิต</label>
             <select class="form-control" id="f-credit" name="credit">
               <option value="">— ไม่ระบุ —</option>
@@ -93,7 +93,16 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-3">
+            <label for="f-vat-type">ชนิดภาษี <span class="text-danger" title="ต้องเลือกก่อนส่งฟอร์ม">*</span></label>
+            <select class="form-control" id="f-vat-type" name="vat_type">
+              <option value="">— ไม่ระบุ —</option>
+              {% for v in vat_type_options %}
+                <option value="{{v.pk}}" {% if candidate.vat_type_id == v.pk %}selected{% endif %}>{{v.name}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-3">
             <label for="f-type">ชนิดผู้จัดจำหน่าย</label>
             <select class="form-control" id="f-type" name="type">
               <option value="">— ไม่ระบุ —</option>
@@ -102,7 +111,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-3">
             <label for="f-genre">ประเภทผู้จัดจำหน่าย</label>
             <select class="form-control" id="f-genre" name="genre">
               <option value="">— ไม่ระบุ —</option>

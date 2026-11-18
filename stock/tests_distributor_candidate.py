@@ -75,6 +75,7 @@ class DistributorCandidateTestCase(TestCase):
         data = {"action": action}
         for field in ("name", "address", "branch", "contact", "tel", "fax", "other_contact", "tax_id", "email"):
             data[field] = getattr(candidate, field) or ""
+        data["vat_type"] = candidate.vat_type_id or self.no_vat.pk  # บังคับเลือกตอนส่งฟอร์ม
         data.update(header)
         answers = answers or {}
         for code in LEAF_CODES:
@@ -91,8 +92,6 @@ class DistributorCandidateTestCase(TestCase):
         return c
 
     def approve(self, candidate, user=None, **data):
-        if data.get("mode") == "new":
-            data.setdefault("vat_type", self.no_vat.pk)
         self.login(user or self.approver)
         return self.client.post(reverse('approveDistributorCandidate', args=[candidate.pk]), data)
 
@@ -333,13 +332,14 @@ class DistributorCandidateTestCase(TestCase):
         self.assertContains(self.client.get(reverse('distributorApproveDetail', args=[c.pk])), "ชนิดผู้จัดจำหน่าย: ขนส่ง")
 
     def test_approve_new_requires_vat_type(self):
-        # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL
+        # ตาราง Distributor จริงตั้ง vat_type_id เป็น NOT NULL / ใบที่ไม่มีชนิดภาษี (ข้อมูลเก่า) อนุมัติไม่ได้
         c = self.submitted_candidate()
-        self.approve(c, mode="new", distributor_id="V900", vat_type="")
-        self.assertFalse(Distributor.objects.filter(id="V900").exists())
-
+        DistributorCandidate.objects.filter(pk=c.pk).update(vat_type=None)
+        self.login(self.approver)
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertContains(response, "ใบนี้ยังไม่ได้ระบุชนิดภาษี อนุมัติไม่ได้")
         self.approve(c, mode="new", distributor_id="V900", vat_type=self.vat.pk)
-        self.assertEqual(Distributor.objects.get(id="V900").vat_type, self.vat)
+        self.assertFalse(Distributor.objects.filter(id="V900").exists())
 
     def test_cannot_approve_when_mandatory_fails(self):
         c = self.submitted_candidate(answers={"2": "fail"})
@@ -430,7 +430,7 @@ class DistributorCandidateTestCase(TestCase):
         # ส่งใหม่แล้ว หน้าดูใบบอกว่าเป็นเหตุผล "ครั้งก่อน"
         self.login(self.other)
         self.client.post(reverse('distributorCandidateForm', args=[c.pk]), dict(
-            {"action": "submit", "name": c.name}, **{f"ans_{self.rules[code].pk}": "pass" for code in LEAF_CODES}))
+            {"action": "submit", "name": c.name, "vat_type": c.vat_type_id}, **{f"ans_{self.rules[code].pk}": "pass" for code in LEAF_CODES}))
         c.refresh_from_db()
         self.assertEqual(c.status, DistributorCandidate.STATUS_SUBMITTED)
         self.assertContains(self.client.get(reverse('distributorCandidateDetail', args=[c.pk])), "ครั้งก่อนไม่อนุมัติเพราะ: ไม่มีหนังสือรับรอง")
@@ -674,7 +674,7 @@ class DistributorCandidateTestCase(TestCase):
     # ----- เพิ่มร้านเอง (ไม่เจอในแผนที่) -----
 
     def manual_post(self, action="save", answers=None, skip=(), **header):
-        data = {"action": action, "name": "หจก. ร้านกรอกเอง", "address": "1 ถ.ทดสอบ", "tel": "081-111-1111"}
+        data = {"action": action, "name": "หจก. ร้านกรอกเอง", "address": "1 ถ.ทดสอบ", "tel": "081-111-1111", "vat_type": self.no_vat.pk}
         data.update(header)
         answers = answers or {}
         for code in LEAF_CODES:
@@ -775,6 +775,41 @@ class DistributorCandidateTestCase(TestCase):
         self.approve(c, mode="new", distributor_id="V901")
         d = Distributor.objects.get(id="V901")
         self.assertEqual((d.prefix, d.credit), (hjk, c30))
+
+    def test_vat_type_required_on_submit_and_copied_on_approve(self):
+        self.propose()
+        c = DistributorCandidate.objects.get()
+        self.login(self.user)
+        response = self.client.get(reverse('distributorCandidateForm', args=[c.pk]))
+        self.assertContains(response, 'name="vat_type"')
+        self.assertEqual([v.pk for v in response.context["vat_type_options"]], [self.no_vat.pk, self.vat.pk])
+
+        # บันทึกร่างไม่เลือกได้ / ส่งฟอร์มต้องเลือก
+        self.fill_form(c, action="save", vat_type="")
+        c.refresh_from_db()
+        self.assertEqual((c.status, c.vat_type), (DistributorCandidate.STATUS_DRAFT, None))
+        response = self.fill_form(c, action="submit", vat_type="")
+        c.refresh_from_db()
+        self.assertEqual(c.status, DistributorCandidate.STATUS_DRAFT)
+        self.assertIn("ยังส่งฟอร์มไม่ได้ กรุณาเลือกชนิดภาษี", [str(m) for m in response.wsgi_request._messages])
+
+        self.fill_form(c, action="submit", vat_type=self.vat.pk)
+        c.refresh_from_db()
+        self.assertEqual((c.status, c.vat_type), (DistributorCandidate.STATUS_SUBMITTED, self.vat))
+        self.assertContains(self.client.get(reverse('distributorCandidateDetail', args=[c.pk])), "ชนิดภาษี: รวม vat")
+
+        # หน้าอนุมัติไม่มีช่องเลือกชนิดภาษี แสดงค่าจากใบ / ค่าที่ส่งมาจากหน้าอนุมัติไม่ถูกใช้
+        self.login(self.approver)
+        response = self.client.get(reverse('distributorApproveDetail', args=[c.pk]))
+        self.assertNotContains(response, 'name="vat_type"')
+        self.assertContains(response, "ชนิดภาษี: รวม vat")
+        self.approve(c, mode="new", distributor_id="V903", vat_type=self.no_vat.pk)
+        self.assertEqual(Distributor.objects.get(id="V903").vat_type, self.vat)
+
+    def test_manual_new_submit_requires_vat_type(self):
+        self.manual_post(action="submit", vat_type="")
+        c = DistributorCandidate.objects.get()
+        self.assertEqual((c.status, c.vat_type), (DistributorCandidate.STATUS_DRAFT, None))
 
     def test_unknown_prefix_or_credit_is_ignored(self):
         self.propose()

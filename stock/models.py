@@ -1271,6 +1271,8 @@ class DistributorCandidate(models.Model):
     email = models.CharField(max_length=255, blank=True, null=True, verbose_name="EMAIL")
     business_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทธุรกิจ/สินค้า/บริการที่จะใช้")
     credit = models.ForeignKey(BaseCredit, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="เครดิต")
+    # ผู้ขอเลือกไว้ หน้าอนุมัติเลือกค่านี้ไว้ให้ ผู้อนุมัติแก้ได้ (Distributor.vat_type_id ใน DB จริงเป็น NOT NULL ต้องได้ค่าตอนอนุมัติ)
+    vat_type = models.ForeignKey(BaseVatType, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ชนิดภาษี")
     type = models.ForeignKey(BaseDistributorType, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ชนิดผู้จัดจำหน่าย")
     genre = models.ForeignKey(BaseDistributorGenre, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="ประเภทผู้จัดจำหน่าย")
     shop_type = models.CharField(max_length=255, blank=True, null=True, verbose_name="ประเภทร้าน (จากแผนที่)")
