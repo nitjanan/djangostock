@@ -71,7 +71,19 @@ class UnmatchedAdminViewTestCase(TestCase):
         with mock.patch('stock.unmatched_cars.collect_unmatched', side_effect=RuntimeError('no pg')):
             res = self.client.get(reverse('admin:stock_basecar_unmatched'))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, 'ดึงข้อมูลจากโปรแกรมบัญชี Express ไม่ได้: no pg')
+        self.assertContains(res, 'ดึงข้อมูลจากโปรแกรมบัญชี Express ไม่ได้')
+        self.assertNotContains(res, 'no pg')
+
+    def test_staff_without_basecar_permission_is_denied(self):
+        staff = User.objects.create_user('staff', 'staff@example.com', 'pass-1234', is_staff=True)
+        self.client.force_login(staff)
+        session = self.client.session
+        session['company_code'] = 'ALL'
+        session.save()
+        with mock.patch('stock.unmatched_cars.collect_unmatched') as collect:
+            res = self.client.get(reverse('admin:stock_basecar_unmatched'))
+        self.assertEqual(res.status_code, 403)
+        collect.assert_not_called()
 
     def test_changelist_has_button(self):
         res = self.client.get(reverse('admin:stock_basecar_changelist'))

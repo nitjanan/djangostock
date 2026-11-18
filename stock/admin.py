@@ -7,6 +7,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -489,6 +490,10 @@ class BaseCarAdmin(ImportExportModelAdmin):
         """remark ในโปรแกรมบัญชี Express ที่จับคู่กับรถไม่ได้ ให้รู้ว่าต้องตั้งค่ารถอะไรเพิ่ม"""
         from .unmatched_cars import collect_unmatched, suggest_car, summarize_by_remark
 
+        # admin_view เช็คแค่ is_staff ต้องเช็คสิทธิ์ดู BaseCar ซ้ำเอง
+        if not self.has_view_or_change_permission(request):
+            raise PermissionDenied
+
         this_year = datetime.date.today().year
         try:
             year = int(request.GET.get('year') or this_year)
@@ -502,7 +507,7 @@ class BaseCarAdmin(ImportExportModelAdmin):
             rows = summarize_by_remark(collect_unmatched(f'{year}-01-01', f'{year}-12-31'))
         except Exception as exc:  # pg_db ต่อไม่ได้ ฯลฯ ให้หน้าเปิดได้และบอกสาเหตุ
             logger.exception('unmatched car remarks failed')
-            error = str(exc)
+            error = 'ดูรายละเอียดใน log ของเซิร์ฟเวอร์'  # ไม่แสดงข้อความ exception (อาจมี host/user ของ pg_db)
 
         if company_id:
             rows = [r for r in rows if str(r['branch_company']) == company_id]
