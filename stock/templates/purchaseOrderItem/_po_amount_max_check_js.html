@@ -1,14 +1,52 @@
-  //ปุ่มบันทึกและส่งอนุมัติ: จำนวนเงินรวมทั้งสิ้นตั้งแต่วงเงินของสิทธิอนุมัติใบสั่งซื้อ (CAAPO ap_amount_max) ขึ้นไป
-  //แจ้งเตือนและไม่ให้บันทึก (ต้องออกใบเปรียบเทียบราคาก่อน) server เช็คซ้ำใน check_po_amount_over_max
-  //ปุ่มไม่มี data-amount-max (ใบที่ออกจากใบเปรียบเทียบ/ไม่ได้ตั้งวงเงิน) จะไม่เช็ค คืน true ถ้าส่งต่อได้
-  function checkPOAmountOverMax(button) {
-    var max = parseFloat($(button).attr('data-amount-max'));
-    if (isNaN(max)) return true;
+  //ปุ่มบันทึกและส่งอนุมัติ: ตรวจจำนวนเงินรวมทั้งสิ้น (server เช็คซ้ำใน check_po_amount_positive / check_po_amount_over_max)
+  // - ต้องมากกว่า 0
+  // - ต่ำกว่าวงเงินของสิทธิอนุมัติใบสั่งซื้อ (CAAPO ap_amount_max) ไม่งั้นต้องออกใบเปรียบเทียบราคาก่อน
+  //   ปุ่มไม่มี data-amount-max (ใบที่ออกจากใบเปรียบเทียบ/ไม่ได้ตั้งวงเงิน) ไม่เช็ควงเงิน
+  //แสดงแบบเดียวกับช่องที่ต้องกรอก: กรอบแดง + ข้อความใต้ช่อง + แถบแจ้งเตือนข้างปุ่มบันทึก (ไม่ใช้ alert)
+
+  //คืนข้อความแจ้งเตือน หรือ '' ถ้าผ่าน
+  function poAmountError(button) {
     var amount = parseFloat(String($('#id_amount').val() || '').replace(/,/g, '')) || 0;
-    if (amount < max) return true;
+    if (amount <= 0) return 'จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 บาท';
+    var max = parseFloat($(button).attr('data-amount-max'));
+    if (isNaN(max) || amount < max) return '';
     //วงเงินเต็มจำนวนแสดงไม่มีทศนิยม (5,000) ถ้ามีเศษสตางค์แสดง 2 ตำแหน่ง
     var digits = Number.isInteger(max) ? 0 : 2;
     var maxText = max.toLocaleString('th-TH', { minimumFractionDigits: digits, maximumFractionDigits: digits });
-    alert('ไม่สามารถบันทึกและส่งอนุมัติได้\nเนื่องจากยอดเงินตั้งแต่ ' + maxText + ' บาทขึ้นไปต้องมีใบเปรียบเทียบราคา กรุณาออกใบเปรียบเทียบราคาก่อนออกใบสั่งซื้อ');
-    return false;
+    return 'ยอดเงินตั้งแต่ ' + maxText + ' บาทขึ้นไปต้องมีใบเปรียบเทียบราคา กรุณาออกใบเปรียบเทียบราคาก่อนออกใบสั่งซื้อ';
+  }
+
+  //ทำเครื่องหมายช่องจำนวนเงินรวมทั้งสิ้น (msg ว่าง = ล้างเครื่องหมาย)
+  function markPOAmountError(msg) {
+    var el = $('#id_amount');
+    el.removeClass('amount-invalid');
+    $('.amount-msg').remove();
+    if (!msg) return;
+    el.addClass('amount-invalid');
+    //หน้าแก้ไขช่องอยู่ในแถว flex (.po-total-row) ให้ข้อความขึ้นใต้แถว
+    var row = el.closest('.po-total-row');
+    (row.length ? row : el).after($('<div class="amount-msg"></div>').text(msg));
+  }
+
+  //แสดงข้อความในแถบแจ้งเตือน (parts ว่าง = ซ่อนแถบ)
+  function showPOSummary(summary, parts) {
+    summary = $(summary);
+    if (!parts.length) {
+      summary.addClass('d-none').empty();
+      return;
+    }
+    summary.removeClass('d-none').empty().append('<i class="fas fa-exclamation-circle mr-1"></i>');
+    $.each(parts, function (i, text) {
+      if (i) summary.append('<br>');
+      summary.append(document.createTextNode(text));
+    });
+  }
+
+  //หน้าที่ไม่มีการตรวจช่องอื่น (createPOItem): ตรวจยอดเงิน แสดงที่แถบ คืน true ถ้าส่งต่อได้
+  function checkPOAmount(button, summary) {
+    var msg = poAmountError(button);
+    markPOAmountError(msg);
+    showPOSummary(summary, msg ? ['ไม่สามารถบันทึกและส่งอนุมัติได้: ' + msg] : []);
+    if (msg) $('#id_amount')[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return !msg;
   }

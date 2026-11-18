@@ -109,11 +109,12 @@
           <tr>
             <th scope="col">รหัสใบสั่งซื้อ</th>
             <th scope="col" class="lt-hide-lg">รหัส CM / PR</th>
-            <th scope="col">ผู้จำหน่าย</th>
+            <th scope="col" class="lt-bd-col">ผู้จำหน่าย</th>
+            <th scope="col" class="dl-items-col">รายการสินค้า</th>
             <th scope="col" class="lt-hide-lg">ผู้สั่ง</th>
-            <th scope="col" class="text-right">มูลค่าสินค้า / VAT</th>
+            <th scope="col" class="text-right lt-hide-md">มูลค่าสินค้า / VAT</th>
             <th scope="col" class="text-right">ราคา</th>
-            <th scope="col">การรับสินค้า</th>
+            <th scope="col" class="lt-hide-md">การรับสินค้า</th>
           </tr>
         </thead>
         <tbody>
@@ -127,27 +128,31 @@
                 {% if po.pr %}{% with pr_list=prs_by_po|get_item:po.id %}{% for pr in pr_list %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endfor %}{% endwith %}{% endif %}
                 <span class="lt-sub"><i class="fas fa-user"></i> {{ po.stockman_user }}</span>
               </div>
+              <div class="lt-inline-md">{% if po.is_receive %}<span class="lt-pill st-info"><small>รับแล้ว:</small> {{ po.receive_update|date:"d/m/Y" }}</span>{% else %}<span class="lt-pill st-1">ยังไม่รับ</span>{% endif %}</div>
             </th>
             <td class="lt-hide-lg">
               {% if po.cp %}<a class="lt-link {% if po.cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' po.cp.id 4 %}">{{ po.cp.ref_no }}</a>{% endif %}
               {% if po.pr %}{% with pr_list=prs_by_po|get_item:po.id %}{% for pr in pr_list %}<a class="lt-link" href="/purchaseRequisition/show/{{ pr.item__requisit__purchase_requisition_id }}/4">{{ pr.item__requisit__pr_ref_no }}</a>{% endfor %}{% endwith %}{% endif %}
             </td>
-            <td class="lt-name">
+            <td class="lt-name lt-bd-col">
               {{ po.distributor|default:"-" }}
               {% if po.credit %}<span class="lt-sub">เครดิต {{ po.credit }}</span>{% endif %}
             </td>
+            <td class="dl-items-col">{% include '_doc_item_list.html' with items=po.item_list %}</td>
             <td class="lt-hide-lg">
               {{ po.stockman_user }}
             </td>
-            <td class="text-right text-nowrap">
+            <td class="text-right text-nowrap lt-hide-md">
               {% if po.total_after_discount %}{{ po.total_after_discount|intcomma }}{% endif %}
               <span class="lt-sub">VAT {% if po.vat %}{{ po.vat|intcomma }}{% else %}0.00{% endif %}</span>
             </td>
-            <td class="lt-num">{% if po.amount %}{{ po.amount|intcomma }}{% endif %}</td>
-            <td>{% if po.is_receive %}<span class="lt-pill st-info"><small>รับแล้ว:</small> {{ po.receive_update|date:"d/m/Y" }}</span>{% else %}<span class="lt-pill st-1">ยังไม่รับ</span>{% endif %}</td>
+            <td class="lt-num">{% if po.amount %}{{ po.amount|intcomma }}{% endif %}
+              <span class="lt-sub lt-inline-md">VAT {% if po.vat %}{{ po.vat|intcomma }}{% else %}0.00{% endif %}</span>
+            </td>
+            <td class="lt-hide-md">{% if po.is_receive %}<span class="lt-pill st-info"><small>รับแล้ว:</small> {{ po.receive_update|date:"d/m/Y" }}</span>{% else %}<span class="lt-pill st-1">ยังไม่รับ</span>{% endif %}</td>
           </tr>
         {% empty %}
-          <tr class="lt-empty-row"><td colspan="7">ไม่พบใบสั่งซื้อ</td></tr>
+          <tr class="lt-empty-row"><td colspan="8">ไม่พบใบสั่งซื้อ</td></tr>
         {% endfor %}
         </tbody>
       </table>

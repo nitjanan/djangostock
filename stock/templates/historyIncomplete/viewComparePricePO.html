@@ -45,10 +45,11 @@
               <thead class="table-danger">
                 <tr>
                   <th scope="col">รหัสใบเปรียบเทียบ</th>
-                  <th scope="col">ผู้จำหน่าย</th>
+                  <th scope="col" class="lt-bd-col">ผู้จำหน่าย</th>
+                  <th scope="col" class="dl-items-col">รายการสินค้า</th>
                   <th scope="col" class="text-right">ราคา</th>
-                  <th scope="col">จัดซื้อ</th>
-                  <th scope="col">สถานะ</th>
+                  <th scope="col" class="lt-hide-lg">จัดซื้อ</th>
+                  <th scope="col" class="lt-hide-md">สถานะ</th>
                 </tr>
               </thead>
               <tbody>
@@ -57,24 +58,24 @@
                   <th scope="row">
                     <a class="lt-ref {% if cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' cp.id 5 %}">{{ cp.ref_no }}</a>
                     <span class="lt-sub">{% if cp.select_bidder_update %}{{ cp.select_bidder_update|date:"d/m/Y" }}{% else %}{{ cp.created|date:"d/m/Y" }}{% endif %}</span>
+                    <div class="lt-inline"><span class="lt-sub"><i class="fas fa-user"></i> {{ cp.organizer }}</span></div>
+                    <div class="lt-inline-md">{% include 'comparePricePO/_cp_status_pills.html' with with_special=True %}</div>
                     {% if cp.reject_reason %}<div class="lt-reason">เหตุผล: {{ cp.reject_reason }}</div>{% endif %}
                   </th>
-                  <td class="lt-name">
+                  <td class="lt-name lt-bd-col">
                     {% include "comparePricePO/_cp_bidder_list.html" %}
                   </td>
+                  <td class="dl-items-col">{% include '_doc_item_list.html' with items=cp.item_list %}</td>
                   <td class="lt-num">{% for bd in bidder %}{% if cp.id == bd.cp_id and bd.distributor__id == cp.select_bidder.id %}{% if bd.amount %}{{ bd.amount|intcomma }}{% endif %}{% endif %}{% endfor %}</td>
-                  <td>
+                  <td class="lt-hide-lg">
                     {{ cp.organizer }}
                   </td>
-                  <td>
-                    {% include '_status_pill.html' with status=cp.examiner_status label="ตรวจสอบ" %}<br>
-                    {% include '_status_pill.html' with status=cp.approver_status label="อนุมัติ" %}
-                    {% if cp.special_approver_status and cp.special_approver_status.id != 4 %}<br>{% include '_status_pill.html' with status=cp.special_approver_status label="อนุมัติพิเศษ" %}{% endif %}
-                    {% if cp.is_cancel %}<br><span class="lt-pill st-3">ยกเลิก</span>{% endif %}
+                  <td class="lt-hide-md">
+                    {% include 'comparePricePO/_cp_status_pills.html' with with_special=True %}
                   </td>
                 </tr>
               {% empty %}
-                <tr class="lt-empty-row"><td colspan="5">ไม่พบใบเปรียบเทียบราคา</td></tr>
+                <tr class="lt-empty-row"><td colspan="6">ไม่พบใบเปรียบเทียบราคา</td></tr>
               {% endfor %}
               </tbody>
             </table>
