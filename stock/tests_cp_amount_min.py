@@ -45,13 +45,14 @@ class CPAmountMinTestCase(TestCase):
         for i, name in ((1, "รอดำเนินการ"), (2, "อนุมัติ"), (3, "ไม่อนุมัติ"), (4, "ไม่ต้องอนุมัติ")):
             BaseApproveStatus.objects.create(id=i, name=name)
         BasePermission.objects.create(
-            codename='CASCP', name='special', ap_amount_min=Decimal('500001'), ap_amount_max=Decimal('99999999'),
+            codename='CASCP', name='special', codename_th='CASCP', ap_amount_min=Decimal('500001'), ap_amount_max=Decimal('99999999'),
         )
         #ช่วงยอดเงินสิทธิตรวจสอบ/อนุมัติ: ต่ำสุด 5,001
         for code, lo, hi in (('CAECP1', '5001', '10000'), ('CAACP1', '5001', '10000'),
                              ('CAECP2', '10001', '100000'), ('CAACP2', '10001', '100000'),
                              ('CAECPD', '0', '99999999'), ('CAACPD', '0', '99999999')):
-            BasePermission.objects.create(codename=code, name=code, ap_amount_min=Decimal(lo), ap_amount_max=Decimal(hi))
+            #codename_th เป็น unique ต้องไม่ซ้ำกัน
+            BasePermission.objects.create(codename=code, name=code, codename_th=code, ap_amount_min=Decimal(lo), ap_amount_max=Decimal(hi))
         self.diesel = BaseCMType.objects.create(id='1', name='น้ำมันดีเซล')
 
         self.cp = ComparisonPrice.objects.create(
@@ -121,8 +122,8 @@ class CPAmountMinTestCase(TestCase):
     def test_page_renders_min_and_warning_elements(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context['cascp_info']['approve_min'], '5001.00')
-        self.assertContains(response, '"approve_min": "5001.00"')
+        self.assertEqual(response.context['cp_approve_min'], '5001.00')
+        self.assertContains(response, '<script id="cp-approve-min" type="application/json">"5001.00"</script>', html=False)
         self.assertContains(response, 'id="cp-amount-under-min"')
         self.assertContains(response, 'id="cp-amount-summary"')
         self.assertContains(response, 'function cpAmountUnderMinMessage')

@@ -306,6 +306,7 @@
 {% endblock%}
 {% block javascript %}
 {{ cascp_info|json_script:"cascp-info" }}
+{{ cp_approve_min|json_script:"cp-approve-min" }}
 <script src="{% static 'js/thaibath.js' %}" type="text/javascript"></script>
 <script>
     //---------- ผู้อนุมัติ 2 (CASCP): ร้านที่เลือกมียอดในช่วงสิทธิ และไม่ได้เลือกประเภทใบเปรียบเทียบ (เหมือน is_special_approver_cp) ----------
@@ -328,7 +329,7 @@
     function cpAmountUnderMinMessage() {
         var amount = parseFloat($('#idExpressList option[data-id="' + $('#id_select_bidder').val() + '"]').attr('data-amount'));
         var cmType = $('#id_cm_type :radio:checked').val() || '';
-        var min = parseFloat(cascpInfo.approve_min);
+        var min = parseFloat(JSON.parse(document.getElementById('cp-approve-min').textContent));
         if (isNaN(amount) || isNaN(min) || cmType !== '' || amount >= min) return '';
         return 'ยอดเงินของร้านที่เลือก ' + formatBaht(amount) + ' บาท ไม่ถึงเกณฑ์สิทธิอนุมัติใบเปรียบเทียบราคา (ตั้งแต่ ' + formatBaht(min) + ' บาทขึ้นไป)';
     }

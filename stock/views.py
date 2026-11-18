@@ -5053,11 +5053,11 @@ def printComparePricePO(request, cp_id):
     special_approver_users = cp_special_approver_users(cp)
     #ยอดต่ำสุดที่มีสิทธิอนุมัติใบเปรียบเทียบ ใช้แจ้งเตือนเมื่อร้านที่เลือกยอดไม่ถึง (check_cp_amount_reach_approve)
     cp_amount_min = cp_amount_min_for_approve()
-    cascp_info['approve_min'] = str(cp_amount_min) if cp_amount_min is not None else None
 
     context = {
         'cp':cp,
         'cascp_info': cascp_info,
+        'cp_approve_min': str(cp_amount_min) if cp_amount_min is not None else None,
         'special_approver_users': special_approver_users,
         'bidder' : bidder,
         'items_oldest' : items_oldest,
