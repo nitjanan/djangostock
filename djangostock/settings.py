@@ -133,7 +133,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': '',
         'HOST': 'localhost',
-        'PORT': '',
+        'PORT': '3305',
     },
     'pg_db': {  # Remote PostgreSQL Server (โปรแกรมบัญชี Express) ค่าอ่านจาก .env / environment
         'ENGINE': 'django.db.backends.postgresql',
@@ -265,3 +265,6 @@ CSRF_COOKIE_NAME = 'djangostock_csrftoken'
 CSRF_COOKIE_PATH = '/'
 CSRF_COOKIE_DOMAIN = None
 '''
+
+# หน้าแจ้ง "หน้าหมดอายุ" แทนหน้า 403 ของ Django เมื่อ CSRF token ไม่ตรง
+CSRF_FAILURE_VIEW = 'stock.csrf.csrf_failure'

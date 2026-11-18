@@ -1,0 +1,12 @@
+{% comment %}ป้ายสถานะตรวจสอบ / อนุมัติ ของใบเปรียบเทียบราคา (cp) ในตารางหน้าประวัติ / อนุมัติ
+ใช้ทั้งในคอลัมน์สถานะ และใต้รหัส CM ตอนจอแคบ (lt-inline-md)
+with_date=True    ขั้นที่ผ่านแล้วแสดงวันที่แทนคำว่า "อนุมัติ"
+with_special=True แสดงอนุมัติพิเศษ (ถ้ามี) และป้าย "ยกเลิก" เมื่อ cp.is_cancel{% endcomment %}
+{% if with_date and cp.examiner_status.id == 2 %}<span class="lt-pill st-2"><small>ตรวจสอบ:</small> {{ cp.examiner_update|date:"d/m/Y" }}</span>{% else %}{% include '_status_pill.html' with status=cp.examiner_status label="ตรวจสอบ" %}{% endif %}<br>
+{% if with_date and cp.approver_status.id == 2 %}<span class="lt-pill st-2"><small>อนุมัติ:</small> {{ cp.approver_update|date:"d/m/Y" }}</span>{% else %}{% include '_status_pill.html' with status=cp.approver_status label="อนุมัติ" %}{% endif %}
+{% if with_special %}
+  {% if cp.special_approver_status and cp.special_approver_status.id != 4 %}<br>
+    {% if with_date and cp.special_approver_status.id == 2 %}<span class="lt-pill st-2"><small>อนุมัติพิเศษ:</small> {{ cp.special_approver_update|date:"d/m/Y" }}</span>{% else %}{% include '_status_pill.html' with status=cp.special_approver_status label="อนุมัติพิเศษ" %}{% endif %}
+  {% endif %}
+  {% if cp.is_cancel %}<br><span class="lt-pill st-3">ยกเลิก</span>{% endif %}
+{% endif %}

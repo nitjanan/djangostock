@@ -121,6 +121,15 @@
       background: #fff3cd;
       color: #856404;
     }
+    /* ยอดของร้านที่เลือกไม่ถึงเกณฑ์สิทธิอนุมัติ: กรอบช่องลงชื่อเป็นสีแดง (updateAmountUnderMin) */
+    .cp-print .cp-sign-required.cp-sign-invalid {
+      background: #fdecea;
+      box-shadow: inset 0 0 0 2px #dc3545;
+    }
+    .cp-print .cp-sign-required.cp-sign-invalid .cp-badge-important {
+      background: #f8d7da;
+      color: #a71d2a;
+    }
     .cp-print .cp-badge-important {
       display: inline-block;
       padding: 0 .45rem;
@@ -138,6 +147,25 @@
     .cp-print .cp-sign-approver2 {
       background: #fff4e6;
       box-shadow: inset 0 0 0 2px #fd7e14;
+    }
+    /* ยอดของร้านที่เลือกไม่ถึงเกณฑ์สิทธิอนุมัติ: แบบเดียวกับแจ้งเตือนช่องที่ต้องกรอกของหน้าใบสั่งซื้อ */
+    .cp-print .form-control.amount-invalid {
+      border: 2px solid #dc3545 !important;
+      background-color: #fff5f5;
+    }
+    .cp-print .cp-amount-msg {
+      margin-top: .2rem;
+      font-size: .8rem;
+      color: #dc3545;
+    }
+    .cp-print .cp-amount-summary {
+      flex: 1 1 260px;
+      margin: 0 .5rem;
+      padding: .35rem .75rem;
+      border-radius: 6px;
+      background: #fdecea;
+      color: #a71d2a;
+      font-size: .88rem;
     }
     .cp-print .cp-badge-cascp {
       display: inline-block;
@@ -197,6 +225,8 @@
                           {% endfor %}
                         </datalist>
                         {% if form.select_bidder.errors %}<div class="text-danger small mt-1">{{ form.select_bidder.errors }}</div>{% endif %}
+                        <!-- ยอดของร้านที่เลือกไม่ถึงเกณฑ์สิทธิอนุมัติใบเปรียบเทียบ (updateAmountUnderMin) -->
+                        <div id="cp-amount-under-min" class="cp-amount-msg d-none"></div>
                     </div>
                     <div class="form-group">
                         <label for="{{form.address_company.id_for_label}}">{{form.address_company.label}}</label>
@@ -259,11 +289,12 @@
                     บันทึกแบบร่าง
                 </button>
                 {% endif %}
-                <button type="submit" name="btnSaveAndSend" class="btn btn-primary hidden-print">
+                <button type="submit" name="btnSaveAndSend" id="btnSaveAndSend" class="btn btn-primary hidden-print">
                     <i class="fas fa-paper-plane"></i>
                     บันทึกและส่งอนุมัติ
                 </button>
             </div>
+            <div id="cp-amount-summary" class="cp-amount-summary d-none" role="alert"></div>
             <button type="button" class="btn btn-outline-info hidden-print" onclick="printCPFromShowPage();">
                 <i class="fas fa-print"></i>
                 ปริ้นใบเปรียบเทียบราคา
@@ -286,6 +317,48 @@
         var isSpecial = !isNaN(amount) && !isNaN(min) && !isNaN(max) && amount >= min && amount <= max && cmType === '';
         $('#cp-sign-approver2').toggleClass('d-none', !isSpecial);
     }
+
+    //---------- ยอดของร้านที่เลือกต้องถึงเกณฑ์สิทธิอนุมัติใบเปรียบเทียบ (server เช็คซ้ำใน check_cp_amount_reach_approve) ----------
+    //ใบที่เลือกประเภทใบเปรียบเทียบ (น้ำมันดีเซล/ยุทธภัณฑ์) ไม่เช็ค
+    function formatBaht(num) {
+        var digits = Number.isInteger(num) ? 0 : 2;
+        return num.toLocaleString('en', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+    //คืนข้อความแจ้งเตือน หรือ '' ถ้าผ่าน (ข้อความเดียวกับ cp_amount_under_min_message)
+    function cpAmountUnderMinMessage() {
+        var amount = parseFloat($('#idExpressList option[data-id="' + $('#id_select_bidder').val() + '"]').attr('data-amount'));
+        var cmType = $('#id_cm_type :radio:checked').val() || '';
+        var min = parseFloat(cascpInfo.approve_min);
+        if (isNaN(amount) || isNaN(min) || cmType !== '' || amount >= min) return '';
+        return 'ยอดเงินของร้านที่เลือก ' + formatBaht(amount) + ' บาท ไม่ถึงเกณฑ์สิทธิอนุมัติใบเปรียบเทียบราคา (ตั้งแต่ ' + formatBaht(min) + ' บาทขึ้นไป)';
+    }
+    //แจ้งเตือนใต้ช่องเลือกผู้จัดจำหน่ายทันทีที่เลือกร้าน ถ้าแถบข้างปุ่มบันทึกแสดงอยู่ให้อัปเดตตาม
+    function updateAmountUnderMin() {
+        var msg = cpAmountUnderMinMessage();
+        //ยอดไม่ถึงเกณฑ์ จึงไม่มีผู้ตรวจสอบ/ผู้อนุมัติให้เลือก ทำเครื่องหมายแดงด้วย
+        $('#express, #id_examiner_user, #id_approver_user').toggleClass('amount-invalid', !!msg);
+        $('.cp-sign-required').toggleClass('cp-sign-invalid', !!msg);
+        $('#cp-amount-under-min').toggleClass('d-none', !msg).text(msg);
+        var summary = $('#cp-amount-summary');
+        if (!msg) {
+            summary.addClass('d-none').empty();
+        } else if (!summary.hasClass('d-none')) {
+            showCPAmountSummary(msg);
+        }
+        return msg;
+    }
+    function showCPAmountSummary(msg) {
+        $('#cp-amount-summary').removeClass('d-none').empty()
+            .append('<i class="fas fa-exclamation-circle mr-1"></i>', document.createTextNode('ไม่สามารถบันทึกและส่งอนุมัติได้: ' + msg));
+    }
+    //บันทึกและส่งอนุมัติ: ยอดไม่ถึงเกณฑ์ไม่ให้บันทึก (บันทึกแบบร่างได้)
+    $('#btnSaveAndSend').on('click', function (e) {
+        var msg = updateAmountUnderMin();
+        if (!msg) return;
+        e.preventDefault();
+        showCPAmountSummary(msg);
+        $('#express')[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
 
     //---------- เน้นคอลัมน์ร้านที่เลือกในหัวตารางเปรียบเทียบ (เปลี่ยนตามช่องเลือกผู้จัดจำหน่าย) ----------
     function updateSelectedBidderHeader() {
@@ -334,12 +407,14 @@
     searchExaminerAndApproverUser();
 
     updateApprover2();
+    updateAmountUnderMin();
     updateSelectedBidderHeader();
 });
 
 $('input[type=radio][name=cm_type]').change(function() {
     searchExaminerAndApproverUser();
     updateApprover2();
+    updateAmountUnderMin();
 });
 
  $(".express" ).change(function() {
@@ -366,6 +441,7 @@ $('input[type=radio][name=cm_type]').change(function() {
     //หาผู้ตรวจสอบและผู้อนุมัติใบเปรียบเทียบราคา
     searchExaminerAndApproverUser();
     updateApprover2();
+    updateAmountUnderMin();
     updateSelectedBidderHeader();
   });
 

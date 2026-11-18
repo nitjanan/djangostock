@@ -92,6 +92,9 @@
   .cp-bd { padding: .2rem 0; overflow-wrap: anywhere; }
   .cp-bd + .cp-bd { border-top: 1px dashed #ced4da; }
   .cp-bd-other { font-size: .9rem; color: #6c757d; }
+  /* คอลัมน์ผู้จำหน่าย / รายการสินค้า ในตารางใบเปรียบเทียบราคา: กันไม่ให้ถูกบีบจนชื่อตัดทีละคำ */
+  .lt .lt-bd-col { min-width: 150px; }
+  .lt .dl-items-col { min-width: 220px; }
   .lt-empty-row td { padding: 2rem 1rem !important; text-align: center; color: #6c757d; }
   .lt-count { color: #6c757d; font-size: .95rem; text-align: center; margin-top: .75rem; }
   /* จอ < 1400px: ซ่อนคอลัมน์รอง (lt-hide-lg) แล้วแสดงข้อมูลเดียวกันใต้ช่องแรก (lt-inline) ยังเป็นตาราง */
@@ -100,6 +103,13 @@
   @media (max-width: 1399.98px) {
     .lt .lt-hide-lg { display: none; }
     .lt-inline { display: block; }
+  }
+  /* จอ < 992px (iPad แนวตั้ง / มือถือ): ซ่อนคอลัมน์ lt-hide-md แล้วแสดงใต้ช่องแรก (lt-inline-md) */
+  .lt-inline-md { display: none; }
+  .lt-inline-md .lt-pill { margin-top: .2rem; }
+  @media (max-width: 991.98px) {
+    .lt .lt-hide-md { display: none; }
+    .lt-inline-md { display: block; }
   }
 
   /* ---------- ปุ่มสร้างเอกสารหลักของหน้า (ใส่ class "lt-create" ที่ปุ่ม) ---------- */

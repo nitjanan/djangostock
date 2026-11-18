@@ -415,7 +415,15 @@
     border: 2px solid #dc3545 !important;
     background-color: #fff5f5;
   }
-  .po-edit .req-msg {
+  .po-edit .form-control.amount-invalid {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+  }
+  .po-edit .amount-msg {
+    text-align: right;
+  }
+  .po-edit .req-msg,
+  .po-edit .amount-msg {
     margin-top: .2rem;
     font-size: .8rem;
     color: #dc3545;
@@ -1382,19 +1390,17 @@ function searchDataDistributor(){
                 },
             dataType: 'json',
             success: function (data) {
-                if (data.credit) {
-                    //set id_credit , id_vat_type
-                    $('#id_credit').val(data.credit).trigger('change');
-                    {% if not isLockPOItem %}
-                    //ผู้จำหน่ายที่ไม่ได้ตั้งชนิดภาษีให้คงค่าเดิม
-                    if (data.vat_type) {
-                      $("#id_vat_type").val(data.vat_type);
-                      //ชนิดภาษีเปลี่ยนตามผู้จำหน่าย คำนวณยอดเงินใหม่
-                      document.getElementById("vat-type").innerHTML = data.vat_type;
-                      calculateAll();
-                    }
-                    {% endif %}
+                //set id_credit , id_vat_type แยกกัน ผู้จำหน่ายที่ไม่ได้ตั้งเครดิตให้ล้างช่องเครดิต (ไม่คงค่าของร้านก่อนหน้า)
+                if (distChanged) $('#id_credit').val(data.credit || '').trigger('change');
+                {% if not isLockPOItem %}
+                //ผู้จำหน่ายที่ไม่ได้ตั้งชนิดภาษีให้คงค่าเดิม
+                if (distChanged && data.vat_type != null) {
+                  $("#id_vat_type").val(data.vat_type);
+                  //ชนิดภาษีเปลี่ยนตามผู้จำหน่าย คำนวณยอดเงินใหม่
+                  document.getElementById("vat-type").innerHTML = data.vat_type;
+                  calculateAll();
                 }
+                {% endif %}
                 updateHeaderDistributor(data);
                 //ถ้าเป็นการเปลี่ยนแปลงร้านค้า ให้ประเมินใหม่
                 if(distChanged){
@@ -1730,13 +1736,16 @@ function setDateTimePrint(){
         first = first || $('.rate-card')[0];
       }
 
-      var summary = $('#required-summary');
-      if (!missing.length) {
-        summary.addClass('d-none').empty();
-        return true;
-      }
-      summary.removeClass('d-none').empty()
-        .append('<i class="fas fa-exclamation-circle mr-1"></i>', document.createTextNode('กรุณากรอกให้ครบ: ' + missing.join(', ')));
+      //จำนวนเงินรวมทั้งสิ้น: ต้องมากกว่า 0 และต่ำกว่าวงเงินสิทธิอนุมัติใบสั่งซื้อ (CAAPO)
+      var amountMsg = poAmountError($('#submit')[0]);
+      markPOAmountError(amountMsg);
+      if (amountMsg) first = first || $('#id_amount')[0];
+
+      var parts = [];
+      if (missing.length) parts.push('กรุณากรอกให้ครบ: ' + missing.join(', '));
+      if (amountMsg) parts.push('ไม่สามารถบันทึกและส่งอนุมัติได้: ' + amountMsg);
+      showPOSummary('#required-summary', parts);
+      if (!parts.length) return true;
       if (scroll) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return false;
     }
@@ -1745,19 +1754,14 @@ function setDateTimePrint(){
     $('#submit').on('click', function (e) {
       if (!validateRequired(true)) {
         e.preventDefault();
-        return;
-      }
-      //บันทึกและส่งอนุมัติ: ยอดตั้งแต่วงเงินสิทธิอนุมัติใบสั่งซื้อ (CAAPO) ขึ้นไป ไม่ให้บันทึก
-      if (!checkPOAmountOverMax(this)) {
-        e.preventDefault();
       }
     });
-    //กรอกแล้วเอาเครื่องหมายออก ถ้าแจ้งเตือนอยู่ให้ตรวจใหม่
+    //กรอกแล้วเอาเครื่องหมายออก ถ้าแจ้งเตือนอยู่ให้ตรวจใหม่ (ยอดเงินถูกคำนวณใหม่ด้วย JS จึงตรวจทั้งหมดซ้ำ)
     $(document).on('input change', '.po-edit input, .po-edit select, .po-edit textarea', function () {
-      if ($(this).hasClass('req-invalid') && this.checkValidity()) clearRequiredMark(this);
-      if (!$('#required-summary').hasClass('d-none') && !$(this).is('[name^=rate-]')) {
-        var stillMissing = $('.po-edit .req-invalid').length;
-        if (!stillMissing) $('#required-summary').addClass('d-none').empty();
+      if (!$('#required-summary').hasClass('d-none')) {
+        if (!$(this).is('[name^=rate-]')) validateRequired();
+      } else if ($(this).hasClass('req-invalid') && this.checkValidity()) {
+        clearRequiredMark(this);
       }
     });
     $('input[name^=rate-]').on('change', function () {

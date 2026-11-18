@@ -20,7 +20,7 @@ from stock.models import (
     PurchaseOrder,
 )
 from stock.forms import PurchaseOrderPriceForm
-from stock.views import check_po_amount_over_max, po_amount_max_without_cp
+from stock.views import check_po_amount_over_max, check_po_amount_positive, po_amount_max_without_cp
 
 
 @override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
@@ -90,13 +90,13 @@ class POAmountMaxTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['poAmountMax'], '5000.00')
         self.assertContains(response, 'data-amount-max="5000.00"')
-        self.assertContains(response, 'function checkPOAmountOverMax')
+        self.assertContains(response, 'function poAmountError')
 
     def test_create_page_renders_amount_max_on_submit_button(self):
         response = self.client.get(reverse('createPOItem', kwargs={'po_id': self._create_po().id}))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-amount-max="5000.00"')
-        self.assertContains(response, 'function checkPOAmountOverMax')
+        self.assertContains(response, 'function poAmountError')
 
     def _price_data(self, amount, save_draft=''):
         return {
@@ -188,6 +188,71 @@ class POAmountMaxTestCase(TestCase):
         po.refresh_from_db()
         self.assertTrue(po.is_draft)
         self.assertEqual(po.amount, Decimal('6000.00'))
+
+    # ---------- จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 ----------
+
+    def test_check_positive_rejects_zero(self):
+        po = self._create_po()
+        form = PurchaseOrderPriceForm(self._price_data('0.00'), instance=po)
+        self.assertTrue(form.is_valid())
+        self.assertFalse(check_po_amount_positive(form))
+        self.assertIn('จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 บาท', form.errors['amount'][0])
+
+    def test_check_positive_uses_given_amount(self):
+        #ใบที่ล็อกราคาจากใบเปรียบเทียบ: เช็คยอดเดิมของใบ ไม่ใช่ค่าที่ส่งมา
+        po = self._create_po()
+        form = PurchaseOrderPriceForm(self._price_data('100.00'), instance=po)
+        self.assertTrue(form.is_valid())
+        self.assertFalse(check_po_amount_positive(form, Decimal('0.00')))
+
+    def test_check_positive_passes_above_zero(self):
+        po = self._create_po()
+        form = PurchaseOrderPriceForm(self._price_data('0.01'), instance=po)
+        self.assertTrue(form.is_valid())
+        self.assertTrue(check_po_amount_positive(form))
+
+    def test_pages_render_positive_check_js(self):
+        po = self._create_po()
+        #แจ้งเตือนที่แถบข้างปุ่มบันทึก (ไม่ใช้ alert)
+        edit = self.client.get(self._edit_url(po))
+        self.assertContains(edit, 'จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 บาท')
+        self.assertContains(edit, 'var amountMsg = poAmountError(')
+        create = self.client.get(reverse('createPOItem', kwargs={'po_id': po.id}))
+        self.assertContains(create, "checkPOAmount(this, '#amount-summary')")
+        self.assertContains(create, 'id="amount-summary"')
+
+    def test_create_submit_zero_is_blocked(self):
+        po = self._create_po()
+        response = self._post_create(po, '0.00')
+        self.assertEqual(response.status_code, 200)
+        po.refresh_from_db()
+        self.assertTrue(po.is_draft)
+        self.assertEqual(po.amount, Decimal('6000.00'))
+        self.assertContains(response, 'จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 บาท')
+
+    def test_create_save_draft_zero_is_allowed(self):
+        po = self._create_po()
+        response = self._post_create(po, '0.00', save_draft='1')
+        self.assertEqual(response.status_code, 302)
+        po.refresh_from_db()
+        self.assertTrue(po.is_draft)
+        self.assertEqual(po.amount, Decimal('0.00'))
+
+    def test_edit_submit_zero_is_blocked(self):
+        po = self._create_po()
+        response = self._post_edit(po, '0.00')
+        self.assertEqual(response.status_code, 200)
+        po.refresh_from_db()
+        self.assertTrue(po.is_draft)
+        self.assertContains(response, 'จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 บาท')
+
+    def test_edit_save_draft_zero_is_allowed(self):
+        po = self._create_po()
+        response = self._post_edit(po, '0.00', save_draft='1')
+        self.assertEqual(response.status_code, 302)
+        po.refresh_from_db()
+        self.assertTrue(po.is_draft)
+        self.assertEqual(po.amount, Decimal('0.00'))
 
     # ---------- หน้ารายการใบสั่งซื้อ (/purchaseOrder/) ----------
 

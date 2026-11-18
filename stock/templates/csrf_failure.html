@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>หน้านี้หมดอายุ</title>
+    <style>
+        body { font-family: -apple-system, "Segoe UI", Tahoma, sans-serif; background: #f4f6f8; color: #333; margin: 0; }
+        .box { max-width: 480px; margin: 12vh auto 0; background: #fff; border-radius: 8px; padding: 28px 24px;
+               box-shadow: 0 2px 8px rgba(0,0,0,.08); text-align: center; }
+        h1 { font-size: 1.4rem; margin: 0 0 12px; }
+        p { line-height: 1.6; margin: 0 0 20px; }
+        a.btn { display: inline-block; margin: 4px; padding: 10px 18px; border-radius: 6px; text-decoration: none; }
+        .btn-primary { background: #28a745; color: #fff; }
+        .btn-light { background: #e9ecef; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>หน้านี้หมดอายุแล้ว</h1>
+        <p>ข้อมูลยังไม่ถูกบันทึก เพราะหน้านี้ถูกเปิดไว้ก่อนการเข้าสู่ระบบครั้งล่าสุด<br>
+           กรุณาเปิดหน้าใหม่ แล้วกรอกข้อมูลและบันทึกอีกครั้ง</p>
+        {% if back_url %}<a class="btn btn-primary" href="{{ back_url }}">เปิดหน้าเดิมใหม่</a>{% endif %}
+        <a class="btn btn-light" href="{% url 'home' %}">ไปหน้าแรก</a>
+    </div>
+</body>
+</html>
