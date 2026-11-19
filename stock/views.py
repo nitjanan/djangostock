@@ -38,6 +38,8 @@ from .resources import ReceiveItemResource, DistributorResource
 from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
 from .car_match import build_car_maps, normalize_text, resolve_car
 from .unmatched_cars import collect_unmatched
+from .exp_car import maintenance_cars, resolve_exp_car
+from .maintenance_process import collect_maintenance_process
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
@@ -12336,6 +12338,9 @@ def query_exp_repair_all(start_date, end_date, b_com):
 
                 TRIM(nh.remark) AS car_code,
 
+                -- เลขใบแจ้งซ่อม ใช้หารถก่อน remark (stock/exp_car.py)
+                TRIM(nh.note3) AS note3,
+
                 CASE
                     WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
                     THEN NULL
@@ -12365,6 +12370,7 @@ def query_exp_repair_all(start_date, end_date, b_com):
                 TO_CHAR(nh.docdat, 'YYYY'),
                 TO_CHAR(nh.docdat, 'MM'),
                 TRIM(nh.remark),
+                TRIM(nh.note3),
 
                 CASE
                     WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
@@ -12461,65 +12467,74 @@ def getapiExpRepairAll(request, start_date, end_date):
         }
         for c in all_cars
     ])
-    name_code_map = {}
-
     # =========================================
-    # query loop
+    # query ทุกบริษัทก่อน แล้วโหลดรถของใบแจ้งซ่อมใน note3 ครั้งเดียว
     # =========================================
-    for b_com in branch_companies:
+    data_by_company = [
+        (b_com, query_exp_repair_all(start_date, end_date, b_com))
+        for b_com in branch_companies
+    ]
+    ma_cars = maintenance_cars(
+        item['note3'] for _, data in data_by_company for item in data
+    )
 
-        data = query_exp_repair_all(
-            start_date,
-            end_date,
-            b_com
-        )
+    for b_com, data in data_by_company:
+
+        # หลายแถวอาจได้รถคันเดียวกัน (remark ต่างกัน/คีย์ผิด แต่ note3 ชี้ใบแจ้งซ่อมของคันนั้น) จึงรวมยอดใหม่
+        totals = {}
 
         for item in data:
 
             # =========================================
-            # resolve car
+            # resolve car: ใบแจ้งซ่อมใน note3 ก่อน แล้วค่อย remark
             # =========================================
-            car_obj = resolve_car_fast(
+            car_obj = resolve_exp_car(
                 item['car_code'],
+                item['note3'],
+                ma_cars,
                 name_map,
                 code_map,
-                name_code_map
             )
 
             if not car_obj:
                 continue
 
             note2 = item.get('note2')
+            key = (item['year'], item['month'], car_obj['id'], note2)
 
-            result.append({
-                "month": item['month'],
+            row = totals.get(key)
+            if row is None:
+                row = totals[key] = {
+                    "month": item['month'],
 
-                "month_th": THAI_MONTHS.get(
-                    item['month']
-                ),
+                    "month_th": THAI_MONTHS.get(
+                        item['month']
+                    ),
 
-                "year": item['year'],
+                    "year": item['year'],
 
-                "car_id": car_obj['id'],
+                    "car_id": car_obj['id'],
 
-                "car_code": car_obj['code'],
+                    "car_code": car_obj['code'],
 
-                "note2": note2,
+                    "note2": note2,
 
-                "rt_name": (
-                    repair_map.get(str(note2))
-                    if note2 else None
-                ),
+                    "rt_name": (
+                        repair_map.get(str(note2))
+                        if note2 else None
+                    ),
 
-                "amount": float(
-                    item['sum_amount'] or 0
-                ),
-                "branch_company": b_com.id,
-                # =========================================
-                # ใช้ car_dep จริงจากรถ
-                # =========================================
-                "car_dep": car_obj['car_dep'],
-            })
+                    "amount": 0.0,
+                    "branch_company": b_com.id,
+                    # =========================================
+                    # ใช้ car_dep จริงจากรถ
+                    # =========================================
+                    "car_dep": car_obj['car_dep'],
+                }
+
+            row["amount"] += float(item['sum_amount'] or 0)
+
+        result.extend(totals.values())
 
     return Response(result)
 
@@ -12589,6 +12604,15 @@ def getapiMaintenanceAll(request, start_date, end_date):
         })
 
     return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiMaintenanceProcess(request, start_date, end_date):
+    """เส้นทางเอกสารของใบแจ้งซ่อม (ใบขอเบิก, ใบขอซื้อ, เปรียบเทียบราคา, ใบสั่งซื้อ, รับของ)
+    ให้ dashboard บอกได้ว่างานซ่อมที่ค้างอยู่ติดขั้นไหน ดู stock/maintenance_process.py
+    """
+    return Response(collect_maintenance_process(start_date, end_date))
 
 
 def query_exp_car_type(start_date, end_date, b_com):

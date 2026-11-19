@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 
 from .car_match import build_car_maps, clean_remark, resolve_car
+from .exp_car import maintenance_cars, resolve_exp_car
 from .models import BaseBranchCompany, BaseCar
 
 
@@ -24,11 +25,20 @@ def collect_unmatched(start_date, end_date):
 
     totals = defaultdict(lambda: {'repair_amount': 0.0, 'oil_qty': 0.0})
 
-    for b_com in branch_companies:
+    repairs = [
+        (b_com, query_exp_repair_all(start_date, end_date, b_com))
+        for b_com in branch_companies
+    ]
+    # ค่าซ่อม: note3 ชี้ใบแจ้งซ่อมที่มีรถ = จับคู่ได้ แม้ remark ผิด (เหมือน getapiExpRepairAll)
+    ma_cars = maintenance_cars(item['note3'] for _, data in repairs for item in data)
 
-        for item in query_exp_repair_all(start_date, end_date, b_com):
+    for b_com, data in repairs:
+
+        for item in data:
             amount = float(item['sum_amount'] or 0)
-            if amount and not resolve_car(item['car_code'], name_map, code_map):
+            if amount and not resolve_exp_car(
+                item['car_code'], item['note3'], ma_cars, name_map, code_map
+            ):
                 key = (b_com.id, item['year'], item['month'], clean_remark(item['car_code']))
                 totals[key]['repair_amount'] += amount
 
