@@ -326,6 +326,7 @@ urlpatterns = [
     path('car/department/api/between/<str:start_date>/<str:end_date>/<str:comp>/<int:car_dep>/',views.apiCarByDepartment,name="apiCarByDepartment"),
     path('all/car/department/api/between/<str:start_date>/<str:end_date>/',views.getapiCarByDepartmentAll,name="getapiCarByDepartmentAll"),
     path('all/exp/unmatched/api/between/<str:start_date>/<str:end_date>/',views.getapiExpUnmatchedAll,name="getapiExpUnmatchedAll"),
+    path('all/carlog/jobs/api/between/<str:start_date>/<str:end_date>/',views.getapiCarlogJobsAll,name="getapiCarlogJobsAll"),
     path('test/google/view/<str:lat>/<str:lng>/' , views.test_google_view ,name="google_view"),
     path('test/osm/view/<str:lat>/<str:lng>/' , views.test_osm_view ,name="osm_view"),
     path('test/tomtom/view/<str:lat>/<str:lng>/' , views.test_tomtom_view ,name="tomtom_view"),

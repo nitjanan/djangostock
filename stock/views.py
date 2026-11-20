@@ -40,6 +40,7 @@ from .car_match import build_car_maps, normalize_text, resolve_car
 from .unmatched_cars import collect_unmatched
 from .exp_car import maintenance_cars, resolve_exp_car
 from .maintenance_process import collect_maintenance_process
+from .carlog_jobs import collect_carlog_jobs
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
@@ -11952,6 +11953,7 @@ def apiOverviewDashboardAPP(request):
         'GET Exp Work By Month All':'/all/exp/by/month/api/between/<str:start_date>/<str:end_date>/',
         'GET Exp Oil By Month All':'/all/exp/oil/by/month/api/between/<str:start_date>/<str:end_date>/',
         'GET Exp Unmatched All':'/all/exp/unmatched/api/between/<str:start_date>/<str:end_date>/',
+        'GET Carlog Jobs All':'/all/carlog/jobs/api/between/<str:start_date>/<str:end_date>/',
     }
     return Response(api_urls)
 
@@ -11992,6 +11994,9 @@ def apiExpBaseCar(request):
         'name',
         'car_dep',
         'car_type',
+        'start_year',  # dashboard แสดงในตารางรายการรถ
+        'brand',
+        'car_model',
     )
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
@@ -12613,6 +12618,15 @@ def getapiMaintenanceProcess(request, start_date, end_date):
     ให้ dashboard บอกได้ว่างานซ่อมที่ค้างอยู่ติดขั้นไหน ดู stock/maintenance_process.py
     """
     return Response(collect_maintenance_process(start_date, end_date))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiCarlogJobsAll(request, start_date, end_date):
+    """ชั่วโมงทำงาน ระยะทาง และจำนวนเที่ยว แยกตามรถ แผนกค่าใช้จ่าย และรายละเอียดงาน
+    จากบันทึกการใช้รถ ให้ fleet dashboard ดู stock/carlog_jobs.py
+    """
+    return Response(collect_carlog_jobs(start_date, end_date))
 
 
 def query_exp_car_type(start_date, end_date, b_com):
