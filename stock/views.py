@@ -39,6 +39,7 @@ from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_de
 from .car_match import build_car_maps, normalize_text, resolve_car
 from .unmatched_cars import collect_unmatched
 from .exp_car import maintenance_cars, resolve_exp_car
+from .exp_repair_docs import collect_repair_docs
 from .maintenance_process import collect_maintenance_process
 from .carlog_jobs import collect_carlog_jobs
 from tablib import Dataset
@@ -12542,6 +12543,16 @@ def getapiExpRepairAll(request, start_date, end_date):
         result.extend(totals.values())
 
     return Response(result)
+
+
+###############################################################################
+########## ใบจ่ายอะไหล่รายใบ: dashboard ใช้นับการซ่อมของรถที่ไม่มีใบแจ้งซ่อม ##########
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiExpRepairDocsAll(request, start_date, end_date):
+    """ใบจ่ายสินค้าภายใน-อะไหล่ รายใบ พร้อมรถที่จับคู่แล้ว (stock/exp_repair_docs.py)"""
+    return Response(collect_repair_docs(start_date, end_date))
 
 
 ###############################################################################
