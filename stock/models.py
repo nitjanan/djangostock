@@ -375,6 +375,9 @@ class BaseCar(models.Model):
     car_dep = models.ForeignKey(BaseCarDepartment,on_delete=models.CASCADE,null=True, blank=True, verbose_name="แผนกทะเบียนรถ/เครื่องจักร/หน่วยงาน")
     car_type = models.ForeignKey(BaseCarType,on_delete=models.CASCADE,null=True, blank=True, verbose_name="ชนิดรถ/เครื่องจักร")
     pm_round = models.IntegerField(blank=True, null=True, verbose_name="รอบทำ PM ทุก ๆ (กิโลเมตร หรือ ชั่วโมง)")
+    start_year = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="ปีที่เริ่มใช้งาน (ค.ศ.)")
+    brand = models.CharField(max_length=100, blank=True, null=True, verbose_name="ยี่ห้อ")
+    car_model = models.CharField(max_length=100, blank=True, null=True, verbose_name="รุ่น")
 
     class Meta:
         db_table = 'BaseCar'

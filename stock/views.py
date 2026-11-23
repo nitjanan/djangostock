@@ -38,6 +38,10 @@ from .resources import ReceiveItemResource, DistributorResource
 from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
 from .car_match import build_car_maps, normalize_text, resolve_car
 from .unmatched_cars import collect_unmatched
+from .exp_car import maintenance_cars, resolve_exp_car
+from .exp_repair_docs import collect_repair_docs
+from .maintenance_process import collect_maintenance_process
+from .carlog_jobs import collect_carlog_jobs
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
@@ -11950,6 +11954,7 @@ def apiOverviewDashboardAPP(request):
         'GET Exp Work By Month All':'/all/exp/by/month/api/between/<str:start_date>/<str:end_date>/',
         'GET Exp Oil By Month All':'/all/exp/oil/by/month/api/between/<str:start_date>/<str:end_date>/',
         'GET Exp Unmatched All':'/all/exp/unmatched/api/between/<str:start_date>/<str:end_date>/',
+        'GET Carlog Jobs All':'/all/carlog/jobs/api/between/<str:start_date>/<str:end_date>/',
     }
     return Response(api_urls)
 
@@ -11990,6 +11995,9 @@ def apiExpBaseCar(request):
         'name',
         'car_dep',
         'car_type',
+        'start_year',  # dashboard แสดงในตารางรายการรถ
+        'brand',
+        'car_model',
     )
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
@@ -12336,6 +12344,9 @@ def query_exp_repair_all(start_date, end_date, b_com):
 
                 TRIM(nh.remark) AS car_code,
 
+                -- เลขใบแจ้งซ่อม ใช้หารถก่อน remark (stock/exp_car.py)
+                TRIM(nh.note3) AS note3,
+
                 CASE
                     WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
                     THEN NULL
@@ -12365,6 +12376,7 @@ def query_exp_repair_all(start_date, end_date, b_com):
                 TO_CHAR(nh.docdat, 'YYYY'),
                 TO_CHAR(nh.docdat, 'MM'),
                 TRIM(nh.remark),
+                TRIM(nh.note3),
 
                 CASE
                     WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
@@ -12461,67 +12473,86 @@ def getapiExpRepairAll(request, start_date, end_date):
         }
         for c in all_cars
     ])
-    name_code_map = {}
-
     # =========================================
-    # query loop
+    # query ทุกบริษัทก่อน แล้วโหลดรถของใบแจ้งซ่อมใน note3 ครั้งเดียว
     # =========================================
-    for b_com in branch_companies:
+    data_by_company = [
+        (b_com, query_exp_repair_all(start_date, end_date, b_com))
+        for b_com in branch_companies
+    ]
+    ma_cars = maintenance_cars(
+        item['note3'] for _, data in data_by_company for item in data
+    )
 
-        data = query_exp_repair_all(
-            start_date,
-            end_date,
-            b_com
-        )
+    for b_com, data in data_by_company:
+
+        # หลายแถวอาจได้รถคันเดียวกัน (remark ต่างกัน/คีย์ผิด แต่ note3 ชี้ใบแจ้งซ่อมของคันนั้น) จึงรวมยอดใหม่
+        totals = {}
 
         for item in data:
 
             # =========================================
-            # resolve car
+            # resolve car: ใบแจ้งซ่อมใน note3 ก่อน แล้วค่อย remark
             # =========================================
-            car_obj = resolve_car_fast(
+            car_obj = resolve_exp_car(
                 item['car_code'],
+                item['note3'],
+                ma_cars,
                 name_map,
                 code_map,
-                name_code_map
             )
 
             if not car_obj:
                 continue
 
             note2 = item.get('note2')
+            key = (item['year'], item['month'], car_obj['id'], note2)
 
-            result.append({
-                "month": item['month'],
+            row = totals.get(key)
+            if row is None:
+                row = totals[key] = {
+                    "month": item['month'],
 
-                "month_th": THAI_MONTHS.get(
-                    item['month']
-                ),
+                    "month_th": THAI_MONTHS.get(
+                        item['month']
+                    ),
 
-                "year": item['year'],
+                    "year": item['year'],
 
-                "car_id": car_obj['id'],
+                    "car_id": car_obj['id'],
 
-                "car_code": car_obj['code'],
+                    "car_code": car_obj['code'],
 
-                "note2": note2,
+                    "note2": note2,
 
-                "rt_name": (
-                    repair_map.get(str(note2))
-                    if note2 else None
-                ),
+                    "rt_name": (
+                        repair_map.get(str(note2))
+                        if note2 else None
+                    ),
 
-                "amount": float(
-                    item['sum_amount'] or 0
-                ),
-                "branch_company": b_com.id,
-                # =========================================
-                # ใช้ car_dep จริงจากรถ
-                # =========================================
-                "car_dep": car_obj['car_dep'],
-            })
+                    "amount": 0.0,
+                    "branch_company": b_com.id,
+                    # =========================================
+                    # ใช้ car_dep จริงจากรถ
+                    # =========================================
+                    "car_dep": car_obj['car_dep'],
+                }
+
+            row["amount"] += float(item['sum_amount'] or 0)
+
+        result.extend(totals.values())
 
     return Response(result)
+
+
+###############################################################################
+########## ใบจ่ายอะไหล่รายใบ: dashboard ใช้นับการซ่อมของรถที่ไม่มีใบแจ้งซ่อม ##########
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiExpRepairDocsAll(request, start_date, end_date):
+    """ใบจ่ายสินค้าภายใน-อะไหล่ รายใบ พร้อมรถที่จับคู่แล้ว (stock/exp_repair_docs.py)"""
+    return Response(collect_repair_docs(start_date, end_date))
 
 
 ###############################################################################
@@ -12589,6 +12620,24 @@ def getapiMaintenanceAll(request, start_date, end_date):
         })
 
     return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiMaintenanceProcess(request, start_date, end_date):
+    """เส้นทางเอกสารของใบแจ้งซ่อม (ใบขอเบิก, ใบขอซื้อ, เปรียบเทียบราคา, ใบสั่งซื้อ, รับของ)
+    ให้ dashboard บอกได้ว่างานซ่อมที่ค้างอยู่ติดขั้นไหน ดู stock/maintenance_process.py
+    """
+    return Response(collect_maintenance_process(start_date, end_date))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiCarlogJobsAll(request, start_date, end_date):
+    """ชั่วโมงทำงาน ระยะทาง และจำนวนเที่ยว แยกตามรถ แผนกค่าใช้จ่าย และรายละเอียดงาน
+    จากบันทึกการใช้รถ ให้ fleet dashboard ดู stock/carlog_jobs.py
+    """
+    return Response(collect_carlog_jobs(start_date, end_date))
 
 
 def query_exp_car_type(start_date, end_date, b_com):

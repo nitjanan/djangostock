@@ -462,17 +462,17 @@ class BaseCarResource(resources.ModelResource):
 
     class Meta:
         model = BaseCar
-        fields = ('id', 'code', 'name', 'rq_type', 'car_dep', 'car_type', 'pm_round')
-        export_order = ('id', 'code', 'name', 'rq_type', 'car_dep', 'car_type', 'pm_round')
+        fields = ('id', 'code', 'name', 'rq_type', 'car_dep', 'car_type', 'pm_round', 'start_year', 'brand', 'car_model')
+        export_order = ('id', 'code', 'name', 'rq_type', 'car_dep', 'car_type', 'pm_round', 'start_year', 'brand', 'car_model')
 
 class BaseCarAdmin(ImportExportModelAdmin):
     autocomplete_fields = ['car_type',]
     resource_class = BaseCarResource
 
-    list_display = ['id','code','name','rq_type', 'car_dep', 'car_type', 'pm_round']#แสดงรายการสินค้าในรูปแบบตาราง
+    list_display = ['id','code','name','rq_type', 'car_dep', 'car_type', 'pm_round', 'start_year', 'brand', 'car_model']#แสดงรายการสินค้าในรูปแบบตาราง
     # car_dep เลือก "ว่าง" ได้ = รถที่ยังไม่ได้ตั้งแผนก (dashboard จัดไว้แท็บ "อื่นๆ")
     list_filter = ['car_dep', 'car_type']
-    search_fields = ['code', 'name','rq_type__name', 'car_type__name', 'car_dep__name']
+    search_fields = ['code', 'name','rq_type__name', 'car_type__name', 'car_dep__name', 'brand', 'car_model']
     form = BaseCarAdminForm
     change_list_template = 'admin/stock/basecar/change_list.html'
 
