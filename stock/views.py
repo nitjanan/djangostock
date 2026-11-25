@@ -33,9 +33,15 @@ from django.forms import inlineformset_factory
 import stripe, logging, datetime
 import requests
 import time
-from django.db.models import Prefetch, Sum, Max
+from django.db.models import Prefetch, Sum, Max, Min
 from .resources import ReceiveItemResource, DistributorResource
 from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
+from .car_match import build_car_maps, normalize_text, resolve_car
+from .unmatched_cars import collect_unmatched
+from .exp_car import maintenance_cars, resolve_exp_car
+from .exp_repair_docs import collect_repair_docs
+from .maintenance_process import collect_maintenance_process
+from .carlog_jobs import collect_carlog_jobs
 from tablib import Dataset
 from django.db.models import Q
 from django.core.cache import cache
@@ -45,7 +51,7 @@ from django.core.serializers import serialize
 from django.db.models import Count, Avg
 import xlwt
 from django.db.models import F, Func, Value, CharField,When, Q, Case, ExpressionWrapper, IntegerField
-from django.views.decorators.cache import cache_control
+from django.views.decorators.cache import cache_control, never_cache
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import pandas as pd
 from django_pandas.io import read_frame
@@ -1119,7 +1125,12 @@ def signUpView(request):
     context = {'form':form, 'profile_form':profile_form}
     return render(request, "signup.html", context)
 
+@never_cache
 def signInView(request):
+    # login อยู่แล้วไม่ต้องเห็นฟอร์ม login อีก (กัน Safari/ปุ่ม Back เอาหน้า login เก่าที่ถือ CSRF token ก่อน login มาส่งซ้ำ)
+    if request.user.is_authenticated and 'company_code' in request.session:
+        return redirect('home')
+
     if request.method == 'POST':
         form = AuthenticationForm(data = request.POST)
         if form.is_valid():
@@ -1143,8 +1154,10 @@ def signInView(request):
     else:
         form = AuthenticationForm()
         company = BaseBranchCompany.objects.first()
-        request.session['company_code'] = company.code
-        request.session['company'] = company.name
+        #ฐานข้อมูลยังไม่มีบริษัท (เช่น DB ใหม่) ไม่ต้องตั้ง session ไม่งั้นหน้า login error
+        if company is not None:
+            request.session['company_code'] = company.code
+            request.session['company'] = company.name
 
     return render(request, 'signin.html', {'form':form,})
 
@@ -3480,6 +3493,19 @@ def check_po_amount_over_max(price_form, po):
     price_form.add_error('amount', po_amount_over_max_message(amount_max))
     return False
 
+PO_AMOUNT_NOT_POSITIVE_MESSAGE = 'ไม่สามารถบันทึกและส่งอนุมัติได้ เนื่องจากจำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 บาท'
+
+def check_po_amount_positive(price_form, amount = None):
+    """บันทึกและส่งอนุมัติ: จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 (ใบที่ยอด 0 ไม่ขึ้นในรายการรออนุมัติของผู้อนุมัติ)
+    เรียกหลัง price_form.is_valid() แล้ว amount = ยอดที่จะบันทึกจริง (ใบที่ล็อกราคาจากใบเปรียบเทียบ)
+    ถ้าไม่ส่งมาใช้ค่าในฟอร์ม ไม่ผ่านจะใส่ error ที่ช่อง amount และคืน False"""
+    if amount is None:
+        amount = price_form.cleaned_data.get('amount')
+    if amount is not None and amount > 0:
+        return True
+    price_form.add_error('amount', PO_AMOUNT_NOT_POSITIVE_MESSAGE)
+    return False
+
 def createPOItem(request, po_id):
     template_name = 'purchaseOrderItem/createPOItem.html'
     heading_message = 'Model Formset Demo'
@@ -3499,7 +3525,7 @@ def createPOItem(request, po_id):
         price_form = PurchaseOrderPriceForm(request.POST, instance=po_data)
         price_ok = price_form.is_valid()
         if price_ok and not is_save_draft(request):
-            price_ok = check_po_amount_over_max(price_form, po_data)
+            price_ok = check_po_amount_positive(price_form) and check_po_amount_over_max(price_form, po_data)
         if formset.is_valid() and price_ok:
             # Check if PO items already exist for this PO to prevent duplicate creation
             if PurchaseOrderItem.objects.filter(po=po_data).exists():
@@ -3688,6 +3714,9 @@ def editPOItem(request, po_id, isFromPR, isReApprove):
             relax_required_for_draft(form_rate)
         price_ok = price_form.is_valid()
         #บันทึกและส่งอนุมัติ: ยอดตั้งแต่วงเงิน CAAPO ขึ้นไปห้ามบันทึก (ใบจากใบเปรียบเทียบราคาไม่เช็ค)
+        #บันทึกและส่งอนุมัติ: จำนวนเงินรวมทั้งสิ้นต้องมากกว่า 0 (ใบที่ล็อกราคาจากใบเปรียบเทียบใช้ยอดเดิมของใบ)
+        if price_ok and not isDraft:
+            price_ok = check_po_amount_positive(price_form, locked_price_value.get('amount'))
         if price_ok and canSaveDraft and not isDraft:
             price_ok = check_po_amount_over_max(price_form, po_data)
         if formset.is_valid() and price_ok and form.is_valid() and form_rate.is_valid():
@@ -4558,15 +4587,34 @@ def autocompalteDistributor(request):
             titles.append(obj.id +"-"+ obj.name)
     return JsonResponse(titles, safe=False)
 
+def latest_distributor_term(distributor_id, field):
+    """ค่า credit / vat_type ล่าสุดที่เคยบันทึกกับผู้จำหน่ายนี้ ในใบเปรียบเทียบราคา (ร้านที่เสนอราคา) หรือใบสั่งซื้อ
+    ไม่นับใบที่ยกเลิก เลือกใบที่วันที่ล่าสุด (วันเท่ากันเอาใบสั่งซื้อ เพราะเป็นข้อมูลที่ตกลงกันแล้ว) ไม่เคยบันทึกคืน None"""
+    not_null = {field + '__isnull': False}
+    po = (PurchaseOrder.objects.filter(distributor_id = distributor_id, is_cancel = False, **not_null)
+          .order_by('-created', '-id').values('created', field + '_id').first())
+    cpd = (ComparisonPriceDistributor.objects.filter(distributor_id = distributor_id, cp__is_cancel = False, **not_null)
+           .order_by('-created', '-id').values('created', field + '_id').first())
+    found = [r for r in (po, cpd) if r]
+    if not found:
+        return None
+    #max คืนตัวแรกเมื่อวันเท่ากัน (po อยู่ก่อน)
+    latest = max(found, key = lambda r: r['created'] or date.min)
+    return latest[field + '_id']
+
 def searchDataDistributor(request):
     if 'id_distributor' in request.GET:
         id = request.GET.get('id_distributor')
         qs = Distributor.objects.get(id = id)
 
+    #ไม่ได้ตั้งเครดิต / ชนิดภาษีไว้ที่ผู้จำหน่าย (NULL) ใช้ค่าล่าสุดที่เคยบันทึกในใบเปรียบเทียบราคา / ใบสั่งซื้อแทน
+    #ไม่เคยบันทึกเลยส่ง null กลับไป (หน้าเว็บล้างช่องเครดิต / คงชนิดภาษีเดิม)
+    credit = qs.credit_id if qs.credit_id is not None else latest_distributor_term(qs.id, 'credit')
+    vat_type = qs.vat_type_id if qs.vat_type_id is not None else latest_distributor_term(qs.id, 'vat_type')
+
     data = {
-        #ผู้จำหน่ายบางรายไม่ได้ตั้งเครดิต / ชนิดภาษี (NULL) ส่งค่า null กลับไปแทน ไม่ให้ view error
-        'credit': qs.credit_id,
-        'vat_type': qs.vat_type_id,
+        'credit': credit,
+        'vat_type': vat_type,
         #ใช้แสดงผู้จำหน่ายที่หัวเอกสารหน้าแก้ไขใบสั่งซื้อ (editPOItem)
         'id': qs.id,
         'prefix': str(qs.prefix) if qs.prefix else '',
@@ -4874,6 +4922,41 @@ def removeComparePriceDistributor(request, cp_id, cpd_id):
 
     return redirect('createComparePricePOItem', cp_id = cp_id, isReApprove = 'False')
 
+#สิทธิตรวจสอบ/อนุมัติใบเปรียบเทียบราคาตามช่วงยอดเงิน (ใบที่ไม่ได้เลือกประเภทใบเปรียบเทียบ)
+CP_AMOUNT_PERMISSION_CODENAMES = ['CAECP1','CAECP2','CAECP3','CAECP4','CAECP5','CAECP6',
+                                  'CAACP1','CAACP2','CAACP3','CAACP4','CAACP5','CAACP6']
+
+def cp_amount_min_for_approve():
+    """ยอดเงินต่ำสุดที่มีสิทธิตรวจสอบ/อนุมัติใบเปรียบเทียบราคา (ap_amount_min ต่ำสุดของ CAECP*/CAACP*)
+    ใบที่ยอดต่ำกว่านี้ไม่มีผู้ตรวจสอบ/ผู้อนุมัติให้เลือก และไม่ขึ้นในรายการรออนุมัติ คืน None ถ้าไม่ได้ตั้งไว้"""
+    return BasePermission.objects.filter(
+        codename__in = CP_AMOUNT_PERMISSION_CODENAMES, ap_amount_min__isnull = False,
+    ).aggregate(m = Min('ap_amount_min'))['m']
+
+def format_baht(amount):
+    #จำนวนเต็มแสดงไม่มีทศนิยม (5,001) ถ้ามีเศษสตางค์แสดง 2 ตำแหน่ง
+    text = '{:,.2f}'.format(Decimal(amount))
+    return text[:-3] if text.endswith('.00') else text
+
+def cp_amount_under_min_message(amount, amount_min):
+    #ข้อความเดียวกับฝั่ง JS (printComparePricePO.html cpAmountUnderMinMessage)
+    return 'ยอดเงินของร้านที่เลือก {} บาท ไม่ถึงเกณฑ์สิทธิอนุมัติใบเปรียบเทียบราคา (ตั้งแต่ {} บาทขึ้นไป)'.format(
+        format_baht(amount), format_baht(amount_min))
+
+def check_cp_amount_reach_approve(form, cp):
+    """บันทึกและส่งอนุมัติใบเปรียบเทียบ: ยอดของร้านที่เลือกต้องถึงเกณฑ์สิทธิอนุมัติ (cp_amount_min_for_approve)
+    ใบที่เลือกประเภทใบเปรียบเทียบ (น้ำมันดีเซล/ยุทธภัณฑ์) ใช้สิทธิที่ไม่ขึ้นกับยอดเงิน ไม่เช็ค
+    เรียกหลัง form.is_valid() แล้ว ไม่ผ่านจะใส่ error ที่ช่อง select_bidder และคืน False"""
+    select_bidder = form.cleaned_data.get('select_bidder')
+    if select_bidder is None or form.cleaned_data.get('cm_type') is not None:
+        return True
+    amount_min = cp_amount_min_for_approve()
+    bidder = ComparisonPriceDistributor.objects.filter(cp = cp, distributor = select_bidder).first()
+    if amount_min is None or bidder is None or bidder.amount is None or bidder.amount >= amount_min:
+        return True
+    form.add_error('select_bidder', cp_amount_under_min_message(bidder.amount, amount_min))
+    return False
+
 @login_required(login_url='signIn')
 def printComparePricePO(request, cp_id):
     cp = get_object_or_404(ComparisonPrice, id=cp_id)
@@ -4915,7 +4998,8 @@ def printComparePricePO(request, cp_id):
         form = CPSelectBidderForm(request.POST, instance=cp)
         if isDraft:
             relax_required_for_draft(form)
-        if form.is_valid():
+        #บันทึกและส่งอนุมัติ: ยอดของร้านที่เลือกต้องถึงเกณฑ์สิทธิอนุมัติใบเปรียบเทียบ
+        if form.is_valid() and (isDraft or check_cp_amount_reach_approve(form, cp)):
             f_cp = form.save(commit=False)
             f_cp.is_draft = isDraft
             #ใบที่ยกเลิกแล้วซึ่งขอเปลี่ยนแปลงรายละเอียดรายการ (requestCPReApprove) กลับเป็นรายการปกติตอนส่งอนุมัติ
@@ -4971,10 +5055,13 @@ def printComparePricePO(request, cp_id):
         'max': str(cascp.ap_amount_max) if cascp and cascp.ap_amount_max is not None else None,
     }
     special_approver_users = cp_special_approver_users(cp)
+    #ยอดต่ำสุดที่มีสิทธิอนุมัติใบเปรียบเทียบ ใช้แจ้งเตือนเมื่อร้านที่เลือกยอดไม่ถึง (check_cp_amount_reach_approve)
+    cp_amount_min = cp_amount_min_for_approve()
 
     context = {
         'cp':cp,
         'cascp_info': cascp_info,
+        'cp_approve_min': str(cp_amount_min) if cp_amount_min is not None else None,
         'special_approver_users': special_approver_users,
         'bidder' : bidder,
         'items_oldest' : items_oldest,
@@ -5247,6 +5334,7 @@ def viewCPApprove(request):
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+    attach_cp_item_list(dataPage)  # รายการสินค้าของแต่ละใบ (query เดียวทั้งหน้า)
     context = {
         'cps':dataPage,
         'filter':myFilter,
@@ -6078,6 +6166,7 @@ def viewComparePricePOHistory(request):
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+    attach_cp_item_list(dataPage)  # รายการสินค้าของแต่ละใบ (query เดียวทั้งหน้า)
 
     prs = ComparisonPriceItem.objects.values('item__requisit__pr_ref_no','item__requisit__purchase_requisition_id','cp').annotate(Count('item')).order_by().filter(item__count__gt=0, cp__in=data)
     context = {
@@ -6206,6 +6295,7 @@ def viewComparePricePOHistoryIncomplete(request):
     p = Paginator(data, 10)
     page = request.GET.get('page')
     dataPage = p.get_page(page)
+    attach_cp_item_list(dataPage)  # รายการสินค้าของแต่ละใบ (query เดียวทั้งหน้า)
     context = {
         'cps':dataPage,
         'filter':myFilter,
@@ -6243,6 +6333,7 @@ def viewPOReport(request):
     page = request.GET.get('page')
     dataPage = p.get_page(page)
     dataPage.object_list = list(dataPage.object_list)
+    attach_po_item_list(dataPage)  # รายการสินค้าของแต่ละใบ (query เดียวทั้งหน้า)
 
     po_ids = [po.id for po in dataPage.object_list if po.pr_id]
     pr_rows = (
@@ -11862,6 +11953,8 @@ def apiOverviewDashboardAPP(request):
         'GET Exp Repair All':'/all/exp/repair/api/between/<str:start_date>/<str:end_date>/',
         'GET Exp Work By Month All':'/all/exp/by/month/api/between/<str:start_date>/<str:end_date>/',
         'GET Exp Oil By Month All':'/all/exp/oil/by/month/api/between/<str:start_date>/<str:end_date>/',
+        'GET Exp Unmatched All':'/all/exp/unmatched/api/between/<str:start_date>/<str:end_date>/',
+        'GET Carlog Jobs All':'/all/carlog/jobs/api/between/<str:start_date>/<str:end_date>/',
     }
     return Response(api_urls)
 
@@ -11898,9 +11991,13 @@ def apiExpBaseCarDepartment(request):
 def apiExpBaseCar(request):
     queryset = BaseCar.objects.values(
         'id',
+        'code',  # dashboard ใช้แสดงช่อง "รหัส" ของรถ
         'name',
         'car_dep',
         'car_type',
+        'start_year',  # dashboard แสดงในตารางรายการรถ
+        'brand',
+        'car_model',
     )
     paginator = SmallResultsSetPagination()
     result_page = paginator.paginate_queryset(queryset, request)
@@ -11976,29 +12073,7 @@ def normalize_text(txt):
     return txt
 '''
 
-# ตัวอักษรที่มักพิมพ์ผิด
-THAI_SIMILAR = {
-    'ฏ': 'ฎ',
-}
-
-def normalize_text(txt):
-
-    if not txt:
-        return ''
-
-    txt = str(txt).upper().strip()
-
-    # non-breaking space
-    txt = txt.replace('\xa0', ' ')
-
-    # แก้ typo ไทย
-    for old, new in THAI_SIMILAR.items():
-        txt = txt.replace(old, new)
-
-    # ลบทุกอย่างที่ไม่ใช่ ไทย อังกฤษ ตัวเลข
-    txt = re.sub(r'[^A-Z0-9ก-๙]', '', txt)
-
-    return txt
+# normalize_text / การจับคู่ remark กับ BaseCar ย้ายไปอยู่ที่ stock/car_match.py (import ไว้ด้านบน)
 
 def get_cars_fast(car_dep, values):
 
@@ -12096,10 +12171,9 @@ def getapiCarByDepartmentAll(request, start_date, end_date):
         ~Q(code='ALL')
     )
 
-    car_departments = BaseCarDepartment.objects.all().values_list(
-        'id',
-        flat=True
-    )
+    # จับคู่ remark กับรถแบบเดียวกับ API ค่าซ่อม/น้ำมัน (stock/car_match.py)
+    cars = list(BaseCar.objects.values('id', 'code', 'name', 'car_dep_id'))
+    name_map, code_map = build_car_maps(cars)
 
     for b_com in branch_companies:
 
@@ -12109,28 +12183,21 @@ def getapiCarByDepartmentAll(request, start_date, end_date):
             b_com
         )
 
+        matched = {}
+        for remark in remarks:
+            car = resolve_car(remark, name_map, code_map)
+            # รถที่ยังไม่ได้ตั้งแผนกใน BaseCar ไม่อยู่ในแท็บแผนกใด (เหมือนเดิม)
+            if car and car['car_dep_id'] is not None:
+                matched[car['id']] = car
 
-        values = parse_remarks(remarks)
-
-        for car_dep in car_departments:
-
-            queryset = get_cars_fast(
-                car_dep,
-                values
-            )
-
-            serializer = BaseCarSerializer(
-                queryset,
-                many=True
-            )
-
-            for item in serializer.data:
-
-                result.append({
-                    **item,
-                    "branch_company": b_com.id,
-                    "car_dep": car_dep
-                })
+        for car in sorted(matched.values(), key=lambda c: (c['car_dep_id'], c['id'])):
+            result.append({
+                "id": car['id'],
+                "code": car['code'],
+                "name": car['name'],
+                "branch_company": b_com.id,
+                "car_dep": car['car_dep_id'],
+            })
 
     return Response(result)
 
@@ -12277,6 +12344,9 @@ def query_exp_repair_all(start_date, end_date, b_com):
 
                 TRIM(nh.remark) AS car_code,
 
+                -- เลขใบแจ้งซ่อม ใช้หารถก่อน remark (stock/exp_car.py)
+                TRIM(nh.note3) AS note3,
+
                 CASE
                     WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
                     THEN NULL
@@ -12306,6 +12376,7 @@ def query_exp_repair_all(start_date, end_date, b_com):
                 TO_CHAR(nh.docdat, 'YYYY'),
                 TO_CHAR(nh.docdat, 'MM'),
                 TRIM(nh.remark),
+                TRIM(nh.note3),
 
                 CASE
                     WHEN nh.note2 IS NULL OR TRIM(nh.note2) = ''
@@ -12346,51 +12417,10 @@ def resolve_car_fast(
     remark,
     name_map,
     code_map,
-    name_code_map
+    name_code_map=None
 ):
-
-    raw = (remark or '').strip()
-
-    if not raw:
-        return None
-
-    # =====================================================
-    # CASE มี :
-    # ผข8465:TT1
-    # => ใช้ TT1 เทียบ code เท่านั้น
-    # =====================================================
-    if ':' in raw:
-
-        code = raw.split(':')[-1]
-
-        code = normalize_text(code)
-
-        return code_map.get(code)
-
-    # =====================================================
-    # normalize
-    # =====================================================
-    value = normalize_text(raw)
-
-    # =====================================================
-    # remark = code
-    # =====================================================
-    if value in code_map:
-        return code_map[value]
-
-    # =====================================================
-    # remark = name
-    # =====================================================
-    if value in name_map:
-        return name_map[value]
-
-    # =====================================================
-    # remark = name+code
-    # =====================================================
-    if value in name_code_map:
-        return name_code_map[value]
-
-    return None
+    # กติกาการจับคู่อยู่ที่ stock/car_match.py (name_code_map เก็บไว้ให้ signature เดิมใช้ได้)
+    return resolve_car(remark, name_map, code_map)
 
 
 ###############################################################################
@@ -12432,97 +12462,114 @@ def getapiExpRepairAll(request, start_date, end_date):
     )
 
     # =========================================
-    # fast lookup maps
+    # fast lookup maps (key normalize แล้ว: ภบ2100 / ภบ-2100 / ภบ 2100 ตรงกัน)
     # =========================================
-    name_map = {}
-    code_map = {}
-    name_code_map = {}
-
-
-    for c in all_cars:
-
-        car_data = {
+    name_map, code_map = build_car_maps([
+        {
             "id": c['id'],
+            "name": c['name'],
             "code": (c['code'] or '').strip(),
             "car_dep": c['car_dep'],
         }
-
-        # -----------------------------
-        # map by name
-        # -----------------------------
-        if c['name']:
-
-            name_map[
-                c['name'].strip()
-            ] = car_data
-
-        # -----------------------------
-        # map by code
-        # -----------------------------
-        if c['code']:
-
-            code_map[
-                c['code'].strip()
-            ] = car_data
-
+        for c in all_cars
+    ])
     # =========================================
-    # query loop
+    # query ทุกบริษัทก่อน แล้วโหลดรถของใบแจ้งซ่อมใน note3 ครั้งเดียว
     # =========================================
-    for b_com in branch_companies:
+    data_by_company = [
+        (b_com, query_exp_repair_all(start_date, end_date, b_com))
+        for b_com in branch_companies
+    ]
+    ma_cars = maintenance_cars(
+        item['note3'] for _, data in data_by_company for item in data
+    )
 
-        data = query_exp_repair_all(
-            start_date,
-            end_date,
-            b_com
-        )
+    for b_com, data in data_by_company:
+
+        # หลายแถวอาจได้รถคันเดียวกัน (remark ต่างกัน/คีย์ผิด แต่ note3 ชี้ใบแจ้งซ่อมของคันนั้น) จึงรวมยอดใหม่
+        totals = {}
 
         for item in data:
 
             # =========================================
-            # resolve car
+            # resolve car: ใบแจ้งซ่อมใน note3 ก่อน แล้วค่อย remark
             # =========================================
-            car_obj = resolve_car_fast(
+            car_obj = resolve_exp_car(
                 item['car_code'],
+                item['note3'],
+                ma_cars,
                 name_map,
                 code_map,
-                name_code_map
             )
 
             if not car_obj:
                 continue
 
             note2 = item.get('note2')
+            key = (item['year'], item['month'], car_obj['id'], note2)
 
-            result.append({
-                "month": item['month'],
+            row = totals.get(key)
+            if row is None:
+                row = totals[key] = {
+                    "month": item['month'],
 
-                "month_th": THAI_MONTHS.get(
-                    item['month']
-                ),
+                    "month_th": THAI_MONTHS.get(
+                        item['month']
+                    ),
 
-                "year": item['year'],
+                    "year": item['year'],
 
-                "car_id": car_obj['id'],
+                    "car_id": car_obj['id'],
 
-                "car_code": car_obj['code'],
+                    "car_code": car_obj['code'],
 
-                "note2": note2,
+                    "note2": note2,
 
-                "rt_name": (
-                    repair_map.get(str(note2))
-                    if note2 else None
-                ),
+                    "rt_name": (
+                        repair_map.get(str(note2))
+                        if note2 else None
+                    ),
 
-                "amount": float(
-                    item['sum_amount'] or 0
-                ),
-                "branch_company": b_com.id,
-                # =========================================
-                # ใช้ car_dep จริงจากรถ
-                # =========================================
-                "car_dep": car_obj['car_dep'],
-            })
+                    "amount": 0.0,
+                    "branch_company": b_com.id,
+                    # =========================================
+                    # ใช้ car_dep จริงจากรถ
+                    # =========================================
+                    "car_dep": car_obj['car_dep'],
+                }
 
+            row["amount"] += float(item['sum_amount'] or 0)
+
+        result.extend(totals.values())
+
+    return Response(result)
+
+
+###############################################################################
+########## ใบจ่ายอะไหล่รายใบ: dashboard ใช้นับการซ่อมของรถที่ไม่มีใบแจ้งซ่อม ##########
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiExpRepairDocsAll(request, start_date, end_date):
+    """ใบจ่ายสินค้าภายใน-อะไหล่ รายใบ พร้อมรถที่จับคู่แล้ว (stock/exp_repair_docs.py)"""
+    return Response(collect_repair_docs(start_date, end_date))
+
+
+###############################################################################
+########## ค่าซ่อม/น้ำมันที่ remark จับคู่กับ BaseCar ไม่ได้ (ยังไม่ได้ตั้งค่า) #############
+##############################################################################
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiExpUnmatchedAll(request, start_date, end_date):
+    """ให้ dashboard แสดงรายการที่ยังไม่ได้ตั้งค่าใน BaseCar แทนการทิ้งไปเฉย ๆ
+
+    รวมต่อ (บริษัท, ปี, เดือน, remark) ใช้กติกาจับคู่เดียวกับ getapiExpRepairAll / getapiExpOilByMonthAll
+    หน้า admin ของ BaseCar ("รายการที่ยังไม่ได้ตั้งค่า") ใช้ข้อมูลชุดเดียวกัน (stock/unmatched_cars.py)
+    """
+    result = [
+        {**row, "month_th": THAI_MONTHS.get(row['month'])}
+        for row in collect_unmatched(start_date, end_date)
+    ]
     return Response(result)
 
 
@@ -12573,6 +12620,24 @@ def getapiMaintenanceAll(request, start_date, end_date):
         })
 
     return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiMaintenanceProcess(request, start_date, end_date):
+    """เส้นทางเอกสารของใบแจ้งซ่อม (ใบขอเบิก, ใบขอซื้อ, เปรียบเทียบราคา, ใบสั่งซื้อ, รับของ)
+    ให้ dashboard บอกได้ว่างานซ่อมที่ค้างอยู่ติดขั้นไหน ดู stock/maintenance_process.py
+    """
+    return Response(collect_maintenance_process(start_date, end_date))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getapiCarlogJobsAll(request, start_date, end_date):
+    """ชั่วโมงทำงาน ระยะทาง และจำนวนเที่ยว แยกตามรถ แผนกค่าใช้จ่าย และรายละเอียดงาน
+    จากบันทึกการใช้รถ ให้ fleet dashboard ดู stock/carlog_jobs.py
+    """
+    return Response(collect_carlog_jobs(start_date, end_date))
 
 
 def query_exp_car_type(start_date, end_date, b_com):
@@ -13014,44 +13079,18 @@ def getapiExpOilByMonthAll(request, start_date, end_date):
     # =====================================================
     # lookup maps
     # =====================================================
-    name_map = {}
-
-    code_map = {}
-
-    name_code_map = {}
-
-    for c in all_cars:
-
-        name = normalize_text(c["name"])
-
-        code = normalize_text(c["code"])
-
-        car_data = {
+    # กติกาเดียวกับ API ค่าซ่อม (stock/car_match.py)
+    name_map, code_map = build_car_maps([
+        {
             "id": c["id"],
+            "name": c["name"],
             "code": c["code"],
             "car_dep_id": c["car_dep_id"],
         }
+        for c in all_cars
+    ])
 
-        # =============================================
-        # map name
-        # =============================================
-        if name:
-            name_map[name] = car_data
-
-        # =============================================
-        # map code
-        # =============================================
-        if code:
-            code_map[code] = car_data
-
-        # =============================================
-        # map name+code
-        # =============================================
-        if name and code:
-
-            name_code_map[
-                f"{name}{code}"
-            ] = car_data
+    name_code_map = {}
 
     # =====================================================
     # LOOP COMPANY
@@ -13577,7 +13616,11 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
     # 🔥 STEP 4
     result = []
 
-    for key in sorted(monthly_map.keys()):
+    # รถบางคันไม่มีแผนก (car_dep = None) -> เทียบ None กับตัวเลขไม่ได้ ให้ None ไปอยู่ท้ายแทน
+    def none_last(key):
+        return tuple((value is None, value or 0) for value in key)
+
+    for key in sorted(monthly_map.keys(), key=none_last):
 
         ym, branch_company, car_dep, car_id = key
 

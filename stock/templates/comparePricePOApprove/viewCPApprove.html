@@ -44,23 +44,27 @@
               <thead class="thead-dark">
                 <tr>
                   <th scope="col">รหัสใบเปรียบเทียบ</th>
-                  <th scope="col">ร้านที่เลือก</th>
-                  <th scope="col">จัดซื้อ</th>
-                  <th scope="col">สถานะ</th>
+                  <th scope="col" class="lt-bd-col">ร้านที่เลือก</th>
+                  <th scope="col" class="dl-items-col">รายการสินค้า</th>
+                  <th scope="col" class="lt-hide-lg">จัดซื้อ</th>
+                  <th scope="col" class="lt-hide-md">สถานะ</th>
                   <th scope="col">จัดการ</th>
                 </tr>
               </thead>
               <tbody>
               {% for cp in cps %}
                 <tr>
-                  <th scope="row"><a class="lt-ref {% if cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' cp.id 2 %}">{{ cp.ref_no }}</a><span class="lt-sub">{% if cp.select_bidder_update %}{{ cp.select_bidder_update|date:"d/m/Y" }}{% else %}{{ cp.created|date:"d/m/Y" }}{% endif %}</span></th>
-                  <td class="lt-name">{% include "comparePricePO/_cp_bidder_list.html" %}</td>
-                  <td>
+                  <th scope="row"><a class="lt-ref {% if cp.is_re_approve %}text-danger{% endif %}" href="{% url 'showComparePricePO' cp.id 2 %}">{{ cp.ref_no }}</a><span class="lt-sub">{% if cp.select_bidder_update %}{{ cp.select_bidder_update|date:"d/m/Y" }}{% else %}{{ cp.created|date:"d/m/Y" }}{% endif %}</span>
+                    <div class="lt-inline"><span class="lt-sub"><i class="fas fa-user"></i> {{ cp.organizer }}</span></div>
+                    <div class="lt-inline-md">{% include 'comparePricePO/_cp_status_pills.html' %}</div>
+                  </th>
+                  <td class="lt-name lt-bd-col">{% include "comparePricePO/_cp_bidder_list.html" %}</td>
+                  <td class="dl-items-col">{% include '_doc_item_list.html' with items=cp.item_list %}</td>
+                  <td class="lt-hide-lg">
                     {{ cp.organizer }}
                   </td>
-                  <td>
-                    {% include '_status_pill.html' with status=cp.examiner_status label="ตรวจสอบ" %}<br>
-                    {% include '_status_pill.html' with status=cp.approver_status label="อนุมัติ" %}
+                  <td class="lt-hide-md">
+                    {% include 'comparePricePO/_cp_status_pills.html' %}
                   </td>
                   <td class="lt-actions">{% spaceless %}
                     {% if cp.examiner_status.id == 1 or cp.approver_status.id == 1 %}
@@ -69,7 +73,7 @@
                   {% endspaceless %}</td>
                 </tr>
               {% empty %}
-                <tr class="lt-empty-row"><td colspan="5">ไม่พบใบเปรียบเทียบที่รออนุมัติ</td></tr>
+                <tr class="lt-empty-row"><td colspan="6">ไม่พบใบเปรียบเทียบที่รออนุมัติ</td></tr>
               {% endfor %}
               </tbody>
             </table>

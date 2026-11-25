@@ -174,9 +174,10 @@
                     <button type="submit" class="btn btn-secondary hidden-print" formnovalidate onclick="$('#id_save_draft').val('1');"><i class="fas fa-file-alt"></i>
                       บันทึกแบบร่าง
                     </button>
-                    <button type="submit" class="btn btn-primary hidden-print" data-amount-max="{{ poAmountMax|default_if_none:'' }}" onclick="$('#id_save_draft').val(''); return checkPOAmountOverMax(this);"><i class="fas fa-paper-plane"></i>
+                    <button id="submit" type="submit" class="btn btn-primary hidden-print" data-amount-max="{{ poAmountMax|default_if_none:'' }}" onclick="$('#id_save_draft').val(''); return checkPOAmount(this, '#amount-summary');"><i class="fas fa-paper-plane"></i>
                       บันทึกและส่งอนุมัติ
                     </button>
+                    <div id="amount-summary" class="po-required-summary d-none mt-2 hidden-print" role="alert"></div>
                 </div>
                 <div>
                   <button type="button" class="col btn btn-outline-info pull-right hidden-print" onclick="scrollToTop();window.print();">
@@ -464,6 +465,30 @@ $(".express" ).change(function() {
     $(this).find('button[type="submit"]').html('<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...').prop('disabled', true);
   });
 
+  //แจ้งเตือนยอดเงินอยู่ ให้ตรวจใหม่เมื่อแก้ข้อมูล (ยอดเงินถูกคำนวณใหม่ด้วย JS)
+  $(document).on('input change', 'form input, form select, form textarea', function () {
+    if (!$('#amount-summary').hasClass('d-none')) checkPOAmount($('#submit')[0], '#amount-summary');
+  });
+
 {% include 'purchaseOrderItem/_po_amount_max_check_js.html' %}
 </script>
+<style>
+  /* แจ้งเตือนจำนวนเงินรวมทั้งสิ้น ตอนกดบันทึกและส่งอนุมัติ (แบบเดียวกับหน้าแก้ไข) */
+  .form-control.amount-invalid {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+  }
+  .amount-msg {
+    margin-top: .2rem;
+    font-size: .8rem;
+    color: #dc3545;
+  }
+  .po-required-summary {
+    padding: .35rem .75rem;
+    border-radius: 6px;
+    background: #fdecea;
+    color: #a71d2a;
+    font-size: .88rem;
+  }
+</style>
 {% endblock%}

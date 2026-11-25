@@ -1,11 +1,16 @@
+import datetime
+import logging
 from decimal import Decimal, ROUND_HALF_UP
+from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
-from django.urls import path
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.db.models import fields
 from django.forms import CheckboxSelectMultiple, MultipleChoiceField, widgets
 from django.db import models
@@ -20,6 +25,8 @@ from django.utils.html import format_html, format_html_join
 from related_admin import RelatedFieldAdmin
 from related_admin import getter_for_related_field
 from stock.forms import ProductAdminForm, BaseCarAdminForm, PositionBasePermissionAdminForm
+
+logger = logging.getLogger(__name__)
 
 # Register your models here.
 class CategoryAdmin(ImportExportModelAdmin):
@@ -436,12 +443,99 @@ class BaseRepairTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name','rq_type'] #แสดงรายการสินค้าในรูปแบบตาราง
     search_fields = ['name','rq_type__name']
 
+class BaseCarResource(resources.ModelResource):
+    # export/import เป็นชื่อแทน id (ชื่อของทั้ง 3 ตาราง unique จึง import กลับด้วยชื่อได้)
+    rq_type = fields.Field(
+        column_name='rq_type',
+        attribute='rq_type',
+        widget=ForeignKeyWidget(BaseRequisitionType, 'name'))
+
+    car_dep = fields.Field(
+        column_name='car_dep',
+        attribute='car_dep',
+        widget=ForeignKeyWidget(BaseCarDepartment, 'name'))
+
+    car_type = fields.Field(
+        column_name='car_type',
+        attribute='car_type',
+        widget=ForeignKeyWidget(BaseCarType, 'name'))
+
+    class Meta:
+        model = BaseCar
+        fields = ('id', 'code', 'name', 'rq_type', 'car_dep', 'car_type', 'pm_round', 'start_year', 'brand', 'car_model')
+        export_order = ('id', 'code', 'name', 'rq_type', 'car_dep', 'car_type', 'pm_round', 'start_year', 'brand', 'car_model')
+
 class BaseCarAdmin(ImportExportModelAdmin):
     autocomplete_fields = ['car_type',]
+    resource_class = BaseCarResource
 
-    list_display = ['id','code','name','rq_type', 'car_dep', 'car_type', 'pm_round']#แสดงรายการสินค้าในรูปแบบตาราง
-    search_fields = ['code', 'name','rq_type__name', 'car_type__name', 'car_dep__name']
+    list_display = ['id','code','name','rq_type', 'car_dep', 'car_type', 'pm_round', 'start_year', 'brand', 'car_model']#แสดงรายการสินค้าในรูปแบบตาราง
+    # car_dep เลือก "ว่าง" ได้ = รถที่ยังไม่ได้ตั้งแผนก (dashboard จัดไว้แท็บ "อื่นๆ")
+    list_filter = ['car_dep', 'car_type']
+    search_fields = ['code', 'name','rq_type__name', 'car_type__name', 'car_dep__name', 'brand', 'car_model']
     form = BaseCarAdminForm
+    change_list_template = 'admin/stock/basecar/change_list.html'
+
+    def get_urls(self):
+        custom_urls = [
+            path(
+                'unmatched/',
+                self.admin_site.admin_view(self.unmatched_view),
+                name='stock_basecar_unmatched',
+            ),
+        ]
+        return custom_urls + super().get_urls()
+
+    def unmatched_view(self, request):
+        """remark ในโปรแกรมบัญชี Express ที่จับคู่กับรถไม่ได้ ให้รู้ว่าต้องตั้งค่ารถอะไรเพิ่ม"""
+        from .unmatched_cars import collect_unmatched, suggest_car, summarize_by_remark
+
+        # admin_view เช็คแค่ is_staff ต้องเช็คสิทธิ์ดู BaseCar ซ้ำเอง
+        if not self.has_view_or_change_permission(request):
+            raise PermissionDenied
+
+        this_year = datetime.date.today().year
+        try:
+            year = int(request.GET.get('year') or this_year)
+        except ValueError:
+            year = this_year
+        companies = list(BaseBranchCompany.objects.exclude(code='ALL').order_by('id'))
+        company_id = request.GET.get('company') or ''
+
+        rows, error = [], None
+        try:
+            rows = summarize_by_remark(collect_unmatched(f'{year}-01-01', f'{year}-12-31'))
+        except Exception as exc:  # pg_db ต่อไม่ได้ ฯลฯ ให้หน้าเปิดได้และบอกสาเหตุ
+            logger.exception('unmatched car remarks failed')
+            error = 'ดูรายละเอียดใน log ของเซิร์ฟเวอร์'  # ไม่แสดงข้อความ exception (อาจมี host/user ของ pg_db)
+
+        if company_id:
+            rows = [r for r in rows if str(r['branch_company']) == company_id]
+        names = {str(c.id): c.name for c in companies}
+        add_url = reverse('admin:stock_basecar_add')
+        changelist_url = reverse('admin:stock_basecar_changelist')
+        for row in rows:
+            name, code = suggest_car(row['remark'])
+            row['company_name'] = names.get(str(row['branch_company']), row['branch_company'])
+            row['add_url'] = f"{add_url}?{urlencode({'name': name, 'code': code})}"
+            row['search_url'] = f"{changelist_url}?{urlencode({'q': name})}"
+
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.model._meta,
+            'title': 'รายการที่ยังจับคู่ทะเบียนรถ/เครื่องจักร/หน่วยงานไม่ได้',
+            'rows': rows,
+            'error': error,
+            'year': year,
+            'years': range(this_year, this_year - 4, -1),
+            'companies': companies,
+            'company_id': company_id,
+            'repair_total': sum(r['repair_amount'] for r in rows),
+            'oil_total': sum(r['oil_qty'] for r in rows),
+            'no_dep_count': BaseCar.objects.filter(car_dep__isnull=True).count(),
+            'no_dep_url': f'{changelist_url}?car_dep__isnull=True',
+        }
+        return TemplateResponse(request, 'admin/stock/basecar/unmatched.html', context)
 
 class BaseBrokeTypeAdmin(ImportExportModelAdmin):
     list_display = ['id','name'] #แสดงรายการสินค้าในรูปแบบตาราง

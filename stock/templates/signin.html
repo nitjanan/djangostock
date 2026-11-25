@@ -9,7 +9,7 @@
             <div class="card div-shadow" >
                 <h4 class="card-header alert-success">ลงชื่อเข้าใช้ระบบ</h4>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" id="signin-form">
                         <!-- {% crispy form %} -->
                         {% if form.non_field_errors%}
                             <div class="alert alert-danger" role="alert">
@@ -41,7 +41,7 @@
                             </div>
                         </div>
                         <div class="fieldWrapper my-4">
-                            <input type="submit" class="btn btn-success btn-block btn-lg" value="Login">
+                            <input type="submit" id="signin-submit" class="btn btn-success btn-block btn-lg" value="Login">
                         </div>
                         <div class="mt-4">
                             <div class="d-flex justify-content-center links">
@@ -54,4 +54,22 @@
         </div>
     </div>
 </div>
+<script>
+    // กดปุ่ม Login ซ้ำไม่ได้: ครั้งแรก login แล้ว CSRF token ถูกเปลี่ยน ครั้งที่สองจะส่ง token เก่าไปแล้วโดน 403
+    (function () {
+        var form = document.getElementById('signin-form');
+        var btn = document.getElementById('signin-submit');
+        var submitted = false;
+        form.addEventListener('submit', function (e) {
+            if (submitted) { e.preventDefault(); return; }
+            submitted = true;
+            btn.disabled = true;
+            btn.value = 'กำลังเข้าสู่ระบบ...';
+        });
+        // Safari คืนหน้าจาก back/forward cache: โหลดใหม่ให้ได้ token ใหม่
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) { window.location.reload(); }
+        });
+    })();
+</script>
 {% endblock%}

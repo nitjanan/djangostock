@@ -592,6 +592,8 @@ function searchDataDistributor(){
         var idInput = items[0];
         // Create Ajax Call
         if(idInput){
+            //เปลี่ยนผู้จำหน่ายจริงเท่านั้นถึงดึงเครดิต / ชนิดภาษีใหม่ (คลิกช่องแล้วออกโดยไม่เปลี่ยน ไม่ทับค่าที่แก้ไว้)
+            var distChanged = ($("#id_distributor").val() || '') != idInput;
             //set id_distributor
             $("#id_distributor").val(idInput);
             $.ajax({
@@ -601,11 +603,10 @@ function searchDataDistributor(){
                 },
             dataType: 'json',
             success: function (data) {
-                if (data.credit) {
-                    //set id_credit , id_vat_type
-                    $('#id_credit').val(data.credit).trigger('change');
-                    if (data.vat_type) $("#id_vat_type").val(data.vat_type); //ผู้จำหน่ายที่ไม่ได้ตั้งชนิดภาษีให้คงค่าเดิม
-                }
+                //set id_credit , id_vat_type แยกกัน ผู้จำหน่ายที่ไม่ได้ตั้งเครดิตให้ล้างช่องเครดิต (ไม่คงค่าของร้านก่อนหน้า)
+                if (distChanged) $('#id_credit').val(data.credit || '').trigger('change');
+                //ผู้จำหน่ายที่ไม่ได้ตั้งชนิดภาษีให้คงค่าเดิม, trigger change ให้คำนวณ vat / ยอดรวมใหม่
+                if (distChanged && data.vat_type != null) $("#id_vat_type").val(data.vat_type).trigger('change');
             }
             });
         }

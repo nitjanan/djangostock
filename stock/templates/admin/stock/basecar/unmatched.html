@@ -1,0 +1,99 @@
+{% extends "admin/base_site.html" %}
+{% load humanize %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">หน้าแรก</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:stock_basecar_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .unmatched-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+  .unmatched-note { margin: 0 0 12px; max-width: 70em; }
+  .unmatched-table td.num, .unmatched-table th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .unmatched-table td.remark { max-width: 32em; }
+  .unmatched-table tfoot td { font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <p class="unmatched-note">
+    ข้อความในช่องหมายเหตุ (remark) ของเอกสารค่าซ่อม/น้ำมันในโปรแกรมบัญชี Express ที่ไม่ตรงกับชื่อหรือรหัสรถด้านล่างนี้
+    ยังไม่ถูกนับเป็นของรถคันใดใน dashboard (อยู่ในแท็บ "อื่นๆ")
+    ถ้าเป็นรถ ให้กด "เพิ่มรถ" หรือแก้ชื่อ/รหัสของรถที่มีอยู่ให้ตรงกัน แล้วกดอัปเดตข้อมูลที่ dashboard
+  </p>
+
+  {% if no_dep_count %}
+  <p class="unmatched-note">
+    มีรถ <a href="{{ no_dep_url }}">{{ no_dep_count }} คันที่ยังไม่ได้ตั้งแผนก</a>
+    ค่าใช้จ่ายของรถเหล่านี้จะอยู่ในแท็บ "อื่นๆ" ของ dashboard
+  </p>
+  {% endif %}
+
+  <form method="get" class="unmatched-filter">
+    <label>ปี
+      <select name="year">
+        {% for y in years %}<option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>บริษัท
+      <select name="company">
+        <option value="">ทุกบริษัท</option>
+        {% for c in companies %}
+          <option value="{{ c.id }}"{% if c.id|stringformat:"s" == company_id %} selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="submit" value="แสดง">
+  </form>
+
+  {% if error %}
+    <ul class="messagelist"><li class="error">ดึงข้อมูลจากโปรแกรมบัญชี Express ไม่ได้: {{ error }}</li></ul>
+  {% elif not rows %}
+    <p>ทุกรายการของปี {{ year }} จับคู่กับรถได้แล้ว</p>
+  {% else %}
+    <p>{{ rows|length }} รายการ</p>
+    <table class="unmatched-table">
+      <thead>
+        <tr>
+          <th>หมายเหตุในเอกสาร</th>
+          <th>บริษัท</th>
+          <th class="num">ค่าซ่อม (บาท)</th>
+          <th class="num">น้ำมันดีเซล (ลิตร)</th>
+          <th class="num">จำนวนเดือน</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="remark">{{ r.remark }}</td>
+          <td>{{ r.company_name }}</td>
+          <td class="num">{% if r.repair_amount %}{{ r.repair_amount|floatformat:2|intcomma }}{% else %}–{% endif %}</td>
+          <td class="num">{% if r.oil_qty %}{{ r.oil_qty|floatformat:2|intcomma }}{% else %}–{% endif %}</td>
+          <td class="num">{{ r.month_count }}</td>
+          <td style="white-space: nowrap;">
+            <a href="{{ r.add_url }}">เพิ่มรถ</a> ·
+            <a href="{{ r.search_url }}">ค้นรถที่ชื่อคล้ายกัน</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">รวม</td>
+          <td class="num">{{ repair_total|floatformat:2|intcomma }}</td>
+          <td class="num">{{ oil_total|floatformat:2|intcomma }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}
