@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แบบ B — Command Dark · Southern Group Stock</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --coal:#151a24;
+  --coal-2:#1c2230;
+  --coal-line:#2a3245;
+  --amber:#e8a33d;
+  --amber-dim:#b97f27;
+  --paper:#f5f6f8;
+  --ink:#1d2433;
+  --line:#e5e8ee;
+  --blue:#2f6fed;
+  --green:#1f9d5b;
+  --red:#d64545;
+}
+body{
+  font-family:'IBM Plex Sans Thai',sans-serif;
+  background:var(--paper);color:var(--ink);line-height:1.65;
+}
+
+/* ---------- Sidebar ---------- */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:250px;flex-shrink:0;background:var(--coal);color:#aeb6c8;
+  display:flex;flex-direction:column;
+}
+.brand{
+  display:flex;align-items:center;gap:11px;padding:18px 20px;
+  border-bottom:1px solid var(--coal-line);
+}
+.brand-mark{
+  width:38px;height:38px;border-radius:9px;
+  background:var(--amber);color:#151a24;
+  display:grid;place-items:center;font-weight:700;font-size:14px;
+}
+.brand b{color:#fff;font-size:15.5px;font-weight:600;display:block;line-height:1.25;}
+.brand small{font-size:11.5px;color:#6b7488;}
+.side-label{padding:16px 20px 6px;font-size:10.5px;letter-spacing:.16em;color:#5d6679;font-weight:600;}
+.snav{list-style:none;margin:0;padding:0;}
+.snav>li>a{
+  display:flex;align-items:center;gap:12px;padding:9px 20px;
+  color:#aeb6c8;text-decoration:none;font-size:14.5px;font-weight:500;
+  border-left:3px solid transparent;
+}
+.snav>li>a:hover{color:#fff;background:var(--coal-2);}
+.snav>li>a.active{
+  color:#fff;background:var(--coal-2);border-left-color:var(--amber);
+}
+.snav>li>a.active i{color:var(--amber);}
+.snav i{width:19px;text-align:center;font-size:13.5px;color:#7c8598;}
+.snav .count{
+  margin-left:auto;font-size:11px;font-weight:700;
+  background:var(--amber);color:#151a24;border-radius:99px;padding:0 7px;
+}
+.ssub{list-style:none;margin:0;padding:4px 0 8px;}
+.ssub a{
+  display:flex;align-items:center;padding:5.5px 20px 5.5px 54px;
+  color:#8b94a8;font-size:13.5px;text-decoration:none;
+}
+.ssub a:hover{color:#fff;}
+.ssub a.active{color:var(--amber);font-weight:600;}
+.ssub .count{margin-left:auto;font-size:10.5px;font-weight:700;background:#2a3245;color:var(--amber);border-radius:99px;padding:0 7px;}
+.side-foot{margin-top:auto;padding:14px 20px;border-top:1px solid var(--coal-line);font-size:12.5px;}
+.side-foot a{color:#8b94a8;text-decoration:none;}
+.side-foot a:hover{color:#fff;}
+
+/* ---------- Topbar ---------- */
+.main{flex:1;min-width:0;}
+.topbar{
+  background:var(--coal);color:#aeb6c8;
+  padding:9px 26px;display:flex;align-items:center;gap:14px;
+  border-bottom:1px solid var(--coal-line);
+  border-left:1px solid var(--coal-line);
+}
+.tsearch{position:relative;width:300px;max-width:36vw;}
+.tsearch input{
+  background:var(--coal-2);border:1px solid var(--coal-line);color:#e8ebf2;
+  border-radius:8px;padding-left:36px;font-size:13.5px;
+}
+.tsearch input::placeholder{color:#5d6679;}
+.tsearch input:focus{background:var(--coal-2);border-color:var(--amber);box-shadow:0 0 0 .18rem rgba(232,163,61,.15);color:#fff;}
+.tsearch i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#5d6679;font-size:12.5px;}
+.top-user{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.top-user .name{font-size:13.5px;color:#e8ebf2;font-weight:500;}
+.top-user .avatar{
+  width:30px;height:30px;border-radius:7px;background:var(--amber);
+  color:#151a24;display:grid;place-items:center;font-weight:700;font-size:12.5px;
+}
+
+/* ---------- Company tabs ---------- */
+.co-tabs{
+  background:#fff;border-bottom:1px solid var(--line);
+  padding:0 26px;display:flex;gap:2px;overflow-x:auto;
+}
+.co-tabs::-webkit-scrollbar{height:4px;}
+.co-tab{
+  border:0;background:none;padding:11px 14px 9px;font-size:13.5px;font-weight:600;
+  color:#69748c;border-bottom:2.5px solid transparent;white-space:nowrap;position:relative;
+}
+.co-tab:hover{color:var(--ink);}
+.co-tab.active{color:var(--ink);border-bottom-color:var(--amber);}
+.co-tab .n{
+  font-size:10.5px;font-weight:700;background:var(--red);color:#fff;
+  border-radius:99px;padding:0 6px;margin-left:5px;position:relative;top:-1px;
+}
+
+/* ---------- KPI strip (signature) ---------- */
+.content{padding:24px 26px 40px;max-width:1240px;margin:0 auto;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.kpi{
+  background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:14px 18px;display:flex;flex-direction:column;gap:2px;
+}
+.kpi .k-label{font-size:12.5px;color:#69748c;font-weight:500;}
+.kpi .k-val{font-size:26px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.2;}
+.kpi .k-sub{font-size:12px;color:#9aa3b5;}
+.kpi.hot{border-top:3px solid var(--amber);}
+.kpi.hot .k-val{color:var(--amber-dim);}
+.kpi.ok .k-val{color:var(--green);}
+
+/* ---------- Page head ---------- */
+.page-head{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+.page-head h1{font-size:20px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.page-head .sub{font-size:13px;color:#69748c;}
+.page-head .actions{margin-left:auto;display:flex;gap:8px;}
+.btn-coal{
+  background:var(--coal);color:#fff;border:0;border-radius:8px;
+  font-size:13.5px;font-weight:600;padding:7.5px 16px;
+}
+.btn-coal:hover{background:#232b3d;color:var(--amber);}
+.btn-line{
+  background:#fff;border:1px solid #d5dae3;color:#3c465c;border-radius:8px;
+  font-size:13.5px;font-weight:600;padding:7.5px 14px;
+}
+.btn-line:hover{border-color:var(--coal);color:var(--coal);}
+
+/* ---------- Filter bar ---------- */
+.filter-bar{
+  background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;margin-bottom:16px;
+}
+.filter-bar label{font-size:11.5px;font-weight:600;color:#69748c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.filter-bar .form-control,.filter-bar .form-select{
+  font-size:13.5px;border-radius:7px;border-color:#d5dae3;
+}
+.filter-bar .form-control:focus,.filter-bar .form-select:focus{
+  border-color:var(--amber);box-shadow:0 0 0 .18rem rgba(232,163,61,.18);
+}
+
+/* ---------- Table ---------- */
+.grid-card{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+.grid-top{display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);}
+.grid-top .t{font-weight:700;font-size:14.5px;}
+.grid-top .m{margin-left:auto;font-size:12.5px;color:#69748c;font-variant-numeric:tabular-nums;}
+.tbl{margin:0;font-size:13.8px;}
+.tbl thead th{
+  background:#f8f9fb;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:#69748c;font-weight:700;border-bottom:1px solid var(--line);padding:9px 16px;white-space:nowrap;
+}
+.tbl tbody td,.tbl tbody th{padding:10.5px 16px;border-color:#eef0f4;vertical-align:middle;}
+.tbl tbody tr{border-left:3px solid transparent;}
+.tbl tbody tr.r-done{border-left-color:var(--green);}
+.tbl tbody tr.r-wait{border-left-color:var(--amber);}
+.tbl tbody tr.r-urgent{border-left-color:var(--red);}
+.tbl tbody tr:hover{background:#f8f9fb;}
+.doc{font-weight:700;color:var(--blue);text-decoration:none;font-variant-numeric:tabular-nums;}
+.doc:hover{text-decoration:underline;}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;}
+.chip{font-size:11.5px;font-weight:700;border-radius:5px;padding:3px 9px;}
+.c-done{background:#e7f6ee;color:var(--green);}
+.c-wait{background:#fdf3e2;color:#9a6c1c;}
+.c-urgent{background:#fceaea;color:var(--red);}
+
+.pg{margin:18px 0 0;justify-content:center;}
+.pg .page-link{
+  border:1px solid #d5dae3;color:#3c465c;font-size:13px;font-weight:600;
+  margin:0 2px;border-radius:7px;
+}
+.pg .page-item.active .page-link{background:var(--coal);border-color:var(--coal);color:var(--amber);}
+.pg .page-link:hover{background:#eef0f4;}
+
+/* switcher */
+.switcher{
+  position:fixed;bottom:18px;right:18px;z-index:99;
+  background:#0d1117;color:#fff;border-radius:99px;padding:8px 10px;
+  display:flex;gap:6px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4);font-size:13px;
+}
+.switcher a{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#9aa3b5;text-decoration:none;font-weight:700;}
+.switcher a:hover{background:rgba(255,255,255,.12);color:#fff;}
+.switcher a.cur{background:var(--amber);color:#151a24;}
+.switcher .lbl{padding:0 6px 0 8px;color:#7c8598;}
+
+@media (max-width: 991px){
+  .sidebar{display:none;}
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">STG</div>
+      <div><b>Southern Group</b><small>Stock &amp; Procurement</small></div>
+    </div>
+    <div class="side-label">งานเอกสาร</div>
+    <ul class="snav">
+      <li><a class="active" href="#"><i class="fa-solid fa-file-lines"></i> Request <span class="count">9</span></a>
+        <ul class="ssub">
+          <li><a href="#">ใบแจ้งซ่อม <span class="count">3</span></a></li>
+          <li><a href="#">ใบขอเบิก</a></li>
+          <li><a href="#">ใบขอซื้อ <span class="count">4</span></a></li>
+          <li><a href="#">ใบเปรียบเทียบราคา <span class="count">2</span></a></li>
+          <li><a href="#">ใบสั่งซื้อ</a></li>
+          <li><a href="#">ใบบันทึกการใช้รถ</a></li>
+        </ul>
+      </li>
+      <li><a href="#"><i class="fa-solid fa-stamp"></i> Approve <span class="count">5</span></a></li>
+      <li><a href="#"><i class="fa-solid fa-warehouse"></i> Receive</a></li>
+    </ul>
+    <div class="side-label">ติดตาม</div>
+    <ul class="snav">
+      <li><a href="#"><i class="fa-solid fa-clock-rotate-left"></i> History</a></li>
+      <li><a href="#"><i class="fa-solid fa-circle-xmark"></i> Incomplete</a></li>
+      <li><a href="#"><i class="fa-solid fa-bolt"></i> Express</a></li>
+      <li><a href="#"><i class="fa-solid fa-chart-column"></i> Report</a></li>
+    </ul>
+    <div class="side-foot"><a href="#"><i class="fa-solid fa-file-pdf me-2"></i>รายการอัพเดทล่าสุด</a></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="tsearch">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="form-control" placeholder="ค้นหาสินค้า / เลขที่เอกสาร">
+      </div>
+      <div class="top-user">
+        <span class="name">คุณสมชาย · จัดซื้อ</span>
+        <div class="avatar">ส</div>
+      </div>
+    </header>
+
+    <div class="co-tabs">
+      <button class="co-tab active">ALL ทั้งหมด<span class="n">9</span></button>
+      <button class="co-tab">S1<span class="n">3</span></button>
+      <button class="co-tab">SG</button>
+      <button class="co-tab">D1<span class="n">2</span></button>
+      <button class="co-tab">I1</button>
+      <button class="co-tab">U1</button>
+      <button class="co-tab">G1</button>
+      <button class="co-tab">R1</button>
+      <button class="co-tab">Y1</button>
+      <button class="co-tab">P1</button>
+      <button class="co-tab">B1</button>
+      <button class="co-tab">+ 6</button>
+    </div>
+
+    <main class="content">
+
+      <div class="kpi-row">
+        <div class="kpi hot">
+          <span class="k-label">รออนุมัติ</span>
+          <span class="k-val">5</span>
+          <span class="k-sub">ใบขอซื้อ 4 · ใบเปรียบเทียบ 1</span>
+        </div>
+        <div class="kpi hot">
+          <span class="k-label">รอรับเข้า</span>
+          <span class="k-val">3</span>
+          <span class="k-sub">เกินกำหนด 1 รายการ</span>
+        </div>
+        <div class="kpi">
+          <span class="k-label">ใบจ่ายน้ำมันเดือนนี้</span>
+          <span class="k-val">128</span>
+          <span class="k-sub">ก.ค. 2569</span>
+        </div>
+        <div class="kpi ok">
+          <span class="k-label">มูลค่ารวมเดือนนี้</span>
+          <span class="k-val">412,930</span>
+          <span class="k-sub">บาท · +8% จากเดือนก่อน</span>
+        </div>
+      </div>
+
+      <div class="page-head">
+        <div>
+          <h1>ใบจ่ายสินค้าภายใน - น้ำมัน</h1>
+          <span class="sub">Express · อัพเดทล่าสุด 14/07/2569 09:12</span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-line"><i class="fa-solid fa-file-excel me-2"></i>Excel</button>
+          <button class="btn btn-coal"><i class="fa-solid fa-print me-2"></i>พิมพ์รายงาน</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="row g-2 align-items-end">
+          <div class="col-6 col-md-2">
+            <label>เลขที่เอกสาร</label>
+            <input class="form-control" placeholder="OI6807-…">
+          </div>
+          <div class="col-6 col-md-2">
+            <label>รหัสแผนก</label>
+            <input class="form-control" placeholder="เช่น 401">
+          </div>
+          <div class="col-12 col-md-3">
+            <label>แผนกค่าใช้จ่าย</label>
+            <select class="form-select"><option>ทุกแผนก</option><option>ขนส่ง</option><option>คลังสินค้า</option></select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label>ตั้งแต่วันที่</label>
+            <input type="date" class="form-control">
+          </div>
+          <div class="col-6 col-md-2">
+            <label>ถึงวันที่</label>
+            <input type="date" class="form-control">
+          </div>
+          <div class="col-12 col-md-1 d-grid">
+            <button class="btn btn-coal"><i class="fa-solid fa-filter"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-card">
+        <div class="grid-top">
+          <span class="t">รายการเอกสาร</span>
+          <span class="m">128 รายการ · หน้า 1/13</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table tbl">
+            <thead>
+              <tr>
+                <th>เลขที่เอกสาร</th><th>วันที่จ่าย</th><th>สินค้า</th>
+                <th>แผนกคชจ.</th><th>หมายเหตุ</th><th>สถานะ</th>
+                <th class="text-end">จำนวนเงิน (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="r-done">
+                <th><a class="doc" href="#">OI6807-0042</a></th>
+                <td>14/07/2569</td><td>ดีเซล B7 · 200 ลิตร</td><td>401 · ขนส่ง</td>
+                <td>เติมรถสิบล้อ 82-1140</td>
+                <td><span class="chip c-done">จ่ายแล้ว</span></td>
+                <td class="num">6,540.00</td>
+              </tr>
+              <tr class="r-wait">
+                <th><a class="doc" href="#">OI6807-0041</a></th>
+                <td>14/07/2569</td><td>เบนซิน 95 · 40 ลิตร</td><td>205 · ธุรการ</td>
+                <td>รถกระบะสำนักงาน</td>
+                <td><span class="chip c-wait">รอตรวจสอบ</span></td>
+                <td class="num">1,662.00</td>
+              </tr>
+              <tr class="r-done">
+                <th><a class="doc" href="#">OI6807-0040</a></th>
+                <td>13/07/2569</td><td>ดีเซล B7 · 350 ลิตร</td><td>401 · ขนส่ง</td>
+                <td>เติมรถพ่วง 83-0921 + 83-0922</td>
+                <td><span class="chip c-done">จ่ายแล้ว</span></td>
+                <td class="num">11,445.00</td>
+              </tr>
+              <tr class="r-urgent">
+                <th><a class="doc" href="#">OI6807-0039</a></th>
+                <td>13/07/2569</td><td>น้ำมันไฮดรอลิก · 18 ลิตร</td><td>502 · ซ่อมบำรุง</td>
+                <td>เปลี่ยนถ่ายรถโฟล์คลิฟท์</td>
+                <td><span class="chip c-urgent">เกินกำหนด</span></td>
+                <td class="num">2,368.00</td>
+              </tr>
+              <tr class="r-done">
+                <th><a class="doc" href="#">OI6807-0038</a></th>
+                <td>12/07/2569</td><td>ดีเซล B7 · 120 ลิตร</td><td>401 · ขนส่ง</td>
+                <td>—</td>
+                <td><span class="chip c-done">จ่ายแล้ว</span></td>
+                <td class="num">3,924.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav>
+        <ul class="pagination pg">
+          <li class="page-item"><a class="page-link" href="#">ก่อนหน้า</a></li>
+          <li class="page-item active"><a class="page-link" href="#">1</a></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item"><a class="page-link" href="#">…</a></li>
+          <li class="page-item"><a class="page-link" href="#">13</a></li>
+          <li class="page-item"><a class="page-link" href="#">ถัดไป</a></li>
+        </ul>
+      </nav>
+    </main>
+  </div>
+</div>
+
+<div class="switcher">
+  <span class="lbl">เทียบแบบ:</span>
+  <a href="a-stg-modern.html">A</a>
+  <a class="cur" href="b-command-dark.html">B</a>
+  <a href="c-paper-light.html">C</a>
+  <a href="index.html" title="หน้ารวม"><i class="fa-solid fa-table-cells-large"></i></a>
+</div>
+</body>
+</html>

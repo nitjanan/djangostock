@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เลือกดีไซน์ใหม่ · Southern Group Stock</title>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Anuphan',sans-serif;background:#191c23;color:#e8eaef;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:48px 24px;line-height:1.7;
+}
+.head{text-align:center;max-width:640px;margin-bottom:40px;}
+.head .eyebrow{
+  font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#8a93a8;
+  font-weight:600;margin-bottom:10px;
+}
+.head h1{font-size:30px;font-weight:700;letter-spacing:-.01em;margin-bottom:10px;}
+.head p{color:#a7aebf;font-size:15px;}
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;width:100%;max-width:1060px;
+}
+.card{
+  background:#20242e;border:1px solid #2e3342;border-radius:16px;
+  overflow:hidden;text-decoration:none;color:inherit;display:block;
+  transition:transform .15s,border-color .15s;
+}
+.card:hover{transform:translateY(-4px);border-color:#4a5268;}
+.thumb{height:170px;position:relative;display:flex;}
+/* mini wireframes */
+.t-side{width:32%;padding:10px 8px;display:flex;flex-direction:column;gap:6px;}
+.t-main{flex:1;padding:10px;display:flex;flex-direction:column;gap:6px;}
+.bar{border-radius:4px;height:9px;}
+.blk{border-radius:6px;flex:1;}
+/* A */
+.thumb-a{background:#f4f5fa;}
+.thumb-a .t-side{background:linear-gradient(180deg,#3d478f,#2a3170);}
+.thumb-a .t-side .bar{background:rgba(255,255,255,.28);}
+.thumb-a .t-side .bar.active{background:#fff;}
+.thumb-a .t-main .bar{background:#dfe3f2;}
+.thumb-a .t-main .bar.accent{background:#3d478f;width:45%;}
+.thumb-a .t-main .blk{background:#fff;box-shadow:0 4px 12px rgba(35,41,94,.10);}
+/* B */
+.thumb-b{background:#f5f6f8;}
+.thumb-b .t-side{background:#151a24;}
+.thumb-b .t-side .bar{background:rgba(255,255,255,.16);}
+.thumb-b .t-side .bar.active{background:#e8a33d;}
+.thumb-b .t-main .bar{background:#dee2e9;}
+.thumb-b .t-main .row3{display:flex;gap:6px;height:26px;}
+.thumb-b .t-main .row3 div{flex:1;background:#fff;border:1px solid #dee2e9;border-radius:5px;border-top:2.5px solid #e8a33d;}
+.thumb-b .t-main .blk{background:#fff;border:1px solid #dee2e9;}
+/* C */
+.thumb-c{background:#fcfcfa;}
+.thumb-c .t-side{background:#fff;border-right:1px solid #e7e8e3;}
+.thumb-c .t-side .bar{background:#eceded;}
+.thumb-c .t-side .bar.active{background:#2b5ac7;}
+.thumb-c .t-main .bar{background:#eceded;}
+.thumb-c .t-main .bar.accent{background:#1c2434;width:45%;}
+.thumb-c .t-main .blk{background:#fff;border:1px solid #e7e8e3;}
+.body{padding:20px 22px 22px;}
+.tag{
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;
+  border-radius:99px;padding:3px 12px;margin-bottom:10px;
+}
+.tag-a{background:#2e3567;color:#aab4e8;}
+.tag-b{background:#3a2f18;color:#e8a33d;}
+.tag-c{background:#243046;color:#9db8ee;}
+.body h2{font-size:19px;font-weight:700;margin-bottom:6px;}
+.body p{font-size:13.5px;color:#a7aebf;margin-bottom:12px;}
+.meta{font-size:12px;color:#6c7488;}
+.meta b{color:#8a93a8;font-weight:600;}
+.foot{margin-top:36px;color:#6c7488;font-size:13.5px;text-align:center;max-width:560px;}
+.foot b{color:#a7aebf;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="eyebrow">Southern Group Stock · Redesign</div>
+    <h1>เลือกทิศทางดีไซน์ใหม่</h1>
+    <p>ทั้ง 3 แบบใช้หน้าจอจริงเดียวกัน (ใบจ่ายสินค้าภายใน - น้ำมัน) สร้างบน Bootstrap 5.3
+       คลิกเข้าไปดูทีละแบบ แล้วใช้ปุ่มลอยมุมขวาล่างสลับเทียบกันได้เลย</p>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="a-stg-modern.html">
+      <div class="thumb thumb-a">
+        <div class="t-side">
+          <div class="bar" style="width:60%"></div>
+          <div class="bar active"></div>
+          <div class="bar"></div>
+          <div class="bar" style="width:80%"></div>
+          <div class="bar" style="width:70%"></div>
+        </div>
+        <div class="t-main">
+          <div class="bar accent"></div>
+          <div class="bar" style="width:70%"></div>
+          <div class="blk"></div>
+        </div>
+      </div>
+      <div class="body">
+        <span class="tag tag-a">แบบ A</span>
+        <h2>STG Modern</h2>
+        <p>ต่อยอดโทนม่วง STG เดิมให้ดูพรีเมียมขึ้น — sidebar ไล่เฉดน้ำเงินม่วง เมนู active เป็น pill ขาว การ์ดเงานุ่ม สีแดงโลโก้ใช้เป็นจุดเน้นแจ้งเตือน</p>
+        <div class="meta"><b>ฟอนต์:</b> Prompt + Sarabun · <b>อารมณ์:</b> องค์กร ทันสมัย คุ้นเคย</div>
+      </div>
+    </a>
+
+    <a class="card" href="b-command-dark.html">
+      <div class="thumb thumb-b">
+        <div class="t-side">
+          <div class="bar" style="width:60%"></div>
+          <div class="bar active"></div>
+          <div class="bar"></div>
+          <div class="bar" style="width:80%"></div>
+          <div class="bar" style="width:70%"></div>
+        </div>
+        <div class="t-main">
+          <div class="row3"><div></div><div></div><div></div></div>
+          <div class="bar" style="width:55%"></div>
+          <div class="blk"></div>
+        </div>
+      </div>
+      <div class="body">
+        <span class="tag tag-b">แบบ B</span>
+        <h2>Command Dark</h2>
+        <p>ศูนย์บัญชาการงานจัดซื้อ — โครมเข้มเกือบดำ ตัดด้วยสีเหลืองอำพัน มีแถบ KPI สรุปงานค้าง (รออนุมัติ/รอรับเข้า) และแถบสีสถานะข้างแถวตาราง</p>
+        <div class="meta"><b>ฟอนต์:</b> IBM Plex Sans Thai · <b>อารมณ์:</b> จริงจัง ข้อมูลแน่น โฟกัสงานค้าง</div>
+      </div>
+    </a>
+
+    <a class="card" href="c-paper-light.html">
+      <div class="thumb thumb-c">
+        <div class="t-side">
+          <div class="bar" style="width:60%"></div>
+          <div class="bar active"></div>
+          <div class="bar"></div>
+          <div class="bar" style="width:80%"></div>
+          <div class="bar" style="width:70%"></div>
+        </div>
+        <div class="t-main">
+          <div class="bar accent"></div>
+          <div class="bar" style="width:70%"></div>
+          <div class="blk"></div>
+        </div>
+      </div>
+      <div class="body">
+        <span class="tag tag-c">แบบ C</span>
+        <h2>Paper Light</h2>
+        <p>เรียบสะอาดแบบเอกสารกระดาษ — พื้นขาว เส้นบาง ไม่มีเงา สถานะเป็นชิปสไตล์ตรายาง (เขียวผ่าน/แดงเกินกำหนด) สีน้ำเงินปากกาเป็นสีหลัก</p>
+        <div class="meta"><b>ฟอนต์:</b> Anuphan · <b>อารมณ์:</b> โปร่ง อ่านง่าย เป็นทางการแบบไทย</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="foot">
+    เลือกแบบที่ชอบ หรือบอกได้ว่าอยากผสมส่วนไหนจากแบบไหน เช่น <b>"เอาแบบ A แต่ใช้ชิปตรายางของ C"</b> —
+    ดีไซน์ที่เลือกจะถูกใช้เป็นมาตรฐานตอน refactor ทั้งโปรเจกต์
+  </div>
+</body>
+</html>

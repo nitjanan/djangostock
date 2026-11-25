@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แบบ C — Paper Light · Southern Group Stock</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fcfcfa;
+  --card:#ffffff;
+  --ink:#1c2434;
+  --ink-2:#5a6372;
+  --ink-3:#9aa1ac;
+  --hair:#e7e8e3;
+  --pen:#2b5ac7;        /* ปากกาน้ำเงิน */
+  --pen-tint:#eef2fc;
+  --stamp-red:#c7392b;  /* ตรายางแดง */
+  --stamp-green:#2e7d4f;/* ตรายางเขียว */
+  --stamp-amber:#a06a12;
+}
+body{
+  font-family:'Anuphan',sans-serif;
+  background:var(--paper);color:var(--ink);line-height:1.7;
+}
+
+/* ---------- Sidebar ---------- */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:256px;flex-shrink:0;background:var(--card);
+  border-right:1px solid var(--hair);display:flex;flex-direction:column;
+}
+.brand{padding:22px 22px 18px;border-bottom:1px solid var(--hair);}
+.brand .mark{
+  font-weight:700;font-size:19px;letter-spacing:.02em;color:var(--ink);
+}
+.brand .mark b{color:var(--stamp-red);font-weight:700;}
+.brand small{display:block;color:var(--ink-3);font-size:12px;margin-top:1px;}
+.side-label{
+  padding:18px 22px 8px;font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:600;
+}
+.snav{list-style:none;margin:0;padding:0;}
+.snav>li>a{
+  display:flex;align-items:center;gap:11px;
+  padding:8px 22px;color:var(--ink-2);text-decoration:none;
+  font-size:14.5px;font-weight:500;border-left:2px solid transparent;
+}
+.snav>li>a:hover{color:var(--ink);background:#f7f7f4;}
+.snav>li>a.active{
+  color:var(--pen);border-left-color:var(--pen);background:var(--pen-tint);font-weight:600;
+}
+.snav i{width:18px;text-align:center;font-size:13px;color:var(--ink-3);}
+.snav a.active i{color:var(--pen);}
+.snav .count{
+  margin-left:auto;font-size:11px;font-weight:700;color:var(--stamp-red);
+  border:1.5px solid var(--stamp-red);border-radius:99px;padding:0 6.5px;line-height:1.5;
+}
+.ssub{list-style:none;margin:0;padding:2px 0 8px;}
+.ssub a{
+  display:flex;align-items:center;padding:5px 22px 5px 53px;
+  color:var(--ink-2);font-size:13.5px;text-decoration:none;
+}
+.ssub a:hover{color:var(--pen);}
+.ssub a.active{color:var(--pen);font-weight:600;}
+.ssub .count{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--stamp-red);border:1.5px solid var(--stamp-red);border-radius:99px;padding:0 6px;}
+.side-foot{margin-top:auto;padding:16px 22px;border-top:1px solid var(--hair);}
+.side-foot a{color:var(--ink-2);font-size:13px;text-decoration:none;}
+.side-foot a:hover{color:var(--pen);}
+
+/* ---------- Topbar ---------- */
+.main{flex:1;min-width:0;}
+.topbar{
+  background:var(--card);border-bottom:1px solid var(--hair);
+  padding:12px 30px;display:flex;align-items:center;gap:18px;
+}
+.tsearch{position:relative;width:320px;max-width:38vw;}
+.tsearch input{
+  border:1px solid var(--hair);border-radius:8px;background:var(--paper);
+  padding-left:36px;font-size:14px;font-family:'Anuphan';
+}
+.tsearch input:focus{border-color:var(--pen);box-shadow:0 0 0 .18rem rgba(43,90,199,.12);background:#fff;}
+.tsearch i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:12.5px;}
+.top-user{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2);}
+.top-user .ring{
+  width:32px;height:32px;border-radius:50%;border:1.5px solid var(--hair);
+  display:grid;place-items:center;font-weight:600;color:var(--pen);font-size:13px;background:var(--pen-tint);
+}
+
+/* ---------- Company tabs ---------- */
+.co-strip{background:var(--card);border-bottom:1px solid var(--hair);padding:0 30px;display:flex;gap:22px;overflow-x:auto;}
+.co-strip::-webkit-scrollbar{height:4px;}
+.co{
+  border:0;background:none;padding:12px 0 10px;font-size:13.5px;font-weight:500;
+  color:var(--ink-2);border-bottom:2px solid transparent;white-space:nowrap;font-family:'Anuphan';
+}
+.co:hover{color:var(--ink);}
+.co.active{color:var(--ink);font-weight:700;border-bottom-color:var(--ink);}
+.co sup{color:var(--stamp-red);font-weight:700;margin-left:2px;}
+
+/* ---------- Content ---------- */
+.content{padding:30px;max-width:1200px;margin:0 auto;}
+.crumb{font-size:13px;color:var(--ink-3);margin-bottom:4px;}
+.crumb a{color:var(--ink-3);text-decoration:none;}
+.crumb a:hover{color:var(--pen);}
+.page-head{display:flex;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:26px;}
+.page-head h1{font-size:25px;font-weight:700;letter-spacing:-.01em;margin:0;}
+.page-head .actions{margin-left:auto;display:flex;gap:10px;}
+.btn-pen{
+  background:var(--pen);color:#fff;border:0;border-radius:8px;
+  font-size:14px;font-weight:600;padding:8px 18px;font-family:'Anuphan';
+}
+.btn-pen:hover{background:#22489f;color:#fff;}
+.btn-paper{
+  background:#fff;border:1px solid var(--hair);color:var(--ink-2);
+  border-radius:8px;font-size:14px;font-weight:600;padding:8px 16px;
+}
+.btn-paper:hover{border-color:var(--pen);color:var(--pen);}
+
+.sheet{background:var(--card);border:1px solid var(--hair);border-radius:10px;}
+.filter-sheet{padding:20px 24px;margin-bottom:20px;}
+.filter-sheet label{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:5px;}
+.filter-sheet .form-control,.filter-sheet .form-select{
+  border-radius:7px;border-color:var(--hair);font-size:14px;font-family:'Anuphan';
+}
+.filter-sheet .form-control:focus,.filter-sheet .form-select:focus{
+  border-color:var(--pen);box-shadow:0 0 0 .18rem rgba(43,90,199,.12);
+}
+
+.sheet-top{display:flex;align-items:baseline;padding:16px 24px 12px;}
+.sheet-top .t{font-size:15.5px;font-weight:700;}
+.sheet-top .m{margin-left:auto;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+.ptable{margin:0;font-size:14.3px;}
+.ptable thead th{
+  border-top:1px solid var(--hair);border-bottom:1px solid var(--ink);
+  font-size:12.5px;font-weight:700;color:var(--ink);padding:9px 24px;
+  background:transparent;white-space:nowrap;
+}
+.ptable tbody td,.ptable tbody th{
+  padding:12px 24px;border-color:var(--hair);vertical-align:middle;
+}
+.ptable tbody tr:hover{background:#fafaf7;}
+.doc{color:var(--pen);font-weight:700;text-decoration:none;font-variant-numeric:tabular-nums;}
+.doc:hover{text-decoration:underline;}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;}
+.muted{color:var(--ink-3);}
+
+/* stamp chips — signature */
+.stamp{
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;
+  border:1.5px solid currentColor;border-radius:4px;padding:2px 9px;
+  text-transform:uppercase;transform:rotate(-1.2deg);background:transparent;
+}
+.sp-green{color:var(--stamp-green);}
+.sp-amber{color:var(--stamp-amber);}
+.sp-red{color:var(--stamp-red);}
+
+.pg{margin:22px 0 0;justify-content:center;}
+.pg .page-link{
+  border:0;border-bottom:2px solid transparent;border-radius:0;
+  color:var(--ink-2);font-size:14px;font-weight:600;margin:0 4px;background:none;
+}
+.pg .page-item.active .page-link{color:var(--ink);border-bottom-color:var(--pen);background:none;}
+.pg .page-link:hover{color:var(--pen);}
+
+/* switcher */
+.switcher{
+  position:fixed;bottom:18px;right:18px;z-index:99;
+  background:#fff;border:1px solid var(--hair);color:var(--ink);
+  border-radius:99px;padding:8px 10px;display:flex;gap:6px;align-items:center;
+  box-shadow:0 8px 24px rgba(28,36,52,.12);font-size:13px;
+}
+.switcher a{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2);text-decoration:none;font-weight:700;}
+.switcher a:hover{background:var(--pen-tint);color:var(--pen);}
+.switcher a.cur{background:var(--ink);color:#fff;}
+.switcher .lbl{padding:0 6px 0 8px;color:var(--ink-3);}
+
+@media (max-width: 991px){
+  .sidebar{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">Southern <b>Group</b></div>
+      <small>ระบบสต็อกและจัดซื้อ · STG</small>
+    </div>
+
+    <div class="side-label">งานเอกสาร</div>
+    <ul class="snav">
+      <li><a class="active" href="#"><i class="fa-regular fa-file-lines"></i> Request <span class="count">9</span></a>
+        <ul class="ssub">
+          <li><a href="#">ใบแจ้งซ่อม <span class="count">3</span></a></li>
+          <li><a href="#">ใบขอเบิก</a></li>
+          <li><a href="#">ใบขอซื้อ <span class="count">4</span></a></li>
+          <li><a href="#">ใบเปรียบเทียบราคา <span class="count">2</span></a></li>
+          <li><a href="#">ใบสั่งซื้อ</a></li>
+          <li><a href="#">ใบบันทึกการใช้รถ</a></li>
+        </ul>
+      </li>
+      <li><a href="#"><i class="fa-regular fa-circle-check"></i> Approve <span class="count">5</span></a></li>
+      <li><a href="#"><i class="fa-solid fa-warehouse"></i> Receive</a></li>
+    </ul>
+
+    <div class="side-label">ติดตาม</div>
+    <ul class="snav">
+      <li><a href="#"><i class="fa-regular fa-clock"></i> History</a></li>
+      <li><a href="#"><i class="fa-regular fa-circle-xmark"></i> Incomplete</a></li>
+      <li><a href="#"><i class="fa-solid fa-bolt"></i> Express</a></li>
+      <li><a href="#"><i class="fa-regular fa-chart-bar"></i> Report</a></li>
+    </ul>
+
+    <div class="side-foot"><a href="#"><i class="fa-regular fa-file-pdf me-2"></i>รายการอัพเดทล่าสุด</a></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="tsearch">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="form-control" placeholder="ค้นหาสินค้า / เลขที่เอกสาร">
+      </div>
+      <div class="top-user">
+        คุณสมชาย
+        <div class="ring">ส</div>
+      </div>
+    </header>
+
+    <div class="co-strip">
+      <button class="co active">ALL ทั้งหมด<sup>9</sup></button>
+      <button class="co">S1<sup>3</sup></button>
+      <button class="co">SG</button>
+      <button class="co">D1<sup>2</sup></button>
+      <button class="co">I1</button>
+      <button class="co">U1</button>
+      <button class="co">G1</button>
+      <button class="co">R1</button>
+      <button class="co">Y1</button>
+      <button class="co">P1</button>
+      <button class="co">B1</button>
+      <button class="co">J1</button>
+      <button class="co">+ 5</button>
+    </div>
+
+    <main class="content">
+      <div class="crumb"><a href="#">Express</a> / ใบจ่ายสินค้าภายใน - น้ำมัน</div>
+      <div class="page-head">
+        <h1>ใบจ่ายสินค้าภายใน - น้ำมัน</h1>
+        <div class="actions">
+          <button class="btn btn-paper"><i class="fa-regular fa-file-excel me-2"></i>ส่งออก Excel</button>
+          <button class="btn btn-pen"><i class="fa-solid fa-print me-2"></i>พิมพ์รายงาน</button>
+        </div>
+      </div>
+
+      <div class="sheet filter-sheet">
+        <div class="row g-3 align-items-end">
+          <div class="col-6 col-md-2">
+            <label>เลขที่เอกสาร</label>
+            <input class="form-control" placeholder="OI6807-…">
+          </div>
+          <div class="col-6 col-md-2">
+            <label>รหัสแผนก</label>
+            <input class="form-control" placeholder="เช่น 401">
+          </div>
+          <div class="col-12 col-md-3">
+            <label>แผนกค่าใช้จ่าย</label>
+            <select class="form-select"><option>ทุกแผนก</option><option>ขนส่ง</option><option>คลังสินค้า</option></select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label>ตั้งแต่วันที่</label>
+            <input type="date" class="form-control">
+          </div>
+          <div class="col-6 col-md-2">
+            <label>ถึงวันที่</label>
+            <input type="date" class="form-control">
+          </div>
+          <div class="col-12 col-md-1 d-grid">
+            <button class="btn btn-pen"><i class="fa-solid fa-filter me-1"></i>กรอง</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet">
+        <div class="sheet-top">
+          <span class="t">รายการเอกสาร</span>
+          <span class="m">พบ 128 รายการ · หน้า 1 จาก 13</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table ptable">
+            <thead>
+              <tr>
+                <th>เลขที่เอกสาร</th><th>วันที่จ่าย</th><th>สินค้า</th>
+                <th>แผนกคชจ.</th><th>หมายเหตุ</th><th>สถานะ</th>
+                <th class="text-end">จำนวนเงิน (บาท)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th><a class="doc" href="#">OI6807-0042</a></th>
+                <td>14/07/2569</td><td>ดีเซล B7 · 200 ลิตร</td><td>401 · ขนส่ง</td>
+                <td class="muted">เติมรถสิบล้อ 82-1140</td>
+                <td><span class="stamp sp-green">จ่ายแล้ว</span></td>
+                <td class="num">6,540.00</td>
+              </tr>
+              <tr>
+                <th><a class="doc" href="#">OI6807-0041</a></th>
+                <td>14/07/2569</td><td>เบนซิน 95 · 40 ลิตร</td><td>205 · ธุรการ</td>
+                <td class="muted">รถกระบะสำนักงาน</td>
+                <td><span class="stamp sp-amber">รอตรวจ</span></td>
+                <td class="num">1,662.00</td>
+              </tr>
+              <tr>
+                <th><a class="doc" href="#">OI6807-0040</a></th>
+                <td>13/07/2569</td><td>ดีเซล B7 · 350 ลิตร</td><td>401 · ขนส่ง</td>
+                <td class="muted">เติมรถพ่วง 83-0921 + 83-0922</td>
+                <td><span class="stamp sp-green">จ่ายแล้ว</span></td>
+                <td class="num">11,445.00</td>
+              </tr>
+              <tr>
+                <th><a class="doc" href="#">OI6807-0039</a></th>
+                <td>13/07/2569</td><td>น้ำมันไฮดรอลิก · 18 ลิตร</td><td>502 · ซ่อมบำรุง</td>
+                <td class="muted">เปลี่ยนถ่ายรถโฟล์คลิฟท์</td>
+                <td><span class="stamp sp-red">เกินกำหนด</span></td>
+                <td class="num">2,368.00</td>
+              </tr>
+              <tr>
+                <th><a class="doc" href="#">OI6807-0038</a></th>
+                <td>12/07/2569</td><td>ดีเซล B7 · 120 ลิตร</td><td>401 · ขนส่ง</td>
+                <td class="muted">—</td>
+                <td><span class="stamp sp-green">จ่ายแล้ว</span></td>
+                <td class="num">3,924.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav>
+        <ul class="pagination pg">
+          <li class="page-item"><a class="page-link" href="#">ก่อนหน้า</a></li>
+          <li class="page-item active"><a class="page-link" href="#">1</a></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item"><a class="page-link" href="#">…</a></li>
+          <li class="page-item"><a class="page-link" href="#">13</a></li>
+          <li class="page-item"><a class="page-link" href="#">ถัดไป</a></li>
+        </ul>
+      </nav>
+    </main>
+  </div>
+</div>
+
+<div class="switcher">
+  <span class="lbl">เทียบแบบ:</span>
+  <a href="a-stg-modern.html">A</a>
+  <a href="b-command-dark.html">B</a>
+  <a class="cur" href="c-paper-light.html">C</a>
+  <a href="index.html" title="หน้ารวม"><i class="fa-solid fa-table-cells-large"></i></a>
+</div>
+</body>
+</html>
