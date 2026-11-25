@@ -386,13 +386,26 @@ RateDistributorFilter.base_filters['organizer_user'].label = 'ผู้ประ
 
 
 class DistributorFilter(django_filters.FilterSet):
-    distributor_id_from  = django_filters.CharFilter(field_name="id", lookup_expr='gte')
+    #กรอกแค่ช่องรหัส (หน้าผู้จัดจำหน่ายในระบบมีช่องเดียว): พิมพ์ต้นรหัส เช่น 06 / 06อ / 06อ001 ได้รหัสที่ขึ้นต้นด้วยค่านั้น
+    #กรอก "ถึง" ด้วย (หน้าประเมินร้านค้า viewRD / ลิงก์ from=X&to=X จากหน้าอื่น): เป็นช่วงรหัส >= from และ <= to เหมือนเดิม
+    distributor_id_from  = django_filters.CharFilter(
+        method='filter_id_from',
+        widget=TextInput(attrs={'placeholder': 'พิมพ์ต้นรหัส เช่น 06 หรือ 06อ', 'autocomplete': 'off'}),
+    )
     distributor_id_to  = django_filters.CharFilter(field_name="id", lookup_expr='lte')
     distributor  = similar_text_filter("name")
 
     class Meta:
         model = Distributor
         fields = ('distributor_id_from', 'distributor_id_to','distributor',)
+
+    def filter_id_from(self, qs, name, value):
+        value = value.strip()
+        if not value:
+            return qs
+        if (self.data.get('distributor_id_to') or '').strip():
+            return qs.filter(id__gte=value)
+        return qs.filter(id__istartswith=value)
 
 DistributorFilter.base_filters['distributor_id_from'].label = 'รหัสผู้จำหน่าย'
 DistributorFilter.base_filters['distributor_id_to'].label = 'ถึง'
