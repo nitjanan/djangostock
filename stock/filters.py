@@ -1,4 +1,4 @@
-from django.db.models import fields, Q, Min, Max, Exists, OuterRef
+from django.db.models import fields, Q, Min, Max, Exists, OuterRef, Case, When, Value, IntegerField
 from django.db.models.fields import DateField
 from django.forms.widgets import DateInput, TextInput
 from django.http import QueryDict
@@ -386,11 +386,12 @@ RateDistributorFilter.base_filters['organizer_user'].label = 'ผู้ประ
 
 
 class DistributorFilter(django_filters.FilterSet):
-    #กรอกแค่ช่องรหัส (หน้าผู้จัดจำหน่ายในระบบมีช่องเดียว): พิมพ์ต้นรหัส เช่น 06 / 06อ / 06อ001 ได้รหัสที่ขึ้นต้นด้วยค่านั้น
+    #กรอกแค่ช่องรหัส (หน้าผู้จัดจำหน่ายในระบบมีช่องเดียว): ได้รหัสที่มีค่านั้นอยู่ตรงไหนก็ได้ เช่น 06อ / 099
+    #  รหัสที่ขึ้นต้นด้วยค่านั้นขึ้นก่อน ที่เจอกลางหรือท้ายรหัสต่อท้าย
     #กรอก "ถึง" ด้วย (หน้าประเมินร้านค้า viewRD / ลิงก์ from=X&to=X จากหน้าอื่น): เป็นช่วงรหัส >= from และ <= to เหมือนเดิม
     distributor_id_from  = django_filters.CharFilter(
         method='filter_id_from',
-        widget=TextInput(attrs={'placeholder': 'พิมพ์ต้นรหัส เช่น 06 หรือ 06อ', 'autocomplete': 'off'}),
+        widget=TextInput(attrs={'placeholder': 'พิมพ์รหัสหรือบางส่วน เช่น 06อ หรือ 099', 'autocomplete': 'off'}),
     )
     distributor_id_to  = django_filters.CharFilter(field_name="id", lookup_expr='lte')
     distributor  = similar_text_filter("name")
@@ -405,7 +406,8 @@ class DistributorFilter(django_filters.FilterSet):
             return qs
         if (self.data.get('distributor_id_to') or '').strip():
             return qs.filter(id__gte=value)
-        return qs.filter(id__istartswith=value)
+        prefix_first = Case(When(id__istartswith=value, then=Value(0)), default=Value(1), output_field=IntegerField())
+        return qs.filter(id__icontains=value).order_by(prefix_first, *qs.query.order_by)
 
 DistributorFilter.base_filters['distributor_id_from'].label = 'รหัสผู้จำหน่าย'
 DistributorFilter.base_filters['distributor_id_to'].label = 'ถึง'

@@ -642,20 +642,22 @@ class DistributorCandidateTestCase(TestCase):
         self.assertNotIn("external_vendors", response.context)
         self.assertNotIn("candidates", response.context)
 
-    def test_internal_page_filters_code_by_prefix(self):
-        # ช่องรหัสผู้จำหน่าย: พิมพ์ต้นรหัสแล้วได้เฉพาะรหัสที่ขึ้นต้นด้วยค่านั้น (เดิมเป็น >= ได้ร้านเกือบทั้งหมด)
-        for pk in ("06อ001", "06อ002", "06ก001", "07อ001", "106อ01"):
+    def test_internal_page_filters_code_by_part(self):
+        # ช่องรหัสผู้จำหน่าย: ได้รหัสที่มีค่าที่พิมพ์อยู่ตรงไหนก็ได้ (เดิมเป็น >= ได้ร้านเกือบทั้งหมด)
+        # รหัสที่ขึ้นต้นด้วยค่านั้นขึ้นก่อน
+        for pk in ("06อ001", "06อ002", "06ก001", "07อ001", "106อ01", "01ก099", "02ข099"):
             Distributor.objects.create(id=pk, name="ร้าน " + pk)
         self.login(self.user)
 
         def ids(code):
             response = self.client.get(reverse('viewVendorReport'), {"distributor_id_from": code})
-            return sorted(v.id for v in response.context["vender"])
+            return [v.id for v in response.context["vender"]]
 
-        self.assertEqual(ids("06อ"), ["06อ001", "06อ002"])
-        self.assertEqual(ids("06"), ["06ก001", "06อ001", "06อ002"])
+        self.assertEqual(sorted(ids("06อ")), ["06อ001", "06อ002", "106อ01"])
+        self.assertEqual(ids("06อ")[-1], "106อ01")  # ขึ้นต้นด้วย 06อ มาก่อน
+        self.assertEqual(sorted(ids("099")), ["01ก099", "02ข099"])
         self.assertEqual(ids(" 06อ001 "), ["06อ001"])
-        self.assertEqual(ids("99"), [])
+        self.assertEqual(ids("999"), [])
 
         # กรอก "ถึง" ด้วย (หน้าประเมินร้านค้า / ลิงก์จากหน้าอื่น) ยังเป็นช่วงรหัสเหมือนเดิม
         response = self.client.get(reverse('viewVendorReport'), {"distributor_id_from": "06ก001", "distributor_id_to": "06อ001"})
