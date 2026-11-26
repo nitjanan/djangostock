@@ -4,7 +4,7 @@
 
 # Core framework / deployment
 Django==4.2.29
-gunicorn==20.1.0                  # Procfile: web process
+gunicorn==23.0.0                  # Procfile: web process (20.1.0 มีช่องโหว่ HTTP request smuggling)
 whitenoise==5.3.0                 # MIDDLEWARE + STATICFILES_STORAGE
 dj-database-url==0.5.0            # imported in djangostock/settings.py
 python-dotenv==1.2.1              # load_dotenv() in djangostock/settings.py
@@ -82,3 +82,4 @@ pytz-deprecation-shim==0.1.0.post0  # tzlocal
 importlib-metadata==6.8.0         # APScheduler (py<3.10)
 zipp==3.17.0                      # importlib-metadata
 colorama==0.4.4                   # click/console output on Windows
+packaging==26.3                   # gunicorn
