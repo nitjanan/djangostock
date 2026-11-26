@@ -37,6 +37,7 @@ from django.db.models import Prefetch, Sum, Max, Min
 from .resources import ReceiveItemResource, DistributorResource
 from .carlog_anomaly import detect_carlog_anomalies, default_scope as anomaly_default_scope, DEFAULT_DAYS as ANOMALY_DEFAULT_DAYS
 from .car_match import build_car_maps, normalize_text, resolve_car
+from .meter_hours import meter_hours_by_car_month
 from .unmatched_cars import collect_unmatched
 from .exp_car import maintenance_cars, resolve_exp_car
 from .exp_repair_docs import collect_repair_docs
@@ -13575,10 +13576,14 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
         for item in day_per_car_qs
     }
 
+    # ชั่วโมงหน้าปัดคิดทีละรายการ (ทนเลขที่กรอกผิดหลักทศนิยม ดู stock/meter_hours.py)
+    meter_hours_map = meter_hours_by_car_month(base_qs)
+
     # 🔥 STEP 3
     monthly_map = defaultdict(lambda: {
         'sum_diff_mile': 0,
         'count_diff_time': 0,
+        'meter_hours': 0,
     })
 
     for row in per_car_list:
@@ -13612,6 +13617,7 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
 
         monthly_map[key]['sum_diff_mile'] += diff
         monthly_map[key]['count_diff_time'] += days
+        monthly_map[key]['meter_hours'] = meter_hours_map.get((car, ym), 0)
 
     # 🔥 STEP 4
     result = []
@@ -13651,6 +13657,9 @@ def getapiExpWorkByMonthAll(request, start_date, end_date):
             "sum_diff_mile": float(diff_mile),
 
             "count_diff_time": int(count),
+
+            # ชั่วโมงหน้าปัดรวมรายวัน (เครื่องจักร) แทน sum_diff_mile ที่เป็นเลขท้าย-ต้นเดือน
+            "meter_hours": float(round(monthly_map[key]['meter_hours'], 2)),
 
             "percent": float(percent),
 
