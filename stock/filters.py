@@ -1,4 +1,4 @@
-from django.db.models import fields, Q, Min, Max, Exists, OuterRef
+from django.db.models import fields, Q, Min, Max, Exists, OuterRef, Subquery, Case, When, Value, IntegerField
 from django.db.models.fields import DateField
 from django.forms.widgets import DateInput, TextInput
 from django.http import QueryDict
@@ -24,6 +24,25 @@ def similar_text_filter(field, suggest=False):
 def cp_items(cp_qs):
     #ComparisonPriceItem.cp เป็น IntegerField (ไม่ใช่ FK) join จาก ComparisonPrice ตรงๆ ไม่ได้
     return ComparisonPriceItem.objects.filter(cp__in=cp_qs.values('id'))
+
+
+def received_po_items():
+    #รายการ PO (ที่ไม่ถูกยกเลิก) ของสินค้าในใบขอซื้อแถวนอก ที่ PO รับของแล้ว (is_receive หรือมีวันที่รับ)
+    #ใช้แทน RequisitionItem.is_receive เพื่อให้สถานะตรงกับ PO และเอาวันที่รับมาแสดงได้
+    return PurchaseOrderItem.objects.filter(
+        Q(po__is_receive=True) | Q(po__receive_update__isnull=False),
+        item=OuterRef('pk'), po__is_cancel=False)
+
+
+def annotate_item_receive(queryset):
+    #po_received = มี PO ที่รับของแล้วอย่างน้อย 1 ใบ, po_receive_date = วันที่รับล่าสุดจาก PO เหล่านั้น
+    received = received_po_items()
+    return queryset.annotate(
+        po_received=Exists(received),
+        po_receive_date=Subquery(
+            received.filter(po__receive_update__isnull=False)
+                    .order_by('-po__receive_update').values('po__receive_update')[:1]),
+    )
 
 class RequisitionFilter(django_filters.FilterSet):
     start_created = django_filters.DateFilter(field_name = "created", lookup_expr='gte', widget=DateInput(attrs={'type':'date'}))
@@ -81,6 +100,19 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
         field_name="requisition__note",
         lookup_expr='icontains', widget=SuggestInput('requisition__note', kind='note')
     )
+    #สถานะสินค้า (ป้ายหน้าชื่อสินค้าในหน้าประวัติใบขอซื้อ) ได้ใบที่มีสินค้าสถานะนั้นอย่างน้อย 1 รายการ
+    ITEM_STATUS_WAIT = 'wait'
+    ITEM_STATUS_DOING = 'doing'
+    ITEM_STATUS_RECEIVED = 'received'
+    item_status = django_filters.ChoiceFilter(
+        method='filter_item_status',
+        choices=(
+            (ITEM_STATUS_WAIT, 'ยังไม่ดำเนินการ'),
+            (ITEM_STATUS_DOING, 'กำลังดำเนินการ'),
+            (ITEM_STATUS_RECEIVED, 'รับสินค้าแล้ว'),
+        ),
+        empty_label='ทั้งหมด',
+    )
 
     class Meta:
         model = PurchaseRequisition
@@ -100,6 +132,22 @@ class PurchaseRequisitionFilter(django_filters.FilterSet):
             requisit=OuterRef('requisition_id'), **{self.REQUISITION_ITEM_LOOKUPS[name]: value})
         return queryset.filter(Exists(items))
 
+    @classmethod
+    def item_status_q(cls, value):
+        #ต้องตรงกับเงื่อนไขป้ายใน history/viewPR.html (ใช้กับ queryset ที่ผ่าน annotate_item_receive แล้ว)
+        #รับแล้วมาก่อน, quantity_used > 0 = กำลังดำเนินการ
+        if value == cls.ITEM_STATUS_RECEIVED:
+            return Q(po_received=True)
+        if value == cls.ITEM_STATUS_DOING:
+            return Q(po_received=False, quantity_used__gt=0)
+        return Q(po_received=False) & (Q(quantity_used__isnull=True) | Q(quantity_used__lte=0))
+
+    def filter_item_status(self, queryset, name, value):
+        items = (RequisitionItem.objects.filter(requisit=OuterRef('requisition_id'))
+                 .annotate(po_received=Exists(received_po_items()))
+                 .filter(self.item_status_q(value)))
+        return queryset.filter(Exists(items))
+
 PurchaseRequisitionFilter.base_filters['id'].label = 'รหัสใบขอซื้อ'
 PurchaseRequisitionFilter.base_filters['ref_no'].label = 'รหัสใบขอซื้อ'
 PurchaseRequisitionFilter.base_filters['purchase_user'].label = 'ชื่อผู้ขอซื้อ'
@@ -116,6 +164,7 @@ PurchaseRequisitionFilter.base_filters['item_product_id'].label = 'รหัส�
 PurchaseRequisitionFilter.base_filters['item_product_name'].label = 'ชื่อสินค้า'
 PurchaseRequisitionFilter.base_filters['item_machine'].label = 'ใช้ในระบบงาน(ใบเบิก)'
 PurchaseRequisitionFilter.base_filters['item_rq_note'].label = 'หมายเหตุ/เหตุผล(ใบเบิก)'
+PurchaseRequisitionFilter.base_filters['item_status'].label = 'สถานะสินค้า'
 
 
 class PurchaseOrderFilter(django_filters.FilterSet):
@@ -386,13 +435,28 @@ RateDistributorFilter.base_filters['organizer_user'].label = 'ผู้ประ
 
 
 class DistributorFilter(django_filters.FilterSet):
-    distributor_id_from  = django_filters.CharFilter(field_name="id", lookup_expr='gte')
+    #กรอกแค่ช่องรหัส (หน้าผู้จัดจำหน่ายในระบบมีช่องเดียว): ได้รหัสที่มีค่านั้นอยู่ตรงไหนก็ได้ เช่น 06อ / 099
+    #  รหัสที่ขึ้นต้นด้วยค่านั้นขึ้นก่อน ที่เจอกลางหรือท้ายรหัสต่อท้าย
+    #กรอก "ถึง" ด้วย (หน้าประเมินร้านค้า viewRD / ลิงก์ from=X&to=X จากหน้าอื่น): เป็นช่วงรหัส >= from และ <= to เหมือนเดิม
+    distributor_id_from  = django_filters.CharFilter(
+        method='filter_id_from',
+        widget=TextInput(attrs={'placeholder': 'พิมพ์รหัสหรือบางส่วน เช่น 06อ หรือ 099', 'autocomplete': 'off'}),
+    )
     distributor_id_to  = django_filters.CharFilter(field_name="id", lookup_expr='lte')
     distributor  = similar_text_filter("name")
 
     class Meta:
         model = Distributor
         fields = ('distributor_id_from', 'distributor_id_to','distributor',)
+
+    def filter_id_from(self, qs, name, value):
+        value = value.strip()
+        if not value:
+            return qs
+        if (self.data.get('distributor_id_to') or '').strip():
+            return qs.filter(id__gte=value)
+        prefix_first = Case(When(id__istartswith=value, then=Value(0)), default=Value(1), output_field=IntegerField())
+        return qs.filter(id__icontains=value).order_by(prefix_first, *qs.query.order_by)
 
 DistributorFilter.base_filters['distributor_id_from'].label = 'รหัสผู้จำหน่าย'
 DistributorFilter.base_filters['distributor_id_to'].label = 'ถึง'
