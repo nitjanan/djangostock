@@ -6,6 +6,16 @@
 {% block css %}
 {% include '_list_page_style.html' %}
 {% include '_user_filter_search.html' %}
+<style>
+  /* สถานะของสินค้าแต่ละรายการในใบขอซื้อ: ดำ = ยังไม่ดำเนินการ, เขียว = กำลังดำเนินการ, แดง = รับสินค้าแล้ว */
+  .dl-item-status { flex: 0 0 auto; margin-bottom: 0; padding: 0 .4rem; font-size: .68rem; line-height: 1.5; }
+  td .dl-item { justify-content: flex-start; gap: .4rem; }
+  td .dl-item .dl-item-status { margin-top: .2rem; }
+  .lt-pill.ist-wait { background: #e9ecef; color: #212529; }
+  .lt-pill.ist-doing { background: #d4edda; color: #155724; }
+  .lt-pill.ist-received { background: #f8d7da; color: #a71d2a; }
+  .ist-legend .lt-pill { margin-right: .25rem; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -30,6 +40,7 @@
           <div class="col-6 col-md">{{ filter.form.item_product_name|as_crispy_field }}</div>
           <div class="col-6 col-md">{{ filter.form.item_machine|as_crispy_field }}</div>
           <div class="col-6 col-md">{{ filter.form.item_rq_note|as_crispy_field }}</div>
+          <div class="col-6 col-md">{{ filter.form.item_status|as_crispy_field }}</div>
         </div>
       </div>
       <div class="lf-row">
@@ -48,7 +59,12 @@
 </div>
 <div class="card div-shadow">
   <div class="card-body">
-    <span class="text-success">* รายการที่ดำเนินการเปรียบเทียบราคาหรือทำการสั่งซื้อแล้ว</span>
+    <div class="ist-legend">
+      สถานะสินค้า:
+      <span class="lt-pill dl-item-status ist-wait">ยังไม่ดำเนินการ</span>
+      <span class="lt-pill dl-item-status ist-doing">กำลังดำเนินการ</span> <small class="text-muted">(เปรียบเทียบราคาหรือสั่งซื้อแล้ว)</small>
+      <span class="lt-pill dl-item-status ist-received ml-1">รับสินค้าแล้ว</span>
+    </div>
     <span class="text-warning">* รายการใบขอซื้อที่ถูกปิดรายการ</span>
     <div class="table-responsive">
       <table class="table table-striped lt">
@@ -75,11 +91,19 @@
             </th>
             <td class="lt-hide-lg"><a href="{% url 'showRequisition' pr.requisition.id 4 %}">{{ pr.requisition.ref_no }}</a></td>
             <td class="dl-items-col">
-              <!-- สีเขียว = ใช้ไปแล้ว -->
+              <!-- สถานะ (ตรงกับ PurchaseRequisitionFilter.item_status_q): po_received = PO ที่มีสินค้านี้รับของแล้ว (po.is_receive / po.receive_update) แสดงวันที่รับล่าสุด,
+                   quantity_used > 0 = กำลังดำเนินการ (ดึงไปเปรียบเทียบราคา/สั่งซื้อแล้ว), อื่นๆ = ยังไม่ดำเนินการ -->
               <div class="dl-items">
-                {% for requisition_item in pr.requisition.requisitionitem_set.all %}
+                {% for requisition_item in pr.requisition.status_items %}
                 <div class="dl-item{% if forloop.counter > 3 %} dl-extra{% endif %}">
-                  <span class="dl-item-name {% if requisition_item.quantity_used > 0 %}text-success{% endif %}">{{ requisition_item.product_name }}</span>
+                  {% if requisition_item.po_received %}
+                  <span class="lt-pill dl-item-status ist-received">รับสินค้าแล้ว{% if requisition_item.po_receive_date %} {{ requisition_item.po_receive_date|date:"d/m/Y" }}{% endif %}</span>
+                  {% elif requisition_item.quantity_used > 0 %}
+                  <span class="lt-pill dl-item-status ist-doing">กำลังดำเนินการ</span>
+                  {% else %}
+                  <span class="lt-pill dl-item-status ist-wait">ยังไม่ดำเนินการ</span>
+                  {% endif %}
+                  <span class="dl-item-name">{{ requisition_item.product_name }}</span>
                 </div>
                 {% if forloop.last and forloop.counter > 3 %}
                 <button type="button" class="dl-more" data-more="และอีก {{ forloop.counter|add:'-3' }} รายการ" onclick="var b=this.parentNode.classList.toggle('is-open');this.querySelector('span').textContent=b?'ย่อรายการ':this.dataset.more;this.setAttribute('aria-expanded',b)" aria-expanded="false"><i class="fas fa-chevron-down"></i> <span>และอีก {{ forloop.counter|add:'-3' }} รายการ</span></button>

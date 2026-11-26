@@ -27,7 +27,7 @@ from django.conf import settings
 from django.views.generic import ListView, View, TemplateView, DeleteView
 from django.template.loader import render_to_string
 from django.urls import reverse
-from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter, CarLogbookFilter, AllDetailsFilter
+from .filters import ComparisonPriceFilter, RequisitionFilter, PurchaseRequisitionFilter, PurchaseOrderFilter,ComparisonPriceFilter, ReceiveFilter, PurchaseOrderItemFilter, RateDistributorFilter, DistributorFilter, InvoidFilter, ExOESTNHFilter, ExOEINVHFilter, MaintenanceFilter, CarLogbookFilter, AllDetailsFilter, annotate_item_receive
 from .forms import PurchaseOrderItemFormset, PurchaseOrderItemModelFormset, PurchaseOrderItemInlineFormset, CPitemFormset, CPitemInlineFormset, ReceiveItemForm, RequisitionItemModelFormset, ReceiveItemInlineFormset
 from django.forms import inlineformset_factory
 import stripe, logging, datetime
@@ -6057,7 +6057,10 @@ def viewPRHistory(request):
     suggest = filter_suggest_response(request, myFilter)
     if suggest:
         return suggest
-    data = myFilter.qs
+    #สินค้าในใบพร้อมสถานะรับของจาก PO (po_received, po_receive_date) ไว้ทำป้ายสถานะ ดึงทีเดียวทั้งหน้า
+    data = myFilter.qs.select_related('requisition').prefetch_related(
+        Prefetch('requisition__requisitionitem_set',
+                 queryset=annotate_item_receive(RequisitionItem.objects.all()), to_attr='status_items'))
 
     #สร้าง page
     p = Paginator(data, 10)
